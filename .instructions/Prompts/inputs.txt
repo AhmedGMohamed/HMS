@@ -1,0 +1,47 @@
+I'm developing a Facility Management System for an ICU/NCU Facility. The system will be used by receptionists and facility owners for patient attendance and tracking, selecting patient services, managing bills, employee and medical crew pay and attendance, referral payments, pharmacy medicinal stocks, and much more. The system will be a desktop app, and all the data will be saved locally on the PC with that app.
+
+The application will be developed using the following technologies and libraries with an MVC architecture and folder structure:
+HTML, CSS, JS
+Bootstrap
+Typescript
+React
+Vite
+Electron (For desktop app development using web technologies)
+PostgreSQL
+
+The project will be split into different parts summarized in the following points:
+
+1. Current user profiles: the app will have two types of users, an admin and a user, each functionality developed in the app can be accessed by the admin, and the admin is the only one to create new user profiles. The admin will need to provide privileges for each feature to the user in the form of a checkbox on the settings page, we will be using role-based access control to manage permissions
+
+2. Patients page: this page will be split into 4 parts:
+  a. a patient details form, this form will be used for viewing, editing and registering a patient, which contains the patient's name, gender, phone number, address, payment type, name of guardian, guardian phone number, guardian address, Guardian kinship, referring doctor (could be a name or set to none), payment type (1. cash or credit 2. insurance company), if the insurance company option is selected, the user will be required to input the insurance ID. and when registering, a checkbox for quick medical checks, where it doesn't auto add services specified to be auto-added to any admitted patients, as that patient will not be admitted to a room and only needs a quick medical check.
+  b. a dynamic list, which will change depending on the context to choose from the available services for the patient, choose from the available drugs to give to a patient, or the patient list and the used services & drugs. By default, it will show the services, when a service is selected, clicking an "add" button will show a patient list next to it to pick from to add that service to. If the drugs tab is selected, the same will happen, except it will show the "drug card", then when selecting a drug card, it will show the shipments with an available quantity to select from and will ask the user to choose the number of that drug to add to the patient's bill from the lower/larger quantity set. 
+  c. payment totals, which will have an editable form with all details around payment including how much the patient owes in total, how much he has paid, how much will be discounted, how much is left to pay, how much the facility owes the patient, and other parts that will be provided later, with checkboxes and inputs to include editable VAT and tax percentages (separate inputs), and a dropdown list specifying if those percentages would be applied to services only, drugs only or services and drugs together
+  d. a part for different buttons that will change the page context, including buttons such as add patient, edit patient, save patient data, delete patient, view the patient receipt, view all patients in the dynamic list (listed in part b) and others.
+
+3. Services page: here the admin and users with privileges will be able to add services the facility can offer to patients, when creating a new service, there'll be inputs requiring the service's name, and price for the default price list (and for any other created price lists), a checkbox indicating whether this service would be automatically renewed on a new day or not, a checkbox indicating whether this service is instantly added to a patient's list of used services upon patient admittance or not, a dropdown list indicating the type of this service (one time service, hourly service or daily service), a list of the registered drugs that are automatically registered for use for the patient when the service is used/selected for a patient.
+
+4. Reports page: this page will include other pages to view all kinds of reports like payments given, payments received, money earned by service, money earned by a single patient, yearly/monthly/daily profit, number of patients supervised by a certain doctor and much more
+
+5. Employees Section: This section will be split into 3 separate pages as follows:
+  a. Doctors page: this page will follow a structure close to the patients' page, where there'll be a list of doctors, a form with the doctor's name, a dropdown list indicating whether that doctor is from the active medical crew or not, an outside doctor, a referring doctor or a supervising doctor. the page will require the doctor's phone number and a specified wage (or referral bonus in the case of a referring doctor), there'll be options for picking the pay for that doctor, which will be a daily pay and/or a pay per patient (fixed or a percentage of the patient's total bill)
+  b. Nurses page: This page will be like the doctor's page, except there won't be referral bonuses, nurses will be assigned a morning shift or night shift, where the day starts at 8am and ends at 8pm for the morning shift, while the night shift begins at 8pm and ends at 8am. Nurses need to clock in at the start of the shift, if the nurse clocks in 3 hours late, half of the fixed day pay is docked (only the fixed pay, the pay per patient is normal), if the nurse clocks in 6 hours late, the day's payment is completely docked.
+  c. Facility Employees page: It will follow the same structure as the doctor's page, where the difference will be the dropdown list will indicate the type of employee, which the user can add as well, the pay will also be the same, with the extra options of getting a wage % of all profit made during the day before any deductions or after deductions.
+
+6. Pharmacy: This page will keep track of all drugs in the facility's pharmacy, which will have an alert system when a drug is almost out of stock or close to expiry. The pharmacy page will contain a list of registered drugs. For each drug, there will be 4 parts:
+  a. A form for creating or editing an existing "Drug card". When adding a new drug type to the pharmacy, the user will have to fill out a "Drug Card", which contains basic data such as the name of the drug, the manufacturer, the provider, the minimum amount of that drug required to send a low stock alert, the maximum amount of days before sending a "Close to expiry" alert, a smaller quantity and larger quantity, which the user will be required to give a name to each drug (example: larger quantity: box, smaller quantity: ampule. the user will set how much of the smaller quantity is equivalent to the larger quantity of the drug. example: 1 larger quantity (box) = 10 smaller quantity (ampule)).
+  b. Buy drug: This part will add an amount of the specified drug (selected from the registered drug lists), the buying price and the expiry date. This will add the drug shipment with this data as its own row but under the same "drug card" details, the user will select from a dropdown list the warehouse that the shipment will be placed in, and the list of warehouses will be user-added, and clicking a "view warehouses" button, which will show all available warehouses and all the shipments and drugs inside that warehouse in a separate pop-up.
+  c. Sell drug: This part will remove an amount of a selected drug shipment from a selected "drug card", it'll require the selling price and will show the profit using the buy price from that drug shipment, and when finalized will add the profit for that sale, it'll also require the type of sale (internal to patients, or external)
+  d. Amend Drug shipment: This will allow the user to edit any details for a specific drug shipment such as the number of drugs in that shipment, the expiry date, the sale price
+
+7. Insurance Page: This will contain a list of valid insurance companies the facility deals with and a form for registering a new insurance company. When registering a new insurance company, the user needs to check the services that are valid for a discount, then, the user will specify a general discount percentage that will be applied to all valid services which can be different for each price list. 
+
+8. Clocking Page: This page will allow the user to clock in/out any employees, nurses or "Active Doctors" that come in/out of the facility, with the time of the attendance and leave logged into the system
+
+9. Logging System: The system will log and save each action performed on the app, such as clicking a button, adding a service, removing a doctor, etc...
+
+All name/ID/other searchable inputs need to be searchable and return a list of registered names similar to the current user input from the database, whether patient names, doctor names, employees, users, etc...
+
+New Patient days start at 12pm, that's when the patient is billed for the services, drugs and crew payments used on the last day, and a new day starts, so there'll have to be scheduled jobs to calculate different things daily, such as drug stock alerts, payments, service additions, etc...
+
+This is the general outline of the system, I will give you more specific details for each part on the following prompts, which you will help me design and develop this system

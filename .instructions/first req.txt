@@ -1,0 +1,17 @@
+مركز مستشفي للعناية
+جزء عناية: قائم ي نظام خدمات، 
+حجز مرضي، الدمستشفي تحدد الخدمات المتاحة لكل مريض
+اليوم يبدأ وينتهي الساعة 12 الظهر
+العناية بها صيدلية تسجل العدد
+كارت صنف للادوية
+alarm for medicine almost out of stock
+doctor account active/stopped
+hospital assigns doctor commissions
+doctor and patient profile
+outside doctor and referrals with number of patients referred and amount of money paid
+inside doctor and outside doctor commissions
+attendance for paid with fingerprint sensor on a day for doctor and nurse
+employees considered absent if not used fingerprint sensor
+nurse shift 8 am to 8 pm
+
+

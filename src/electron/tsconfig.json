@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		// require strict types (null-save)
+		"strict": false,
+		// tell TypeScript to generate ESM Syntax
+		"target": "ES2020",
+
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		// tell TypeScript to require ESM Syntax as input (including .js file imports)
+		"module": "NodeNext",
+		// define where to put generated JS
+		"outDir": "../../dist-electron",
+		// ignore errors from dependencies
+		"skipLibCheck": true,
+
+		// tell TypeScript to allow downlevelIteration
+		"downlevelIteration": true
+	},
+	"include": ["../**/*.ts", "../**/*.cts"],
+	"exclude": ["**/sweetalert2/**"]
+}

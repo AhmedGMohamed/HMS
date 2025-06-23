@@ -1,0 +1,31 @@
+{
+	"appId": "com.ahmed-gamal.hms",
+	"files": [
+		"dist-electron/**/*",
+		"src/assets/**/*",
+		"dist-electron/app/tests/**/*"
+	],
+	"extraResources": [
+		"dist-electron/electron/preload.cjs",
+		"src/electron/assets/**/*",
+		"src/app/assets/**/*"
+	],
+	"icon": "./dist-electron/electron/assets/desktopIcon.png",
+	"mac": {
+		"target": "dmg"
+	},
+	"linux": {
+		"target": "AppImage",
+		"category": "Utility"
+	},
+	"win": {
+		"target": [
+			"portable",
+			"msi"
+		]
+	},
+	"msi": {
+		"oneClick": false,
+		"perMachine": true
+	}
+}
