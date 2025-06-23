@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS - Price Lists Management</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="../css/dashboard.css" rel="stylesheet">
+  <link href="../css/price-lists.css" rel="stylesheet">
+  <!-- SweetAlert2 CSS -->
+  <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="active">
+      <div class="sidebar-header">
+        <h3>HMS</h3>
+        <h3 class="sidebar-mini">H</h3>
+      </div>
+
+      <div class="sidebar-profile">
+        <div class="profile-image d-flex justify-content-center">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="userFullName">Loading...</div>
+          <div class="profile-role" id="userRole">Loading...</div>
+        </div>
+      </div>
+
+      <ul class="list-unstyled components">
+        <li>
+          <a href="/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+
+        <!-- Administration section - Admin only -->
+        <li class="nav-item-header" data-requires-role="Admin">Administration</li>
+        <li data-requires-role="Admin">
+          <a href="#userSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-people"></i>
+            <span>User Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="userSubmenu">
+            <li>
+              <a href="/admin/users" class="nav-link">
+                <i class="bi bi-person"></i>
+                <span>Users</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/roles" class="nav-link">
+                <i class="bi bi-shield"></i>
+                <span>Roles</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/permissions" class="nav-link">
+                <i class="bi bi-key"></i>
+                <span>Permissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item-header">Management</li>
+        <!-- Patient Management - Requires manage_patients permission -->
+        <li data-requires-permission="manage_patients">
+          <a href="#patientSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-vcard"></i>
+            <span>Patient Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="patientSubmenu">
+            <li>
+              <a href="/patients" class="nav-link">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Patients</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admissions" class="nav-link">
+                <i class="bi bi-hospital"></i>
+                <span>Admissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Pharmacy - Requires manage_pharmacy permission -->
+        <li data-requires-permission="manage_pharmacy">
+          <a href="#pharmacySubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-capsule"></i>
+            <span>Pharmacy</span>
+          </a>
+          <ul class="collapse list-unstyled" id="pharmacySubmenu">
+            <li>
+              <a href="/drugs" class="nav-link">
+                <i class="bi bi-capsule-pill"></i>
+                <span>Drugs</span>
+              </a>
+            </li>
+            <li>
+              <a href="/inventory" class="nav-link">
+                <i class="bi bi-box-seam"></i>
+                <span>Inventory</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Services - Requires manage_services permission -->
+        <li data-requires-permission="manage_services">
+          <a href="/services" class="nav-link">
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Services</span>
+          </a>
+        </li>
+
+        <!-- Price Lists - Requires manage_prices permission -->
+        <li class="active" data-requires-permission="manage_prices">
+          <a href="/price-lists" class="nav-link">
+            <i class="bi bi-tag"></i>
+            <span>Price Lists</span>
+          </a>
+        </li>
+
+        <!-- Reports - Requires view_reports permission -->
+        <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
+        <li data-requires-permission="view_reports">
+          <a href="/reports" class="nav-link">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Reports</span>
+          </a>
+        </li>
+      </ul>
+
+
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="btn btn-link">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navigation -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-light">
+            <i class="bi bi-list"></i>
+          </button>
+          <div class="page-title">
+            <h4>Price Lists Management</h4>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="container-fluid">
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+          <div class="col">
+            <button type="button" class="btn btn-primary" id="createPriceListBtn">
+              <i class="bi bi-plus-circle"></i> Create New Price List
+            </button>
+          </div>
+        </div>
+
+        <!-- Price Lists Grid -->
+        <div class="row" id="priceListsContainer">
+          <!-- Price lists will be dynamically added here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Price List Modal -->
+  <div class="modal fade" id="priceListModal" tabindex="-1" aria-labelledby="priceListModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="priceListModalLabel">Create New Price List</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="priceListForm" novalidate>
+            <input type="hidden" id="priceListId">
+            <div class="mb-3">
+              <label for="priceListName" class="form-label">Price List Name</label>
+              <input type="text" class="form-control" id="priceListName" required minlength="3">
+              <div class="invalid-feedback">
+                Price list name must be at least 3 characters long
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isDefault">
+                <label class="form-check-label" for="isDefault">
+                  Set as Default Price List
+                </label>
+              </div>
+              <small class="text-muted">
+                Note: Setting this as default will remove default status from any other price list
+              </small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="savePriceListBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle with Popper-->
+  <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- Custom JS -->
+  <script src="../js/shared/sidebar.js" type="module"></script>
+  <script src="../js/price-lists/price-lists.js" type="module"></script>
+</body>
+
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS - Login</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/login.css" rel="stylesheet">
+  <!-- SweetAlert2 CSS -->
+  <link href="css/sweetalert2/sweetalert2.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+  <div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0">
+          <div class="card-header bg-primary text-white text-center py-4">
+            <h4 class="mb-0">Hospital Management System</h4>
+          </div>
+          <div class="card-body p-5">
+            <form id="loginForm" novalidate>
+              <div class="mb-4">
+                <label for="username" class="form-label">اسم المستخدم</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-person-fill"></i>
+                  </span>
+                  <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
+                  <div class="invalid-feedback">
+                    Please enter your username
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-lock-fill"></i>
+                  </span>
+                  <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+                  <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                    <i class="bi bi-eye-fill"></i>
+                  </button>
+                  <div class="invalid-feedback">
+                    Please enter your password
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true">
+                  </span>
+                  <span class="btn-text">Login</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="js/bootstrap/dist/bootstrap.bundle.min.js" type="module"></script>
+  <!-- SweetAlert2 -->
+  <script src="js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- Custom JS -->
+  <script src="js/login.js" type="module"></script>
+</body>
+
+</html>

@@ -1,0 +1,165 @@
+/* Drug Table Styles */
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.drug-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.drug-row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.drug-row.expanded {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.shipment-rows {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.toggle-shipments {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    color: var(--bs-primary);
+    transition: transform 0.2s;
+}
+
+.toggle-shipments:hover {
+    color: var(--bs-primary-dark);
+}
+
+.toggle-shipments.expanded {
+    transform: rotate(180deg);
+}
+
+/* Stock Display */
+.stock-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stock-unit {
+    font-size: 0.875rem;
+    color: var(--bs-gray-600);
+}
+
+.stock-quantity {
+    font-weight: 500;
+}
+
+/* Expiry Date Display */
+.expiry-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.expiry-date.warning {
+    color: var(--bs-warning);
+}
+
+.expiry-date.danger {
+    color: var(--bs-danger);
+}
+
+/* Shipment Details */
+.shipment-detail {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.shipment-detail:last-child {
+    border-bottom: none;
+}
+
+.price-badge {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--bs-success);
+    font-size: 0.875rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.25rem;
+    margin: 0.25rem;
+    display: inline-block;
+}
+
+#sellQuantitySmallerLabel, #sellQuantityLargerLabel {
+	text-transform: capitalize;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Modal Customization */
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.02);
+    font-weight: 500;
+}
+
+/* Form Helpers */
+.unit-conversion-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* Sell Modal Specific */
+.price-list-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price-list-option .price {
+    color: var(--bs-success);
+    font-weight: 500;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.shipment-rows {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+    }
+
+    .stock-display {
+        flex-direction: row;
+        gap: 1rem;
+    }
+}

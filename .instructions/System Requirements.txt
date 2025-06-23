@@ -1,0 +1,158 @@
+opening the system:
+active patient data on opening the system - leads to profile
+adding a new patient on the same page
+
+calendar shows active patients on the past days
+
+a page with all patients since the hospital started, which shows the profiles for those patients
+active patient new day starts on 12pm
+
+////Services:
+Service Name
+Service type
+Checkbox for service availability
+
+adding a service, options split into one time, hourly, daily
+the number of times for the payment given
+insurance integration
+adding a checkbox for automatic renewal of a service or not
+A checkbox for pre payment of service 
+A checkbox for needing a doctor appointed, which appoints active doctors, automatically sending the service to the doctor depending on active services for that doctor
+A checkbox for internal services or external services
+
+
+
+
+
+////Active Doctors:
+Profiles for Doctors and nurses working in the hospital
+Checkboxes for the doctor to mark as active
+A checkbox that shows when the medical crew is active
+Doctors get paid on patient (with fixed amount money)
+Services and each payment for the service for that doctor
+outside doctor and referrals with number of patients referred and amount of money paid
+
+
+////Nurses
+Day starts 8am and ends 8pm
+nurse gets money if patient gets assigned 7pm and shift ends at 8pm
+nurse doesnt get money if patient leaves before shift ends
+
+
+
+
+////patient profile:
+Patient data
+Referring Doctor
+Services taken
+Money owed/paid
+Total
+3 buttons, first button resets all money to zero (SEE PHOTO WA)
+2 checkboxes to add VAT to services or pharmacy or both
+All actions for patients are done from the patient page
+
+
+When removing a patient
+have a dropdown for the reason: death, got well, on demand
+if death, when paying for the day, divide the payment on the hours taken 
+if he got well, pay for the entire day
+if on demand, pay for the entire day
+
+
+
+
+
+////Adding a new patient page
+
+Search by name
+If the patient exists, fill out the patient data automatically
+patient data
+Name
+Gender
+Address
+Name of guardian
+national ID number
+phone number
+address of guardian
+Guardian kinship to the patient
+referring doctor name
+Payment type
+Diagnosis
+Number of days
+checkboxes for each service for automatic start
+Checkbox for just a doctor quick check, where it doesnt automatically fill a room
+insurance accounts for patients
+
+Payment types:
+نقضي: cash/credit
+تعاقد: insurance
+
+
+
+
+
+insurance profiles:
+insurance comp name
+insurance checkbox services 
+amount patient can pay in %
+insurance accounts have details for each patient money owed, with date and service
+ability to select which services are deductible by the insurance and the percentage of deduction 
+option to zero amount owed for each patient
+
+
+
+
+
+///pharmacy
+registering medicine
+named categories 
+كمية صغري وكمية كبري يتسموا علي حسب الاختيار
+medicine is registered with date and quantity and name and category and warehouse
+يتم حساب الكمية الكبري والكمية الصغري في ترابيزتين بجانب بعض
+show medicine price bought
+remaining quantity of medicine
+date bought and expiry date for each package
+profit for each medicine with price bought and price sold
+when registering medicine, register company name
+alarm for when medicine is about to expire 1 month prior
+pharmacy can sell medicine to non patients and add the payment to invoices
+
+
+
+
+
+
+////warehouse
+need to add warehouse with names and numbers
+ability to add medicine to different warehouses
+
+
+
+
+
+///////vault
+
+
+
+
+
+شئون الموظفين
+internal doctor and external doctors
+external doctors will get paid
+external doctor will have to repeat visits to a patient and will get a commission
+external doctor can go through patients and will also get a commission
+
+
+
+
+
+
+الايرادات
+يقدر يسجل الزيادات كايرادات
+
+
+
+
+
+
+

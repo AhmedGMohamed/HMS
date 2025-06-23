@@ -1,0 +1,93 @@
+/* Price List Card Styles */
+.price-list-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+
+.price-list-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.price-list-card .card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.1);
+    padding: 1rem;
+}
+
+.price-list-card .card-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--bs-gray-700);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.price-list-card.default {
+    border-color: var(--bs-primary);
+}
+
+.price-list-card.default .card-header {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.default-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background-color: var(--bs-primary);
+    color: white;
+    border-radius: 0.25rem;
+}
+
+.price-list-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    background-color: rgba(0,0,0,.03);
+    border-radius: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--bs-gray-600);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Modal Customization */
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+    }
+}
