@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clocking Management - HMS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
+  <link rel="stylesheet" href="/css/pharmacy.css">
+  <link rel="stylesheet" href="/css/clocking.css">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-2 p-0">
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <a class="navbar-brand" href="/dashboard">HMS</a>
+          </div>
+          <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Administration</a>
+              <ul class="nav flex-column ms-3">
+                <li class="nav-item"><a class="nav-link" href="/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/doctors">Doctors</a></li>
+                <li class="nav-item"><a class="nav-link" href="/nurses">Nurses</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/clocking">Clocking</a></li>
+              </ul>
+            </li>
+          </ul>
+          <div class="sidebar-footer">
+            <a class="nav-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-10">
+        <div class="content p-4">
+          <h1>Clocking Management</h1>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <button class="btn btn-primary" id="createClockInBtn">
+              <i class="bi bi-plus-circle"></i> New Clock-In
+            </button>
+            <input type="text" class="form-control w-25" id="searchClockIn" placeholder="Search by employee name...">
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Employee Name</th>
+                  <th>Clock-In Time</th>
+                  <th>Clock-Out Time</th>
+                  <th>Pay Deduction</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clockInTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock-In Modal -->
+  <div class="modal fade modal-lg" id="clockInModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="clockInModalLabel">New Clock-In</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="clockInForm" class="needs-validation" novalidate>
+          <div class="modal-body">
+            <input type="hidden" id="clockId">
+            <div class="mb-3">
+              <label for="employeeId" class="form-label">Employee</label>
+              <select class="form-select" id="employeeId" required>
+                <option value="">Select Employee</option>
+              </select>
+              <div class="invalid-feedback">Please select an employee.</div>
+            </div>
+            <div class="mb-3">
+              <label for="clockInTime" class="form-label">Clock-In Time</label>
+              <input type="datetime-local" class="form-control" id="clockInTime" required>
+              <div class="invalid-feedback">Please enter a clock-in time.</div>
+            </div>
+            <div class="mb-3">
+              <label for="clockOutTime" class="form-label">Clock-Out Time</label>
+              <input type="datetime-local" class="form-control" id="clockOutTime">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveClockInBtn">
+              <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+              <span class="btn-text">Save</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+  <script src="/js/clocking.js"></script>
+</body>
+
+</html>

@@ -13,7 +13,7 @@ export const devDatabase = {
 					try {
 						await dbHelper.seedDatabase();
 					} catch (error) {
-						console.error("coulde be normal: ", error);
+						console.error("could be normal: ", error);
 					}
 				}
 			} catch (error) {
@@ -21,7 +21,7 @@ export const devDatabase = {
 					try {
 						await dbHelper.seedDatabase();
 					} catch (error) {
-						console.error("coulde be normal: ", error);
+						console.error("could be normal: ", error);
 					}
 				}
 			}

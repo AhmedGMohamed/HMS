@@ -78,12 +78,14 @@
             <span>Patient Management</span>
           </a>
           <ul class="collapse list-unstyled" id="patientSubmenu">
+
             <li>
               <a href="/patients" class="nav-link">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Patients</span>
               </a>
             </li>
+
             <li>
               <a href="/admissions" class="nav-link">
                 <i class="bi bi-hospital"></i>
@@ -91,6 +93,42 @@
               </a>
             </li>
           </ul>
+        </li>
+
+        <!-- Employee Management - Requires manage_employees permission -->
+        <li data-requires-permission="manage_employees">
+          <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-file-person-fill"></i>
+            <span>Employee Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="employeesSubmenu">
+            <li>
+              <a class="nav-link" href="/employees" data-requires-permission="manage_employees">
+                <i class="bi bi-person-fill-gear"></i>
+                <span>Employees</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/doctors" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Doctors</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/nurses" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Nurses</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Clocking - Requires manage_clocking permission -->
+        <li data-requires-permission="manage_clocking">
+          <a href="/clocking" class="nav-link">
+            <i class="bi bi-clock-fill"></i>
+            <span>Services</span>
+          </a>
         </li>
 
         <!-- Pharmacy - Requires manage_pharmacy permission -->
@@ -225,19 +263,21 @@
           </div>
 
           <div class="col-md-3 mb-3">
-            <div class="card stat-card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="stat-icon bg-warning">
-                    <i class="bi bi-capsule"></i>
-                  </div>
-                  <div class="ms-3">
-                    <h6 class="card-subtitle mb-1">Low Stock Items</h6>
-                    <h3 class="card-title mb-0" id="lowStockItemsCount">0</h3>
+            <a href="/drugs" class="text-decoration-none">
+              <div class="card stat-card">
+                <div class="card-body">
+                  <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-warning">
+                      <i class="bi bi-capsule"></i>
+                    </div>
+                    <div class="ms-3">
+                      <h6 class="card-subtitle mb-1">Low Stock Items</h6>
+                      <h3 class="card-title mb-0" id="lowStockItemsCount">0</h3>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </a>
           </div>
 
           <div class="col-md-3 mb-3">
@@ -263,9 +303,9 @@
             <div class="card">
               <div class="card-body">
                 <h5 class="card-title">Revenue Overview</h5>
-				<div class="h-100">
-					<canvas id="revenueChart"></canvas>
-				</div>
+                <div class="h-100">
+                  <canvas id="revenueChart"></canvas>
+                </div>
               </div>
             </div>
           </div>
@@ -292,7 +332,7 @@
                     <thead>
                       <tr>
                         <th>Time</th>
-						<th>User</th>
+                        <th>User</th>
                         <th>Action</th>
                         <th>Details</th>
                       </tr>

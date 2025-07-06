@@ -42,7 +42,19 @@ export class DashboardService {
 				WHERE dt.timestamp >= to_timestamp($1)
 			) dsp`;
 		const result = await query(drugProfitSql, [last12PM]);
-		return result.rows[0].sum || 0;
+
+		const employeeWagesSql = `
+			SELECT CAST(SUM(wage) as DECIMAL(15,2))
+			FROM (
+				SELECT
+				(ep.payment_amount + ep.extra_amount) as wage
+			    FROM EmployeePayment ep
+				WHERE ep.is_paid = true
+				AND is_void = false
+				AND ep.paid_timestamp >= to_timestamp($1)
+			)`
+		const wageResult = await query(employeeWagesSql, [last12PM]);
+		return (result.rows[0].sum || 0) - (wageResult.rows[0].sum || 0);
 	}
 
 	private async getLowStockItemsCount(): Promise<number> {

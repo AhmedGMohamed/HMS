@@ -28,7 +28,7 @@ function createWindow() {
 		width: 1920,
 		height: 1080,
 		webPreferences: {
-			devTools: false
+			devTools: true
 		},
 		autoHideMenuBar: true
 	});
