@@ -61,4 +61,45 @@ router.get(
 	}
 );
 
+//Employee & Clock-in routes
+router.get(
+	"/employees",
+	verifyToken,
+	checkPermission("manage_employees"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/employees/employees.html", { root: __dirname });
+	}
+);
+
+router.get(
+	"/doctors",
+	verifyToken,
+	checkPermission("manage_employees"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/employees/doctors.html", { root: __dirname });
+	}
+);
+
+router.get(
+	"/nurses",
+	verifyToken,
+	checkPermission("manage_employees"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/employees/nurses.html", { root: __dirname });
+	}
+);
+
+router.get(
+	"/clocking",
+	verifyToken,
+	checkPermission("manage_clocking"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/employees/clocking.html", { root: __dirname });
+	}
+);
+
 export default router;

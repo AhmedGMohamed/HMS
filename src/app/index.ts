@@ -7,6 +7,7 @@ import pageRoutes from "./routes/page.routes.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
+import { EmployeePaymentCron } from "./cron/employeePaymentCron.js";
 
 overridePgDate();
 dotenv.config()
@@ -38,5 +39,7 @@ app.use((_req, res) => {
 });
 
 app.use(errorHandler);
+
+EmployeePaymentCron.startJobs();
 
 export default app;

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS - Nurses</title>
+  <!-- Bootstrap CSS -->
+  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="../css/dashboard.css" rel="stylesheet">
+  <link href="../css/nurses.css" rel="stylesheet">
+  <!-- SweetAlert2 CSS -->
+  <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
+  <!-- Toastr CSS -->
+  <link href="../css/toastr/toastr.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="active">
+      <div class="sidebar-header">
+        <h3>HMS</h3>
+        <h3 class="sidebar-mini">H</h3>
+      </div>
+      <div class="sidebar-profile">
+        <div class="profile-image d-flex justify-content-center">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="userFullName">Loading...</div>
+          <div class="profile-role" id="userRole">Loading...</div>
+        </div>
+      </div>
+      <ul class="list-unstyled components">
+        <li>
+          <a href="/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <!-- Administration section - Admin only -->
+        <li class="nav-item-header" data-requires-role="Admin">Administration</li>
+        <li data-requires-role="Admin">
+          <a href="#userSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-people"></i>
+            <span>User Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="userSubmenu">
+            <li>
+              <a href="/admin/users" class="nav-link">
+                <i class="bi bi-person"></i>
+                <span>Users</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/roles" class="nav-link">
+                <i class="bi bi-shield"></i>
+                <span>Roles</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/permissions" class="nav-link">
+                <i class="bi bi-key"></i>
+                <span>Permissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-item-header">Management</li>
+        <!-- Patient Management -->
+        <li data-requires-permission="manage_patients">
+          <a href="#patientSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-vcard"></i>
+            <span>Patient Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="patientSubmenu">
+            <li>
+              <a href="/patients" class="nav-link">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Patients</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admissions" class="nav-link">
+                <i class="bi bi-hospital"></i>
+                <span>Admissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!-- Employee Management -->
+        <li data-requires-permission="manage_employees">
+          <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-vcard"></i>
+            <span>Employee Management</span>
+          </a>
+          <ul class="collapse list-unstyled show" id="employeesSubmenu">
+            <li>
+              <a class="nav-link" href="/employees" data-requires-permission="manage_employees">
+                <i class="bi bi-person-fill-gear"></i>
+                <span>Employees</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/doctors" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Doctors</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link active" href="/nurses" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Nurses</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!-- Clocking -->
+        <li data-requires-permission="manage_clocking">
+          <a href="/clocking" class="nav-link">
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Services</span>
+          </a>
+        </li>
+        <!-- Pharmacy -->
+        <li data-requires-permission="manage_pharmacy">
+          <a href="#pharmacySubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-capsule"></i>
+            <span>Pharmacy</span>
+          </a>
+          <ul class="collapse list-unstyled" id="pharmacySubmenu">
+            <li>
+              <a href="/drugs" class="nav-link">
+                <i class="bi bi-capsule-pill"></i>
+                <span>Drugs</span>
+              </a>
+            </li>
+            <li>
+              <a href="/inventory" class="nav-link">
+                <i class="bi bi-box-seam"></i>
+                <span>Inventory</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!-- Services -->
+        <li data-requires-permission="manage_services">
+          <a href="/services" class="nav-link">
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Services</span>
+          </a>
+        </li>
+        <!-- Price Lists -->
+        <li data-requires-permission="manage_prices">
+          <a href="/price-lists" class="nav-link">
+            <i class="bi bi-tag"></i>
+            <span>Price Lists</span>
+          </a>
+        </li>
+        <!-- Reports -->
+        <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
+        <li data-requires-permission="view_reports">
+          <a href="/reports" class="nav-link">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Reports</span>
+          </a>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="btn btn-link">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </nav>
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navigation -->
+      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-light">
+            <i class="bi bi-list"></i>
+          </button>
+          <div class="ms-auto d-flex align-items-center">
+            <div class="notifications dropdown">
+              <button class="btn btn-link position-relative dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bell"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  3
+                  <span class="visually-hidden">unread notifications</span>
+                </span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
+                <li>
+                  <h6 class="dropdown-header">Notifications</h6>
+                </li>
+                <li>
+                  <hr class="dropdown-divider">
+                </li>
+                <li><a class="dropdown-item" href="#">Low stock alert: Paracetamol</a></li>
+                <li><a class="dropdown-item" href="#">New patient admission</a></li>
+                <li><a class="dropdown-item" href="#">System update available</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <!-- Main Content -->
+      <div class="container-fluid">
+        <div class="welcome-section mb-4">
+          <h1>Nurses</h1>
+          <p class="text-muted">Manage nurse records</p>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Nurse List</h5>
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Shift</th>
+                        <th>Department</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="4" class="text-center">Loading...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- JQuery -->
+  <script src="../js/jquery/jquery-3.7.1.min.js"></script>
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- toastr -->
+  <script src="../js/toastr/toastr.min.js" type="module"></script>
+  <!-- Custom JS -->
+  <script src="../js/shared/sidebar.js" type="module"></script>
+  <script src="../js/employees/employees.js" type="module"></script>
+</body>
+
+</html>

@@ -19,7 +19,7 @@ if (!isDev()) {
 	process.env.DB_PORT_TEST = "5432";
 }
 
-let pool;
+let pool: pg.Pool;
 
 export const pgPool = new pg.Pool({
 	user: process.env.DB_USER,

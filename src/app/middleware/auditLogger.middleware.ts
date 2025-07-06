@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import AuditLogModel from "../models/AuditLog.model.js";
 import { CreateAuditLogDTO } from "../utils/types/auditLog.js";
 
-export async function auditLogger (
+export async function auditLogger(
 	req: Request,
 	_res: Response,
 	next: NextFunction
@@ -57,6 +57,22 @@ export async function auditLogger (
 			"/api/pharmacy/usages/monitor/pending": "View pending drug usages",
 			"/api/pharmacy/usages/history": "View drug usage history",
 			"/api/pharmacy/warehouses": "View all warehouses",
+			"/api/employees": "View all employees",
+			"/api/employees/:id": "View employee details",
+			"/api/employees/search": "Search employees by name",
+			"/api/doctors": "View all doctors",
+			"/api/doctors/:id": "View doctor details",
+			"/api/doctors/search": "Search doctors by name",
+			"/api/employee-payments": "View all employee payments",
+			"/api/employee-payments/:id": "View employee payment details",
+			"/api/employee-payments/unpaid-system":
+				"View unpaid system-generated payments",
+			"/api/employee-payments/paid/employee/:id":
+				"View paid payments by employee",
+			"/api/employee-payments/employee/:id": "View payments by employee",
+			"/api/clock-ins": "View all clock-ins",
+			"/api/clock-ins/:id": "View clock-in details",
+			"/api/clock-ins/employee/:id": "View clock-ins by employee",
 
 			// Page routes
 			"/dashboard": "View dashboard page",
@@ -66,7 +82,9 @@ export async function auditLogger (
 			"/services": "View services page",
 			"/price-lists": "View price lists page",
 			"/drugs": "View pharmacy page",
-
+			"/employees": "View employees page",
+			"/doctors": "View doctors page",
+			"/clocking": "View clocking page"
 		},
 		POST: {
 			"/api/auth/login": "User login",
@@ -78,7 +96,11 @@ export async function auditLogger (
 			"/api/pharmacy/drugs/cards": "Create drug card",
 			"/api/pharmacy/drugs/shipments": "Create drug shipment",
 			"/api/pharmacy/drugs/transactions": "Create drug transaction",
-			"/api/pharmacy/usages": "Create drug usage"
+			"/api/pharmacy/usages": "Create drug usage",
+			"/api/employees": "Create employee",
+			"/api/doctors": "Create doctor",
+			"/api/employee-payments": "Create employee payment",
+			"/api/clock-ins": "Create clock-in"
 		},
 		PUT: {
 			"/api/services/:id": "Update service",
@@ -89,7 +111,13 @@ export async function auditLogger (
 			"/api/permissions/:id": "Update permission",
 			"/api/pharmacy/drugs/cards/:id": "Update drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Update drug shipment",
-			"/api/pharmacy/usages/:id": "Update drug usage"
+			"/api/pharmacy/usages/:id": "Update drug usage",
+			"/api/employees/:id": "Update employee",
+			"/api/doctors/:id": "Update doctor",
+			"/api/employee-payments/:id": "Update employee payment",
+			"/api/employee-payments/:id/paid": "Mark employee payment as paid",
+			"/api/employee-payments/:id/void": "Void employee payment",
+			"/api/clock-ins/:id": "Update clock-in"
 		},
 		DELETE: {
 			"/api/services/:id": "Delete service",
@@ -99,7 +127,9 @@ export async function auditLogger (
 			"/api/permissions/:id": "Delete permission",
 			"/api/pharmacy/drugs/cards/:id": "Delete drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Delete drug shipment",
-			"/api/pharmacy/usages/:id": "Delete drug usage"
+			"/api/pharmacy/usages/:id": "Delete drug usage",
+			"/api/employees/:id": "Delete employee",
+			"/api/doctors/:id": "Delete doctor"
 		},
 		actionTypes: {
 			GET: "View",
@@ -124,10 +154,10 @@ export async function auditLogger (
 		}
 	};
 
-	await AuditLogModel.createAuditLog(log)
+	await AuditLogModel.createAuditLog(log);
 
 	next();
-};
+}
 
 function getUrlWithoutParams(
 	originalUrl: string,

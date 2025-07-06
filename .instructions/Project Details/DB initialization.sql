@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS Doctor (
 
 CREATE TABLE IF NOT EXISTS EmployeePayment (
 	payment_id SERIAL PRIMARY KEY,
-	employee_id INTEGER REFERENCES Employee(employee_id),
+	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	extra_payment_type VARCHAR(50),
 	payment_type VARCHAR(50) NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 
 CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 	clock_id SERIAL PRIMARY KEY,
-	employee_id INTEGER REFERENCES Employee(employee_id),
+	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
 	clock_in TIMESTAMP NOT NULL,
 	clock_out TIMESTAMP,
 	pay_deduction DECIMAL(15, 2) DEFAULT 0
