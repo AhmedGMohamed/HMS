@@ -93,12 +93,12 @@
         <!-- Employee Management -->
         <li data-requires-permission="manage_employees">
           <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-file-person-fill"></i>
+            <i class="bi bi-person-vcard"></i>
             <span>Employee Management</span>
           </a>
           <ul class="collapse list-unstyled show" id="employeesSubmenu">
             <li>
-              <a class="nav-link" href="/employees" data-requires-permission="manage_employees">
+              <a class="nav-link active" href="/employees" data-requires-permission="manage_employees">
                 <i class="bi bi-person-fill-gear"></i>
                 <span>Employees</span>
               </a>
@@ -110,7 +110,7 @@
               </a>
             </li>
             <li>
-              <a class="nav-link active" href="/nurses" data-requires-permission="manage_employees">
+              <a class="nav-link" href="/nurses" data-requires-permission="manage_employees">
                 <i class="bi bi-person-heart"></i>
                 <span>Nurses</span>
               </a>
@@ -120,8 +120,8 @@
         <!-- Clocking -->
         <li data-requires-permission="manage_clocking">
           <a href="/clocking" class="nav-link">
-            <i class="bi bi-clock-fill"></i>
-            <span>Services</span>
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Clocking</span>
           </a>
         </li>
         <!-- Pharmacy -->

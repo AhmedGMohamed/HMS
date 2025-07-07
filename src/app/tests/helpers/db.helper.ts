@@ -136,20 +136,20 @@ export const dbHelper = {
 	async seedEmployees() {
 		const result = await query(`
             INSERT INTO Employee (
-                name, phone, is_facility_employee, hire_date, employee_type,
-                base_pay, extra_payment_type, per_patient_payment_type,
+                name, phone, is_facility_employee, hire_date, is_active, employee_type,
+                base_pay, extra_amount, extra_payment_type, per_patient_payment_type,
                 percentage_scope, need_clock_in, shift_type
             ) VALUES 
-            ('Dr. John Smith', '1234567890', false, CURRENT_DATE - INTERVAL '1 year', 'doctor',
-                5000.00, null, 'fixed', null, false, null),
-            ('Dr. Sarah Johnson', '2345678901', false, CURRENT_DATE - INTERVAL '2 years', 'doctor',
-                6000.00, null, 'fixed', null, false, null),
-            ('Nurse Mary Brown', '3456789012', true, CURRENT_DATE - INTERVAL '6 months', 'nurse',
-                3000.00, null, null, null, true, 'morning'),
-            ('Nurse James Wilson', '4567890123', true, CURRENT_DATE - INTERVAL '1 year', 'nurse',
-                3000.00, null, null, null, true, 'night'),
-            ('Admin Jane Doe', '5678901234', true, CURRENT_DATE - INTERVAL '3 years', 'other',
-                2500.00, 'percentage', null, 'before_deductions', false, null)
+            ('Dr. John Smith', '1234567890', false, CURRENT_DATE - INTERVAL '1 year', true, 'doctor',
+                5000.00, 0.00, null, 'fixed', null, false, null),
+            ('Dr. Sarah Johnson', '2345678901', false, CURRENT_DATE - INTERVAL '2 years', true, 'doctor',
+                6000.00, 0.00, null, 'fixed', null, false, null),
+            ('Nurse Mary Brown', '3456789012', true, CURRENT_DATE - INTERVAL '6 months', true, 'nurse',
+                3000.00, 0.00,null, null, null, true, 'morning'),
+            ('Nurse James Wilson', '4567890123', true, CURRENT_DATE - INTERVAL '1 year', true, 'nurse',
+                3000.00, 0.00, null, null, null, true, 'night'),
+            ('Admin Jane Doe', '5678901234', true, CURRENT_DATE - INTERVAL '3 years', true, 'other',
+                2500.00, 0.00, 'percentage', null, 'before_deductions', false, null)
             RETURNING *;
         `);
 		return result.rows;
@@ -885,7 +885,7 @@ export const dbHelper = {
 		}
 	},
 	async initDB() {
-		return (await query(`
+		return await query(`
 			-- Create Enum Types First
 CREATE TYPE gender_type AS ENUM ('male', 'female', 'other');
 
@@ -952,9 +952,11 @@ CREATE TABLE IF NOT EXISTS Employee (
 	name VARCHAR(255) NOT NULL,
 	phone VARCHAR(20),
 	is_facility_employee BOOLEAN DEFAULT false,
+	is_active BOOLEAN DEFAULT true,
 	hire_date DATE NOT NULL,
 	employee_type employee_type NOT NULL,
-	base_pay DECIMAL(15, 2),
+	base_pay DECIMAL(15, 2) DEFAULT 0,
+	extra_amount DECIMAL(15, 2) DEFAULT 0,
 	extra_payment_type VARCHAR(50),
 	per_patient_payment_type VARCHAR(50),
 	percentage_scope percentage_scope,
@@ -1205,6 +1207,6 @@ ALTER TABLE
 	PatientHistory
 ADD
 	CONSTRAINT patienthistory_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES Bill(bill_id)
-			`));
+			`);
 	}
 };

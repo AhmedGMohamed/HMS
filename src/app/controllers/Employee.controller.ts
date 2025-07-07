@@ -1,7 +1,7 @@
 // src/app/controllers/Employee.controller.ts
 import { Request, Response } from "express";
 import EmployeeModel from "../models/Employee.model.js";
-import { CreateEmployeeDTO } from "../utils/types/employees.d.js";
+import { CreateEmployeeDTO } from "../utils/types/employees.js";
 
 export default class EmployeeController {
 	static async getAllEmployees(_req: Request, res: Response): Promise<void> {

@@ -1,6 +1,6 @@
 // src/app/models/Employee.model.ts
 import {query} from "./database/connection.js";
-import { Employee, CreateEmployeeDTO } from "../utils/types/employees.d.js";
+import { Employee, CreateEmployeeDTO } from "../utils/types/employees.js";
 
 export default class EmployeeModel {
 	static async getAllEmployees(): Promise<Employee[]> {
@@ -20,10 +20,10 @@ export default class EmployeeModel {
 	static async createEmployee(dto: CreateEmployeeDTO): Promise<Employee> {
 		const sql = `
       INSERT INTO Employee (
-        name, phone, is_facility_employee, hire_date, employee_type, 
-        base_pay, extra_payment_type, per_patient_payment_type, 
+        name, phone, is_facility_employee, hire_date, is_active, employee_type, 
+        base_pay, extra_amount, extra_payment_type, per_patient_payment_type, 
         percentage_scope, need_clock_in, shift_type
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `;
 		const values = [
@@ -31,8 +31,10 @@ export default class EmployeeModel {
 			dto.phone,
 			dto.is_facility_employee,
 			dto.hire_date,
+			dto.is_active || true,
 			dto.employee_type,
 			dto.base_pay,
+			dto.extra_amount || 0.00,
 			dto.extra_payment_type,
 			dto.per_patient_payment_type,
 			dto.percentage_scope,

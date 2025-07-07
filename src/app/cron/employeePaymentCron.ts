@@ -6,7 +6,7 @@ import {
 	CreateEmployeePaymentDTO,
 	Employee,
 	Doctor
-} from "../utils/types/employees.d.js";
+} from "../utils/types/employees.js";
 import { query } from "../models/database/connection.js";
 
 // Initialize cron jobs for employee payments

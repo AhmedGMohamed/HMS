@@ -3,7 +3,7 @@ import { query } from "./database/connection.js";
 import {
 	EmployeePayment,
 	CreateEmployeePaymentDTO
-} from "../utils/types/employees.d.js";
+} from "../utils/types/employees.js";
 
 export default class EmployeePaymentModel {
 	static async getAllPayments(): Promise<EmployeePayment[]> {
