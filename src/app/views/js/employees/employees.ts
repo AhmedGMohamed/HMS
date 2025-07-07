@@ -1,4 +1,4 @@
-///@ts-ignore
+//@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 
@@ -28,6 +28,9 @@ interface Payment {
 	issued_timestamp: string;
 	is_paid: boolean;
 	is_void: boolean;
+	paid_by?: string;
+	paid_by_user_id?: number;
+	paid_timestamp?: string;
 }
 
 class EmployeeManager {
@@ -37,6 +40,9 @@ class EmployeeManager {
 	private searchInput: HTMLInputElement;
 	private employees: Map<number, Employee> = new Map();
 	private payments: Map<number, Payment> = new Map();
+	private userPermissions: string[] = [];
+	private paymentStartDate: HTMLInputElement;
+	private paymentEndDate: HTMLInputElement;
 
 	constructor() {
 		new SidebarManager();
@@ -55,8 +61,15 @@ class EmployeeManager {
 		this.searchInput = document.getElementById(
 			"searchEmployee"
 		) as HTMLInputElement;
+		this.paymentStartDate = document.getElementById(
+			"paymentStartDate"
+		) as HTMLInputElement;
+		this.paymentEndDate = document.getElementById(
+			"paymentEndDate"
+		) as HTMLInputElement;
 
 		this.initializeEventListeners();
+		this.loadUserPermissions();
 		this.loadEmployees();
 		this.loadPayments();
 	}
@@ -86,6 +99,12 @@ class EmployeeManager {
 			});
 
 		document
+			.getElementById("employees-tab")!
+			.addEventListener("shown.bs.tab", () => {
+				this.loadEmployees();
+			});
+
+		document
 			.getElementById("payments-tab")!
 			.addEventListener("shown.bs.tab", () => {
 				this.loadPayments();
@@ -95,6 +114,10 @@ class EmployeeManager {
 		const extraPaymentTypeSelect = document.getElementById(
 			"extraPaymentType"
 		) as HTMLSelectElement;
+		const perPatientPaymentTypeSelect = document.getElementById(
+			"perPatientPaymentType"
+		) as HTMLSelectElement;
+
 		extraPaymentTypeSelect.addEventListener("change", () => {
 			const extraAmountContainer = document.getElementById(
 				"extraAmountContainer"
@@ -105,16 +128,62 @@ class EmployeeManager {
 			const percentageScopeContainer = document.getElementById(
 				"percentageScopeContainer"
 			)!;
-			const value = extraPaymentTypeSelect.value;
+			const extraPaymentValue = extraPaymentTypeSelect.value;
+			const perPatientValue = perPatientPaymentTypeSelect.value;
 			extraAmountContainer.style.display =
-				value === "per_patient" || value === "income"
+				extraPaymentValue === "per_patient" ||
+				extraPaymentValue === "income"
 					? "block"
 					: "none";
 			perPatientPaymentTypeContainer.style.display =
-				value === "per_patient" ? "block" : "none";
+				extraPaymentValue === "per_patient" ? "block" : "none";
 			percentageScopeContainer.style.display =
-				value === "per_patient" ? "block" : "none";
+				perPatientValue === "percentage" ||
+				extraPaymentValue === "income"
+					? "block"
+					: "none";
 		});
+
+		perPatientPaymentTypeSelect.addEventListener("change", () => {
+			const percentageScopeContainer = document.getElementById(
+				"percentageScopeContainer"
+			)!;
+			const extraPaymentValue = extraPaymentTypeSelect.value;
+			const perPatientValue = perPatientPaymentTypeSelect.value;
+
+			percentageScopeContainer.style.display =
+				perPatientValue === "percentage" ||
+				extraPaymentValue === "income"
+					? "block"
+					: "none";
+		});
+
+		// Date filter events
+		this.paymentStartDate.addEventListener("change", () =>
+			this.renderEmployees()
+		);
+		this.paymentEndDate.addEventListener("change", () =>
+			this.renderEmployees()
+		);
+		document
+			.getElementById("clearDateFilter")
+			?.addEventListener("click", () => {
+				this.paymentStartDate.value = "";
+				this.paymentEndDate.value = "";
+				this.renderEmployees();
+			});
+	}
+
+	private async loadUserPermissions(): Promise<void> {
+		try {
+			const userString = localStorage.getItem("user");
+			if (!userString) return;
+
+			const user = JSON.parse(userString);
+			this.userPermissions = user.permissions;
+		} catch (error) {
+			this.showError("Failed to load user permissions");
+		}
 	}
 
 	private async loadEmployees(): Promise<void> {
@@ -155,50 +224,225 @@ class EmployeeManager {
 			if (!response.ok) throw new Error("Failed to fetch payments");
 			const payments: Payment[] = await response.json();
 			this.payments.clear();
-			payments.forEach((payment) =>
-				this.payments.set(payment.payment_id, payment)
-			);
+			payments.forEach((payment) => {
+				this.payments.set(payment.payment_id, payment);
+			});
 			this.renderPayments();
 		} catch (error) {
 			this.showError("Failed to load payments");
 		}
 	}
 
+	private async loadEmployeePayments(employeeId: number): Promise<Payment[]> {
+		try {
+			const response = await fetch(
+				`/api/employee-payments/employee/${employeeId}`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				}
+			);
+			if (!response.ok)
+				throw new Error(
+					`Failed to fetch payments for employee ${employeeId}`
+				);
+			return await response.json();
+		} catch (error) {
+			this.showError(`Failed to load payments for employee`);
+			return [];
+		}
+	}
+
 	private renderEmployees(filterTerm: string = ""): void {
 		const tbody = document.getElementById("employeesTableBody")!;
+		const startDate = this.paymentStartDate.value
+			? new Date(this.paymentStartDate.value).getTime()
+			: null;
+		const endDate = this.paymentEndDate.value
+			? new Date(this.paymentEndDate.value).getTime()
+			: null;
+
 		const filteredEmployees = Array.from(this.employees.values()).filter(
 			(employee) =>
 				employee.name.toLowerCase().includes(filterTerm.toLowerCase())
 		);
 
-		tbody.innerHTML = filteredEmployees
-			.map(
-				(employee) => `
-      <tr>
-        <td>${this.escapeHtml(employee.name)}</td>
-        <td>${this.escapeHtml(employee.employee_type)}</td>
-        <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
-        <td>$${employee.base_pay || "-"}</td>
-        <td>${employee.shift_type || "-"}</td>
-        <td>${employee.extra_payment_type || "-"}</td>
-        <td>
-          <div class="action-buttons">
-            <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
-				employee.employee_id
-			})">
-              <i class="bi bi-pencil"></i> Edit
-            </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.deleteEmployee(${
-				employee.employee_id
-			})">
-              <i class="bi bi-trash"></i> Delete
-            </button>
-          </div>
-        </td>
-      </tr>
-    `
-			)
-			.join("");
+		Promise.all(
+			filteredEmployees.map(async (employee) => {
+				const payments = this.userPermissions.includes(
+					"manage_payments"
+				)
+					? await this.loadEmployeePayments(employee.employee_id)
+					: [];
+
+					const filteredPayments = payments.filter((payment) => {
+						const issuedTime = new Date(
+							payment.issued_timestamp
+						).getTime();
+						if (startDate && issuedTime < startDate) return false;
+						if (endDate && issuedTime > endDate) return false;
+						return true;
+					});
+					
+					for (const payment of filteredPayments) {
+						if (payment.is_paid && payment.paid_by_user_id) {
+							const name = await this.getUserNameById(
+								payment.paid_by_user_id
+							);
+							payment.paid_by = name;
+						}
+						this.payments.set(payment.payment_id, payment);
+					}
+				return { employee, payments: filteredPayments };
+			})
+		).then((employeeData) => {
+			tbody.innerHTML = employeeData
+				.map(({ employee, payments }) => {
+					const collapseId = `employeePayments${employee.employee_id}`;
+					return `
+          <tr>
+            <td>
+              ${
+					this.userPermissions.includes("manage_payments") &&
+					payments.length > 0
+						? `<button class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                                 <i class="bi bi-chevron-down"></i>
+                               </button>`
+						: ""
+				}
+            </td>
+            <td>${this.escapeHtml(employee.name)}</td>
+            <td>${this.escapeHtml(employee.employee_type)}</td>
+            <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
+            <td>$${employee.base_pay || "-"}</td>
+            <td>${employee.shift_type || "-"}</td>
+            <td>${employee.extra_payment_type || "-"}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
+					employee.employee_id
+				})">
+                  <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.deleteEmployee(${
+					employee.employee_id
+				})">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+          ${
+				this.userPermissions.includes("manage_payments") &&
+				payments.length > 0
+					? `
+              <tr class="collapse" id="${collapseId}">
+                <td colspan="8">
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Payment ID</th>
+                          <th>Amount</th>
+                          <th>Type</th>
+                          <th>Issued</th>
+                          <th>Status</th>
+                          <th>Paid By</th>
+                          <th>Paid On</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${payments
+							.map(
+								(payment) => `
+                          <tr>
+                            <td>${payment.payment_id}</td>
+                            <td>$${payment.payment_amount}</td>
+                            <td>${this.escapeHtml(
+								payment.extra_payment_type || "None"
+							)}</td>
+                            <td>${new Date(
+								payment.issued_timestamp
+							).toLocaleString()}</td>
+                            <td>${
+								payment.is_void
+									? "Void"
+									: payment.is_paid
+									? "Paid"
+									: "Pending"
+							}</td>
+                            <td>${
+								payment.is_paid && payment.paid_by
+									? this.escapeHtml(payment.paid_by || "-")
+									: "-"
+							}</td>
+                            <td>${
+								payment.is_paid && payment.paid_timestamp
+									? new Date(
+											payment.paid_timestamp
+									  ).toLocaleString()
+									: "-"
+							}</td>
+                            <td>
+                              <div class="action-buttons">
+                                ${
+									!payment.is_paid && !payment.is_void
+										? `
+                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${payment.payment_id})">
+                                    <i class="bi bi-check-circle"></i> Mark Paid
+                                  </button>
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
+                                    <i class="bi bi-x-circle"></i> Void
+                                  </button>
+                                `
+										: payment.is_paid && !payment.is_void
+										? `
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
+                                    <i class="bi bi-x-circle"></i> Void
+                                  </button>
+                                `
+										: ""
+								}
+                              </div>
+                            </td>
+                          </tr>
+                        `
+							)
+							.join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            `
+					: ""
+			}
+        `;
+				})
+				.join("");
+		});
+	}
+
+	private async getUserNameById(id: number): Promise<string> {
+		try {
+			console.log("HERE");
+			const response = await fetch("/api/users/name/" + id, {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+			if (!response.ok) {
+				throw new Error("Failed to load user name");
+			}
+			return await response.json();
+		} catch (error) {
+			this.showError("Failed to load user name");
+			return "";
+		}
 	}
 
 	private renderPayments(): void {
@@ -220,7 +464,6 @@ class EmployeeManager {
 
 		tbody.innerHTML = Object.entries(paymentsByEmployee)
 			.map(([employeeId, payments]) => {
-				const employee = this.employees.get(Number(employeeId))!;
 				const totalAmount = payments.reduce(
 					(sum, p) => sum + Number(p.payment_amount),
 					0
@@ -363,8 +606,7 @@ class EmployeeManager {
 		(document.getElementById("needClockIn") as HTMLInputElement).checked =
 			employee.need_clock_in;
 		(document.getElementById("isActive") as HTMLInputElement).checked =
-			employee.is_active !== false; // Default to true if undefined
-		// Trigger visibility update
+			employee.is_active !== false;
 		const extraPaymentTypeSelect = document.getElementById(
 			"extraPaymentType"
 		) as HTMLSelectElement;
@@ -510,6 +752,7 @@ class EmployeeManager {
 				if (!response.ok)
 					throw new Error("Failed to mark payment as paid");
 				await this.loadPayments();
+				await this.loadEmployees();
 				toastr.success("Payment marked as paid");
 			} catch (error) {
 				this.showError("Failed to mark payment as paid");
@@ -550,6 +793,7 @@ class EmployeeManager {
 						throw new Error("Failed to mark payment as paid");
 				}
 				await this.loadPayments();
+				await this.loadEmployees();
 				toastr.success("All payments marked as paid");
 			} catch (error) {
 				this.showError("Failed to mark all payments as paid");
@@ -583,6 +827,7 @@ class EmployeeManager {
 				);
 				if (!response.ok) throw new Error("Failed to void payment");
 				await this.loadPayments();
+				await this.loadEmployees();
 				toastr.success("Payment voided successfully");
 			} catch (error) {
 				this.showError("Failed to void payment");
@@ -622,6 +867,7 @@ class EmployeeManager {
 					if (!response.ok) throw new Error("Failed to void payment");
 				}
 				await this.loadPayments();
+				await this.loadEmployees();
 				toastr.success("All payments voided successfully");
 			} catch (error) {
 				this.showError("Failed to void all payments");

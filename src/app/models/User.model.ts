@@ -220,6 +220,21 @@ export class UserModel {
 			throw error;
 		}
 	}
+
+	async getUserNameById(user_id: number): Promise<string | null> {
+		try {
+			const sql = `
+				SELECT username
+				FROM "User"
+				WHERE user_id = $1
+			`;
+			const result = await query(sql, [user_id]);
+
+			return result.rows[0]?.username || null;
+		} catch (error) {
+			throw error;
+		}
+	}
 }
 
 export default new UserModel();
