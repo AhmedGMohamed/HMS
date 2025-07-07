@@ -1,4 +1,4 @@
-//@ts-ignore
+/* //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 
@@ -470,3 +470,4 @@ declare global {
 }
 
 window.employeeManager = new EmployeeManager();
+ */

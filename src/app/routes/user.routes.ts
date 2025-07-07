@@ -20,6 +20,10 @@ router.post("/", adminOnly, auditLogger, (req, res) => {
 	UserController.createUser(req, res);
 });
 
+router.get("/name/:id", validateId, auditLogger, (req, res) => {
+	UserController.getUserNameById(req, res);
+})
+
 // Routes that allow self-modification or admin access
 router.get("/:id", validateId, checkSelfOrAdmin, auditLogger, (req, res) => {
 	UserController.getUserById(req, res);

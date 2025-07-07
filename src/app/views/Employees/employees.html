@@ -93,10 +93,10 @@
         <!-- Employee Management -->
         <li data-requires-permission="manage_employees">
           <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-person-vcard"></i>
+            <i class="bi bi-person-badge-fill"></i>
             <span>Employee Management</span>
           </a>
-          <ul class="collapse list-unstyled show" id="employeesSubmenu">
+          <ul class="collapse list-unstyled" id="employeesSubmenu">
             <li>
               <a class="nav-link active" href="/employees" data-requires-permission="manage_employees">
                 <i class="bi bi-person-fill-gear"></i>
@@ -120,8 +120,8 @@
         <!-- Clocking -->
         <li data-requires-permission="manage_clocking">
           <a href="/clocking" class="nav-link">
-            <i class="bi bi-clipboard2-pulse"></i>
-            <span>Clocking</span>
+            <i class="bi bi-clock-fill"></i>
+            <span>Services</span>
           </a>
         </li>
         <!-- Pharmacy -->
@@ -226,7 +226,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
               <input type="text" class="form-control w-25" id="searchEmployee" placeholder="Search employees...">
             </div>
-			<div class="card mb-4">
+            <div class="card mb-4">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h5 class="card-title mb-0">Employee List</h5>
@@ -234,10 +234,20 @@
                     <i class="bi bi-plus-circle"></i> Create New Employee
                   </button>
                 </div>
+                <div class="mb-3">
+                  <label for="paymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <div class="input-group">
+                    <input type="datetime-local" class="form-control" id="paymentStartDate" placeholder="Start Date">
+                    <span class="input-group-text">to</span>
+                    <input type="datetime-local" class="form-control" id="paymentEndDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="clearDateFilter">Clear</button>
+                  </div>
+                </div>
                 <div class="table-responsive">
                   <table class="table table-hover">
                     <thead>
                       <tr>
+                        <th></th>
                         <th>Name</th>
                         <th>Type</th>
                         <th>Hire Date</th>
