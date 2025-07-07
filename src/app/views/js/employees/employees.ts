@@ -1,4 +1,4 @@
-//@ts-ignore
+///@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 
@@ -7,9 +7,11 @@ interface Employee {
 	name: string;
 	phone?: string;
 	is_facility_employee: boolean;
+	is_active: boolean;
 	hire_date: string;
 	employee_type: "doctor" | "nurse" | "other";
 	base_pay?: number;
+	extra_amount?: number;
 	extra_payment_type?: string;
 	per_patient_payment_type?: string;
 	percentage_scope?: string;
@@ -73,7 +75,7 @@ class EmployeeManager {
 		this.searchInput.addEventListener(
 			"input",
 			this.debounce(() => {
-				this.renderEmployees();
+				this.renderEmployees(this.searchInput.value);
 			}, 300)
 		);
 
@@ -88,6 +90,31 @@ class EmployeeManager {
 			.addEventListener("shown.bs.tab", () => {
 				this.loadPayments();
 			});
+
+		// Dynamic visibility for extra payment fields
+		const extraPaymentTypeSelect = document.getElementById(
+			"extraPaymentType"
+		) as HTMLSelectElement;
+		extraPaymentTypeSelect.addEventListener("change", () => {
+			const extraAmountContainer = document.getElementById(
+				"extraAmountContainer"
+			)!;
+			const perPatientPaymentTypeContainer = document.getElementById(
+				"perPatientPaymentTypeContainer"
+			)!;
+			const percentageScopeContainer = document.getElementById(
+				"percentageScopeContainer"
+			)!;
+			const value = extraPaymentTypeSelect.value;
+			extraAmountContainer.style.display =
+				value === "per_patient" || value === "income"
+					? "block"
+					: "none";
+			perPatientPaymentTypeContainer.style.display =
+				value === "per_patient" ? "block" : "none";
+			percentageScopeContainer.style.display =
+				value === "per_patient" ? "block" : "none";
+		});
 	}
 
 	private async loadEmployees(): Promise<void> {
@@ -101,7 +128,11 @@ class EmployeeManager {
 			const employees: Employee[] = await response.json();
 			this.employees.clear();
 			employees
-				.filter((e) => e.employee_type !== "doctor" && e.employee_type !== "nurse")
+				.filter(
+					(e) =>
+						e.employee_type !== "doctor" &&
+						e.employee_type !== "nurse"
+				)
 				.forEach((employee) =>
 					this.employees.set(employee.employee_id, employee)
 				);
@@ -176,32 +207,117 @@ class EmployeeManager {
 			Array.from(this.employees).map(([id, e]) => [id, e.name])
 		);
 
-		tbody.innerHTML = Array.from(this.payments.values())
+		// Group payments by employee_id
+		const paymentsByEmployee = Array.from(this.payments.values())
 			.filter((p) => this.employees.has(p.employee_id))
-			.map(
-				(payment) => `
-      			  <tr>
-      			    <td>${this.escapeHtml(
-									employeeNames.get(payment.employee_id) || "Unknown"
-								)}</td>
-      			    <td>$${payment.payment_amount}</td>
-      			    <td>${this.escapeHtml(payment.extra_payment_type || "None")}</td>
-      			    <td>${new Date(payment.issued_timestamp).toLocaleString()}</td>
-      			    <td>
-      			      <div class="action-buttons">
-      			        <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${payment.payment_id
-									})">
-      			          <i class="bi bi-check-circle"></i> Mark Paid
-      			        </button>
-      			        <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id
-									})">
-      			          <i class="bi bi-x-circle"></i> Void
-      			        </button>
-      			      </div>
-      			    </td>
-      			  </tr>
-      			`
-				)
+			.reduce((acc, payment) => {
+				if (!acc[payment.employee_id]) {
+					acc[payment.employee_id] = [];
+				}
+				acc[payment.employee_id].push(payment);
+				return acc;
+			}, {} as Record<number, Payment[]>);
+
+		tbody.innerHTML = Object.entries(paymentsByEmployee)
+			.map(([employeeId, payments]) => {
+				const employee = this.employees.get(Number(employeeId))!;
+				const totalAmount = payments.reduce(
+					(sum, p) => sum + Number(p.payment_amount),
+					0
+				);
+				const paymentType = payments[0]?.extra_payment_type || "None";
+				const dateRange =
+					payments.length > 0
+						? `${new Date(
+								Math.min(
+									...payments.map((p) =>
+										new Date(p.issued_timestamp).getTime()
+									)
+								)
+						  ).toLocaleDateString()} - ${new Date(
+								Math.max(
+									...payments.map((p) =>
+										new Date(p.issued_timestamp).getTime()
+									)
+								)
+						  ).toLocaleDateString()}`
+						: "-";
+				const collapseId = `paymentDetails${employeeId}`;
+				return `
+          <tr>
+            <td>
+              <button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                <i class="bi bi-chevron-down"></i>
+              </button>
+            </td>
+            <td>${this.escapeHtml(
+				employeeNames.get(Number(employeeId)) || "Unknown"
+			)}</td>
+            <td>$${totalAmount}</td>
+            <td>${this.escapeHtml(paymentType)}</td>
+            <td>${dateRange}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markAllPaymentsPaid(${employeeId})">
+                  <i class="bi bi-check-circle"></i> Mark All Paid
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidAllPayments(${employeeId})">
+                  <i class="bi bi-x-circle"></i> Void All
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr class="collapse" id="${collapseId}">
+            <td colspan="6">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Payment ID</th>
+                      <th>Amount</th>
+                      <th>Type</th>
+                      <th>Issued</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${payments
+						.map(
+							(payment) => `
+                        <tr>
+                          <td>${payment.payment_id}</td>
+                          <td>$${payment.payment_amount}</td>
+                          <td>${this.escapeHtml(
+								payment.extra_payment_type || "None"
+							)}</td>
+                          <td>${new Date(
+								payment.issued_timestamp
+							).toLocaleString()}</td>
+                          <td>
+                            <div class="action-buttons">
+                              <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
+									payment.payment_id
+								})">
+                                <i class="bi bi-check-circle"></i> Mark Paid
+                              </button>
+                              <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+									payment.payment_id
+								})">
+                                <i class="bi bi-x-circle"></i> Void
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      `
+						)
+						.join("")}
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+        `;
+			})
 			.join("");
 	}
 
@@ -234,6 +350,8 @@ class EmployeeManager {
 		(
 			document.getElementById("extraPaymentType") as HTMLSelectElement
 		).value = employee.extra_payment_type || "none";
+		(document.getElementById("extraAmount") as HTMLInputElement).value =
+			employee.extra_amount?.toString() || "";
 		(
 			document.getElementById(
 				"perPatientPaymentType"
@@ -244,6 +362,13 @@ class EmployeeManager {
 		).value = employee.percentage_scope || "";
 		(document.getElementById("needClockIn") as HTMLInputElement).checked =
 			employee.need_clock_in;
+		(document.getElementById("isActive") as HTMLInputElement).checked =
+			employee.is_active !== false; // Default to true if undefined
+		// Trigger visibility update
+		const extraPaymentTypeSelect = document.getElementById(
+			"extraPaymentType"
+		) as HTMLSelectElement;
+		extraPaymentTypeSelect.dispatchEvent(new Event("change"));
 	}
 
 	private async handleSaveEmployee(): Promise<void> {
@@ -263,6 +388,11 @@ class EmployeeManager {
 			base_pay:
 				parseFloat(
 					(document.getElementById("basePay") as HTMLInputElement)
+						.value
+				) || undefined,
+			extra_amount:
+				parseFloat(
+					(document.getElementById("extraAmount") as HTMLInputElement)
 						.value
 				) || undefined,
 			shift_type:
@@ -289,6 +419,8 @@ class EmployeeManager {
 			need_clock_in: (
 				document.getElementById("needClockIn") as HTMLInputElement
 			).checked,
+			is_active: (document.getElementById("isActive") as HTMLInputElement)
+				.checked,
 			is_facility_employee: true
 		};
 
@@ -363,6 +495,7 @@ class EmployeeManager {
 		});
 
 		if (result.isConfirmed) {
+			try {
 				const response = await fetch(
 					`/api/employee-payments/${paymentId}/paid`,
 					{
@@ -378,6 +511,49 @@ class EmployeeManager {
 					throw new Error("Failed to mark payment as paid");
 				await this.loadPayments();
 				toastr.success("Payment marked as paid");
+			} catch (error) {
+				this.showError("Failed to mark payment as paid");
+			}
+		}
+	}
+
+	public async markAllPaymentsPaid(employeeId: number): Promise<void> {
+		const result = await Swal.fire({
+			title: "Confirm All Payments",
+			text: "Mark all pending payments for this employee as paid?",
+			icon: "question",
+			showCancelButton: true,
+			confirmButtonColor: "#0d6efd",
+			cancelButtonColor: "#6c757d",
+			confirmButtonText: "Yes, mark all as paid"
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const payments = Array.from(this.payments.values()).filter(
+					(p) =>
+						p.employee_id === employeeId && !p.is_paid && !p.is_void
+				);
+				for (const payment of payments) {
+					const response = await fetch(
+						`/api/employee-payments/${payment.payment_id}/paid`,
+						{
+							method: "PUT",
+							headers: {
+								Authorization: `Bearer ${localStorage.getItem(
+									"token"
+								)}`
+							}
+						}
+					);
+					if (!response.ok)
+						throw new Error("Failed to mark payment as paid");
+				}
+				await this.loadPayments();
+				toastr.success("All payments marked as paid");
+			} catch (error) {
+				this.showError("Failed to mark all payments as paid");
+			}
 		}
 	}
 
@@ -414,6 +590,45 @@ class EmployeeManager {
 		}
 	}
 
+	public async voidAllPayments(employeeId: number): Promise<void> {
+		const result = await Swal.fire({
+			title: "Void All Payments",
+			text: "Void all pending payments for this employee? This action cannot be undone!",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonColor: "#dc3545",
+			cancelButtonColor: "#6c757d",
+			confirmButtonText: "Yes, void all"
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const payments = Array.from(this.payments.values()).filter(
+					(p) =>
+						p.employee_id === employeeId && !p.is_paid && !p.is_void
+				);
+				for (const payment of payments) {
+					const response = await fetch(
+						`/api/employee-payments/${payment.payment_id}/void`,
+						{
+							method: "PUT",
+							headers: {
+								Authorization: `Bearer ${localStorage.getItem(
+									"token"
+								)}`
+							}
+						}
+					);
+					if (!response.ok) throw new Error("Failed to void payment");
+				}
+				await this.loadPayments();
+				toastr.success("All payments voided successfully");
+			} catch (error) {
+				this.showError("Failed to void all payments");
+			}
+		}
+	}
+
 	private validateEmployeeForm(): boolean {
 		this.employeeForm.classList.add("was-validated");
 		return this.employeeForm.checkValidity();
@@ -423,6 +638,17 @@ class EmployeeManager {
 		this.employeeForm.reset();
 		this.employeeForm.classList.remove("was-validated");
 		(document.getElementById("employeeId") as HTMLInputElement).value = "";
+		(
+			document.getElementById("extraAmountContainer") as HTMLElement
+		).style.display = "none";
+		(
+			document.getElementById(
+				"perPatientPaymentTypeContainer"
+			) as HTMLElement
+		).style.display = "none";
+		(
+			document.getElementById("percentageScopeContainer") as HTMLElement
+		).style.display = "none";
 	}
 
 	private setEmployeeLoading(loading: boolean): void {
@@ -449,7 +675,8 @@ class EmployeeManager {
 			.replace(/</g, "&lt;")
 			.replace(/>/g, "&gt;")
 			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#039;");
+			.replace(/'/g, "&#039;")
+			.replace(/_/g, " ");
 	}
 
 	private debounce(func: Function, wait: number): (...args: any[]) => void {

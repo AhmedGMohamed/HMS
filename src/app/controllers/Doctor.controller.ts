@@ -1,7 +1,7 @@
 // src/app/controllers/Doctor.controller.ts
 import { Request, Response } from "express";
 import DoctorModel from "../models/Doctor.model.js";
-import { CreateDoctorDTO} from "../utils/types/employees.d.js";
+import { CreateDoctorDTO} from "../utils/types/employees.js";
 
 export default class DoctorController {
 	static async getAllDoctors(_req: Request, res: Response): Promise<void> {

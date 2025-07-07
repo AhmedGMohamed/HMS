@@ -1,6 +1,6 @@
 // src/app/models/Doctor.model.ts
 import { query } from "./database/connection.js";
-import { Doctor, CreateDoctorDTO, Employee } from "../utils/types/employees.d.js";
+import { Doctor, CreateDoctorDTO, Employee } from "../utils/types/employees.js";
 
 export default class DoctorModel {
 	static async getAllDoctors(): Promise<Doctor[]> {
@@ -32,8 +32,8 @@ export default class DoctorModel {
 
 			const employeeQuery = `
         INSERT INTO Employee (
-          name, phone, is_facility_employee, hire_date, employee_type, 
-          base_pay, extra_payment_type, per_patient_payment_type, 
+          name, phone, is_facility_employee, is_active, hire_date, employee_type, 
+          base_pay, extra_amount, extra_payment_type, per_patient_payment_type, 
           percentage_scope, need_clock_in, shift_type
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
@@ -43,8 +43,10 @@ export default class DoctorModel {
 				dto.phone,
 				dto.is_facility_employee,
 				dto.hire_date,
+				dto.is_active || true,
 				"doctor",
 				dto.base_pay,
+				dto.extra_amount || 0.00,
 				dto.extra_payment_type,
 				dto.per_patient_payment_type,
 				dto.percentage_scope,
@@ -102,7 +104,9 @@ export default class DoctorModel {
 				"phone",
 				"is_facility_employee",
 				"hire_date",
+				"is_active",
 				"base_pay",
+				"extra_amount",
 				"extra_payment_type",
 				"per_patient_payment_type",
 				"percentage_scope",

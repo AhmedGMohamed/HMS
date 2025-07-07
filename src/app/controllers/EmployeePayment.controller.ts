@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import EmployeePaymentModel from "../models/EmployeePayment.model.js";
 import {
 	CreateEmployeePaymentDTO
-} from "../utils/types/employees.d.js";
+} from "../utils/types/employees.js";
 
 export default class EmployeePaymentController {
 	static async getAllPayments(_req: Request, res: Response): Promise<void> {

@@ -94,6 +94,41 @@
           </ul>
         </li>
 
+        <!-- Employee Management -->
+        <li data-requires-permission="manage_employees">
+          <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-vcard"></i>
+            <span>Employee Management</span>
+          </a>
+          <ul class="collapse list-unstyled show" id="employeesSubmenu">
+            <li>
+              <a class="nav-link active" href="/employees" data-requires-permission="manage_employees">
+                <i class="bi bi-person-fill-gear"></i>
+                <span>Employees</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/doctors" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Doctors</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/nurses" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Nurses</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!-- Clocking -->
+        <li data-requires-permission="manage_clocking">
+          <a href="/clocking" class="nav-link">
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Clocking</span>
+          </a>
+        </li>
+
         <!-- Pharmacy - Requires manage_pharmacy permission -->
         <li class="active" data-requires-permission="manage_pharmacy">
           <a href="#pharmacySubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
@@ -395,19 +430,19 @@
                   Available: <span id="availableQuantityLarger">0</span>
                 </small>
               </div>
-			  <div class="col-md-6">
-			    <label for="sellQuantitySmaller" class="form-label" id="sellQuantitySmallerLabel">Quantity</label>
-			    <div class="input-group">
-			      <input type="number" class="form-control" id="sellQuantitySmaller" min="0" value="0" required>
-			      <span class="input-group-text" id="quantityUnitSmaller">units</span>
-			    </div>
-			    <div class="invalid-feedback">
-			      Please enter a valid quantity
-			    </div>
-			    <small class="text-muted">
-			      Available: <span id="availableQuantitySmaller">0</span>
-			    </small>
-			  </div>
+              <div class="col-md-6">
+                <label for="sellQuantitySmaller" class="form-label" id="sellQuantitySmallerLabel">Quantity</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="sellQuantitySmaller" min="0" value="0" required>
+                  <span class="input-group-text" id="quantityUnitSmaller">units</span>
+                </div>
+                <div class="invalid-feedback">
+                  Please enter a valid quantity
+                </div>
+                <small class="text-muted">
+                  Available: <span id="availableQuantitySmaller">0</span>
+                </small>
+              </div>
               <div class="col-md-6">
                 <label for="priceList" class="form-label">Price List</label>
                 <select class="form-select" id="priceList" required>

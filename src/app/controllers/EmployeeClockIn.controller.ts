@@ -4,7 +4,7 @@ import EmployeeClockInModel from "../models/EmployeeClockIn.model.js";
 import EmployeeModel from "../models/Employee.model.js";
 import {
 	CreateEmployeeClockInDTO
-} from "../utils/types/employees.d.js";
+} from "../utils/types/employees.js";
 
 export default class EmployeeClockInController {
 	static async getAllClockIns(_req: Request, res: Response): Promise<void> {

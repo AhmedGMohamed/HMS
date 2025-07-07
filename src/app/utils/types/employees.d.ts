@@ -73,7 +73,9 @@ export interface CreateEmployeeDTO {
 	is_facility_employee: boolean;
 	hire_date: string;
 	employee_type: EmployeeType;
+	is_active?: boolean;
 	base_pay?: number;
+	extra_amount?: number;
 	extra_payment_type?: extraPaymentType;
 	per_patient_payment_type?: perPatientPaymentType;
 	percentage_scope?: PercentageScope;
