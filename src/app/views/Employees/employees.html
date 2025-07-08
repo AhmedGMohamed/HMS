@@ -218,7 +218,13 @@
             <a class="nav-link active" id="employees-tab" data-bs-toggle="tab" href="#employees" role="tab">Employees</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="payments-tab" data-bs-toggle="tab" href="#payments" role="tab">Pending Payments</a>
+            <a class="nav-link" id="doctors-tab" data-bs-toggle="tab" href="#doctors" role="tab">Doctors</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nurses-tab" data-bs-toggle="tab" href="#nurses" role="tab">Nurses</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-requires-permission="manage_payments" id="payments-tab" data-bs-toggle="tab" href="#payments" role="tab">Pending Payments</a>
           </li>
         </ul>
         <div class="tab-content">
@@ -230,16 +236,16 @@
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h5 class="card-title mb-0">Employee List</h5>
-                  <button class="btn btn-primary" id="createEmployeeBtn">
+                  <button class="btn btn-primary" id="createEmployeeBtnEmployeesTab">
                     <i class="bi bi-plus-circle"></i> Create New Employee
                   </button>
                 </div>
                 <div class="mb-3">
                   <label for="paymentDateRange" class="form-label">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="datetime-local" class="form-control" id="paymentStartDate" placeholder="Start Date">
+                    <input type="datetime-local" class="form-control" id="employeePaymentStartDate" placeholder="Start Date">
                     <span class="input-group-text">to</span>
-                    <input type="datetime-local" class="form-control" id="paymentEndDate" placeholder="End Date">
+                    <input type="datetime-local" class="form-control" id="employeePaymentEndDate" placeholder="End Date">
                     <button class="btn btn-outline-secondary" id="clearDateFilter">Clear</button>
                   </div>
                 </div>
@@ -258,6 +264,82 @@
                       </tr>
                     </thead>
                     <tbody id="employeesTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="doctors" role="tabpanel">
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title mb-0">Doctor List</h5>
+                  <button class="btn btn-primary" id="createEmployeeBtnDoctorsTab">
+                    <i class="bi bi-plus-circle"></i> Create New Employee
+                  </button>
+                </div>
+                <div class="mb-3">
+                  <label for="doctorPaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" id="doctorPaymentStartDate" placeholder="Start Date">
+                    <span class="input-group-text">to</span>
+                    <input type="date" class="form-control" id="doctorPaymentEndDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="doctorClearDateFilter">Clear</button>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Hire Date</th>
+                        <th>Base Pay</th>
+                        <th>Shift Type</th>
+                        <th>Extra Payment</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="doctorsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nurses" role="tabpanel">
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title mb-0">Nurse List</h5>
+                  <button class="btn btn-primary" id="createEmployeeBtnNursesTab">
+                    <i class="bi bi-plus-circle"></i> Create New Employee
+                  </button>
+                </div>
+                <div class="mb-3">
+                  <label for="nursePaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" id="nursePaymentStartDate" placeholder="Start Date">
+                    <span class="input-group-text">to</span>
+                    <input type="date" class="form-control" id="nursePaymentEndDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="nurseClearDateFilter">Clear</button>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Hire Date</th>
+                        <th>Base Pay</th>
+                        <th>Shift Type</th>
+                        <th>Extra Payment</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="nursesTableBody"></tbody>
                   </table>
                 </div>
               </div>
@@ -306,6 +388,7 @@
                 <div class="mb-3">
                   <label for="employeeType" class="form-label">Type</label>
                   <select class="form-select" id="employeeType" required>
+                    <option value="doctor">Doctor</option>
                     <option value="nurse">Nurse</option>
                     <option value="other">Other</option>
                   </select>

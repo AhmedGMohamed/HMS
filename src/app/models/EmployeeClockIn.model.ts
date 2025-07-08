@@ -30,6 +30,14 @@ export default class EmployeeClockInModel {
 		return rows;
 	}
 
+	static async getLastClockInByEmployeeId(
+		employee_id: number
+	): Promise<EmployeeClockIn | null> {
+		const sql = "SELECT * FROM EmployeeClockIn WHERE employee_id = $1 ORDER BY clock_id DESC LIMIT 1";
+		const { rows } = await query(sql, [employee_id]);
+		return rows[0] || null;
+	}
+
 	static async createClockIn(
 		dto: CreateEmployeeClockInDTO
 	): Promise<EmployeeClockIn> {
