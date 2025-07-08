@@ -35,15 +35,15 @@ export default class DoctorModel {
           name, phone, is_facility_employee, is_active, hire_date, employee_type, 
           base_pay, extra_amount, extra_payment_type, per_patient_payment_type, 
           percentage_scope, need_clock_in, shift_type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *
       `;
 			const employeeValues = [
 				dto.name,
 				dto.phone,
 				dto.is_facility_employee,
-				dto.hire_date,
 				dto.is_active || true,
+				dto.hire_date,
 				"doctor",
 				dto.base_pay,
 				dto.extra_amount || 0.00,
