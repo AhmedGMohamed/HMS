@@ -41,7 +41,9 @@ class EmployeeManager {
 	private paymentForm: HTMLFormElement;
 	private saveEmployeeButton: HTMLButtonElement;
 	private savePaymentButton: HTMLButtonElement;
-	private searchInput: HTMLInputElement;
+	private searchInputEmployees: HTMLInputElement;
+	private searchInputDoctors: HTMLInputElement;
+	private searchInputNurses: HTMLInputElement;
 	private employees: Map<number, Employee> = new Map();
 	private payments: Map<number, Payment> = new Map();
 	private userPermissions: string[] = [];
@@ -78,8 +80,14 @@ class EmployeeManager {
 		this.saveEmployeeButton = document.getElementById(
 			"saveEmployeeBtn"
 		) as HTMLButtonElement;
-		this.searchInput = document.getElementById(
+		this.searchInputEmployees = document.getElementById(
 			"searchEmployee"
+		) as HTMLInputElement;
+		this.searchInputDoctors = document.getElementById(
+			"searchDoctor"
+		) as HTMLInputElement;
+		this.searchInputNurses = document.getElementById(
+			"searchNurse"
 		) as HTMLInputElement;
 		this.employeePaymentStartDate = document.getElementById(
 			"employeePaymentStartDate"
@@ -142,27 +150,23 @@ class EmployeeManager {
 			this.handleSaveEmployee();
 		});
 
-		this.searchInput.addEventListener(
+		// Search input event listeners
+		this.searchInputEmployees.addEventListener(
 			"input",
 			this.debounce(() => {
-				this.renderEmployees(
-					"other",
-					"employeesTableBody",
-					this.employeePaymentStartDate,
-					this.employeePaymentEndDate
-				);
-				this.renderEmployees(
-					"doctor",
-					"doctorsTableBody",
-					this.doctorPaymentStartDate,
-					this.doctorPaymentEndDate
-				);
-				this.renderEmployees(
-					"nurse",
-					"nursesTableBody",
-					this.nursePaymentStartDate,
-					this.nursePaymentEndDate
-				);
+				this.renderEmployeesWithFilter(this.searchInputEmployees.value);
+			}, 300)
+		);
+		this.searchInputDoctors.addEventListener(
+			"input",
+			this.debounce(() => {
+				this.renderEmployeesWithFilter(this.searchInputDoctors.value);
+			}, 300)
+		);
+		this.searchInputNurses.addEventListener(
+			"input",
+			this.debounce(() => {
+				this.renderEmployeesWithFilter(this.searchInputNurses.value);
 			}, 300)
 		);
 
@@ -371,6 +375,30 @@ class EmployeeManager {
 		}
 	}
 
+	private renderEmployeesWithFilter(filter: string): void {
+		this.renderEmployees(
+			"other",
+			"employeesTableBody",
+			this.employeePaymentStartDate,
+			this.employeePaymentEndDate,
+			filter
+		);
+		this.renderEmployees(
+			"doctor",
+			"doctorsTableBody",
+			this.doctorPaymentStartDate,
+			this.doctorPaymentEndDate,
+			filter
+		);
+		this.renderEmployees(
+			"nurse",
+			"nursesTableBody",
+			this.nursePaymentStartDate,
+			this.nursePaymentEndDate,
+			filter
+		);
+	}
+
 	private async loadUser(): Promise<void> {
 		try {
 			const userString = localStorage.getItem("user");
@@ -474,7 +502,7 @@ class EmployeeManager {
 			? new Date(startDateInput.value).getTime()
 			: null;
 		const endDate = endDateInput.value
-			? new Date(endDateInput.value).setHours(23, 59, 59, 999)
+			? new Date(endDateInput.value).getTime()
 			: null;
 
 		const filteredEmployees = Array.from(this.employees.values()).filter(
@@ -536,6 +564,17 @@ class EmployeeManager {
 				" " +
 				this.escapeHtml(employee.extra_payment_type || "-")
 			}</td>
+			<td>${
+				employee.is_active
+					? `<span class='feature-indicator enabled'>
+						<i class='bi bi-check-circle-fill text-success'></i>
+						Yes
+					</span>`
+					: `<span class="feature-indicator disabled">
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        No
+                    </span>`
+			}</td>
             <td>
               <div class="action-buttons">
                 <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
@@ -584,7 +623,12 @@ class EmployeeManager {
 								(payment) => `
                           <tr>
                             <td>${payment.payment_id}</td>
-                            <td>$${Number(payment.payment_amount) + Number(payment.extra_amount)}<small class="d-block text-muted">($${payment.payment_amount} + $${payment.extra_amount})</small></td>
+                            <td>$${
+								Number(payment.payment_amount) +
+								Number(payment.extra_amount)
+							}<small class="d-block text-muted">($${
+									payment.payment_amount
+								} + $${payment.extra_amount})</small></td>
                             <td>${this.escapeHtml(
 								payment.extra_payment_type || "None"
 							)}</td>
