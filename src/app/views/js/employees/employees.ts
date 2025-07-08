@@ -41,8 +41,12 @@ class EmployeeManager {
 	private employees: Map<number, Employee> = new Map();
 	private payments: Map<number, Payment> = new Map();
 	private userPermissions: string[] = [];
-	private paymentStartDate: HTMLInputElement;
-	private paymentEndDate: HTMLInputElement;
+	private employeePaymentStartDate: HTMLInputElement;
+	private employeePaymentEndDate: HTMLInputElement;
+	private doctorPaymentStartDate: HTMLInputElement;
+	private doctorPaymentEndDate: HTMLInputElement;
+	private nursePaymentStartDate: HTMLInputElement;
+	private nursePaymentEndDate: HTMLInputElement;
 
 	constructor() {
 		new SidebarManager();
@@ -61,26 +65,54 @@ class EmployeeManager {
 		this.searchInput = document.getElementById(
 			"searchEmployee"
 		) as HTMLInputElement;
-		this.paymentStartDate = document.getElementById(
-			"paymentStartDate"
+		this.employeePaymentStartDate = document.getElementById(
+			"employeePaymentStartDate"
 		) as HTMLInputElement;
-		this.paymentEndDate = document.getElementById(
-			"paymentEndDate"
+		this.employeePaymentEndDate = document.getElementById(
+			"employeePaymentEndDate"
+		) as HTMLInputElement;
+		this.doctorPaymentStartDate = document.getElementById(
+			"doctorPaymentStartDate"
+		) as HTMLInputElement;
+		this.doctorPaymentEndDate = document.getElementById(
+			"doctorPaymentEndDate"
+		) as HTMLInputElement;
+		this.nursePaymentStartDate = document.getElementById(
+			"nursePaymentStartDate"
+		) as HTMLInputElement;
+		this.nursePaymentEndDate = document.getElementById(
+			"nursePaymentEndDate"
 		) as HTMLInputElement;
 
 		this.initializeEventListeners();
 		this.loadUserPermissions();
 		this.loadEmployees();
-		this.loadPayments();
+		if (this.userPermissions.includes("manage_payments"))
+			this.loadPayments();
 	}
 
 	private initializeEventListeners(): void {
+		const employeesTab = document.getElementById("employees-tab");
+		const doctorsTab = document.getElementById("doctors-tab");
+		const nursesTab = document.getElementById("nurses-tab");
+		const paymentsTab = document.getElementById("payments-tab");
+
 		document
-			.getElementById("createEmployeeBtn")
+			.getElementById("createEmployeeBtnEmployeesTab")
 			?.addEventListener("click", () => {
 				this.showEmployeeModal();
 			});
-
+		document
+			.getElementById("createEmployeeBtnDoctorsTab")
+			?.addEventListener("click", () => {
+				this.showEmployeeModal();
+			});
+		document
+			.getElementById("createEmployeeBtnNursesTab")
+			?.addEventListener("click", () => {
+				this.showEmployeeModal();
+			});
+		
 		this.saveEmployeeButton.addEventListener("click", () => {
 			this.handleSaveEmployee();
 		});
@@ -88,7 +120,24 @@ class EmployeeManager {
 		this.searchInput.addEventListener(
 			"input",
 			this.debounce(() => {
-				this.renderEmployees(this.searchInput.value);
+				this.renderEmployees(
+					"other",
+					"employeesTableBody",
+					this.employeePaymentStartDate,
+					this.employeePaymentEndDate
+				);
+				this.renderEmployees(
+					"doctor",
+					"doctorsTableBody",
+					this.doctorPaymentStartDate,
+					this.doctorPaymentEndDate
+				);
+				this.renderEmployees(
+					"nurse",
+					"nursesTableBody",
+					this.nursePaymentStartDate,
+					this.nursePaymentEndDate
+				);
 			}, 300)
 		);
 
@@ -98,17 +147,29 @@ class EmployeeManager {
 				this.resetEmployeeForm();
 			});
 
-		document
-			.getElementById("employees-tab")!
-			.addEventListener("shown.bs.tab", () => {
+		if (employeesTab) {
+			employeesTab.addEventListener("shown.bs.tab", () => {
 				this.loadEmployees();
 			});
+		}
 
-		document
-			.getElementById("payments-tab")!
-			.addEventListener("shown.bs.tab", () => {
+		if (doctorsTab) {
+			doctorsTab.addEventListener("shown.bs.tab", () => {
+				this.loadEmployees();
+			});
+		}
+
+		if (nursesTab) {
+			nursesTab.addEventListener("shown.bs.tab", () => {
+				this.loadEmployees();
+			});
+		}
+
+		if (paymentsTab) {
+			paymentsTab.addEventListener("shown.bs.tab", () => {
 				this.loadPayments();
 			});
+		}
 
 		// Dynamic visibility for extra payment fields
 		const extraPaymentTypeSelect = document.getElementById(
@@ -158,19 +219,94 @@ class EmployeeManager {
 					: "none";
 		});
 
-		// Date filter events
-		this.paymentStartDate.addEventListener("change", () =>
-			this.renderEmployees()
+		// Date filter events for Employees tab
+		this.employeePaymentStartDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"other",
+				"employeesTableBody",
+				this.employeePaymentStartDate,
+				this.employeePaymentEndDate
+			)
 		);
-		this.paymentEndDate.addEventListener("change", () =>
-			this.renderEmployees()
+		this.employeePaymentEndDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"other",
+				"employeesTableBody",
+				this.employeePaymentStartDate,
+				this.employeePaymentEndDate
+			)
 		);
 		document
-			.getElementById("clearDateFilter")
+			.getElementById("employeeClearDateFilter")
 			?.addEventListener("click", () => {
-				this.paymentStartDate.value = "";
-				this.paymentEndDate.value = "";
-				this.renderEmployees();
+				this.employeePaymentStartDate.value = "";
+				this.employeePaymentEndDate.value = "";
+				this.renderEmployees(
+					"other",
+					"employeesTableBody",
+					this.employeePaymentStartDate,
+					this.employeePaymentEndDate
+				);
+			});
+
+		// Date filter events for Doctors tab
+		this.doctorPaymentStartDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"doctor",
+				"doctorsTableBody",
+				this.doctorPaymentStartDate,
+				this.doctorPaymentEndDate
+			)
+		);
+		this.doctorPaymentEndDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"doctor",
+				"doctorsTableBody",
+				this.doctorPaymentStartDate,
+				this.doctorPaymentEndDate
+			)
+		);
+		document
+			.getElementById("doctorClearDateFilter")
+			?.addEventListener("click", () => {
+				this.doctorPaymentStartDate.value = "";
+				this.doctorPaymentEndDate.value = "";
+				this.renderEmployees(
+					"doctor",
+					"doctorsTableBody",
+					this.doctorPaymentStartDate,
+					this.doctorPaymentEndDate
+				);
+			});
+
+		// Date filter events for Nurses tab
+		this.nursePaymentStartDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"nurse",
+				"nursesTableBody",
+				this.nursePaymentStartDate,
+				this.nursePaymentEndDate
+			)
+		);
+		this.nursePaymentEndDate.addEventListener("change", () =>
+			this.renderEmployees(
+				"nurse",
+				"nursesTableBody",
+				this.nursePaymentStartDate,
+				this.nursePaymentEndDate
+			)
+		);
+		document
+			.getElementById("nurseClearDateFilter")
+			?.addEventListener("click", () => {
+				this.nursePaymentStartDate.value = "";
+				this.nursePaymentEndDate.value = "";
+				this.renderEmployees(
+					"nurse",
+					"nursesTableBody",
+					this.nursePaymentStartDate,
+					this.nursePaymentEndDate
+				);
 			});
 	}
 
@@ -196,16 +332,27 @@ class EmployeeManager {
 			if (!response.ok) throw new Error("Failed to fetch employees");
 			const employees: Employee[] = await response.json();
 			this.employees.clear();
-			employees
-				.filter(
-					(e) =>
-						e.employee_type !== "doctor" &&
-						e.employee_type !== "nurse"
-				)
-				.forEach((employee) =>
-					this.employees.set(employee.employee_id, employee)
-				);
-			this.renderEmployees();
+			employees.forEach((employee) =>
+				this.employees.set(employee.employee_id, employee)
+			);
+			this.renderEmployees(
+				"other",
+				"employeesTableBody",
+				this.employeePaymentStartDate,
+				this.employeePaymentEndDate
+			);
+			this.renderEmployees(
+				"doctor",
+				"doctorsTableBody",
+				this.doctorPaymentStartDate,
+				this.doctorPaymentEndDate
+			);
+			this.renderEmployees(
+				"nurse",
+				"nursesTableBody",
+				this.nursePaymentStartDate,
+				this.nursePaymentEndDate
+			);
 		} catch (error) {
 			this.showError("Failed to load employees");
 		}
@@ -254,53 +401,59 @@ class EmployeeManager {
 		}
 	}
 
-	private renderEmployees(filterTerm: string = ""): void {
-		const tbody = document.getElementById("employeesTableBody")!;
-		const startDate = this.paymentStartDate.value
-			? new Date(this.paymentStartDate.value).getTime()
+	private async renderEmployees(
+		employeeType: "doctor" | "nurse" | "other",
+		tableBodyId: string,
+		startDateInput: HTMLInputElement,
+		endDateInput: HTMLInputElement,
+		filterTerm: string = ""
+	): Promise<void> {
+		const tbody = document.getElementById(tableBodyId)!;
+		const startDate = startDateInput.value
+			? new Date(startDateInput.value).getTime()
 			: null;
-		const endDate = this.paymentEndDate.value
-			? new Date(this.paymentEndDate.value).getTime()
+		const endDate = endDateInput.value
+			? new Date(endDateInput.value).setHours(23, 59, 59, 999)
 			: null;
 
 		const filteredEmployees = Array.from(this.employees.values()).filter(
 			(employee) =>
+				employee.employee_type === employeeType &&
 				employee.name.toLowerCase().includes(filterTerm.toLowerCase())
 		);
 
-		Promise.all(
+		const employeeData = await Promise.all(
 			filteredEmployees.map(async (employee) => {
 				const payments = this.userPermissions.includes(
 					"manage_payments"
 				)
 					? await this.loadEmployeePayments(employee.employee_id)
 					: [];
+				const filteredPayments = payments.filter((payment) => {
+					const issuedTime = new Date(
+						payment.issued_timestamp
+					).getTime();
+					if (startDate && issuedTime < startDate) return false;
+					if (endDate && issuedTime > endDate) return false;
+					return true;
+				});
 
-					const filteredPayments = payments.filter((payment) => {
-						const issuedTime = new Date(
-							payment.issued_timestamp
-						).getTime();
-						if (startDate && issuedTime < startDate) return false;
-						if (endDate && issuedTime > endDate) return false;
-						return true;
-					});
-					
-					for (const payment of filteredPayments) {
-						if (payment.is_paid && payment.paid_by_user_id) {
-							const name = await this.getUserNameById(
-								payment.paid_by_user_id
-							);
-							payment.paid_by = name;
-						}
-						this.payments.set(payment.payment_id, payment);
+				for (const payment of filteredPayments) {
+					if (payment.is_paid && payment.paid_by_user_id) {
+						const name = await this.getUserNameById(
+							payment.paid_by_user_id
+						);
+						payment.paid_by = name;
 					}
+					this.payments.set(payment.payment_id, payment);
+				}
 				return { employee, payments: filteredPayments };
 			})
-		).then((employeeData) => {
-			tbody.innerHTML = employeeData
-				.map(({ employee, payments }) => {
-					const collapseId = `employeePayments${employee.employee_id}`;
-					return `
+		);
+		tbody.innerHTML = employeeData
+			.map(({ employee, payments }) => {
+				const collapseId = `employeePayments${employee.employee_id}`;
+				return `
           <tr>
             <td>
               ${
@@ -317,7 +470,7 @@ class EmployeeManager {
             <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
             <td>$${employee.base_pay || "-"}</td>
             <td>${employee.shift_type || "-"}</td>
-            <td>${employee.extra_payment_type || "-"}</td>
+            <td>${this.escapeHtml(employee.per_patient_payment_type || "") + " " + this.escapeHtml(employee.extra_payment_type || "-")}</td>
             <td>
               <div class="action-buttons">
                 <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
@@ -420,9 +573,8 @@ class EmployeeManager {
 					: ""
 			}
         `;
-				})
-				.join("");
-		});
+			})
+			.join("");
 	}
 
 	private async getUserNameById(id: number): Promise<string> {

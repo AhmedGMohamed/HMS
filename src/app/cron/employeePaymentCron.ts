@@ -8,13 +8,14 @@ import {
 	Doctor
 } from "../utils/types/employees.js";
 import { query } from "../models/database/connection.js";
+import EmployeeClockInModel from "../models/EmployeeClockIn.model.js";
 
 // Initialize cron jobs for employee payments
 export class EmployeePaymentCron {
 	static startJobs() {
 		// Daily wage payments at midnight
 		const dailyWageJob = new CronJob(
-			"0 * * * * *",
+			"0 0 0 * * *",
 			async () => {
 				console.log("Running daily wage payment job...");
 				await this.processDailyWagePayments();
@@ -50,6 +51,7 @@ export class EmployeePaymentCron {
 			// Process employee daily wages
 			for (const employee of employees) {
 				let extraAmount = 0;
+				let deductions = 0;
 				if (employee.base_pay && employee.base_pay > 0) {
 					if (employee.extra_payment_type != "none") {
 						switch (employee.extra_payment_type) {
@@ -61,12 +63,58 @@ export class EmployeePaymentCron {
 								break;
 							default:
 								extraAmount = 0;
+						}
+					}
 
+					if (employee.need_clock_in) {
+						const clockIn =
+							await EmployeeClockInModel.getLastClockInByEmployeeId(
+								employee.employee_id
+							);
+						if (clockIn?.clock_in) {
+							if (clockIn.clock_out)
+								deductions = clockIn.pay_deduction;
+							else {
+								const clockInHour = new Date(
+									clockIn.clock_in
+								).getHours();
+								const clockInDay = new Date(
+									clockIn.clock_in
+								).getDay();
+								switch (employee.shift_type) {
+									case "morning":
+										if (
+											clockInHour > 11 &&
+											clockInHour < 14
+										) {
+											deductions = employee.base_pay / 2;
+										} else if (clockInHour >= 14) {
+											deductions = employee.base_pay;
+										}
+										break;
+									case "night":
+										if (
+											clockInHour > 23 &&
+											clockInDay != new Date().getDay()
+										) {
+											deductions = employee.base_pay / 2;
+										} else if (
+											clockInHour >= 2 &&
+											clockInDay == new Date().getDay()
+										) {
+											deductions = employee.base_pay;
+										}
+										break;
+									default:
+										deductions = employee.base_pay;
+										break;
+								}
+							}
 						}
 					}
 					const payment: CreateEmployeePaymentDTO = {
 						employee_id: employee.employee_id,
-						payment_amount: employee.base_pay,
+						payment_amount: employee.base_pay - Number(deductions),
 						payment_type: "cash",
 						extra_payment_type: employee.extra_payment_type,
 						extra_amount: extraAmount,

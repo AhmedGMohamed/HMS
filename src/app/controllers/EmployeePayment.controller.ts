@@ -79,7 +79,6 @@ export default class EmployeePaymentController {
 			})
 		}
 	}
-	
 
 	static async createPayment(req: Request, res: Response): Promise<void> {
 		try {
