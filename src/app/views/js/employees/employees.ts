@@ -24,6 +24,7 @@ interface Payment {
 	employee_id: number;
 	payment_amount: number;
 	payment_type: string;
+	extra_amount?: number;
 	extra_payment_type: string;
 	issued_timestamp: string;
 	is_paid: boolean;
@@ -35,8 +36,11 @@ interface Payment {
 
 class EmployeeManager {
 	private employeeModal: any;
+	private paymentModal: any;
 	private employeeForm: HTMLFormElement;
+	private paymentForm: HTMLFormElement;
 	private saveEmployeeButton: HTMLButtonElement;
+	private savePaymentButton: HTMLButtonElement;
 	private searchInput: HTMLInputElement;
 	private employees: Map<number, Employee> = new Map();
 	private payments: Map<number, Payment> = new Map();
@@ -47,6 +51,8 @@ class EmployeeManager {
 	private doctorPaymentEndDate: HTMLInputElement;
 	private nursePaymentStartDate: HTMLInputElement;
 	private nursePaymentEndDate: HTMLInputElement;
+	private pendingPaymentStartDate: HTMLInputElement;
+	private pendingPaymentEndDate: HTMLInputElement;
 
 	constructor() {
 		new SidebarManager();
@@ -56,9 +62,19 @@ class EmployeeManager {
 		this.employeeModal = new bootstrap.Modal(
 			document.getElementById("employeeModal")!
 		);
+		//@ts-ignore
+		this.paymentModal = new bootstrap.Modal(
+			document.getElementById("paymentModal")!
+		);
 		this.employeeForm = document.getElementById(
 			"employeeForm"
 		) as HTMLFormElement;
+		this.paymentForm = document.getElementById(
+			"paymentForm"
+		) as HTMLFormElement;
+		this.savePaymentButton = document.getElementById(
+			"savePaymentBtn"
+		) as HTMLButtonElement;
 		this.saveEmployeeButton = document.getElementById(
 			"saveEmployeeBtn"
 		) as HTMLButtonElement;
@@ -83,9 +99,15 @@ class EmployeeManager {
 		this.nursePaymentEndDate = document.getElementById(
 			"nursePaymentEndDate"
 		) as HTMLInputElement;
+		this.pendingPaymentStartDate = document.getElementById(
+			"pendingPaymentStartDate"
+		) as HTMLInputElement;
+		this.pendingPaymentEndDate = document.getElementById(
+			"pendingPaymentEndDate"
+		) as HTMLInputElement;
 
 		this.initializeEventListeners();
-		this.loadUserPermissions();
+		this.loadUser();
 		this.loadEmployees();
 		if (this.userPermissions.includes("manage_payments"))
 			this.loadPayments();
@@ -112,7 +134,10 @@ class EmployeeManager {
 			?.addEventListener("click", () => {
 				this.showEmployeeModal();
 			});
-		
+		this.savePaymentButton.addEventListener("click", () => {
+			this.handleSavePayment();
+		});
+
 		this.saveEmployeeButton.addEventListener("click", () => {
 			this.handleSaveEmployee();
 		});
@@ -203,6 +228,26 @@ class EmployeeManager {
 				extraPaymentValue === "income"
 					? "block"
 					: "none";
+		});
+
+		// Dynamic visibility for payment extra payment fields
+		const paymentExtraPaymentTypeSelect = document.getElementById(
+			"paymentExtraPaymentType"
+		) as HTMLSelectElement;
+		paymentExtraPaymentTypeSelect.addEventListener("change", () => {
+			const paymentExtraAmountContainer = document.getElementById(
+				"paymentExtraAmountContainer"
+			)!;
+			const paymentPercentageScopeContainer = document.getElementById(
+				"paymentPercentageScopeContainer"
+			)!;
+			const value = paymentExtraPaymentTypeSelect.value;
+			paymentExtraAmountContainer.style.display =
+				value === "per_patient" || value === "income"
+					? "block"
+					: "none";
+			paymentPercentageScopeContainer.style.display =
+				value === "income" ? "block" : "none";
 		});
 
 		perPatientPaymentTypeSelect.addEventListener("change", () => {
@@ -308,9 +353,25 @@ class EmployeeManager {
 					this.nursePaymentEndDate
 				);
 			});
+		if (paymentsTab) {
+			// Date filter events for Pending Payments tab
+			this.pendingPaymentStartDate.addEventListener("change", () =>
+				this.renderPayments()
+			);
+			this.pendingPaymentEndDate.addEventListener("change", () =>
+				this.renderPayments()
+			);
+			document
+				.getElementById("pendingClearDateFilter")
+				?.addEventListener("click", () => {
+					this.pendingPaymentStartDate.value = "";
+					this.pendingPaymentEndDate.value = "";
+					this.renderPayments();
+				});
+		}
 	}
 
-	private async loadUserPermissions(): Promise<void> {
+	private async loadUser(): Promise<void> {
 		try {
 			const userString = localStorage.getItem("user");
 			if (!userString) return;
@@ -470,7 +531,11 @@ class EmployeeManager {
             <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
             <td>$${employee.base_pay || "-"}</td>
             <td>${employee.shift_type || "-"}</td>
-            <td>${this.escapeHtml(employee.per_patient_payment_type || "") + " " + this.escapeHtml(employee.extra_payment_type || "-")}</td>
+            <td>${
+				this.escapeHtml(employee.per_patient_payment_type || "") +
+				" " +
+				this.escapeHtml(employee.extra_payment_type || "-")
+			}</td>
             <td>
               <div class="action-buttons">
                 <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
@@ -483,6 +548,13 @@ class EmployeeManager {
 				})">
                   <i class="bi bi-trash"></i> Delete
                 </button>
+			    ${
+					this.userPermissions.includes("manage_payments")
+						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${employee.employee_id})">
+                 <i class="bi bi-plus-circle"></i> Create Payment
+               </button>`
+						: ""
+				}
               </div>
             </td>
           </tr>
@@ -512,7 +584,7 @@ class EmployeeManager {
 								(payment) => `
                           <tr>
                             <td>${payment.payment_id}</td>
-                            <td>$${payment.payment_amount}</td>
+                            <td>$${Number(payment.payment_amount) + Number(payment.extra_amount)}<small class="d-block text-muted">($${payment.payment_amount} + $${payment.extra_amount})</small></td>
                             <td>${this.escapeHtml(
 								payment.extra_payment_type || "None"
 							)}</td>
@@ -579,7 +651,6 @@ class EmployeeManager {
 
 	private async getUserNameById(id: number): Promise<string> {
 		try {
-			console.log("HERE");
 			const response = await fetch("/api/users/name/" + id, {
 				method: "GET",
 				headers: {
@@ -729,6 +800,19 @@ class EmployeeManager {
 		this.employeeModal.show();
 	}
 
+	private showPaymentModal(employeeId: number): void {
+		this.resetPaymentForm();
+		(
+			document.getElementById("paymentEmployeeId") as HTMLInputElement
+		).value = employeeId.toString();
+		const modalTitle = document.getElementById("paymentModalLabel")!;
+		const employee = this.employees.get(employeeId);
+		modalTitle.textContent = `Create Manual Payment for ${
+			employee ? this.escapeHtml(employee.name) : "Employee"
+		}`;
+		this.paymentModal.show();
+	}
+
 	private populateEmployeeForm(employee: Employee): void {
 		(document.getElementById("employeeId") as HTMLInputElement).value =
 			employee.employee_id.toString();
@@ -845,6 +929,68 @@ class EmployeeManager {
 		}
 	}
 
+	private async handleSavePayment(): Promise<void> {
+		if (!this.validatePaymentForm()) return;
+
+		const employeeId = (
+			document.getElementById("paymentEmployeeId") as HTMLInputElement
+		).value;
+		const paymentData = {
+			employee_id: Number(employeeId),
+			payment_amount: parseFloat(
+				(document.getElementById("paymentAmount") as HTMLInputElement)
+					.value
+			),
+			payment_type: (
+				document.getElementById("paymentType") as HTMLSelectElement
+			).value,
+			extra_payment_type:
+				(
+					document.getElementById(
+						"paymentExtraPaymentType"
+					) as HTMLSelectElement
+				).value || undefined,
+			extra_amount:
+				parseFloat(
+					(
+						document.getElementById(
+							"paymentExtraAmount"
+						) as HTMLInputElement
+					).value
+				) || undefined,
+			percentage_scope:
+				(
+					document.getElementById(
+						"paymentPercentageScope"
+					) as HTMLSelectElement
+				).value || undefined
+		};
+
+		try {
+			this.setPaymentLoading(true);
+			const response = await fetch("/api/employee-payments", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				},
+				body: JSON.stringify(paymentData)
+			});
+
+			if (!response.ok) throw new Error("Failed to create payment");
+			const data = await response.json();
+			console.log(data);
+			await this.markPaymentPaid(Number(data.payment_id), true);
+			await this.loadEmployees(); // Reload to update payment tables
+			this.paymentModal.hide();
+			toastr.success("Payment created successfully");
+		} catch (error) {
+			this.showError("Failed to create payment");
+		} finally {
+			this.setPaymentLoading(false);
+		}
+	}
+
 	public async deleteEmployee(employeeId: number): Promise<void> {
 		const result = await Swal.fire({
 			title: "Are you sure?",
@@ -877,18 +1023,24 @@ class EmployeeManager {
 		this.showEmployeeModal(employeeId);
 	}
 
-	public async markPaymentPaid(paymentId: number): Promise<void> {
-		const result = await Swal.fire({
-			title: "Confirm Payment",
-			text: "Mark this payment as paid?",
-			icon: "question",
-			showCancelButton: true,
-			confirmButtonColor: "#0d6efd",
-			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, mark as paid"
-		});
+	public async markPaymentPaid(
+		paymentId: number,
+		noConfirm = false
+	): Promise<void> {
+		let result = null;
+		if (!noConfirm) {
+			result = await Swal.fire({
+				title: "Confirm Payment",
+				text: "Mark this payment as paid?",
+				icon: "question",
+				showCancelButton: true,
+				confirmButtonColor: "#0d6efd",
+				cancelButtonColor: "#6c757d",
+				confirmButtonText: "Yes, mark as paid"
+			});
+		}
 
-		if (result.isConfirmed) {
+		if (noConfirm || result.isConfirmed) {
 			try {
 				const response = await fetch(
 					`/api/employee-payments/${paymentId}/paid`,
@@ -1032,6 +1184,11 @@ class EmployeeManager {
 		return this.employeeForm.checkValidity();
 	}
 
+	private validatePaymentForm(): boolean {
+		this.paymentForm.classList.add("was-validated");
+		return this.paymentForm.checkValidity();
+	}
+
 	private resetEmployeeForm(): void {
 		this.employeeForm.reset();
 		this.employeeForm.classList.remove("was-validated");
@@ -1049,6 +1206,24 @@ class EmployeeManager {
 		).style.display = "none";
 	}
 
+	private resetPaymentForm(): void {
+		this.paymentForm.reset();
+		this.paymentForm.classList.remove("was-validated");
+		(
+			document.getElementById("paymentEmployeeId") as HTMLInputElement
+		).value = "";
+		(
+			document.getElementById(
+				"paymentExtraAmountContainer"
+			) as HTMLElement
+		).style.display = "none";
+		(
+			document.getElementById(
+				"paymentPercentageScopeContainer"
+			) as HTMLElement
+		).style.display = "none";
+	}
+
 	private setEmployeeLoading(loading: boolean): void {
 		const spinner =
 			this.saveEmployeeButton.querySelector(".spinner-border")!;
@@ -1056,6 +1231,15 @@ class EmployeeManager {
 		this.saveEmployeeButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
 		buttonText.textContent = loading ? "Saving..." : "Save";
+	}
+
+	private setPaymentLoading(loading: boolean): void {
+		const spinner =
+			this.savePaymentButton.querySelector(".spinner-border")!;
+		const buttonText = this.savePaymentButton.querySelector(".btn-text")!;
+		this.savePaymentButton.disabled = loading;
+		spinner.classList.toggle("d-none", !loading);
+		buttonText.textContent = loading ? "Saving..." : "Save Payment";
 	}
 
 	private showError(message: string): void {
