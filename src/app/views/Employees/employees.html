@@ -349,6 +349,15 @@
             <div class="card">
               <div class="card-body">
                 <h5 class="card-title">Pending System-Generated Payments</h5>
+                <div class="mb-3">
+                  <label for="pendingPaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" id="pendingPaymentStartDate" placeholder="Start Date">
+                    <span class="input-group-text">to</span>
+                    <input type="date" class="form-control" id="pendingPaymentEndDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="pendingClearDateFilter">Clear</button>
+                  </div>
+                </div>
                 <div class="table-responsive">
                   <table class="table table-hover">
                     <thead>
@@ -452,6 +461,62 @@
               <button type="button" class="btn btn-primary" id="saveEmployeeBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 <span class="btn-text">Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Payment Modal -->
+      <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="paymentModalLabel">Create Manual Payment</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="paymentForm" novalidate>
+                <input type="hidden" id="paymentEmployeeId" name="paymentEmployeeId">
+                <div class="mb-3">
+                  <label for="paymentAmount" class="form-label">Payment Amount</label>
+                  <input type="number" class="form-control" id="paymentAmount" step="0.01" required>
+                  <div class="invalid-feedback">Please enter a payment amount.</div>
+                </div>
+                <div class="mb-3">
+                  <label for="paymentType" class="form-label">Payment Type</label>
+                  <select class="form-select" id="paymentType" required>
+                    <option value="manual">Manual</option>
+                    <option value="bonus">Bonus</option>
+                    <option value="overtime">Overtime</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="paymentExtraPaymentType" class="form-label">Extra Payment Type</label>
+                  <select class="form-select" id="paymentExtraPaymentType">
+                    <option value="none">None</option>
+                    <option value="per_patient">Per Patient</option>
+                    <option value="income">Income</option>
+                  </select>
+                </div>
+                <div class="mb-3" id="paymentExtraAmountContainer" style="display: none;">
+                  <label for="paymentExtraAmount" class="form-label">Extra Amount</label>
+                  <input type="number" class="form-control" id="paymentExtraAmount" step="0.01">
+                </div>
+                <div class="mb-3" id="paymentPercentageScopeContainer" style="display: none;">
+                  <label for="paymentPercentageScope" class="form-label">Percentage Scope</label>
+                  <select class="form-select" id="paymentPercentageScope">
+                    <option value="">Select Scope</option>
+                    <option value="before_deductions">Before Deductions</option>
+                    <option value="after_deductions">After Deductions</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="savePaymentBtn">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <span class="btn-text">Save Payment</span>
               </button>
             </div>
           </div>
