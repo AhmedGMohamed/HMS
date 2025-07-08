@@ -15,7 +15,7 @@ export class EmployeePaymentCron {
 	static startJobs() {
 		// Daily wage payments at midnight
 		const dailyWageJob = new CronJob(
-			"0 0 0 * * *",
+			"0 * * * * *",
 			async () => {
 				console.log("Running daily wage payment job...");
 				await this.processDailyWagePayments();
@@ -124,7 +124,7 @@ export class EmployeePaymentCron {
 				}
 			}
 
-			// Process doctor daily wages
+			/* // Process doctor daily wages
 			for (const doctor of doctors) {
 				if (
 					doctor.daily_pay &&
@@ -141,7 +141,7 @@ export class EmployeePaymentCron {
 					};
 					await EmployeePaymentModel.createPayment(payment);
 				}
-			}
+			} */
 
 			await query("COMMIT");
 		} catch (error) {

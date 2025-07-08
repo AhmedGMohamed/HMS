@@ -42,15 +42,12 @@ class EmployeeManager {
 	private saveEmployeeButton: HTMLButtonElement;
 	private savePaymentButton: HTMLButtonElement;
 	private searchInputEmployees: HTMLInputElement;
-	private searchInputDoctors: HTMLInputElement;
 	private searchInputNurses: HTMLInputElement;
 	private employees: Map<number, Employee> = new Map();
 	private payments: Map<number, Payment> = new Map();
 	private userPermissions: string[] = [];
 	private employeePaymentStartDate: HTMLInputElement;
 	private employeePaymentEndDate: HTMLInputElement;
-	private doctorPaymentStartDate: HTMLInputElement;
-	private doctorPaymentEndDate: HTMLInputElement;
 	private nursePaymentStartDate: HTMLInputElement;
 	private nursePaymentEndDate: HTMLInputElement;
 	private pendingPaymentStartDate: HTMLInputElement;
@@ -83,9 +80,6 @@ class EmployeeManager {
 		this.searchInputEmployees = document.getElementById(
 			"searchEmployee"
 		) as HTMLInputElement;
-		this.searchInputDoctors = document.getElementById(
-			"searchDoctor"
-		) as HTMLInputElement;
 		this.searchInputNurses = document.getElementById(
 			"searchNurse"
 		) as HTMLInputElement;
@@ -94,12 +88,6 @@ class EmployeeManager {
 		) as HTMLInputElement;
 		this.employeePaymentEndDate = document.getElementById(
 			"employeePaymentEndDate"
-		) as HTMLInputElement;
-		this.doctorPaymentStartDate = document.getElementById(
-			"doctorPaymentStartDate"
-		) as HTMLInputElement;
-		this.doctorPaymentEndDate = document.getElementById(
-			"doctorPaymentEndDate"
 		) as HTMLInputElement;
 		this.nursePaymentStartDate = document.getElementById(
 			"nursePaymentStartDate"
@@ -123,17 +111,11 @@ class EmployeeManager {
 
 	private initializeEventListeners(): void {
 		const employeesTab = document.getElementById("employees-tab");
-		const doctorsTab = document.getElementById("doctors-tab");
 		const nursesTab = document.getElementById("nurses-tab");
 		const paymentsTab = document.getElementById("payments-tab");
 
 		document
 			.getElementById("createEmployeeBtnEmployeesTab")
-			?.addEventListener("click", () => {
-				this.showEmployeeModal();
-			});
-		document
-			.getElementById("createEmployeeBtnDoctorsTab")
 			?.addEventListener("click", () => {
 				this.showEmployeeModal();
 			});
@@ -157,12 +139,6 @@ class EmployeeManager {
 				this.renderEmployeesWithFilter(this.searchInputEmployees.value);
 			}, 300)
 		);
-		this.searchInputDoctors.addEventListener(
-			"input",
-			this.debounce(() => {
-				this.renderEmployeesWithFilter(this.searchInputDoctors.value);
-			}, 300)
-		);
 		this.searchInputNurses.addEventListener(
 			"input",
 			this.debounce(() => {
@@ -178,12 +154,6 @@ class EmployeeManager {
 
 		if (employeesTab) {
 			employeesTab.addEventListener("shown.bs.tab", () => {
-				this.loadEmployees();
-			});
-		}
-
-		if (doctorsTab) {
-			doctorsTab.addEventListener("shown.bs.tab", () => {
 				this.loadEmployees();
 			});
 		}
@@ -298,36 +268,6 @@ class EmployeeManager {
 				);
 			});
 
-		// Date filter events for Doctors tab
-		this.doctorPaymentStartDate.addEventListener("change", () =>
-			this.renderEmployees(
-				"doctor",
-				"doctorsTableBody",
-				this.doctorPaymentStartDate,
-				this.doctorPaymentEndDate
-			)
-		);
-		this.doctorPaymentEndDate.addEventListener("change", () =>
-			this.renderEmployees(
-				"doctor",
-				"doctorsTableBody",
-				this.doctorPaymentStartDate,
-				this.doctorPaymentEndDate
-			)
-		);
-		document
-			.getElementById("doctorClearDateFilter")
-			?.addEventListener("click", () => {
-				this.doctorPaymentStartDate.value = "";
-				this.doctorPaymentEndDate.value = "";
-				this.renderEmployees(
-					"doctor",
-					"doctorsTableBody",
-					this.doctorPaymentStartDate,
-					this.doctorPaymentEndDate
-				);
-			});
-
 		// Date filter events for Nurses tab
 		this.nursePaymentStartDate.addEventListener("change", () =>
 			this.renderEmployees(
@@ -384,13 +324,6 @@ class EmployeeManager {
 			filter
 		);
 		this.renderEmployees(
-			"doctor",
-			"doctorsTableBody",
-			this.doctorPaymentStartDate,
-			this.doctorPaymentEndDate,
-			filter
-		);
-		this.renderEmployees(
 			"nurse",
 			"nursesTableBody",
 			this.nursePaymentStartDate,
@@ -429,12 +362,6 @@ class EmployeeManager {
 				"employeesTableBody",
 				this.employeePaymentStartDate,
 				this.employeePaymentEndDate
-			);
-			this.renderEmployees(
-				"doctor",
-				"doctorsTableBody",
-				this.doctorPaymentStartDate,
-				this.doctorPaymentEndDate
 			);
 			this.renderEmployees(
 				"nurse",
@@ -602,7 +529,7 @@ class EmployeeManager {
 				payments.length > 0
 					? `
               <tr class="collapse" id="${collapseId}">
-                <td colspan="8">
+                <td colspan="12">
                   <div class="table-responsive">
                     <table class="table table-hover">
                       <thead>
@@ -625,10 +552,10 @@ class EmployeeManager {
                             <td>${payment.payment_id}</td>
                             <td>$${
 								Number(payment.payment_amount) +
-								Number(payment.extra_amount)
+								Number(payment.extra_amount || 0)
 							}<small class="d-block text-muted">($${
 									payment.payment_amount
-								} + $${payment.extra_amount})</small></td>
+								} + $${payment.extra_amount || 0})</small></td>
                             <td>${this.escapeHtml(
 								payment.extra_payment_type || "None"
 							)}</td>
