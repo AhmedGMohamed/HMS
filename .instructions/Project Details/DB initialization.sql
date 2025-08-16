@@ -15,7 +15,7 @@ CREATE TYPE transaction_type AS ENUM ('patient', 'check', 'outside');
 
 CREATE TYPE employee_type AS ENUM ('doctor', 'nurse', 'other');
 
-CREATE TYPE payment_calculation AS ENUM ('fixed', 'per patient', 'both');
+CREATE TYPE payment_calculation AS ENUM ('fixed', 'per_patient', 'both');
 
 CREATE TYPE doctor_type AS ENUM (
 	'attending',
@@ -277,8 +277,9 @@ CREATE TABLE IF NOT EXISTS PriceList (
 );
 
 CREATE TABLE IF NOT EXISTS ServicePrice (
-	service_id INTEGER REFERENCES Service(service_id),
-	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
+	service_price_id SERIAL PRIMARY KEY,
+	service_id INTEGER REFERENCES Service(service_id) ON DELETE CASCADE,
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id) ON DELETE CASCADE,
 	price DECIMAL(15, 2) NOT NULL,
 	requires_prepayment BOOLEAN DEFAULT false,
 	prepayment_type prepayment_type,
@@ -288,7 +289,7 @@ CREATE TABLE IF NOT EXISTS ServicePrice (
 
 CREATE TABLE IF NOT EXISTS ShipmentPrice (
 	shipment_id INTEGER REFERENCES DrugShipment(shipment_id) ON DELETE CASCADE,
-	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id) ON DELETE CASCADE,
 	price DECIMAL(15, 2) NOT NULL,
 	requires_prepayment BOOLEAN DEFAULT false,
 	prepayment_type prepayment_type,

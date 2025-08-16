@@ -190,9 +190,11 @@ class DoctorManager {
 			? new Date(this.doctorPaymentEndDate.value).getTime()
 			: null;
 
-		const filteredDoctors = filterTerm
-			? await this.searchDoctors(filterTerm)
-			: Array.from(this.doctors.values());
+		const filteredDoctors = Array.from(this.doctors.values()).filter(
+			(doctor) =>
+				doctor.employee_type === "doctor" &&
+				doctor.name.toLowerCase().includes(filterTerm.toLowerCase())
+		);
 
 		const doctorData = await Promise.all(
 			filteredDoctors.map(async (doctor) => {
@@ -312,10 +314,10 @@ class DoctorManager {
 								payment.issued_timestamp
 							).toLocaleString()}</td>
                             <td>${
-								payment.is_paid
-									? "Paid"
-									: payment.is_void
+								payment.is_void
 									? "Void"
+									: payment.is_paid
+									? "Paid"
 									: "Pending"
 							}</td>
                             <td>${
@@ -342,7 +344,7 @@ class DoctorManager {
                                     <i class="bi bi-x-circle"></i> Void
                                   </button>
                                 `
-										: payment.is_paid
+										: payment.is_paid && !payment.is_void
 										? `
                                   <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
                                     <i class="bi bi-x-circle"></i> Void
@@ -385,24 +387,6 @@ class DoctorManager {
 		} catch (error) {
 			this.showError("Failed to load user name");
 			return "";
-		}
-	}
-
-	private async searchDoctors(filterTerm: string): Promise<Doctor[]> {
-		try {
-			const response = await fetch(
-				`/api/doctors/search?q=${encodeURIComponent(filterTerm)}`,
-				{
-					headers: {
-						Authorization: `Bearer ${localStorage.getItem("token")}`
-					}
-				}
-			);
-			if (!response.ok) throw new Error("Failed to search doctors");
-			return await response.json();
-		} catch (error) {
-			this.showError("Failed to search doctors");
-			return Array.from(this.doctors.values());
 		}
 	}
 
@@ -665,6 +649,10 @@ class DoctorManager {
 			clearTimeout(timeout);
 			timeout = setTimeout(() => func.apply(this, args), wait);
 		};
+	}
+
+	public refreshDoctors(): void {
+		this.renderDoctors(this.searchDoctor.value);
 	}
 }
 
