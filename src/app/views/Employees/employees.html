@@ -285,9 +285,9 @@
                 <div class="mb-3">
                   <label for="doctorPaymentDateRange" class="form-label">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="date" class="form-control" id="doctorPaymentStartDate" placeholder="Start Date">
+                    <input type="datetime-local" class="form-control" id="doctorPaymentStartDate" placeholder="Start Date">
                     <span class="input-group-text">to</span>
-                    <input type="date" class="form-control" id="doctorPaymentEndDate" placeholder="End Date">
+                    <input type="datetime-local" class="form-control" id="doctorPaymentEndDate" placeholder="End Date">
                     <button class="btn btn-outline-secondary" id="doctorClearDateFilter">Clear</button>
                   </div>
                 </div>
@@ -525,7 +525,7 @@
                   <label for="paymentCalculationDoctor" class="form-label">Payment Calculation</label>
                   <select class="form-select" id="paymentCalculation">
                     <option value="fixed">Fixed</option>
-                    <option value="per patient">Per Patient</option>
+                    <option value="per_patient">Per Patient</option>
                     <option value="both">Both</option>
                   </select>
                 </div>

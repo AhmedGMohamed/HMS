@@ -1103,6 +1103,8 @@ class EmployeeManager {
 				if (!response.ok) throw new Error("Failed to void payment");
 				await this.loadPayments();
 				await this.loadEmployees();
+				//@ts-ignore
+				await doctorManager.refreshDoctors();
 				toastr.success("Payment voided successfully");
 			} catch (error) {
 				this.showError("Failed to void payment");

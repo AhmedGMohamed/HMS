@@ -1,0 +1,32 @@
+- Make sure database initiation works.
+
+- Make sure voiding payments work in every tab, as well as showing all payment types under each employee. also make sure page refreshes on any action
+
+- list doctors in services page, fixed and percentage of each service:
+	Every doctor gets paid differently per service. In the services page (or doctors page) we'll need to list all the doctors to choose from and set their price per service per price list. Price could be a percentage of the service cost or a fixed amount
+	We need to create a table (DoctorServicePrice)
+	# DoctorServicePrice Table columns:
+		#- doctor_service_price_id (serial primary key)
+		#- doctor_id (integer referencing doctor id)
+		#- service_price_id (integer refrencing serviceprice table, we will add service_price_id to the serviceprice table)
+		#- amount (decimal (15,2) used as the main field when payment_type is either "fixed" or "percentage", and used for the fixed amount when payment_type is "both")
+		#- second_amount (decimal (15,2), this will be used for the percentage when percentage_type is "both")
+		#- payment_type (doctor_payment_type (fixed, percentage, both) - create a new type called doctor_payment_type with values "fixed", "percentage" or "both)
+	
+	# ServicePrice Edits:
+		#- Add service_price_id column to the table
+	
+
+
+- Admin dashboard has statistics, while regular user dashboards have links to other pages and quick clock-in/out
+
+- user dashboard has clock in and clock out, alongside other links:
+	1. quick clock in requires to select the employee and automatically set the clock-in time to the current time.
+	2. clock-in and shifts are different each day, let the shift time be set from the clock-in page
+	3. Using timestamps to calculate deductions might be better
+
+- show employee-patient history, filtered by date and name with details > place in reports page
+	When creating the reports, we need detailed reports with who each employee had supervised, which is filtered by name and details
+
+- supervising doctor needs monthly payment
+	supervising doctors get a montly payment, and a fixed amount per patient admitted. leave in the percentage in case things change

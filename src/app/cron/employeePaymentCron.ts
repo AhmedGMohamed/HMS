@@ -15,7 +15,7 @@ export class EmployeePaymentCron {
 	static startJobs() {
 		// Daily wage payments at midnight
 		const dailyWageJob = new CronJob(
-			"0 * * * * *",
+			"0 0 8 * * *",
 			async () => {
 				console.log("Running daily wage payment job...");
 				await this.processDailyWagePayments();
@@ -58,7 +58,7 @@ export class EmployeePaymentCron {
 							case "income": // TODO: Calculate facility income based on facility rules
 								extraAmount = 0;
 								break;
-							case "per patient": // TODO: Calculate per patient payment based on patient interactions
+							case "per_patient": // TODO: Calculate per patient payment based on patient interactions
 								extraAmount = 0;
 								break;
 							default:
@@ -163,7 +163,7 @@ export class EmployeePaymentCron {
 
 			for (const employee of employees) {
 				if (
-					employee.extra_payment_type === "per patient" &&
+					employee.extra_payment_type === "per_patient" &&
 					employee.per_patient_payment_type
 				) {
 					const interactions = patientInteractions.filter(
@@ -201,7 +201,7 @@ export class EmployeePaymentCron {
 								employee_id: employee.employee_id,
 								payment_amount,
 								payment_type: "cash",
-								extra_payment_type: "per patient",
+								extra_payment_type: "per_patient",
 								extra_amount: payment_amount,
 								paid_by_user_id: null // System-generated
 							};
@@ -213,7 +213,7 @@ export class EmployeePaymentCron {
 
 			for (const doctor of doctors) {
 				if (
-					doctor.payment_calculation === "per patient" ||
+					doctor.payment_calculation === "per_patient" ||
 					doctor.payment_calculation === "both"
 				) {
 					const interactions = patientInteractions.filter(
@@ -251,7 +251,7 @@ export class EmployeePaymentCron {
 								employee_id: doctor.employee_id,
 								payment_amount,
 								payment_type: "cash",
-								extra_payment_type: "per patient",
+								extra_payment_type: "per_patient",
 								extra_amount: payment_amount,
 								paid_by_user_id: null // System-generated
 							};
