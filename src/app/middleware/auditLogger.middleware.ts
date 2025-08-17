@@ -1,3 +1,4 @@
+// Enhanced src/app/middleware/auditLogger.middleware.ts
 import { Request, Response, NextFunction } from "express";
 import AuditLogModel from "../models/AuditLog.model.js";
 import { CreateAuditLogDTO } from "../utils/types/auditLog.js";
@@ -12,16 +13,30 @@ export async function auditLogger(
 			// API routes
 			"/api/auth/verify": "User verification",
 			"/api/dashboard/statistics": "View dashboard statistics",
+
+			// Patient routes
+			"/api/patients": "View all patients",
 			"/api/patients/active": "View active patients",
+			"/api/patients/search": "Search patients",
+			"/api/patients/suggestions": "Get patient suggestions",
+			"/api/patients/:id": "View patient details",
+			"/api/patients/:id/history": "View patient history",
+			"/api/patients/:id/admission/current": "View current admission",
+
+			// Service routes
 			"/api/services": "View all services",
 			"/api/services/search": "Search services",
 			"/api/services/suggestions": "Get service suggestions",
 			"/api/services/:id": "View service details",
 			"/api/services/:id/drugs": "View service related drugs",
+
+			// Price list routes
 			"/api/price-lists": "View all price lists",
 			"/api/price-lists/default": "View default price list",
 			"/api/price-lists/:id": "View price list details",
 			"/api/price-lists/:id/stats": "View price list statistics",
+
+			// User and role routes
 			"/api/users": "View all users",
 			"/api/users/:id": "View user details",
 			"/api/roles": "View all roles",
@@ -31,6 +46,8 @@ export async function auditLogger(
 			"/api/permissions/:id": "View permission details",
 			"/api/permissions/role/:id": "View role permissions",
 			"/api/permissions/unassigned/:id": "View unassigned permissions",
+
+			// Pharmacy routes
 			"/api/pharmacy/drugs/cards": "View all drug cards",
 			"/api/pharmacy/drugs/cards/:id": "View drug card details",
 			"/api/pharmacy/drugs/cards/search/drug": "Search drug cards",
@@ -57,6 +74,8 @@ export async function auditLogger(
 			"/api/pharmacy/usages/monitor/pending": "View pending drug usages",
 			"/api/pharmacy/usages/history": "View drug usage history",
 			"/api/pharmacy/warehouses": "View all warehouses",
+
+			// Employee routes
 			"/api/employees": "View all employees",
 			"/api/employees/:id": "View employee details",
 			"/api/employees/search": "Search employees by name",
@@ -88,30 +107,59 @@ export async function auditLogger(
 		},
 		POST: {
 			"/api/auth/login": "User login",
+
+			// Patient routes
+			"/api/patients": "Create patient",
+			"/api/patients/:id/admit": "Admit patient",
+			"/api/patients/:id/discharge": "Discharge patient",
+			"/api/patients/:id/services": "Add service to patient",
+
+			// Service routes
 			"/api/services": "Create service",
+
+			// Price list routes
 			"/api/price-lists": "Create price list",
+
+			// User and role routes
 			"/api/users": "Create user",
 			"/api/roles": "Create role",
 			"/api/permissions": "Create permission",
+
+			// Pharmacy routes
 			"/api/pharmacy/drugs/cards": "Create drug card",
 			"/api/pharmacy/drugs/shipments": "Create drug shipment",
 			"/api/pharmacy/drugs/transactions": "Create drug transaction",
 			"/api/pharmacy/usages": "Create drug usage",
+
+			// Employee routes
 			"/api/employees": "Create employee",
 			"/api/doctors": "Create doctor",
 			"/api/employee-payments": "Create employee payment",
 			"/api/clock-ins": "Create clock-in"
 		},
 		PUT: {
+			// Patient routes
+			"/api/patients/:id": "Update patient",
+			"/api/patients/:id/diagnosis": "Update patient diagnosis",
+
+			// Service routes
 			"/api/services/:id": "Update service",
+
+			// Price list routes
 			"/api/price-lists/:id": "Update price list",
+
+			// User and role routes
 			"/api/users/:id": "Update user",
 			"/api/roles/:id": "Update role",
 			"/api/roles/:id/permissions": "Update role permissions",
 			"/api/permissions/:id": "Update permission",
+
+			// Pharmacy routes
 			"/api/pharmacy/drugs/cards/:id": "Update drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Update drug shipment",
 			"/api/pharmacy/usages/:id": "Update drug usage",
+
+			// Employee routes
 			"/api/employees/:id": "Update employee",
 			"/api/doctors/:id": "Update doctor",
 			"/api/employee-payments/:id": "Update employee payment",
@@ -120,14 +168,27 @@ export async function auditLogger(
 			"/api/clock-ins/:id": "Update clock-in"
 		},
 		DELETE: {
+			// Patient routes
+			"/api/patients/:id/services/:serviceId":
+				"Remove service from patient",
+
+			// Service routes
 			"/api/services/:id": "Delete service",
+
+			// Price list routes
 			"/api/price-lists/:id": "Delete price list",
+
+			// User and role routes
 			"/api/users/:id": "Delete user",
 			"/api/roles/:id": "Delete role",
 			"/api/permissions/:id": "Delete permission",
+
+			// Pharmacy routes
 			"/api/pharmacy/drugs/cards/:id": "Delete drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Delete drug shipment",
 			"/api/pharmacy/usages/:id": "Delete drug usage",
+
+			// Employee routes
 			"/api/employees/:id": "Delete employee",
 			"/api/doctors/:id": "Delete doctor"
 		},
