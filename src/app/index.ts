@@ -7,22 +7,23 @@ import pageRoutes from "./routes/page.routes.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
-import { EmployeePaymentCron } from "./cron/employeePaymentCron.js";
+import EmployeePaymentCron from "./cron/employeePaymentCron.js";
+import PatientAutoRenewalCron from "./cron/patientAutoRenewalCron.js";
 
 overridePgDate();
-dotenv.config()
+dotenv.config();
 
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(express.urlencoded({extended: true}))
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "assets")));
-app.use("/css", express.static(path.join(__dirname, "views/css")))
-app.use("/js", express.static(path.join(__dirname, "views/js")))
+app.use("/css", express.static(path.join(__dirname, "views/css")));
+app.use("/js", express.static(path.join(__dirname, "views/js")));
 
 // API routes
 app.use("/api", apiRoutes);
@@ -40,6 +41,11 @@ app.use((_req, res) => {
 
 app.use(errorHandler);
 
-EmployeePaymentCron.startJobs();
+try {
+	PatientAutoRenewalCron.start();
+	EmployeePaymentCron.start();
+} catch (error) {
+	console.error("Error starting cron jobs: ", error);
+}
 
 export default app;

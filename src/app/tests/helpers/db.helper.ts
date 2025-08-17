@@ -1002,6 +1002,7 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
 	contact_info TEXT
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id)
 );
 
 CREATE TABLE IF NOT EXISTS Patient (
@@ -1024,7 +1025,7 @@ CREATE TABLE IF NOT EXISTS Patient (
 CREATE TABLE IF NOT EXISTS PatientHistory (
 	patient_history_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
-	bill_id INTEGER,
+	bill_id INTEGER REFERENCES Bill(bill_id),
 	leave_reason leave_reason_type,
 	quick_check BOOLEAN,
 	diagnosis TEXT,
@@ -1207,7 +1208,252 @@ CREATE INDEX IF NOT EXISTS idx_employee_hire_date ON Employee(hire_date);
 ALTER TABLE
 	PatientHistory
 ADD
-	CONSTRAINT patienthistory_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES Bill(bill_id)
+	CONSTRAINT patienthistory_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES Bill(bill_id);
+
+-- Add indexes for bill queries
+CREATE INDEX IF NOT EXISTS idx_bill_patient ON Bill(patient_id);
+
+CREATE INDEX IF NOT EXISTS idx_bill_generated ON Bill(generated_at);
+
+CREATE INDEX IF NOT EXISTS idx_bill_detail_bill ON BillDetail(bill_id);
+
+CREATE INDEX IF NOT EXISTS idx_bill_detail_service ON BillDetail(service_id);
+
+CREATE INDEX IF NOT EXISTS idx_bill_detail_drug ON BillDetail(drug_shipment_id);
+
+-- Add indexes for active patient services
+CREATE INDEX IF NOT EXISTS idx_active_patient_service_patient ON ActivePatientService(patient_id);
+
+CREATE INDEX IF NOT EXISTS idx_active_patient_service_active ON ActivePatientService(patient_id, is_active)
+WHERE
+	is_active = true;
+
+CREATE INDEX IF NOT EXISTS idx_active_patient_service_service ON ActivePatientService(service_id);
+
+-- Add indexes for drug usage tracking
+CREATE INDEX IF NOT EXISTS idx_drug_usage_patient ON DrugUsage(patient_id);
+
+CREATE INDEX IF NOT EXISTS idx_drug_usage_drug ON DrugUsage(drug_id);
+
+CREATE INDEX IF NOT EXISTS idx_drug_usage_remaining ON DrugUsage(remaining_quantity)
+WHERE
+	remaining_quantity > 0;
+
+CREATE INDEX IF NOT EXISTS idx_drug_usage_administered ON DrugUsage(last_administered);
+
+-- Add indexes for doctor patient history
+CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_patient ON DoctorPatientHistory(patient_history_id);
+
+CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_doctor ON DoctorPatientHistory(doctor_id);
+
+-- Add a view for currently admitted patients with their details
+CREATE
+OR REPLACE VIEW CurrentAdmissions AS
+SELECT
+	p.patient_id,
+	p.name as patient_name,
+	p.gender,
+	p.phone,
+	p.payment_type,
+	p.insurance_id,
+	ic.name as insurance_company_name,
+	ph.patient_history_id,
+	ph.diagnosis,
+	ph.admission_time,
+	ph.bill_id,
+	b.total_amount,
+	b.paid_amount,
+	array_agg(DISTINCT e.name) as attending_doctors,
+	array_agg(DISTINCT dph.doctor_id) as attending_doctor_ids
+FROM
+	Patient p
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+	LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+	LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+	LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
+	LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
+WHERE
+	p.is_active = true
+GROUP BY
+	p.patient_id,
+	p.name,
+	p.gender,
+	p.phone,
+	p.payment_type,
+	p.insurance_id,
+	ic.name,
+	ph.patient_history_id,
+	ph.diagnosis,
+	ph.admission_time,
+	ph.bill_id,
+	b.total_amount,
+	b.paid_amount;
+
+-- Add a view for service renewals that are due
+CREATE
+OR REPLACE VIEW ServiceRenewalsDue AS
+SELECT
+	aps.active_service_id,
+	aps.patient_id,
+	p.name as patient_name,
+	aps.service_id,
+	s.name as service_name,
+	s.service_type,
+	s.auto_renew,
+	aps.start_date,
+	ph.bill_id,
+	sp.price,
+	CASE
+		WHEN s.service_type = 'hourly' THEN aps.start_date + (
+			FLOOR(
+				EXTRACT(
+					EPOCH
+					FROM
+						(CURRENT_TIMESTAMP - aps.start_date)
+				) / 3600
+			) + 1
+		) * INTERVAL '1 hour'
+		WHEN s.service_type = 'daily' THEN aps.start_date + (
+			FLOOR(
+				EXTRACT(
+					EPOCH
+					FROM
+						(CURRENT_TIMESTAMP - aps.start_date)
+				) / 86400
+			) + 1
+		) * INTERVAL '1 day'
+		ELSE NULL
+	END as next_charge_time
+FROM
+	ActivePatientService aps
+	JOIN Service s ON aps.service_id = s.service_id
+	JOIN Patient p ON aps.patient_id = p.patient_id
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+	JOIN ServicePrice sp ON s.service_id = sp.service_id
+	JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
+WHERE
+	aps.is_active = true
+	AND p.is_active = true
+	AND s.auto_renew = true
+	AND s.service_type IN ('hourly', 'daily')
+	AND pl.is_default = true
+	AND CASE
+		WHEN s.service_type = 'hourly' THEN CURRENT_TIMESTAMP >= aps.start_date + (
+			FLOOR(
+				EXTRACT(
+					EPOCH
+					FROM
+						(CURRENT_TIMESTAMP - aps.start_date)
+				) / 3600
+			)
+		) * INTERVAL '1 hour'
+		WHEN s.service_type = 'daily' THEN CURRENT_TIMESTAMP >= aps.start_date + (
+			FLOOR(
+				EXTRACT(
+					EPOCH
+					FROM
+						(CURRENT_TIMESTAMP - aps.start_date)
+				) / 86400
+			)
+		) * INTERVAL '1 day'
+		ELSE false
+	END;
+
+-- Add a view for drug administrations that are due
+CREATE
+OR REPLACE VIEW DrugAdministrationsDue AS
+SELECT
+	du.usage_id,
+	du.patient_id,
+	p.name as patient_name,
+	du.drug_id,
+	dc.name as drug_name,
+	du.remaining_quantity,
+	du.last_administered,
+	dc.frequency,
+	dc.is_obligatory_continuous,
+	dc.sale_quantity,
+	ph.bill_id,
+	COALESCE(
+		du.last_administered + dc.frequency :: interval,
+		CURRENT_TIMESTAMP
+	) as next_administration
+FROM
+	DrugUsage du
+	JOIN DrugCard dc ON du.drug_id = dc.drug_id
+	JOIN Patient p ON du.patient_id = p.patient_id
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+WHERE
+	du.remaining_quantity > 0
+	AND p.is_active = true
+	AND dc.is_obligatory_continuous = true
+	AND dc.frequency IS NOT NULL
+	AND (
+		du.last_administered IS NULL
+		OR CURRENT_TIMESTAMP >= du.last_administered + dc.frequency :: interval
+	);
+
+-- Add a view for drugs that need replenishment
+CREATE
+OR REPLACE VIEW DrugReplenishmentNeeded AS
+SELECT
+	du.usage_id,
+	du.patient_id,
+	p.name as patient_name,
+	du.drug_id,
+	dc.name as drug_name,
+	du.remaining_quantity,
+	dc.sale_quantity,
+	dc.is_obligatory_continuous,
+	ph.bill_id
+FROM
+	DrugUsage du
+	JOIN DrugCard dc ON du.drug_id = dc.drug_id
+	JOIN Patient p ON du.patient_id = p.patient_id
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+WHERE
+	du.remaining_quantity <= 0
+	AND p.is_active = true
+	AND dc.is_obligatory_continuous = true;
+
+-- Create a function to calculate next service charge time
+CREATE
+OR REPLACE FUNCTION calculate_next_service_charge(
+	start_date TIMESTAMP,
+	service_type service_type
+) RETURNS TIMESTAMP AS $ $ BEGIN CASE
+	service_type
+	WHEN 'hourly' THEN RETURN start_date + (
+		FLOOR(
+			EXTRACT(
+				EPOCH
+				FROM
+					(CURRENT_TIMESTAMP - start_date)
+			) / 3600
+		) + 1
+	) * INTERVAL '1 hour';
+
+WHEN 'daily' THEN RETURN start_date + (
+	FLOOR(
+		EXTRACT(
+			EPOCH
+			FROM
+				(CURRENT_TIMESTAMP - start_date)
+		) / 86400
+	) + 1
+) * INTERVAL '1 day';
+
+ELSE RETURN NULL;
+
+END CASE;
+
+END;
+
+$$ LANGUAGE plpgsql;
 			`);
 	}
 };

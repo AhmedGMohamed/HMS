@@ -11,37 +11,39 @@ import { query } from "../models/database/connection.js";
 import EmployeeClockInModel from "../models/EmployeeClockIn.model.js";
 
 // Initialize cron jobs for employee payments
-export class EmployeePaymentCron {
-	static startJobs() {
-		// Daily wage payments at midnight
-		const dailyWageJob = new CronJob(
+class EmployeePaymentCron {
+	private dailyWageJob: CronJob;
+	private perPatientJob: CronJob;
+
+	constructor() {
+		this.dailyWageJob = new CronJob(
 			"0 0 8 * * *",
-			async () => {
-				console.log("Running daily wage payment job...");
-				await this.processDailyWagePayments();
-			},
+			() => {},
 			null,
 			true,
 			"system"
 		);
-
-		// Per-patient payments at 12 PM
-		const perPatientJob = new CronJob(
+		this.perPatientJob = new CronJob(
 			"0 0 12 * * *",
-			async () => {
-				console.log("Running per-patient payment job...");
-				await this.processPerPatientPayments();
-			},
+			() => {},
 			null,
 			true,
 			"system"
 		);
-
-		dailyWageJob.start();
-		perPatientJob.start();
+	}
+	start() {
+		console.log("Starting employee payment cron jobs...");
+		this.dailyWageJob.start();
+		this.perPatientJob.start();
 	}
 
-	private static async processDailyWagePayments() {
+	stop() {
+		console.log("Stopping employee payment cron jobs...");
+		this.dailyWageJob.stop();
+		this.perPatientJob.stop();
+	}
+
+	private async processDailyWagePayments() {
 		try {
 			await query("BEGIN");
 
@@ -150,7 +152,7 @@ export class EmployeePaymentCron {
 		}
 	}
 
-	private static async processPerPatientPayments() {
+	private async processPerPatientPayments() {
 		try {
 			await query("BEGIN");
 
@@ -269,13 +271,13 @@ export class EmployeePaymentCron {
 	}
 
 	// Placeholder for fetching patient interactions (to be implemented later)
-	private static async getPatientInteractions(): Promise<any[]> {
+	private async getPatientInteractions(): Promise<any[]> {
 		// TODO: Implement with patient code
 		return [];
 	}
 
 	// Placeholder for calculating deductions based on percentage_scope
-	private static async calculateDeductions(
+	private async calculateDeductions(
 		_amount: number,
 		_employee: Employee | Doctor
 	): Promise<number> {
@@ -283,3 +285,5 @@ export class EmployeePaymentCron {
 		return 0;
 	}
 }
+
+export default new EmployeePaymentCron();

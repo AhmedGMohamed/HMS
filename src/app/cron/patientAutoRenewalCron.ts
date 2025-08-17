@@ -1,0 +1,538 @@
+// src/app/cron/patientAutoRenewalCron.ts
+import { CronJob } from "cron";
+import { query } from "../models/database/connection.js";
+
+export class PatientAutoRenewalCron {
+	private serviceRenewalJob: CronJob;
+	private drugAdministrationJob: CronJob;
+
+	constructor() {
+		// Run service renewal every hour
+		this.serviceRenewalJob = new CronJob(
+			"0 * * * *", // Every hour at minute 0
+			this.processServiceRenewals.bind(this),
+			null,
+			false,
+			"UTC"
+		);
+
+		// Run drug administration check every 30 minutes
+		this.drugAdministrationJob = new CronJob(
+			"0,30 * * * *", // Every 30 minutes
+			this.processDrugAdministrations.bind(this),
+			null,
+			false,
+			"UTC"
+		);
+	}
+
+	start() {
+		console.log("Starting patient auto-renewal cron jobs...");
+		this.serviceRenewalJob.start();
+		this.drugAdministrationJob.start();
+	}
+
+	stop() {
+		console.log("Stopping patient auto-renewal cron jobs...");
+		this.serviceRenewalJob.stop();
+		this.drugAdministrationJob.stop();
+	}
+
+	private async processServiceRenewals(): Promise<void> {
+		try {
+			console.log("Processing service renewals...");
+
+			// Get services that need renewal
+			const renewalServicesSql = `
+                SELECT 
+                    aps.active_service_id,
+                    aps.patient_id,
+                    aps.service_id,
+                    aps.start_date,
+                    s.name as service_name,
+                    s.service_type,
+                    s.auto_renew,
+                    ph.bill_id,
+                    sp.price,
+                    CASE 
+                        WHEN s.service_type = 'hourly' THEN 
+                            aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 3600) + 1) * INTERVAL '1 hour'
+                        WHEN s.service_type = 'daily' THEN 
+                            aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 86400) + 1) * INTERVAL '1 day'
+                        ELSE NULL
+                    END as next_charge_time
+                FROM ActivePatientService aps
+                JOIN Service s ON aps.service_id = s.service_id
+                JOIN Patient p ON aps.patient_id = p.patient_id
+                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+                    AND ph.discharge_time IS NULL
+                JOIN ServicePrice sp ON s.service_id = sp.service_id
+                JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
+                WHERE 
+                    aps.is_active = true
+                    AND p.is_active = true
+                    AND s.auto_renew = true
+                    AND s.service_type IN ('hourly', 'daily')
+                    AND pl.is_default = true
+                    AND CASE 
+                        WHEN s.service_type = 'hourly' THEN 
+                            CURRENT_TIMESTAMP >= aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 3600)) * INTERVAL '1 hour'
+                        WHEN s.service_type = 'daily' THEN 
+                            CURRENT_TIMESTAMP >= aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 86400)) * INTERVAL '1 day'
+                        ELSE false
+                    END;
+            `;
+
+			const renewalServices = await query(renewalServicesSql);
+
+			for (const service of renewalServices.rows) {
+				await this.renewService(service);
+			}
+
+			console.log(
+				`Processed ${renewalServices.rows.length} service renewals`
+			);
+		} catch (error) {
+			console.error("Error processing service renewals:", error);
+		}
+	}
+
+	private async renewService(serviceInfo: any): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Add new bill detail for the renewed service
+			const billDetailSql = `
+                INSERT INTO BillDetail (
+                    bill_id, service_id, quantity, unit_price, 
+                    charge_type, sale_type, generated_at
+                ) VALUES ($1, $2, 1, $3, 'auto_renewal', 'admitted', CURRENT_TIMESTAMP)
+                RETURNING *;
+            `;
+
+			await query(billDetailSql, [
+				serviceInfo.bill_id,
+				serviceInfo.service_id,
+				serviceInfo.price
+			]);
+
+			// Update bill total
+			await query(
+				`UPDATE Bill 
+                 SET total_amount = (
+                     SELECT COALESCE(SUM(quantity * unit_price), 0)
+                     FROM BillDetail 
+                     WHERE bill_id = $1
+                 ),
+                 updated_at = CURRENT_TIMESTAMP
+                 WHERE bill_id = $1`,
+				[serviceInfo.bill_id]
+			);
+
+			// Handle service drugs if any
+			await this.addServiceDrugsForRenewal(
+				serviceInfo.patient_id,
+				serviceInfo.service_id,
+				serviceInfo.bill_id
+			);
+
+			await query("COMMIT");
+
+			console.log(
+				`Renewed service ${serviceInfo.service_name} for patient ${serviceInfo.patient_id}`
+			);
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error renewing service ${serviceInfo.service_id} for patient ${serviceInfo.patient_id}:`,
+				error
+			);
+		}
+	}
+
+	private async processDrugAdministrations(): Promise<void> {
+		try {
+			console.log("Processing drug administrations...");
+
+			// Get drugs that need administration
+			const pendingDrugsSql = `
+                SELECT 
+                    du.usage_id,
+                    du.patient_id,
+                    du.drug_id,
+                    du.remaining_quantity,
+                    du.last_administered,
+                    dc.name as drug_name,
+                    dc.frequency,
+                    dc.is_obligatory_continuous,
+                    dc.sale_quantity,
+                    ph.bill_id,
+                    p.name as patient_name,
+                    COALESCE(
+                        du.last_administered + dc.frequency::interval,
+                        CURRENT_TIMESTAMP
+                    ) as next_administration
+                FROM DrugUsage du
+                JOIN DrugCard dc ON du.drug_id = dc.drug_id
+                JOIN Patient p ON du.patient_id = p.patient_id
+                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+                    AND ph.discharge_time IS NULL
+                WHERE 
+                    du.remaining_quantity > 0
+                    AND p.is_active = true
+                    AND dc.is_obligatory_continuous = true
+                    AND dc.frequency IS NOT NULL
+                    AND (
+                        du.last_administered IS NULL
+                        OR CURRENT_TIMESTAMP >= du.last_administered + dc.frequency::interval
+                    );
+            `;
+
+			const pendingDrugs = await query(pendingDrugsSql);
+
+			for (const drugUsage of pendingDrugs.rows) {
+				await this.administerDrug(drugUsage);
+			}
+
+			// Check for drugs that need replenishment
+			await this.checkDrugReplenishment();
+
+			console.log(
+				`Processed ${pendingDrugs.rows.length} drug administrations`
+			);
+		} catch (error) {
+			console.error("Error processing drug administrations:", error);
+		}
+	}
+
+	private async administerDrug(drugUsage: any): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Update last administered time and reduce remaining quantity by 1
+			await query(
+				`UPDATE DrugUsage 
+                 SET last_administered = CURRENT_TIMESTAMP,
+                     remaining_quantity = remaining_quantity - 1
+                 WHERE usage_id = $1`,
+				[drugUsage.usage_id]
+			);
+
+			console.log(
+				`Administered ${drugUsage.drug_name} to patient ${drugUsage.patient_name}`
+			);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error administering drug ${drugUsage.drug_name} to patient ${drugUsage.patient_id}:`,
+				error
+			);
+		}
+	}
+
+	private async checkDrugReplenishment(): Promise<void> {
+		try {
+			// Get drugs that need replenishment (remaining quantity <= 0 and patient still active)
+			const replenishmentSql = `
+                SELECT 
+                    du.usage_id,
+                    du.patient_id,
+                    du.drug_id,
+                    du.remaining_quantity,
+                    dc.name as drug_name,
+                    dc.sale_quantity,
+                    dc.is_obligatory_continuous,
+                    ph.bill_id,
+                    p.name as patient_name
+                FROM DrugUsage du
+                JOIN DrugCard dc ON du.drug_id = dc.drug_id
+                JOIN Patient p ON du.patient_id = p.patient_id
+                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+                    AND ph.discharge_time IS NULL
+                WHERE 
+                    du.remaining_quantity <= 0
+                    AND p.is_active = true
+                    AND dc.is_obligatory_continuous = true;
+            `;
+
+			const replenishmentDrugs = await query(replenishmentSql);
+
+			for (const drugInfo of replenishmentDrugs.rows) {
+				await this.replenishDrug(drugInfo);
+			}
+
+			if (replenishmentDrugs.rows.length > 0) {
+				console.log(
+					`Replenished ${replenishmentDrugs.rows.length} drugs`
+				);
+			}
+		} catch (error) {
+			console.error("Error checking drug replenishment:", error);
+		}
+	}
+
+	private async replenishDrug(drugInfo: any): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Get available shipments (FIFO - First to expire, first out)
+			const availableShipmentsSql = `
+        	    SELECT ds.*, sp.price
+        	    FROM DrugShipment ds
+        	    JOIN ShipmentPrice sp ON ds.shipment_id = sp.shipment_id
+        	    JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
+        	    WHERE ds.drug_id = $1 AND ds.quantity > 0 AND pl.is_default = true
+        	    ORDER BY ds.expiry_date ASC;
+        	`;
+			const shipmentsResult = await query(availableShipmentsSql, [
+				drugInfo.drug_id
+			]);
+
+			if (shipmentsResult.rows.length === 0) {
+				console.warn(
+					`No available shipments for drug ${drugInfo.drug_name} - patient ${drugInfo.patient_name}`
+				);
+				await query("ROLLBACK");
+				return;
+			}
+
+			let remainingQuantity = drugInfo.sale_quantity;
+
+			for (const shipment of shipmentsResult.rows) {
+				if (remainingQuantity <= 0) break;
+
+				const quantityToDispense = Math.min(
+					remainingQuantity,
+					shipment.quantity
+				);
+
+				// Create drug transaction
+				const transactionSql = `
+            	    INSERT INTO DrugTransaction (
+            	        shipment_id, transaction_type, quantity, price, created_by_user_id
+            	    ) VALUES ($1, 'patient', $2, $3, 1)
+            	    RETURNING transaction_id;
+				`;
+				const transactionResult = await query(transactionSql, [
+					shipment.shipment_id,
+					quantityToDispense,
+					shipment.price
+				]);
+
+				// Update shipment quantity
+				await query(
+					"UPDATE DrugShipment SET quantity = quantity - $1 WHERE shipment_id = $2",
+					[quantityToDispense, shipment.shipment_id]
+				);
+
+				// Create new drug usage record
+				await query(
+					`INSERT INTO DrugUsage (
+						patient_id, drug_id, transaction_id, remaining_quantity
+					) VALUES ($1, $2, $3, $4)`,
+					[
+						drugInfo.patient_id,
+						drugInfo.drug_id,
+						transactionResult.rows[0].transaction_id,
+						quantityToDispense
+					]
+				);
+
+				// Add to bill details
+				await query(
+					`INSERT INTO BillDetail (
+                	    bill_id, drug_shipment_id, quantity, unit_price, 
+                	    charge_type, sale_type, generated_at
+                	) VALUES ($1, $2, $3, $4, 'auto_drug_replenishment', 'admitted', CURRENT_TIMESTAMP)`,
+					[
+						drugInfo.bill_id,
+						shipment.shipment_id,
+						quantityToDispense,
+						shipment.price
+					]
+				);
+
+				remainingQuantity -= quantityToDispense;
+			}
+
+			if (remainingQuantity > 0) {
+				console.warn(
+					`Could not fully replenish ${drugInfo.drug_name} for patient ${drugInfo.patient_name} - short by ${remainingQuantity} units`
+				);
+			}
+
+			// Update bill total
+			await query(
+				`UPDATE Bill 
+            	 SET total_amount = (
+            	     SELECT COALESCE(SUM(quantity * unit_price), 0)
+            	     FROM BillDetail 
+            	     WHERE bill_id = $1
+            	 ),
+            	 updated_at = CURRENT_TIMESTAMP
+            	 WHERE bill_id = $1`,
+				[drugInfo.bill_id]
+			);
+
+			console.log(
+				`Replenished ${
+					drugInfo.sale_quantity - remainingQuantity
+				} units of ${drugInfo.drug_name} for patient ${
+					drugInfo.patient_name
+				}`
+			);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error replenishing drug ${drugInfo.drug_name} for patient ${drugInfo.patient_id}:`,
+				error
+			);
+		}
+	}
+
+	private async addServiceDrugsForRenewal(
+		patientId: number,
+		serviceId: number,
+		billId: number
+	): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Get drugs associated with this service
+			const serviceDrugsSql = `
+                SELECT sd.drug_id, dc.sale_quantity
+                FROM ServiceDrug sd
+                JOIN DrugCard dc ON sd.drug_id = dc.drug_id
+                WHERE sd.service_id = $1;
+            `;
+			const serviceDrugsResult = await query(serviceDrugsSql, [
+				serviceId
+			]);
+
+			for (const drugInfo of serviceDrugsResult.rows) {
+				await this.dispenseDrugForService(
+					patientId,
+					drugInfo.drug_id,
+					drugInfo.sale_quantity,
+					billId
+				);
+			}
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error adding service drugs for renewal - Service ${serviceId}, Patient ${patientId}:`,
+				error
+			);
+		}
+	}
+
+	private async dispenseDrugForService(
+		patientId: number,
+		drugId: number,
+		quantity: number,
+		billId: number
+	): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Get available shipments (FIFO - First to expire, first out)
+			const availableShipmentsSql = `
+                SELECT ds.*, sp.price
+                FROM DrugShipment ds
+                JOIN ShipmentPrice sp ON ds.shipment_id = sp.shipment_id
+                JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
+                WHERE ds.drug_id = $1 AND ds.quantity > 0 AND pl.is_default = true
+                ORDER BY ds.expiry_date ASC;
+            `;
+			const shipmentsResult = await query(availableShipmentsSql, [
+				drugId
+			]);
+
+			if (shipmentsResult.rows.length === 0) {
+				console.warn(`No available shipments for drug ID: ${drugId}`);
+				return;
+			}
+
+			let remainingQuantity = quantity;
+
+			for (const shipment of shipmentsResult.rows) {
+				if (remainingQuantity <= 0) break;
+
+				const quantityToTake = Math.min(
+					remainingQuantity,
+					shipment.quantity
+				);
+
+				// Create drug transaction
+				const transactionSql = `
+                    INSERT INTO DrugTransaction (
+                        shipment_id, transaction_type, quantity, price, created_by_user_id
+                    ) VALUES ($1, 'patient', $2, $3, 1)
+                    RETURNING transaction_id;
+                `;
+				const transactionResult = await query(transactionSql, [
+					shipment.shipment_id,
+					quantityToTake,
+					shipment.price
+				]);
+
+				// Update shipment quantity
+				await query(
+					"UPDATE DrugShipment SET quantity = quantity - $1 WHERE shipment_id = $2",
+					[quantityToTake, shipment.shipment_id]
+				);
+
+				// Create drug usage record
+				await query(
+					`INSERT INTO DrugUsage (
+                        patient_id, drug_id, transaction_id, remaining_quantity
+                    ) VALUES ($1, $2, $3, $4)`,
+					[
+						patientId,
+						drugId,
+						transactionResult.rows[0].transaction_id,
+						quantityToTake
+					]
+				);
+
+				// Add to bill details
+				await query(
+					`INSERT INTO BillDetail (
+                        bill_id, drug_shipment_id, quantity, unit_price, 
+                        charge_type, sale_type, generated_at
+                    ) VALUES ($1, $2, $3, $4, 'service_drug_renewal', 'admitted', CURRENT_TIMESTAMP)`,
+					[
+						billId,
+						shipment.shipment_id,
+						quantityToTake,
+						shipment.price
+					]
+				);
+
+				remainingQuantity -= quantityToTake;
+			}
+
+			if (remainingQuantity > 0) {
+				console.warn(
+					`Could not fully dispense drug ID: ${drugId} for service renewal - short by ${remainingQuantity} units`
+				);
+			}
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error dispensing drug ${drugId} for service renewal:`,
+				error
+			);
+		}
+	}
+}
+
+export default new PatientAutoRenewalCron();
