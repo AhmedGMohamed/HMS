@@ -110,6 +110,19 @@ export class PriceListController {
 			res.status(500).json({ error: "Failed to fetch price list stats" });
 		}
 	}
+
+	async getPriceListServices(req: Request, res: Response) {
+		try {
+			const priceListId = parseInt(req.params.id);
+			const priceListServices = await PriceListModel.getPriceListServices(
+				priceListId
+			);
+			res.json(priceListServices);
+		} catch (error: any) {
+			console.error("Error fetching price list services:", error);
+			res.status(500).json({ error: "Failed to fetch price list services" });
+		}
+	}
 }
 
 export default new PriceListController();

@@ -97,7 +97,8 @@ export class PatientModel {
 					{
 						patient_id: newPatient.patient_id,
 						diagnosis: data.diagnosis,
-						attending_doctors: data.attending_doctors
+						attending_doctors: data.attending_doctors,
+						pricelist_id: data.pricelist_id
 					},
 					data.created_by_user_id!
 				);
@@ -277,6 +278,26 @@ export class PatientModel {
 				}
 			}
 
+			// Validate price list if provided
+			let pricelistId = data.pricelist_id;
+			if (pricelistId) {
+				const plCheck = await query(
+					"SELECT pricelist_id FROM PriceList WHERE pricelist_id = $1",
+					[pricelistId]
+				);
+				if (plCheck.rows.length === 0) {
+					throw new Error("Price list not found");
+				}
+			} else {
+				// Get default price list if not provided
+				const defPl = await query(
+					"SELECT pricelist_id FROM PriceList WHERE is_default = true LIMIT 1"
+				);
+				if (defPl.rows.length > 0) {
+					pricelistId = defPl.rows[0].pricelist_id;
+				}
+			}
+
 			// Create bill first
 			const billSql = `
                 INSERT INTO Bill (
@@ -290,15 +311,16 @@ export class PatientModel {
 			// Create patient history entry
 			const historySql = `
                 INSERT INTO PatientHistory (
-                    patient_id, bill_id, quick_check, diagnosis, admission_time
-                ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+                    patient_id, bill_id, quick_check, diagnosis, admission_time, pricelist_id
+                ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)
                 RETURNING *;
             `;
 			const historyResult = await query(historySql, [
 				data.patient_id,
 				bill.bill_id,
 				patient.quick_check,
-				data.diagnosis
+				data.diagnosis,
+				pricelistId
 			]);
 			const admission = historyResult.rows[0];
 
@@ -317,13 +339,18 @@ export class PatientModel {
 			);
 
 			// Auto-add services if quick_check is false
-			if (!patient.quick_check) {
+			/*if (!patient.quick_check) {
 				await this.addAutoAdmissionServices(
 					data.patient_id,
 					bill.bill_id,
 					userId
 				);
-			}
+			}*/
+			await this.addAutoAdmissionServices(
+				data.patient_id,
+				bill.bill_id,
+				userId
+			);
 
 			await query("COMMIT");
 			return { admission, bill };
@@ -481,13 +508,12 @@ export class PatientModel {
 			if (serviceCheck.rows.length === 0) {
 				throw new Error("Service not found");
 			}
-			const service = serviceCheck.rows[0];
 
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
-                    patient_id, service_id, start_date, is_active
-                ) VALUES ($1, $2, $3, true)
+                    patient_id, service_id, start_date, is_active, last_renewed
+                ) VALUES ($1, $2, $3, true, NULL)
                 RETURNING *;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
@@ -496,14 +522,22 @@ export class PatientModel {
 				startDate
 			]);
 
-			// Get default price for the service
-			const priceSql = `
-                SELECT sp.price 
-                FROM ServicePrice sp
-                JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-                WHERE sp.service_id = $1 AND pl.is_default = true;
-            `;
-			const priceResult = await query(priceSql, [serviceId]);
+			// Get price based on admission's pricelist_id
+			let priceSql = `
+				SELECT sp.price 
+				FROM ServicePrice sp
+				JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
+				WHERE sp.service_id = $1 AND pl.is_default = true
+			`;
+			let priceValues = [serviceId];
+			if (currentAdmission.pricelist_id) {
+				priceSql = `
+					SELECT price FROM ServicePrice
+					WHERE service_id = $1 AND pricelist_id = $2
+				`;
+				priceValues = [serviceId, currentAdmission.pricelist_id];
+			}
+			const priceResult = await query(priceSql, priceValues);
 			const price = priceResult.rows[0]?.price || 0;
 
 			// Add service to bill
@@ -600,8 +634,8 @@ export class PatientModel {
 		for (const service of autoServicesResult.rows) {
 			// Add to active patient services
 			await query(
-				`INSERT INTO ActivePatientService (patient_id, service_id, start_date, is_active) 
-                 VALUES ($1, $2, CURRENT_TIMESTAMP, true)`,
+				`INSERT INTO ActivePatientService (patient_id, service_id, start_date, is_active, last_renewed) 
+                 VALUES ($1, $2, CURRENT_TIMESTAMP, true, NULL)`,
 				[patientId, service.service_id]
 			);
 
@@ -851,6 +885,66 @@ export class PatientModel {
         `;
 		const result = await query(sql);
 		return result.rows;
+	}
+
+	async getPatientServices(patient_id: number): Promise<any[]> {
+		const sql = `
+            SELECT aps.*, s.name, s.service_type
+            FROM ActivePatientService aps
+            JOIN Service s ON aps.service_id = s.service_id
+            WHERE aps.patient_id = $1
+            ORDER BY aps.start_date DESC;
+        `;
+		const { rows } = await query(sql, [patient_id]);
+		return rows;
+	}
+
+	async getPatientDrugs(patient_id: number): Promise<any[]> {
+		const sql = `
+            SELECT du.*, dc.name as drug_name, dc.unit_conversion
+            FROM DrugUsage du
+            JOIN DrugCard dc ON du.drug_id = dc.drug_id
+            WHERE du.patient_id = $1
+            ORDER BY du.last_administered DESC NULLS LAST;
+        `;
+		const { rows } = await query(sql, [patient_id]);
+		return rows;
+	}
+
+	async addDrugToPatientBill(
+		patientId: number,
+		shipmentId: number,
+		quantity: number,
+		price: number
+	): Promise<any> {
+		await query("BEGIN");
+		try {
+			// Validate patient and admission
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+
+			// Add to bill detail
+			const billDetailSql = `
+        	    INSERT INTO BillDetail (bill_id, drug_shipment_id, quantity, unit_price, charge_type, sale_type, generated_at)
+        	    VALUES ($1, $2, $3, $4, 'drug', 'admitted', CURRENT_TIMESTAMP)
+        	`;
+			await query(billDetailSql, [
+				currentAdmission.bill_id,
+				shipmentId,
+				quantity,
+				price
+			]);
+
+			// Update bill total
+			await this.updateBillTotal(currentAdmission.bill_id!);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
 	}
 }
 

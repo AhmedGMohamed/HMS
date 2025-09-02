@@ -9,20 +9,20 @@ export class PatientAutoRenewalCron {
 	constructor() {
 		// Run service renewal every hour
 		this.serviceRenewalJob = new CronJob(
-			"0 * * * *", // Every hour at minute 0
+			"0 * * * *", // Every hour at minute 0 //TODO change back to 0 * * * *
 			this.processServiceRenewals.bind(this),
 			null,
 			false,
-			"UTC"
+			"system"
 		);
 
 		// Run drug administration check every 30 minutes
 		this.drugAdministrationJob = new CronJob(
-			"0,30 * * * *", // Every 30 minutes
+			"0,30 * * * *", // Every 30 minutes //TODO change back to 0,30 * * * *
 			this.processDrugAdministrations.bind(this),
 			null,
 			false,
-			"UTC"
+			"system"
 		);
 	}
 
@@ -49,18 +49,30 @@ export class PatientAutoRenewalCron {
                     aps.patient_id,
                     aps.service_id,
                     aps.start_date,
+                    aps.last_renewed,
+                    COALESCE(aps.last_renewed, aps.start_date) AS effective_last,
                     s.name as service_name,
                     s.service_type,
                     s.auto_renew,
                     ph.bill_id,
                     sp.price,
                     CASE 
-                        WHEN s.service_type = 'hourly' THEN 
-                            aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 3600) + 1) * INTERVAL '1 hour'
-                        WHEN s.service_type = 'daily' THEN 
-                            aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 86400) + 1) * INTERVAL '1 day'
-                        ELSE NULL
-                    END as next_charge_time
+                        WHEN s.service_type = 'hourly' THEN 3600
+                        WHEN s.service_type = 'daily' THEN 86400
+                        ELSE 0
+                    END AS seconds_per_period,
+                    CASE 
+                        WHEN s.service_type = 'hourly' THEN INTERVAL '1 hour'
+                        WHEN s.service_type = 'daily' THEN INTERVAL '1 day'
+                        ELSE INTERVAL '0'
+                    END AS interval_period,
+                    FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) /
+					CASE 
+                        WHEN s.service_type = 'hourly' THEN 3600
+                        WHEN s.service_type = 'daily' THEN 86400
+                        ELSE 0
+                    END)
+					AS number_of_periods
                 FROM ActivePatientService aps
                 JOIN Service s ON aps.service_id = s.service_id
                 JOIN Patient p ON aps.patient_id = p.patient_id
@@ -74,13 +86,12 @@ export class PatientAutoRenewalCron {
                     AND s.auto_renew = true
                     AND s.service_type IN ('hourly', 'daily')
                     AND pl.is_default = true
-                    AND CASE 
-                        WHEN s.service_type = 'hourly' THEN 
-                            CURRENT_TIMESTAMP >= aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 3600)) * INTERVAL '1 hour'
-                        WHEN s.service_type = 'daily' THEN 
-                            CURRENT_TIMESTAMP >= aps.start_date + (FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - aps.start_date)) / 86400)) * INTERVAL '1 day'
-                        ELSE false
-                    END;
+                    AND FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) /
+					CASE 
+                        WHEN s.service_type = 'hourly' THEN 3600
+                        WHEN s.service_type = 'daily' THEN 86400
+                        ELSE 0
+                    END) >= 1;
             `;
 
 			const renewalServices = await query(renewalServicesSql);
@@ -133,7 +144,21 @@ export class PatientAutoRenewalCron {
 			await this.addServiceDrugsForRenewal(
 				serviceInfo.patient_id,
 				serviceInfo.service_id,
-				serviceInfo.bill_id
+				serviceInfo.bill_id,
+				serviceInfo.number_of_periods
+			);
+
+			// Update last_renewed = effective_last + number_of_periods * interval_period
+			await query(
+				`UPDATE ActivePatientService 
+                 SET last_renewed = $1::TIMESTAMP + ($2::INTEGER * $3::INTERVAL)
+                 WHERE active_service_id = $4`,
+				[
+					serviceInfo.effective_last,
+					parseInt(serviceInfo.number_of_periods),
+					serviceInfo.interval_period,
+					serviceInfo.active_service_id
+				]
 			);
 
 			await query("COMMIT");
@@ -277,6 +302,12 @@ export class PatientAutoRenewalCron {
 		try {
 			await query("BEGIN");
 
+			// Get system user ID
+			const systemUserId = await this.getSystemUserId();
+			if (!systemUserId) {
+				throw new Error("System user not found");
+			}
+
 			// Get available shipments (FIFO - First to expire, first out)
 			const availableShipmentsSql = `
         	    SELECT ds.*, sp.price
@@ -312,13 +343,14 @@ export class PatientAutoRenewalCron {
 				const transactionSql = `
             	    INSERT INTO DrugTransaction (
             	        shipment_id, transaction_type, quantity, price, created_by_user_id
-            	    ) VALUES ($1, 'patient', $2, $3, 1)
+            	    ) VALUES ($1, 'patient', $2, $3, $4)
             	    RETURNING transaction_id;
 				`;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToDispense,
-					shipment.price
+					shipment.price,
+					systemUserId
 				]);
 
 				// Update shipment quantity
@@ -397,7 +429,8 @@ export class PatientAutoRenewalCron {
 	private async addServiceDrugsForRenewal(
 		patientId: number,
 		serviceId: number,
-		billId: number
+		billId: number,
+		number_of_periods: number = 1
 	): Promise<void> {
 		try {
 			await query("BEGIN");
@@ -417,7 +450,7 @@ export class PatientAutoRenewalCron {
 				await this.dispenseDrugForService(
 					patientId,
 					drugInfo.drug_id,
-					drugInfo.sale_quantity,
+					drugInfo.sale_quantity * number_of_periods,
 					billId
 				);
 			}
@@ -441,6 +474,8 @@ export class PatientAutoRenewalCron {
 		try {
 			await query("BEGIN");
 
+			// Get system user ID
+			const systemUserId = await this.getSystemUserId();
 			// Get available shipments (FIFO - First to expire, first out)
 			const availableShipmentsSql = `
                 SELECT ds.*, sp.price
@@ -473,13 +508,14 @@ export class PatientAutoRenewalCron {
 				const transactionSql = `
                     INSERT INTO DrugTransaction (
                         shipment_id, transaction_type, quantity, price, created_by_user_id
-                    ) VALUES ($1, 'patient', $2, $3, 1)
+                    ) VALUES ($1, 'patient', $2, $3, $4)
                     RETURNING transaction_id;
                 `;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToTake,
-					shipment.price
+					shipment.price,
+					systemUserId
 				]);
 
 				// Update shipment quantity
@@ -532,6 +568,19 @@ export class PatientAutoRenewalCron {
 				error
 			);
 		}
+	}
+
+	private async getSystemUserId(): Promise<number> {
+		//get system user ID
+		const userSql = `
+				SELECT user_id
+				FROM "User"
+				WHERE username = 'system';
+			`;
+		const userResult = await query(userSql);
+		const systemUserId = userResult.rows[0].user_id;
+
+		return systemUserId;
 	}
 }
 

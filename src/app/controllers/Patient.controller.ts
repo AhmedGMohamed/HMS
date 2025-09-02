@@ -7,6 +7,7 @@ import {
 	AdmitPatientDTO,
 	DischargePatientDTO
 } from "../utils/types/patients.js";
+import DrugUsageModel from "../models/DrugUsage.model.js";
 
 export class PatientController {
 	async getAllPatients(_req: Request, res: Response) {
@@ -159,7 +160,7 @@ export class PatientController {
 			};
 			if (!req.user) {
 				res.status(401).json({ error: "Unauthorized" });
-				return
+				return;
 			}
 			const userId = req.user.userId;
 
@@ -288,7 +289,7 @@ export class PatientController {
 		try {
 			const patientId = parseInt(req.params.id);
 			const { service_id, start_date } = req.body;
-			
+
 			if (!req.user) {
 				res.status(401).json({ error: "Unauthorized" });
 				return;
@@ -385,6 +386,78 @@ export class PatientController {
 			res.status(500).json({
 				error: "Failed to get patient suggestions"
 			});
+		}
+	}
+
+	async getPatientServices(req: Request, res: Response): Promise<void> {
+		try {
+			const patientId = parseInt(req.params.id);
+			const services = await PatientModel.getPatientServices(patientId);
+			res.json(services);
+		} catch (error) {
+			console.error("Error fetching patient services:", error);
+			res.status(500).json({ error: "Failed to fetch patient services" });
+		}
+	}
+
+	async getPatientDrugs(req: Request, res: Response): Promise<void> {
+		try {
+			const patientId = parseInt(req.params.id);
+			const drugs = await PatientModel.getPatientDrugs(patientId);
+			res.json(drugs);
+		} catch (error) {
+			console.error("Error fetching patient drugs:", error);
+			res.status(500).json({ error: "Failed to fetch patient drugs" });
+		}
+	}
+
+	async addDrugToPatient(req: Request, res: Response) {
+		try {
+			const patientId = parseInt(req.params.id);
+			const { drug_id, shipment_id, quantity, price } = req.body;
+
+			if (!req.user) {
+				res.status(401).json({ error: "Unauthorized" });
+				return;
+			}
+			const userId = req.user.userId;
+
+			// Validate required fields
+			if (!drug_id || !shipment_id || !quantity || !price) {
+				res.status(400).json({
+					error: "Drug ID, shipment ID, quantity, and price are required"
+				});
+				return;
+			}
+
+			const result = await DrugUsageModel.createDrugUsage({ patient_id: patientId, drug_id, shipment_id, quantity, price }, userId);
+			
+			await PatientModel.addDrugToPatientBill(
+				patientId,
+				shipment_id,
+				quantity,
+				price,
+			);
+			res.status(201).json(result);
+		} catch (error: any) {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Drug not found" ||
+				error.message === "Shipment not found" ||
+				error.message === "Invalid shipment for this drug" ||
+				error.message === "Patient is not currently admitted"
+			) {
+				res.status(400).json({ error: error.message });
+			} else if (
+				error.message === "Insufficient quantity in selected shipment"
+			) {
+				res.status(400).json({ error: error.message });
+			} else {
+				console.error("Error adding drug to patient:", error);
+				res.status(500).json({
+					error: "Failed to add drug to patient"
+				});
+			}
 		}
 	}
 }

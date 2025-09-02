@@ -152,6 +152,23 @@ export class PriceListModel {
 		const result = await query(sql, [priceListId]);
 		return result.rows[0];
 	}
+
+	async getPriceListServices(
+		priceListId: number
+	): Promise<{ service_id: number; name: string; price: number }[]> {
+		const sql = `
+			SELECT
+				s.service_id,
+				s.name,
+				sp.price
+			FROM Service s
+			JOIN ServicePrice sp ON s.service_id = sp.service_id
+			WHERE sp.pricelist_id = $1
+		`;
+
+		const result = await query(sql, [priceListId]);
+		return result.rows;
+	}
 }
 
 export default new PriceListModel();

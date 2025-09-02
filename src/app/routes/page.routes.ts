@@ -102,4 +102,14 @@ router.get(
 	}
 );
 
+router.get(
+	"/patients",
+	verifyToken,
+	checkPermission("manage_patients"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/patients/patients.html", { root: __dirname });
+	}
+);
+
 export default router;

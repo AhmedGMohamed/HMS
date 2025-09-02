@@ -29,7 +29,7 @@ export class DashboardService {
 		const today = new Date().getTime();
 		// How much time in milliseconds has passed since the last 12PM
 		const timePassed = (today - baseTime) % dayInMillis;
-		const last12PM = (today - timePassed) / 1000; // Convert to seconds 
+		const last12PM = (today - timePassed) / 1000; // Convert to seconds
 
 		const drugProfitSql = `
 			SELECT CAST(SUM(profit) as DECIMAL(15,2))
@@ -40,8 +40,10 @@ export class DashboardService {
         	    JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
         	    JOIN DrugCard dc ON ds.drug_id = dc.drug_id
 				WHERE dt.timestamp >= to_timestamp($1)
+				AND dt.transaction_type != 'patient'
 			) dsp`;
 		const result = await query(drugProfitSql, [last12PM]);
+		console.log(result.rows[0])
 
 		const employeeWagesSql = `
 			SELECT CAST(SUM(wage) as DECIMAL(15,2))
@@ -52,9 +54,24 @@ export class DashboardService {
 				WHERE ep.is_paid = true
 				AND is_void = false
 				AND ep.paid_timestamp >= to_timestamp($1)
-			)`
+			)`;
 		const wageResult = await query(employeeWagesSql, [last12PM]);
-		return (result.rows[0].sum || 0) - (wageResult.rows[0].sum || 0);
+		console.log(wageResult.rows[0]);
+
+		const servicesProfitSql = `
+			SELECT CAST(SUM(b.paid_amount) as DECIMAL(15,2))
+			FROM Bill b
+			WHERE b.generated_at >= to_timestamp($1)
+			OR b.updated_at >= to_timestamp($1)
+		`;
+		const servicesResult = await query(servicesProfitSql, [last12PM]);
+		console.log(servicesResult.rows[0])
+
+		return (
+			(+result.rows[0].sum || 0) +
+			(+servicesResult.rows[0].sum || 0) -
+			(+wageResult.rows[0].sum || 0)
+		);
 	}
 
 	private async getLowStockItemsCount(): Promise<number> {

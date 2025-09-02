@@ -67,6 +67,7 @@ export const dbHelper = {
 		const result = await query(`
             INSERT INTO Permission (feature_name, description) VALUES 
             ('manage_patients', 'Can manage patient records'),
+			('view_patients', 'Can view patient records'),
             ('manage_services', 'Can manage services'),
             ('manage_billing', 'Can manage billing'),
             ('manage_pharmacy', 'Can manage pharmacy'),
@@ -1002,7 +1003,8 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
 	contact_info TEXT
-	pricelist_id INTEGER REFERENCES PriceList(pricelist_id)
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
+	last_cleared_date DATE
 );
 
 CREATE TABLE IF NOT EXISTS Patient (
@@ -1013,6 +1015,7 @@ CREATE TABLE IF NOT EXISTS Patient (
 	address TEXT,
 	payment_type payment_type NOT NULL,
 	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
+	insurance_form_id VARCHAR(255),
 	insurance_card_id VARCHAR(255),
 	guardian_info JSONB,
 	quick_check BOOLEAN DEFAULT false,
@@ -1026,6 +1029,7 @@ CREATE TABLE IF NOT EXISTS PatientHistory (
 	patient_history_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	bill_id INTEGER REFERENCES Bill(bill_id),
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
 	leave_reason leave_reason_type,
 	quick_check BOOLEAN,
 	diagnosis TEXT,
@@ -1113,6 +1117,7 @@ CREATE TABLE IF NOT EXISTS ActivePatientService (
 	start_date TIMESTAMP NOT NULL,
 	end_date TIMESTAMP,
 	is_active BOOLEAN DEFAULT true
+	last_renewed TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS ServiceDrug (

@@ -24,7 +24,7 @@ router.put("/:id", validateId, auditLogger, (req, res) =>
 );
 
 // Shipment selection endpoint
-router.get("/shipments/:drugId", validateId, auditLogger, (req, res) =>
+router.get("/shipments/:id", validateId, auditLogger, (req, res) =>
 	DrugUsageController.getAvailableShipments(req, res)
 );
 

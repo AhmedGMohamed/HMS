@@ -35,6 +35,7 @@ export interface PatientHistory {
 	attending_doctor_ids?: number[]; // Array of doctor IDs
 	total_amount?: number; // From bill
 	paid_amount?: number; // From bill
+	pricelist_id?: number | null;
 }
 
 export interface PatientDoctor {
@@ -71,6 +72,7 @@ export interface CreatePatientDTO {
 
 	is_active?: boolean;
 	created_by_user_id?: number;
+	pricelist_id?: number | null;
 }
 
 export interface UpdatePatientDTO {
@@ -100,6 +102,7 @@ export interface AdmitPatientDTO {
 	patient_id: number;
 	diagnosis: string;
 	attending_doctors: number[];
+	pricelist_id?: number | null;
 }
 
 export interface DischargePatientDTO {
@@ -161,6 +164,7 @@ export interface InsuranceCompany {
 	insurance_id: number;
 	name: string;
 	contact_info: string | null;
+	pricelist_id: number | null;
 }
 
 export interface InsuranceCoverage {

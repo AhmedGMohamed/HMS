@@ -5,6 +5,7 @@ export interface UnitConversion {
 }
 
 export interface ShipmentPrice {
+	pricelist_name: string;
 	shipment_id: number;
 	pricelist_id: number;
 	price: number | string;

@@ -138,6 +138,15 @@ router.post(
 	(req, res) => PatientController.addServiceToPatient(req, res)
 );
 
+router.post(
+	"/:id/drugs",
+	verifyToken,
+	checkPermission("manage_patients"),	
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.addDrugToPatient(req, res)
+);
+
 // Remove service from patient
 router.delete(
 	"/:id/services/:serviceId",
@@ -146,6 +155,20 @@ router.delete(
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.removeServiceFromPatient(req, res)
+);
+
+router.get(
+	"/:id/services",
+	verifyToken,
+	checkPermission("view_patients"),
+	(req, res) => PatientController.getPatientServices(req, res)
+);
+
+router.get(
+	"/:id/drugs",
+	verifyToken,
+	checkPermission("view_patients"),
+	(req, res) => PatientController.getPatientDrugs(req, res)
 );
 
 export default router;

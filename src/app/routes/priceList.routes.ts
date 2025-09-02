@@ -21,6 +21,9 @@ router.get("/:id", validateId, (req, res) =>
 router.get("/:id/stats", auditLogger, (req, res) =>
 	PriceListController.getPriceListStats(req, res)
 );
+router.get("/:id/services", auditLogger, (req, res) =>
+	PriceListController.getPriceListServices(req, res)
+);
 
 // POST
 router.post("/", auditLogger, (req, res) =>
