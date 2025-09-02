@@ -22,7 +22,7 @@ export default class EmployeePaymentModel {
 
 	static async getUnpaidSystemPayments(): Promise<EmployeePayment[]> {
 		const sql =
-			"SELECT * FROM EmployeePayment WHERE is_paid = false AND paid_by_user_id IS NULL AND is_void = false SORT BY issued_timestamp DESC";
+			"SELECT * FROM EmployeePayment WHERE is_paid = false AND paid_by_user_id IS NULL AND is_void = false ORDER BY issued_timestamp DESC";
 		const { rows } = await query(sql);
 		return rows;
 	}
@@ -30,7 +30,7 @@ export default class EmployeePaymentModel {
 	static async getPaymentsByEmployeeId(
 		employee_id: number
 	): Promise<EmployeePayment[]> {
-		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 SORT BY issued_timestamp DESC";
+		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 ORDER BY issued_timestamp DESC";
 		const { rows } = await query(sql, [employee_id]);
 		return rows;
 	}
@@ -38,7 +38,7 @@ export default class EmployeePaymentModel {
 	static async getPaidPaymentsByEmployeeId(
 		employee_id: number
 	): Promise<EmployeePayment[]> {
-		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 AND is_paid = true SORT BY issued_timestamp DESC";
+		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 AND is_paid = true ORDER BY issued_timestamp DESC";
 		const { rows } = await query(sql, [employee_id]);
 		return rows;
 	}

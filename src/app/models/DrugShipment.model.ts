@@ -51,8 +51,9 @@ export class DrugShipmentModel {
                     dc.unit_conversion, (
 					SELECT json_agg(t)
 					FROM (
-						SELECT DISTINCT sp.pricelist_id, sp.price, sp.requires_prepayment, sp.prepayment_type, sp.prepayment_amount
+						SELECT DISTINCT pl.name as pricelist_name, sp.pricelist_id, sp.price, sp.requires_prepayment, sp.prepayment_type, sp.prepayment_amount
 						FROM ShipmentPrice sp
+						LEFT JOIN Pricelist pl ON sp.pricelist_id = pl.pricelist_id
 						WHERE sp.shipment_id = ds.shipment_id
 					) t
 				) as prices

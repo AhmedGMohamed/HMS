@@ -24,6 +24,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "assets")));
 app.use("/css", express.static(path.join(__dirname, "views/css")));
 app.use("/js", express.static(path.join(__dirname, "views/js")));
+app.use("/utils", express.static(path.join(__dirname, "views/utils")));
 
 // API routes
 app.use("/api", apiRoutes);

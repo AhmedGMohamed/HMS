@@ -171,7 +171,7 @@ export class DrugUsageController {
 
 	async getAvailableShipments(req: Request, res: Response) {
 		try {
-			const drugId = parseInt(req.params.drugId);
+			const drugId = parseInt(req.params.id);
 
 			if (isNaN(drugId)) {
 				res.status(400).json({

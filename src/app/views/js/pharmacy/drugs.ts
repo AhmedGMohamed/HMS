@@ -997,7 +997,7 @@ class DrugManager {
 
 		// Check if price is less than buy price
 		if (price / quantity < parseFloat(this.currentShipment.buy_price)) {
-			await Swal.fire({
+			const result = await Swal.fire({
 				title: "Are you sure?",
 				text: "This price is less than the buy price. Are you sure you want to sell this drug?",
 				icon: "warning",
@@ -1006,6 +1006,8 @@ class DrugManager {
 				cancelButtonColor: "#6c757d",
 				confirmButtonText: "Yes, Sell it!"
 			});
+
+			if (!result.isConfirmed) return;
 		}
 
 		try {
