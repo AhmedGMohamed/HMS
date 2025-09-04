@@ -77,4 +77,15 @@ export default class EmployeeController {
 			res.status(500).json({ error: "Failed to search employees" });
 		}
 	}
+
+	// New nurse assignment methods
+	static async getAvailableNurses(_req: Request, res: Response) {
+		try {
+			const nurses = await EmployeeModel.getAvailableNurses();
+			res.status(200).json(nurses);
+		} catch (error) {
+			console.error("Error fetching available nurses:", error);
+			res.status(500).json({ error: "Failed to fetch available nurses" });
+		}
+	}
 }

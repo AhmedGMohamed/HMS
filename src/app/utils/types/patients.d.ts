@@ -34,6 +34,8 @@ export interface PatientHistory {
 	discharge_time: Date | null;
 	attending_doctors?: string[]; // Array of doctor names
 	attending_doctor_ids?: number[]; // Array of doctor IDs
+	attending_nurses?: string[]; // Array of nurse names
+	attending_nurses_ids?: number[]; // Array of nurse IDs
 	total_amount?: number; // From bill
 	paid_amount?: number; // From bill
 	pricelist_id?: number | null;
@@ -70,8 +72,8 @@ export interface CreatePatientDTO {
 	// Optional admission fields
 	admit_patient?: boolean;
 	attending_doctors?: number[];
+	attending_nurses?: number[];
 	diagnosis?: string;
-
 	is_active?: boolean;
 	created_by_user_id?: number;
 	pricelist_id?: number | null;
@@ -99,12 +101,17 @@ export interface UpdatePatientDTO {
 		add?: number[]; // Doctors to add
 		remove?: number[]; // Doctors to remove
 	};
+	attending_nurses?: {
+		add?: number[]; // Nurses to add
+		remove?: number[]; // Nurses to remove
+	};
 }
 
 export interface AdmitPatientDTO {
 	patient_id: number;
 	diagnosis: string;
 	attending_doctors: number[];
+	attending_nurses: number[];
 	pricelist_id?: number | null;
 }
 

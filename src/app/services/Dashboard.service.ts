@@ -43,7 +43,6 @@ export class DashboardService {
 				AND dt.transaction_type != 'patient'
 			) dsp`;
 		const result = await query(drugProfitSql, [last12PM]);
-		console.log(result.rows[0])
 
 		const employeeWagesSql = `
 			SELECT CAST(SUM(wage) as DECIMAL(15,2))
@@ -56,7 +55,6 @@ export class DashboardService {
 				AND ep.paid_timestamp >= to_timestamp($1)
 			)`;
 		const wageResult = await query(employeeWagesSql, [last12PM]);
-		console.log(wageResult.rows[0]);
 
 		const servicesProfitSql = `
 			SELECT CAST(SUM(b.paid_amount) as DECIMAL(15,2))
@@ -65,7 +63,6 @@ export class DashboardService {
 			OR b.updated_at >= to_timestamp($1)
 		`;
 		const servicesResult = await query(servicesProfitSql, [last12PM]);
-		console.log(servicesResult.rows[0])
 
 		return (
 			(+result.rows[0].sum || 0) +

@@ -92,6 +92,7 @@ export class PatientModel {
 			if (
 				data.admit_patient &&
 				data.attending_doctors &&
+				data.attending_nurses &&
 				data.diagnosis
 			) {
 				const admissionResult = await this.admitPatient(
@@ -99,6 +100,7 @@ export class PatientModel {
 						patient_id: newPatient.patient_id,
 						diagnosis: data.diagnosis,
 						attending_doctors: data.attending_doctors,
+						attending_nurses: data.attending_nurses,
 						pricelist_id: data.pricelist_id
 					},
 					data.created_by_user_id!
@@ -167,7 +169,10 @@ export class PatientModel {
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(JSON.stringify(value));
 						paramCount++;
-					} else if (key !== "attending_doctors") {
+					} else if (
+						key !== "attending_doctors" &&
+						key !== "attending_nurses"
+					) {
 						// Skip attending_doctors as it's handled separately
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(value);
@@ -176,7 +181,11 @@ export class PatientModel {
 				}
 			});
 
-			if (updateFields.length === 0 && !data.attending_doctors) {
+			if (
+				updateFields.length === 0 &&
+				!data.attending_doctors &&
+				!data.attending_nurses
+			) {
 				return existingPatient;
 			}
 
@@ -241,6 +250,55 @@ export class PatientModel {
 				}
 			}
 
+			// Handle attending nurses updates if patient is currently admitted
+			if (data.attending_nurses) {
+				const currentAdmission = await this.getCurrentAdmission(
+					data.patient_id
+				);
+				if (currentAdmission) {
+					// Remove nurses if specified
+					if (
+						data.attending_nurses.remove &&
+						data.attending_nurses.remove.length > 0
+					) {
+						const placeholders = data.attending_nurses.remove
+							.map((_, i) => `$${i + 2}`)
+							.join(",");
+						await query(
+							`DELETE FROM PatientNurse 
+                        	 WHERE patient_id = $1 AND nurse_id IN (${placeholders})`,
+							[data.patient_id, ...data.attending_nurses.remove]
+						);
+					}
+
+					// Add nurses if specified
+					if (
+						data.attending_nurses.add &&
+						data.attending_nurses.add.length > 0
+					) {
+						for (const nurseId of data.attending_nurses.add) {
+							// Verify nurse exists and is active
+							const nurseCheck = await query(
+								"SELECT employee_id FROM Employee WHERE employee_id = $1 AND is_active = true AND employee_type = 'nurse'",
+								[nurseId]
+							);
+							if (nurseCheck.rows.length === 0) {
+								throw new Error(
+									`Nurse with ID ${nurseId} not found`
+								);
+							}
+
+							// Add nurse to current admission
+							await query(
+								`INSERT INTO PatientNurse (patient_id, nurse_id) 
+                            	VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+								[data.patient_id, nurseId]
+							);
+						}
+					}
+				}
+			}
+
 			const updatedPatient = await this.getPatientById(data.patient_id);
 			await query("COMMIT");
 			return updatedPatient;
@@ -278,6 +336,19 @@ export class PatientModel {
 				);
 				if (doctorCheck.rows.length === 0) {
 					throw new Error("Doctor not found");
+				}
+			}
+
+			// Validate attending nurses if provided
+			if (data.attending_nurses && data.attending_nurses.length > 0) {
+				for (const nurseId of data.attending_nurses) {
+					const nurseCheck = await query(
+						"SELECT employee_id FROM Employee WHERE employee_id = $1 AND is_active = true AND employee_type = 'nurse'",
+						[nurseId]
+					);
+					if (nurseCheck.rows.length === 0) {
+						throw new Error(`Nurse with ID ${nurseId} not found`);
+					}
 				}
 			}
 
@@ -333,6 +404,16 @@ export class PatientModel {
 					"INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
 					[data.patient_id, doctorId]
 				);
+			}
+
+			// Add attending nurses to PatientNurse if provided
+			if (data.attending_nurses && data.attending_nurses.length > 0) {
+				for (const nurseId of data.attending_nurses) {
+					await query(
+						"INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+						[data.patient_id, nurseId]
+					);
+				}
 			}
 
 			// Mark patient as active
@@ -404,6 +485,13 @@ export class PatientModel {
 				[currentAdmission.patient_history_id, data.patient_id]
 			);
 
+			// Archive nurses
+			await query(
+				`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
+             SELECT $1, nurse_id FROM PatientNurse WHERE patient_id = $2`,
+				[currentAdmission.patient_history_id, data.patient_id]
+			);
+
 			// Clear current doctors
 			await query(`DELETE FROM PatientDoctor WHERE patient_id = $1`, [
 				data.patient_id
@@ -450,12 +538,16 @@ export class PatientModel {
 	): Promise<PatientHistory | null> {
 		const sql = `
 			SELECT ph.*, 
-    	           array_agg(DISTINCT e.name) as attending_doctors,
-    	           array_agg(DISTINCT pd.doctor_id) as attending_doctor_ids
+    	           array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL) as attending_doctors,
+    	           array_agg(DISTINCT pd.doctor_id) FILTER (WHERE pd.doctor_id IS NOT NULL) as attending_doctor_ids,
+				   array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as attending_nurses,
+    	           array_agg(DISTINCT pn.nurse_id) FILTER (WHERE pn.nurse_id IS NOT NULL) as attending_nurse_ids
     	    FROM PatientHistory ph
     	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id
-    	    LEFT JOIN Employee e ON pd.doctor_id = e.employee_id
-    	    LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
+    	    LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id
+    	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id
+			LEFT JOIN PatientNurse pn ON ph.patient_id = pn.patient_id
+    	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
     	    GROUP BY ph.patient_history_id
     	    ORDER BY ph.admission_time DESC
@@ -473,18 +565,33 @@ export class PatientModel {
     	                      FROM PatientDoctor pd 
     	                      LEFT JOIN Employee e ON pd.doctor_id = e.employee_id 
     	                      WHERE pd.patient_id = ph.patient_id)
-    	                ELSE array_agg(DISTINCT e.name)
+    	                ELSE array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL)
     	           END as attending_doctors,
     	           CASE WHEN ph.discharge_time IS NULL 
     	                THEN (SELECT array_agg(DISTINCT pd.doctor_id) 
     	                      FROM PatientDoctor pd 
     	                      WHERE pd.patient_id = ph.patient_id)
-    	                ELSE array_agg(DISTINCT dph.doctor_id)
+    	                ELSE array_agg(DISTINCT dph.doctor_id) FILTER (WHERE dph.doctor_id IS NOT NULL)
     	           END as attending_doctor_ids,
+				   CASE WHEN ph.discharge_time IS NULL 
+    	                THEN (SELECT array_agg(DISTINCT e.name) 
+    	                      FROM PatientNurse pn 
+    	                      LEFT JOIN Employee e ON pn.nurse_id = e.employee_id 
+    	                      WHERE pn.patient_id = ph.patient_id)
+    	                ELSE array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL)
+    	           END as attending_nurses,
+    	           CASE WHEN ph.discharge_time IS NULL 
+    	                THEN (SELECT array_agg(DISTINCT pn.nurse_id) 
+    	                      FROM PatientNurse pn 
+    	                      WHERE pn.patient_id = ph.patient_id)
+    	                ELSE array_agg(DISTINCT nph.nurse_id) FILTER (WHERE nph.nurse_id IS NOT NULL)
+    	           END as attending_nurse_ids,
     	           b.total_amount, b.paid_amount
     	    FROM PatientHistory ph
     	    LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
-    	    LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
+    	    LEFT JOIN Employee e_doc ON dph.doctor_id = e_doc.employee_id
+			LEFT JOIN NursePatientHistory nph ON ph.patient_history_id = nph.patient_history_id
+    	    LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
     	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
     	    WHERE ph.patient_id = $1
     	    GROUP BY ph.patient_history_id, b.bill_id
@@ -961,9 +1068,11 @@ export class PatientModel {
 				AND du.patient_history_id = $2
 				ORDER BY du.last_administered DESC NULLS LAST;
 			`;
-			const { rows } = await query(sql, [patient_id, currentAdmission.patient_history_id]);
+			const { rows } = await query(sql, [
+				patient_id,
+				currentAdmission.patient_history_id
+			]);
 			return rows;
-			
 		} catch (error) {
 			throw error;
 		}

@@ -37,6 +37,8 @@ interface PatientHistory {
 	discharge_time: Date | null;
 	attending_doctors?: string[];
 	attending_doctor_ids?: number[];
+	attending_nurses?: string[];
+	attending_nurse_ids?: number[];
 	total_amount?: number;
 	paid_amount?: number;
 	pricelist_id: number | null;
@@ -47,6 +49,14 @@ interface Doctor {
 	name: string;
 	doctor_type: string;
 	is_active: boolean;
+}
+
+interface Nurse {
+	// NEW
+	employee_id: number;
+	name: string;
+	phone: string | null;
+	hire_date: Date;
 }
 
 interface Service {
@@ -132,12 +142,14 @@ class PatientManager {
 	private currentAdmission: PatientHistory | null = null;
 	private currentBill: Bill | null = null;
 	private doctors: Doctor[] = [];
+	private nurses: Nurse[] = [];
 	private insuranceCompanies: InsuranceCompany[] = [];
 	private priceLists: PriceList[] = [];
 	private availableServices: Service[] = [];
 	private availableDrugs: Drug[] = [];
 	private assignedServices: any[] = [];
 	private assignedDrugs: any[] = [];
+	private assignedNurses: any[] = [];
 	private servicePrices: Map<number, number> = new Map();
 
 	private searchTimeout: NodeJS.Timeout | null = null;
@@ -316,6 +328,7 @@ class PatientManager {
 		try {
 			await Promise.all([
 				this.loadDoctors(),
+				this.loadNurses(),
 				this.loadInsuranceCompanies(),
 				this.loadPriceLists(),
 				this.loadServices(),
@@ -412,6 +425,23 @@ class PatientManager {
 			this.populateDoctorSelects();
 		} catch (error) {
 			console.error("Error loading doctors:", error);
+		}
+	}
+
+	private async loadNurses(): Promise<void> {
+		try {
+			const response = await fetch("/api/employees/nurses/available", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok) throw new Error("Failed to fetch nurses");
+
+			this.nurses = await response.json();
+			this.populateNurseSelects();
+		} catch (error) {
+			console.error("Error loading nurses:", error);
 		}
 	}
 
@@ -543,6 +573,31 @@ class PatientManager {
 					doctor.employee_id
 				}">
                     ${this.escapeHtml(doctor.name)} (${doctor.doctor_type})
+                </label>
+            </div>
+        `
+			)
+			.join("");
+	}
+
+	private populateNurseSelects(): void {
+		const attendingNurseContainer = document.getElementById(
+			"attendingNursesSelection"
+		)!;
+
+		// Populate attending nurses checkboxes
+		attendingNurseContainer.innerHTML = this.nurses
+			.map(
+				(nurse) => `
+            <div class="form-check nurse-checkbox">
+                <input class="form-check-input" type="checkbox" 
+                       value="${nurse.employee_id}" id="nurse_${
+					nurse.employee_id
+				}">
+                <label class="form-check-label" for="nurse_${
+					nurse.employee_id
+				}">
+                    ${this.escapeHtml(nurse.name)}
                 </label>
             </div>
         `
@@ -707,11 +762,13 @@ class PatientManager {
 				await Promise.all([
 					this.loadAssignedServices(patientId),
 					this.loadAssignedDrugs(patientId),
+					this.loadAssignedNurses(patientId),
 					this.loadCurrentBill(this.currentAdmission.bill_id!)
 				]);
 			} else {
 				this.assignedServices = [];
 				this.assignedDrugs = [];
+				this.assignedNurses = [];
 				this.currentBill = null;
 			}
 
@@ -806,6 +863,25 @@ class PatientManager {
 		}
 	}
 
+	private async loadAssignedNurses(patientId: number): Promise<void> {
+		try {
+			const response = await fetch(`/api/patients/${patientId}/nurses`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (response.ok) {
+				this.assignedNurses = await response.json();
+			} else {
+				this.assignedNurses = [];
+			}
+		} catch (error) {
+			console.error("Error loading assigned nurses:", error);
+			this.assignedNurses = [];
+		}
+	}
+
 	private async loadCurrentBill(billId: number): Promise<void> {
 		try {
 			const response = await fetch(`/api/bills/${billId}`, {
@@ -888,11 +964,13 @@ class PatientManager {
 		document.getElementById("referringDoctor")!.textContent =
 			referringDoctor?.name || "-";
 
-		// Diagnosis and attending doctors (from admission)
+		// Diagnosis, attending doctors and attending nurses (from admission)
 		document.getElementById("diagnosis")!.textContent =
 			admission?.diagnosis || "-";
 		document.getElementById("attendingDoctors")!.textContent =
 			admission?.attending_doctors?.join(", ") || "-";
+		document.getElementById("attendingNurses")!.textContent =
+			admission?.attending_nurses?.join(", ") || "-";
 
 		// Update action buttons
 		this.updateActionButtons();
@@ -1597,6 +1675,9 @@ class PatientManager {
 				const attendingDoctorCheckboxes = document.querySelectorAll(
 					'#attendingDoctorsSelection input[type="checkbox"]:checked'
 				);
+				const attendingNurseCheckboxes = document.querySelectorAll(
+					'#attendingNursesSelection input[type="checkbox"]:checked'
+				);
 				if (!diagnosis) {
 					this.showError("Please enter a diagnosis for admission");
 					return;
@@ -1605,6 +1686,12 @@ class PatientManager {
 				if (attendingDoctorCheckboxes.length === 0) {
 					this.showError(
 						"Please select at least one attending doctor"
+					);
+					return;
+				}
+				if (attendingNurseCheckboxes.length === 0) {
+					this.showError(
+						"Please select at least one nurse"
 					);
 					return;
 				}
@@ -1644,6 +1731,43 @@ class PatientManager {
 								)
 						).filter((id) => id !== null) ?? [];
 					patientData.attending_doctors = attendingDoctors;
+
+					let attendingNurses = {
+						add: [] as (number | null)[],
+						remove: [] as (number | null)[]
+					};
+
+					attendingNurses.add =
+						Array.from(attendingNurseCheckboxes)
+							.map((checkbox) => {
+								let nurseId = parseInt(
+									(checkbox as HTMLInputElement).value
+								);
+
+								if (
+									this.currentAdmission!.attending_nurse_ids?.find(
+										(id) => id === nurseId
+									)
+								) {
+									return null;
+								}
+
+								return nurseId;
+							})
+							.filter((id) => id !== null) ?? [];
+
+					attendingNurses.remove =
+						this.currentAdmission!.attending_nurse_ids?.filter(
+							(id) =>
+								!Array.from(attendingNurseCheckboxes).find(
+									(checkbox) =>
+										parseInt(
+											(checkbox as HTMLInputElement).value
+										) === id
+								)
+						).filter((id) => id !== null) ?? [];
+
+					patientData.attending_nurses = attendingNurses;
 				} else {
 					const priceList = (
 						document.getElementById(
@@ -1651,19 +1775,83 @@ class PatientManager {
 						) as HTMLSelectElement
 					).value;
 					const pricelistId = priceList ? parseInt(priceList) : null;
-					
+
 					patientData.attending_doctors = Array.from(
 						attendingDoctorCheckboxes
 					).map((checkbox) =>
 						parseInt((checkbox as HTMLInputElement).value)
 					);
+
+					if (attendingNurseCheckboxes.length > 0) {
+						patientData.attending_nurses = Array.from(
+							attendingNurseCheckboxes
+						).map((checkbox) =>
+							parseInt((checkbox as HTMLInputElement).value)
+						);
+					}
 					patientData.pricelist_id = pricelistId;
 					patientData.admit_patient = true;
 					patientData.pricelist_id = pricelistId;
 				}
 			}
 
+			// Handle attending nurses if editing and patient is admitted
+			if (isEdit && this.currentAdmission) {
+				const attendingNurseCheckboxes = document.querySelectorAll(
+					'#attendingNursesSelection input[type="checkbox"]:checked'
+				);
+
+				let attendingNurses = {
+					add: [] as (number | null)[],
+					remove: [] as (number | null)[]
+				};
+
+				attendingNurses.add =
+					Array.from(attendingNurseCheckboxes)
+						.map((checkbox) => {
+							let nurseId = parseInt(
+								(checkbox as HTMLInputElement).value
+							);
+
+							if (
+								this.currentAdmission!.attending_nurse_ids?.find(
+									(id) => id === nurseId
+								)
+							) {
+								return null;
+							}
+
+							return nurseId;
+						})
+						.filter((id) => id !== null) ?? [];
+
+				attendingNurses.remove =
+					this.currentAdmission!.attending_nurse_ids?.filter(
+						(id) =>
+							!Array.from(attendingNurseCheckboxes).find(
+								(checkbox) =>
+									parseInt(
+										(checkbox as HTMLInputElement).value
+									) === id
+							)
+					).filter((id) => id !== null) ?? [];
+
+				patientData.attending_nurses = attendingNurses;
+			}
+
+			// Add nurses for new admission
 			if (admitPatient && !isEdit) {
+				const attendingNurseCheckboxes = document.querySelectorAll(
+					'#attendingNursesSelection input[type="checkbox"]:checked'
+				);
+
+				if (attendingNurseCheckboxes.length > 0) {
+					patientData.attending_nurses = Array.from(
+						attendingNurseCheckboxes
+					).map((checkbox) =>
+						parseInt((checkbox as HTMLInputElement).value)
+					);
+				}
 			}
 
 			const url = isEdit ? `/api/patients/${patientId}` : "/api/patients";
@@ -1757,6 +1945,27 @@ class PatientManager {
                     </div>
                 </div>
 				<div class="mb-3">
+				    <label class="form-label">Attending Nurses</label>
+				    <div class="nurses-selection" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
+				        ${this.nurses
+							.map(
+								(nurse) => `
+				            <div class="form-check">
+				                <input class="form-check-input" type="checkbox" value="${
+									nurse.employee_id
+								}" id="swal-nurse-${nurse.employee_id}">
+				                <label class="form-check-label" for="swal-nurse-${
+									nurse.employee_id
+								}">
+				                    ${this.escapeHtml(nurse.name)}
+				                </label>
+				            </div>
+				        `
+							)
+							.join("")}
+				    </div>
+				</div>
+				<div class="mb-3">
                     <label for="swal-pricelist" class="form-label">Price List</label>
                     <select id="swal-pricelist" class="form-select">
                         <option value="">Default</option>
@@ -1788,6 +1997,13 @@ class PatientManager {
 				).map((checkbox) =>
 					parseInt((checkbox as HTMLInputElement).value)
 				);
+				const selectedNurses = Array.from(
+					document.querySelectorAll(
+						'input[id^="swal-nurse-"]:checked'
+					)
+				).map((checkbox) =>
+					parseInt((checkbox as HTMLInputElement).value)
+				);
 				const pricelist = (
 					document.getElementById(
 						"swal-pricelist"
@@ -1810,6 +2026,7 @@ class PatientManager {
 				return {
 					diagnosis: diagnosis,
 					attending_doctors: selectedDoctors,
+					attending_nurses: selectedNurses,
 					pricelist_id: pricelistId
 				};
 			}
@@ -1818,6 +2035,7 @@ class PatientManager {
 				await this.admitPatient(
 					result.value.diagnosis,
 					result.value.attending_doctors,
+					result.value.attending_nurses,
 					result.value.pricelist_id
 				);
 			}
@@ -1827,6 +2045,7 @@ class PatientManager {
 	private async admitPatient(
 		diagnosis: string,
 		attendingDoctors: number[],
+		attendingNurses: number[],
 		pricelistId: number | null
 	): Promise<void> {
 		if (!this.currentPatient) return;
@@ -1843,6 +2062,7 @@ class PatientManager {
 					body: JSON.stringify({
 						diagnosis: diagnosis,
 						attending_doctors: attendingDoctors,
+						attending_nurses: attendingNurses,
 						pricelist_id: pricelistId
 					})
 				}
