@@ -414,7 +414,7 @@ export class PatientController {
 	async addDrugToPatient(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const { drug_id, shipment_id, quantity, price } = req.body;
+			const { drug_id, shipment_id, quantity, price, patient_history_id } = req.body;
 
 			if (!req.user) {
 				res.status(401).json({ error: "Unauthorized" });
@@ -423,14 +423,14 @@ export class PatientController {
 			const userId = req.user.userId;
 
 			// Validate required fields
-			if (!drug_id || !shipment_id || !quantity || !price) {
+			if (!drug_id || !shipment_id || !quantity || !price || !patient_history_id) {
 				res.status(400).json({
-					error: "Drug ID, shipment ID, quantity, and price are required"
+					error: "Drug ID, shipment ID, patient history ID, quantity, and price are required"
 				});
 				return;
 			}
 
-			const result = await DrugUsageModel.createDrugUsage({ patient_id: patientId, drug_id, shipment_id, quantity, price }, userId);
+			const result = await DrugUsageModel.createDrugUsage({ patient_id: patientId, drug_id, patient_history_id, shipment_id, quantity, price }, userId);
 			
 			await PatientModel.addDrugToPatientBill(
 				patientId,

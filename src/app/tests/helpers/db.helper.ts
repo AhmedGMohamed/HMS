@@ -139,18 +139,18 @@ export const dbHelper = {
             INSERT INTO Employee (
                 name, phone, is_facility_employee, hire_date, is_active, employee_type,
                 base_pay, extra_amount, extra_payment_type, per_patient_payment_type,
-                percentage_scope, need_clock_in, shift_type
+                percentage_scope, need_clock_in, shift_type, shift_start_time, shift_end_time
             ) VALUES 
             ('Dr. John Smith', '1234567890', false, CURRENT_DATE - INTERVAL '1 year', true, 'doctor',
-                5000.00, 0.00, null, 'fixed', null, false, null),
+                5000.00, 0.00, null, 'fixed', null, false, null, "08:00:00", "17:00:00"),
             ('Dr. Sarah Johnson', '2345678901', false, CURRENT_DATE - INTERVAL '2 years', true, 'doctor',
-                6000.00, 0.00, null, 'fixed', null, false, null),
+                6000.00, 0.00, null, 'fixed', null, false, null, "08:00:00", "17:00:00"),
             ('Nurse Mary Brown', '3456789012', true, CURRENT_DATE - INTERVAL '6 months', true, 'nurse',
-                3000.00, 0.00,null, null, null, true, 'morning'),
+                3000.00, 0.00,null, null, null, true, 'morning', "08:00:00", "17:00:00"),
             ('Nurse James Wilson', '4567890123', true, CURRENT_DATE - INTERVAL '1 year', true, 'nurse',
-                3000.00, 0.00, null, null, null, true, 'night'),
+                3000.00, 0.00, null, null, null, true, 'night', "08:00:00", "17:00:00"),
             ('Admin Jane Doe', '5678901234', true, CURRENT_DATE - INTERVAL '3 years', true, 'other',
-                2500.00, 0.00, 'percentage', null, 'before_deductions', false, null)
+                2500.00, 0.00, 'percentage', null, 'before_deductions', false, null, "08:00:00", "17:00:00")
             RETURNING *;
         `);
 		return result.rows;
@@ -921,6 +921,8 @@ CREATE TYPE shift_type AS ENUM ('morning', 'night');
 
 CREATE TYPE vat_scope_type AS ENUM ('services', 'drugs', 'both');
 
+CREATE TYPE vault_manual_payment_type AS ENUM ('addition', 'deduction');
+
 -- Core tables
 CREATE TABLE IF NOT EXISTS Role (
 	role_id SERIAL PRIMARY KEY,
@@ -1010,6 +1012,7 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 CREATE TABLE IF NOT EXISTS Patient (
 	patient_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
+	national_id VARCHAR(255) UNIQUE,
 	gender gender_type,
 	phone VARCHAR(20),
 	address TEXT,
@@ -1049,6 +1052,18 @@ CREATE TABLE IF NOT EXISTS PatientDoctor (
 	doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	PRIMARY KEY (patient_id, doctor_id)
 );
+
+CREATE TABLE IF NOT EXISTS PatientNurse (
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	nurse_id INTEGER REFERENCES Employee(employee_id),
+	PRIMARY KEY (patient_id, nurse_id)
+);
+
+CREATE TABLE IF NOT EXISTS NursePatientHistory (
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	nurse_id INTEGER REFERENCES Employee(employee_id),
+	PRIMARY KEY (patient_history_id, nurse_id)
+)
 
 -- Pharmacy Management
 CREATE TABLE IF NOT EXISTS Warehouse (
@@ -1097,6 +1112,7 @@ CREATE TABLE IF NOT EXISTS DrugUsage (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	drug_id INTEGER REFERENCES DrugCard(drug_id),
 	transaction_id INTEGER REFERENCES DrugTransaction(transaction_id),
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	remaining_quantity INTEGER NOT NULL,
 	last_administered TIMESTAMP
 );
@@ -1199,6 +1215,13 @@ CREATE TABLE IF NOT EXISTS AuditLog (
 	details JSONB,
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS VaultManualPayments (
+	payment_id SERIAL PRIMARY KEY,
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	payment_type vault_manual_payment_type NOT NULL
+)
 
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);

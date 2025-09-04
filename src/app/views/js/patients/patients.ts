@@ -6,6 +6,7 @@ import { generatePatientBill } from "../../utils/pdfGenerator.js";
 interface Patient {
 	patient_id: number;
 	name: string;
+	national_id: string;
 	gender: "male" | "female" | "other";
 	phone: string | null;
 	address: string | null;
@@ -140,6 +141,7 @@ class PatientManager {
 	private servicePrices: Map<number, number> = new Map();
 
 	private searchTimeout: NodeJS.Timeout | null = null;
+	private allPatients: Patient[] = [];
 
 	constructor() {
 		// Initialize sidebar
@@ -165,6 +167,7 @@ class PatientManager {
 
 		this.initializeEventListeners();
 		this.loadInitialData();
+		this.loadAllPatients();
 	}
 
 	private initializeEventListeners(): void {
@@ -178,14 +181,14 @@ class PatientManager {
 		});
 
 		// Hide suggestions when clicking outside
-		document.addEventListener("click", (e) => {
+		/*document.addEventListener("click", (e) => {
 			const searchContainer = document.querySelector(
 				".patient-search-container"
 			);
 			if (!searchContainer?.contains(e.target as Node)) {
 				this.hideSuggestions();
 			}
-		});
+		});*/
 
 		// Create patient button
 		document
@@ -301,6 +304,12 @@ class PatientManager {
 					(e.target as HTMLInputElement).checked
 				);
 			});
+
+		document
+			.getElementById("patientSearchIcon")
+			?.addEventListener("click", () => {
+				this.loadAllPatients();
+			});
 	}
 
 	private async loadInitialData(): Promise<void> {
@@ -316,6 +325,77 @@ class PatientManager {
 			console.error("Error loading initial data:", error);
 			this.showError("Failed to load initial data");
 		}
+	}
+
+	private async loadAllPatients(): Promise<void> {
+		try {
+			const response = await fetch("/api/patients", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+			if (!response.ok) throw new Error("Failed to fetch patients");
+			this.allPatients = await response.json();
+			this.displayPatientList(this.allPatients);
+		} catch (error) {
+			console.error("Error loading patients:", error);
+			this.showError("Failed to load patients list");
+		}
+	}
+
+	private displayPatientList(patients: Patient[]): void {
+		document.getElementById("patientContent")!.style.display = "none";
+		document.getElementById("patientListContainer")!.style.display =
+			"block";
+		const container = document.getElementById("patientListContainer")!;
+
+		if (patients.length === 0) {
+			container.innerHTML =
+				'<p class="text-muted text-center">No patients found</p>';
+			return;
+		}
+
+		let tableHtml = `
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>National ID</th>
+						<th>Admitted</th>
+						<th>Payment Type</th>
+						<th>Insurance Company</th>
+						<th>Insurance ID</th>
+					</tr>
+				</thead>
+				<tbody>
+		`;
+
+		patients.forEach((patient) => {
+			const admitted = patient.is_active
+				? '<span class="badge bg-success">Yes</span>'
+				: '<span class="badge bg-secondary">No</span>';
+			const insurance =
+				patient.payment_type === "insurance"
+					? this.insuranceCompanies.find(
+							(c) => c.insurance_id === patient.insurance_id
+					  )?.name || "-"
+					: "-";
+			tableHtml += `
+				<tr onclick="patientManager.selectPatient(${
+					patient.patient_id
+				})" style="cursor: pointer;">
+					<td>${this.escapeHtml(patient.name)}</td>
+					<td>${this.escapeHtml(patient.national_id || "-")}</td>
+					<td>${admitted}</td>
+					<td>${this.formatPaymentType(patient.payment_type)}</td>
+					<td>${insurance}</td>
+					<td>${patient.insurance_card_id || "-"}</td>
+				</tr>
+			`;
+		});
+
+		tableHtml += "</tbody></table>";
+		container.innerHTML = tableHtml;
 	}
 
 	private async loadDoctors(): Promise<void> {
@@ -401,11 +481,15 @@ class PatientManager {
 			if (this.availableDrugs.length > 0) {
 				for (const drug of this.availableDrugs) {
 					const shipmentsResponse = await fetch(
-						`/api/pharmacy/drugs/shipments/drug/${drug.drug_id}`, {
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("token")}`
+						`/api/pharmacy/drugs/shipments/drug/${drug.drug_id}`,
+						{
+							headers: {
+								Authorization: `Bearer ${localStorage.getItem(
+									"token"
+								)}`
+							}
 						}
-					});
+					);
 
 					if (!shipmentsResponse.ok)
 						throw new Error("Failed to fetch drug shipment");
@@ -452,8 +536,12 @@ class PatientManager {
 				(doctor) => `
             <div class="form-check doctor-checkbox">
                 <input class="form-check-input" type="checkbox" 
-                       value="${doctor.employee_id}" id="doctor_${doctor.employee_id}">
-                <label class="form-check-label" for="doctor_${doctor.employee_id}">
+                       value="${doctor.employee_id}" id="doctor_${
+					doctor.employee_id
+				}">
+                <label class="form-check-label" for="doctor_${
+					doctor.employee_id
+				}">
                     ${this.escapeHtml(doctor.name)} (${doctor.doctor_type})
                 </label>
             </div>
@@ -487,9 +575,9 @@ class PatientManager {
 			this.priceLists
 				.map(
 					(list) =>
-						`<option value="${
-							list.pricelist_id
-						}">${this.escapeHtml(list.name)}</option>`
+						`<option value="${list.pricelist_id}">${this.escapeHtml(
+							list.name
+						)}</option>`
 				)
 				.join("");
 	}
@@ -499,33 +587,11 @@ class PatientManager {
 			clearTimeout(this.searchTimeout);
 		}
 
-		if (searchTerm.length < 2) {
-			this.hideSuggestions();
-			return;
-		}
-
-		this.searchTimeout = setTimeout(async () => {
-			try {
-				const response = await fetch(
-					`/api/patients/suggestions?prefix=${encodeURIComponent(
-						searchTerm
-					)}`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem(
-								"token"
-							)}`
-						}
-					}
-				);
-
-				if (!response.ok) throw new Error("Failed to search patients");
-
-				const suggestions = await response.json();
-				this.displaySuggestions(suggestions);
-			} catch (error) {
-				console.error("Error searching patients:", error);
-			}
+		this.searchTimeout = setTimeout(() => {
+			const filtered = this.allPatients.filter((patient) =>
+				patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+			);
+			this.displayPatientList(filtered);
 		}, 300);
 	}
 
@@ -564,13 +630,13 @@ class PatientManager {
 		container.style.display = "block";
 	}
 
-	private hideSuggestions(): void {
+	/*private hideSuggestions(): void {
 		document.getElementById("searchSuggestions")!.style.display = "none";
-	}
+	}*/
 
 	public async selectPatient(patientId: number): Promise<void> {
 		try {
-			this.hideSuggestions();
+			//this.hideSuggestions();
 			const searchInput = document.getElementById(
 				"patientSearch"
 			) as HTMLInputElement;
@@ -584,7 +650,8 @@ class PatientManager {
 			}
 
 			// Show patient content
-			document.getElementById("emptyState")!.style.display = "none";
+			document.getElementById("patientListContainer")!.style.display =
+				"none";
 			document.getElementById("patientContent")!.style.display = "block";
 		} catch (error) {
 			console.error("Error selecting patient:", error);
@@ -675,14 +742,22 @@ class PatientManager {
 
 		if (pricelistId) {
 			try {
-				const servicesRes = await fetch(`/api/price-lists/${pricelistId}/services`, {
-					headers: {
-						Authorization: `Bearer ${localStorage.getItem("token")}`
+				const servicesRes = await fetch(
+					`/api/price-lists/${pricelistId}/services`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem(
+								"token"
+							)}`
+						}
 					}
-				});
+				);
 				if (servicesRes.ok) {
-					const services: { service_id: number; price: number }[] = await servicesRes.json();
-					services.forEach((s) => this.servicePrices.set(s.service_id, s.price));
+					const services: { service_id: number; price: number }[] =
+						await servicesRes.json();
+					services.forEach((s) =>
+						this.servicePrices.set(s.service_id, s.price)
+					);
 				}
 			} catch (error) {
 				console.error("Error loading price maps:", error);
@@ -760,6 +835,8 @@ class PatientManager {
 		document.getElementById("patientName")!.textContent = patient.name;
 		document.getElementById("patientGender")!.textContent =
 			this.formatGender(patient.gender);
+		document.getElementById("patientNationalID")!.textContent =
+			patient.national_id || "-";
 		document.getElementById("patientPhone")!.textContent =
 			patient.phone || "-";
 		document.getElementById("patientAddress")!.textContent =
@@ -796,7 +873,8 @@ class PatientManager {
 			patient.insurance_company_name || "-";
 		document.getElementById("insuranceCardId")!.textContent =
 			patient.insurance_card_id || "-";
-		document.getElementById("priceList")!.textContent = this.getPriceListName() || "Default";
+		document.getElementById("priceList")!.textContent =
+			this.getPriceListName() || "Default";
 
 		// Medical information
 		document.getElementById("quickCheck")!.innerHTML = patient.quick_check
@@ -826,7 +904,11 @@ class PatientManager {
 
 	private getPriceListName(): string {
 		if (!this.currentAdmission?.pricelist_id) return "Default";
-		return this.priceLists.find(p => p.pricelist_id === this.currentAdmission!.pricelist_id)?.name || "Default";
+		return (
+			this.priceLists.find(
+				(p) => p.pricelist_id === this.currentAdmission!.pricelist_id
+			)?.name || "Default"
+		);
 	}
 
 	private updateActionButtons(): void {
@@ -1285,6 +1367,8 @@ class PatientManager {
 		).value = patient.name;
 		(document.getElementById("modalGender") as HTMLSelectElement).value =
 			patient.gender;
+		(document.getElementById("modalNationalID") as HTMLInputElement).value =
+			patient.national_id || "";
 		(document.getElementById("modalPhone") as HTMLInputElement).value =
 			patient.phone || "";
 		(document.getElementById("modalAddress") as HTMLTextAreaElement).value =
@@ -1293,9 +1377,7 @@ class PatientManager {
 			document.getElementById("modalQuickCheck") as HTMLInputElement
 		).checked = patient.quick_check;
 		(
-			document.getElementById(
-				"modalPaymentType"
-			) as HTMLSelectElement
+			document.getElementById("modalPaymentType") as HTMLSelectElement
 		).value = patient.payment_type;
 
 		if (patient.referring_doctor_id) {
@@ -1438,6 +1520,11 @@ class PatientManager {
 				gender: (
 					document.getElementById("modalGender") as HTMLSelectElement
 				).value,
+				national_id: (
+					document.getElementById(
+						"modalNationalID"
+					) as HTMLInputElement
+				).value,
 				phone:
 					(
 						document.getElementById(
@@ -1498,7 +1585,10 @@ class PatientManager {
 			const admitPatient = (
 				document.getElementById("modalAdmitPatient") as HTMLInputElement
 			).checked;
-			if (admitPatient && !isEdit) {
+			if (
+				(isEdit && this.currentAdmission) ||
+				(!isEdit && admitPatient)
+			) {
 				const diagnosis = (
 					document.getElementById(
 						"modalDiagnosis"
@@ -1507,9 +1597,6 @@ class PatientManager {
 				const attendingDoctorCheckboxes = document.querySelectorAll(
 					'#attendingDoctorsSelection input[type="checkbox"]:checked'
 				);
-				const priceList = (document.getElementById("modalPriceList") as HTMLSelectElement).value;
-				const pricelistId = priceList ? parseInt(priceList) : null;
-
 				if (!diagnosis) {
 					this.showError("Please enter a diagnosis for admission");
 					return;
@@ -1521,15 +1608,62 @@ class PatientManager {
 					);
 					return;
 				}
-
-				patientData.admit_patient = true;
 				patientData.diagnosis = diagnosis;
-				patientData.attending_doctors = Array.from(
-					attendingDoctorCheckboxes
-				).map((checkbox) =>
-					parseInt((checkbox as HTMLInputElement).value)
-				);
-				patientData.pricelist_id = pricelistId;
+
+				if (isEdit) {
+					let attendingDoctors = {
+						add: [] as (number | null)[],
+						remove: [] as (number | null)[]
+					};
+					attendingDoctors.add =
+						Array.from(attendingDoctorCheckboxes)
+							.map((checkbox) => {
+								let doctorId = parseInt(
+									(checkbox as HTMLInputElement).value
+								);
+
+								if (
+									this.currentAdmission!.attending_doctor_ids?.find(
+										(id) => id === doctorId
+									)
+								) {
+									return null;
+								}
+
+								return doctorId;
+							})
+							.filter((id) => id !== null) ?? [];
+					attendingDoctors.remove =
+						this.currentAdmission!.attending_doctor_ids?.filter(
+							(id) =>
+								!Array.from(attendingDoctorCheckboxes).find(
+									(checkbox) =>
+										parseInt(
+											(checkbox as HTMLInputElement).value
+										) === id
+								)
+						).filter((id) => id !== null) ?? [];
+					patientData.attending_doctors = attendingDoctors;
+				} else {
+					const priceList = (
+						document.getElementById(
+							"modalPriceList"
+						) as HTMLSelectElement
+					).value;
+					const pricelistId = priceList ? parseInt(priceList) : null;
+					
+					patientData.attending_doctors = Array.from(
+						attendingDoctorCheckboxes
+					).map((checkbox) =>
+						parseInt((checkbox as HTMLInputElement).value)
+					);
+					patientData.pricelist_id = pricelistId;
+					patientData.admit_patient = true;
+					patientData.pricelist_id = pricelistId;
+				}
+			}
+
+			if (admitPatient && !isEdit) {
 			}
 
 			const url = isEdit ? `/api/patients/${patientId}` : "/api/patients";
@@ -1626,7 +1760,14 @@ class PatientManager {
                     <label for="swal-pricelist" class="form-label">Price List</label>
                     <select id="swal-pricelist" class="form-select">
                         <option value="">Default</option>
-                        ${this.priceLists.map((list) => `<option value="${list.pricelist_id}">${this.escapeHtml(list.name)}</option>`).join("")}
+                        ${this.priceLists
+							.map(
+								(list) =>
+									`<option value="${
+										list.pricelist_id
+									}">${this.escapeHtml(list.name)}</option>`
+							)
+							.join("")}
                     </select>
                 </div>
             `,
@@ -1647,10 +1788,12 @@ class PatientManager {
 				).map((checkbox) =>
 					parseInt((checkbox as HTMLInputElement).value)
 				);
-				const pricelist = (document.getElementById("swal-pricelist") as HTMLSelectElement).value;
-				console.log(pricelist)
+				const pricelist = (
+					document.getElementById(
+						"swal-pricelist"
+					) as HTMLSelectElement
+				).value;
 				const pricelistId = pricelist ? parseInt(pricelist) : null;
-				console.log(pricelistId)
 
 				if (!diagnosis) {
 					Swal.showValidationMessage("Please enter a diagnosis");
@@ -1663,7 +1806,7 @@ class PatientManager {
 					);
 					return false;
 				}
-				
+
 				return {
 					diagnosis: diagnosis,
 					attending_doctors: selectedDoctors,
@@ -1842,10 +1985,10 @@ class PatientManager {
 		}
 
 		container.innerHTML = filteredServices
-			.map(
-				(service) => {
-					const price = this.servicePrices.get(service.service_id) ?? service.price;
-					return `
+			.map((service) => {
+				const price =
+					this.servicePrices.get(service.service_id) ?? service.price;
+				return `
             <div class="available-item" onclick="patientManager.addServiceToPatient(${
 				service.service_id
 			})">
@@ -1858,14 +2001,15 @@ class PatientManager {
                         ${service.auto_renew ? " • Auto Renew" : ""}
                     </div>
                 </div>
-                <div class="available-item-price">$${ (+price || 0).toFixed(2) }</div>
+                <div class="available-item-price">$${(+price || 0).toFixed(
+					2
+				)}</div>
                 <div class="available-item-actions">
                     <button class="btn btn-primary">Add Service</button>
                 </div>
             </div>
         `;
-				}
-			)
+			})
 			.join("");
 	}
 
@@ -1873,7 +2017,9 @@ class PatientManager {
 		if (!this.currentPatient) return;
 
 		try {
-			const service = this.availableServices.find((s) => s.service_id === serviceId);
+			const service = this.availableServices.find(
+				(s) => s.service_id === serviceId
+			);
 			if (!service) throw new Error("Service not found");
 
 			const price = this.servicePrices.get(serviceId) ?? service.price;
@@ -2072,25 +2218,36 @@ class PatientManager {
 				throw new Error("No available shipments for this drug");
 			}
 
+			if (!this.currentAdmission) {
+				throw new Error("Patient must be admitted to add drugs");
+			}
+
 			const shipment = shipments[0]; // Use first available (FIFO)
 
-			const sellingPrice = (shipment.prices as DrugPrice[]).find((p: DrugPrice) => p.pricelist_id == this.currentAdmission?.pricelist_id)!.price;
+			const sellingPrice = (shipment.prices as DrugPrice[]).find(
+				(p: DrugPrice) =>
+					p.pricelist_id == this.currentAdmission?.pricelist_id
+			)!.price;
 
-
-			const response = await fetch(`/api/patients/${this.currentPatient.patient_id}/drugs`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${localStorage.getItem("token")}`
-				},
-				body: JSON.stringify({
-					patient_id: this.currentPatient.patient_id,
-					drug_id: drugId,
-					shipment_id: shipment.shipment_id,
-					quantity: quantity,
-					price: sellingPrice
-				})
-			});
+			const response = await fetch(
+				`/api/patients/${this.currentPatient.patient_id}/drugs`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					},
+					body: JSON.stringify({
+						patient_id: this.currentPatient.patient_id,
+						drug_id: drugId,
+						patient_history_id:
+							this.currentAdmission?.patient_history_id,
+						shipment_id: shipment.shipment_id,
+						quantity: quantity,
+						price: sellingPrice
+					})
+				}
+			);
 
 			if (!response.ok) {
 				const error = await response.json();
@@ -2122,7 +2279,9 @@ class PatientManager {
 					pricelistId = defPl.pricelist_id;
 				}
 			}
-			const url = `/api/pharmacy/drugs/usages/shipments/${drugId}${pricelistId ? `?pricelist_id=${pricelistId}` : ''}`;
+			const url = `/api/pharmacy/drugs/usages/shipments/${drugId}${
+				pricelistId ? `?pricelist_id=${pricelistId}` : ""
+			}`;
 
 			const response = await fetch(url, {
 				headers: {

@@ -63,15 +63,16 @@ export class PatientModel {
 			// Create patient
 			const patientSql = `
                 INSERT INTO Patient (
-                    name, gender, phone, address, payment_type,
+                    name, national_id, gender, phone, address, payment_type,
                     insurance_id, insurance_card_id, guardian_info,
                     quick_check, referring_doctor_id, is_active, created_by_user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING *;
             `;
 
 			const patientResult = await query(patientSql, [
 				data.name,
+				data.national_id,
 				data.gender,
 				data.phone || null,
 				data.address || null,
@@ -157,7 +158,12 @@ export class PatientModel {
 			// Build dynamic update query
 			Object.entries(data).forEach(([key, value]) => {
 				if (key !== "patient_id" && value !== undefined) {
-					if (key === "guardian_info" && value) {
+					if (data.diagnosis) {
+						this.updateCurrentDiagnosis(
+							data.patient_id,
+							data.diagnosis
+						);
+					} else if (key === "guardian_info" && value) {
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(JSON.stringify(value));
 						paramCount++;
@@ -201,12 +207,9 @@ export class PatientModel {
 							.map((_, i) => `$${i + 2}`)
 							.join(",");
 						await query(
-							`DELETE FROM DoctorPatientHistory 
-                             WHERE patient_history_id = $1 AND doctor_id IN (${placeholders})`,
-							[
-								currentAdmission.patient_history_id,
-								...data.attending_doctors.remove
-							]
+							`DELETE FROM PatientDoctor 
+                        	 WHERE patient_id = $1 AND doctor_id IN (${placeholders})`,
+							[data.patient_id, ...data.attending_doctors.remove]
 						);
 					}
 
@@ -229,9 +232,9 @@ export class PatientModel {
 
 							// Add doctor to current admission
 							await query(
-								`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id) 
-                                 VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-								[currentAdmission.patient_history_id, doctorId]
+								`INSERT INTO PatientDoctor (patient_id, doctor_id) 
+                            	VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+								[data.patient_id, doctorId]
 							);
 						}
 					}
@@ -324,11 +327,11 @@ export class PatientModel {
 			]);
 			const admission = historyResult.rows[0];
 
-			// Add attending doctors to the admission
+			// Add attending doctors to PatientDoctor
 			for (const doctorId of data.attending_doctors) {
 				await query(
-					"INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id) VALUES ($1, $2)",
-					[admission.patient_history_id, doctorId]
+					"INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+					[data.patient_id, doctorId]
 				);
 			}
 
@@ -394,6 +397,18 @@ export class PatientModel {
 				]
 			);
 
+			// Archive doctors
+			await query(
+				`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
+             SELECT $1, doctor_id FROM PatientDoctor WHERE patient_id = $2`,
+				[currentAdmission.patient_history_id, data.patient_id]
+			);
+
+			// Clear current doctors
+			await query(`DELETE FROM PatientDoctor WHERE patient_id = $1`, [
+				data.patient_id
+			]);
+
 			// Mark patient as inactive
 			await query(
 				"UPDATE Patient SET is_active = false WHERE patient_id = $1",
@@ -406,6 +421,12 @@ export class PatientModel {
                  SET is_active = false, end_date = $1 
                  WHERE patient_id = $2 AND is_active = true`,
 				[dischargeTime, data.patient_id]
+			);
+
+			// Set remaining drug usage to 0
+			await query(
+				"UPDATE DrugUsage SET remaining_quantity = 0 WHERE patient_id = $1",
+				[data.patient_id]
 			);
 
 			// Get final bill
@@ -428,35 +449,47 @@ export class PatientModel {
 		patientId: number
 	): Promise<PatientHistory | null> {
 		const sql = `
-            SELECT ph.*, 
-                   array_agg(DISTINCT e.name) as attending_doctors,
-                   array_agg(DISTINCT dph.doctor_id) as attending_doctor_ids
-            FROM PatientHistory ph
-            LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
-            LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
-            LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
-            WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
-            GROUP BY ph.patient_history_id
-            ORDER BY ph.admission_time DESC
-            LIMIT 1;
-        `;
+			SELECT ph.*, 
+    	           array_agg(DISTINCT e.name) as attending_doctors,
+    	           array_agg(DISTINCT pd.doctor_id) as attending_doctor_ids
+    	    FROM PatientHistory ph
+    	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id
+    	    LEFT JOIN Employee e ON pd.doctor_id = e.employee_id
+    	    LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
+    	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
+    	    GROUP BY ph.patient_history_id
+    	    ORDER BY ph.admission_time DESC
+    	    LIMIT 1;
+    	`;
 		const result = await query(sql, [patientId]);
 		return result.rows[0] || null;
 	}
 
 	async getPatientHistory(patientId: number): Promise<PatientHistory[]> {
 		const sql = `
-            SELECT ph.*, 
-                   array_agg(DISTINCT e.name) as attending_doctors,
-                   b.total_amount, b.paid_amount
-            FROM PatientHistory ph
-            LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
-            LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE ph.patient_id = $1
-            GROUP BY ph.patient_history_id, b.bill_id
-            ORDER BY ph.admission_time DESC;
-        `;
+    	    SELECT ph.*,
+    	           CASE WHEN ph.discharge_time IS NULL 
+    	                THEN (SELECT array_agg(DISTINCT e.name) 
+    	                      FROM PatientDoctor pd 
+    	                      LEFT JOIN Employee e ON pd.doctor_id = e.employee_id 
+    	                      WHERE pd.patient_id = ph.patient_id)
+    	                ELSE array_agg(DISTINCT e.name)
+    	           END as attending_doctors,
+    	           CASE WHEN ph.discharge_time IS NULL 
+    	                THEN (SELECT array_agg(DISTINCT pd.doctor_id) 
+    	                      FROM PatientDoctor pd 
+    	                      WHERE pd.patient_id = ph.patient_id)
+    	                ELSE array_agg(DISTINCT dph.doctor_id)
+    	           END as attending_doctor_ids,
+    	           b.total_amount, b.paid_amount
+    	    FROM PatientHistory ph
+    	    LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
+    	    LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
+    	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+    	    WHERE ph.patient_id = $1
+    	    GROUP BY ph.patient_history_id, b.bill_id
+    	    ORDER BY ph.admission_time DESC;
+    	`;
 		const result = await query(sql, [patientId]);
 		return result.rows;
 	}
@@ -509,17 +542,23 @@ export class PatientModel {
 				throw new Error("Service not found");
 			}
 
+			let is_active = true;
+			if ((serviceCheck.rows[0] as Service).service_type === "once") {
+				is_active = false;
+			}
+
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
                     patient_id, service_id, start_date, is_active, last_renewed
-                ) VALUES ($1, $2, $3, true, NULL)
+                ) VALUES ($1, $2, $3, $4, NULL)
                 RETURNING *;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
 				patientId,
 				serviceId,
-				startDate
+				startDate,
+				is_active
 			]);
 
 			// Get price based on admission's pricelist_id
@@ -753,15 +792,24 @@ export class PatientModel {
 				[quantityToTake, shipment.shipment_id]
 			);
 
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+
+			if (!currentAdmission) {
+				throw new Error(
+					`No current admission found for patient ID: ${patientId}`
+				);
+			}
+
 			// Create drug usage record
 			await query(
 				`INSERT INTO DrugUsage (
-                    patient_id, drug_id, transaction_id, remaining_quantity
-                ) VALUES ($1, $2, $3, $4)`,
+                    patient_id, drug_id, transaction_id, patient_history_id, remaining_quantity
+                ) VALUES ($1, $2, $3, $4, $5)`,
 				[
 					patientId,
 					drugId,
 					transactionResult.rows[0].transaction_id,
+					currentAdmission.patient_history_id,
 					quantityToTake
 				]
 			);
@@ -900,15 +948,25 @@ export class PatientModel {
 	}
 
 	async getPatientDrugs(patient_id: number): Promise<any[]> {
-		const sql = `
-            SELECT du.*, dc.name as drug_name, dc.unit_conversion
-            FROM DrugUsage du
-            JOIN DrugCard dc ON du.drug_id = dc.drug_id
-            WHERE du.patient_id = $1
-            ORDER BY du.last_administered DESC NULLS LAST;
-        `;
-		const { rows } = await query(sql, [patient_id]);
-		return rows;
+		try {
+			let currentAdmission = await this.getCurrentAdmission(patient_id);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+			const sql = `
+				SELECT du.*, dc.name as drug_name, dc.unit_conversion
+				FROM DrugUsage du
+				JOIN DrugCard dc ON du.drug_id = dc.drug_id
+				WHERE du.patient_id = $1
+				AND du.patient_history_id = $2
+				ORDER BY du.last_administered DESC NULLS LAST;
+			`;
+			const { rows } = await query(sql, [patient_id, currentAdmission.patient_history_id]);
+			return rows;
+			
+		} catch (error) {
+			throw error;
+		}
 	}
 
 	async addDrugToPatientBill(

@@ -1,6 +1,7 @@
 // src/app/cron/patientAutoRenewalCron.ts
 import { CronJob } from "cron";
 import { query } from "../models/database/connection.js";
+import PatientModel from "../models/Patient.model.js";
 
 export class PatientAutoRenewalCron {
 	private serviceRenewalJob: CronJob;
@@ -9,16 +10,16 @@ export class PatientAutoRenewalCron {
 	constructor() {
 		// Run service renewal every hour
 		this.serviceRenewalJob = new CronJob(
-			"0 * * * *", // Every hour at minute 0 //TODO change back to 0 * * * *
+			"0 * * * *", // Every hour at minute 0
 			this.processServiceRenewals.bind(this),
 			null,
 			false,
 			"system"
 		);
 
-		// Run drug administration check every 30 minutes
+		// Run drug administration check every minute
 		this.drugAdministrationJob = new CronJob(
-			"0,30 * * * *", // Every 30 minutes //TODO change back to 0,30 * * * *
+			"0 * * * * *", // Every minute
 			this.processDrugAdministrations.bind(this),
 			null,
 			false,
@@ -202,10 +203,10 @@ export class PatientAutoRenewalCron {
                 JOIN Patient p ON du.patient_id = p.patient_id
                 JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
                     AND ph.discharge_time IS NULL
+					AND du.patient_history_id = ph.patient_history_id
                 WHERE 
                     du.remaining_quantity > 0
                     AND p.is_active = true
-                    AND dc.is_obligatory_continuous = true
                     AND dc.frequency IS NOT NULL
                     AND (
                         du.last_administered IS NULL
@@ -276,6 +277,7 @@ export class PatientAutoRenewalCron {
                 JOIN Patient p ON du.patient_id = p.patient_id
                 JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
                     AND ph.discharge_time IS NULL
+					AND du.patient_history_id = ph.patient_history_id
                 WHERE 
                     du.remaining_quantity <= 0
                     AND p.is_active = true
@@ -359,15 +361,18 @@ export class PatientAutoRenewalCron {
 					[quantityToDispense, shipment.shipment_id]
 				);
 
+				const currentAdmission = await PatientModel.getCurrentAdmission(drugInfo.patient_id);
+
 				// Create new drug usage record
 				await query(
 					`INSERT INTO DrugUsage (
-						patient_id, drug_id, transaction_id, remaining_quantity
-					) VALUES ($1, $2, $3, $4)`,
+						patient_id, drug_id, transaction_id, patient_history_id, remaining_quantity
+					) VALUES ($1, $2, $3, $4, $5)`,
 					[
 						drugInfo.patient_id,
 						drugInfo.drug_id,
 						transactionResult.rows[0].transaction_id,
+						currentAdmission!.patient_history_id,
 						quantityToDispense
 					]
 				);
@@ -446,11 +451,16 @@ export class PatientAutoRenewalCron {
 				serviceId
 			]);
 
+			const currentAdmission = await PatientModel.getCurrentAdmission(
+				patientId
+			);
+
 			for (const drugInfo of serviceDrugsResult.rows) {
 				await this.dispenseDrugForService(
 					patientId,
 					drugInfo.drug_id,
 					drugInfo.sale_quantity * number_of_periods,
+					currentAdmission!.patient_history_id,
 					billId
 				);
 			}
@@ -469,6 +479,7 @@ export class PatientAutoRenewalCron {
 		patientId: number,
 		drugId: number,
 		quantity: number,
+		patient_history_id: number,
 		billId: number
 	): Promise<void> {
 		try {
@@ -527,12 +538,13 @@ export class PatientAutoRenewalCron {
 				// Create drug usage record
 				await query(
 					`INSERT INTO DrugUsage (
-                        patient_id, drug_id, transaction_id, remaining_quantity
-                    ) VALUES ($1, $2, $3, $4)`,
+                        patient_id, drug_id, transaction_id, patient_history_id, remaining_quantity
+                    ) VALUES ($1, $2, $3, $4, $5)`,
 					[
 						patientId,
 						drugId,
 						transactionResult.rows[0].transaction_id,
+						patient_history_id,
 						quantityToTake
 					]
 				);

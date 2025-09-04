@@ -210,13 +210,12 @@
           <div class="col-md-8">
             <div class="patient-search-container">
               <div class="input-group">
-                <span class="input-group-text">
-                  <i class="bi bi-search"></i>
-                </span>
+                <button type="button" class="btn btn-light">
+                  <span id="patientSearchIcon" class="input-group-text">
+                    <i class="bi bi-search"></i>
+                  </span>
+                </button>
                 <input type="text" class="form-control" id="patientSearch" placeholder="Search patient by name..." autocomplete="off">
-              </div>
-              <div class="search-suggestions" id="searchSuggestions">
-                <!-- Suggestions will appear here -->
               </div>
             </div>
           </div>
@@ -227,9 +226,21 @@
           </div>
         </div>
 
-        <!-- Main Content Area -->
+        <!-- Patient List -->
+        <div id="patientListContainer" class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">All Patients</h5>
+          </div>
+          <div class="card-body">
+            <div id="patientList">
+              <!-- Patient table will be rendered here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Patient Details (shown when a patient is selected) -->
         <div id="patientContent" style="display: none;">
-          <!-- Patient Details Section -->
+          <!-- Existing patient details card here -->
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Patient Details</h5>
@@ -262,6 +273,10 @@
                       <span class="info-value" id="patientGender">-</span>
                     </div>
                     <div class="info-item">
+                      <span class="info-label">National ID:</span>
+                      <span class="info-value" id="patientNationalID">-</span>
+                    </div>
+                    <div clas <div class="info-item">
                       <span class="info-label">Phone:</span>
                       <span class="info-value" id="patientPhone">-</span>
                     </div>
@@ -506,15 +521,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Empty State -->
-        <div id="emptyState" class="text-center">
-          <div class="empty-state-content">
-            <i class="bi bi-person-search display-1 text-muted"></i>
-            <h4 class="text-muted mt-3">No Patient Selected</h4>
-            <p class="text-muted">Search for a patient above or register a new patient to get started.</p>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -558,6 +564,10 @@
                 </div>
               </div>
               <div class="col-md-6">
+                <label for="modalNationalID" class="form-label">National ID</label>
+                <input type="number" class="form-control" id="modalNationalID">
+              </div>
+              <div class="col-md-3">
                 <label for="modalPhone" class="form-label">Phone</label>
                 <input type="tel" class="form-control" id="modalPhone">
               </div>
@@ -616,6 +626,13 @@
                 <label for="modalInsuranceCardId" class="form-label">Insurance Card ID</label>
                 <input type="text" class="form-control" id="modalInsuranceCardId">
               </div>
+              <div class="col-md-4">
+                <label for="modalPriceList" class="form-label">Price List</label>
+                <select class="form-select" id="modalPriceList">
+                  <option value="">Default</option>
+                  <!-- Price lists will be loaded dynamically -->
+                </select>
+              </div>
             </div>
 
             <!-- Medical Information -->
@@ -655,13 +672,6 @@
                   <div class="doctors-selection" id="attendingDoctorsSelection">
                     <!-- Available doctors will be listed here as checkboxes -->
                   </div>
-                </div>
-                <div class="col-md-12">
-                  <label for="modalPriceList" class="form-label">Price List</label>
-                  <select class="form-select" id="modalPriceList">
-                    <option value="">Default</option>
-                    <!-- Price lists will be loaded dynamically -->
-                  </select>
                 </div>
               </div>
             </div>

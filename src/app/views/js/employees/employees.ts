@@ -17,6 +17,8 @@ interface Employee {
 	percentage_scope?: string;
 	need_clock_in: boolean;
 	shift_type?: string;
+	shift_start_time?: string;
+	shift_end_time?: string; 
 }
 
 interface Payment {
@@ -484,7 +486,11 @@ class EmployeeManager {
             <td>${this.escapeHtml(employee.name)}</td>
             <td>${this.escapeHtml(employee.employee_type)}</td>
             <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
-            <td>$${employee.base_pay || "-"}</td>
+            <td>$${
+				this.userPermissions.includes("manage_payments")
+					? employee.base_pay || "-"
+					: "-"
+			}</td>
             <td>${employee.shift_type || "-"}</td>
             <td>${
 				this.escapeHtml(employee.per_patient_payment_type || "") +
@@ -812,6 +818,10 @@ class EmployeeManager {
 		).value = employee.percentage_scope || "";
 		(document.getElementById("needClockIn") as HTMLInputElement).checked =
 			employee.need_clock_in;
+		(document.getElementById("shiftStartTime") as HTMLInputElement).value =
+			employee.shift_start_time || "";
+		(document.getElementById("shiftEndTime") as HTMLInputElement).value =
+			employee.shift_end_time || "";
 		(document.getElementById("isActive") as HTMLInputElement).checked =
 			employee.is_active !== false;
 		const extraPaymentTypeSelect = document.getElementById(
@@ -950,7 +960,6 @@ class EmployeeManager {
 
 			if (!response.ok) throw new Error("Failed to create payment");
 			const data = await response.json();
-			console.log(data);
 			await this.markPaymentPaid(Number(data.payment_id), true);
 			await this.loadEmployees(); // Reload to update payment tables
 			this.paymentModal.hide();

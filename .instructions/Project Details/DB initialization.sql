@@ -32,6 +32,8 @@ CREATE TYPE shift_type AS ENUM ('morning', 'night');
 
 CREATE TYPE vat_scope_type AS ENUM ('services', 'drugs', 'both');
 
+CREATE TYPE vault_manual_payment_type AS ENUM ('addition', 'deduction');
+
 -- Core tables
 CREATE TABLE IF NOT EXISTS Role (
 	role_id SERIAL PRIMARY KEY,
@@ -73,7 +75,9 @@ CREATE TABLE IF NOT EXISTS Employee (
 	per_patient_payment_type VARCHAR(50),
 	percentage_scope percentage_scope,
 	need_clock_in BOOLEAN DEFAULT false,
-	shift_type shift_type
+	shift_type shift_type,
+	shift_start_time TIME,
+	shift_end_time TIME
 );
 
 CREATE TABLE IF NOT EXISTS Doctor (
@@ -121,6 +125,7 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 CREATE TABLE IF NOT EXISTS Patient (
 	patient_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
+	national_id VARCHAR(255) UNIQUE,
 	gender gender_type,
 	phone VARCHAR(20),
 	address TEXT,
@@ -160,6 +165,18 @@ CREATE TABLE IF NOT EXISTS PatientDoctor (
 	doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	PRIMARY KEY (patient_id, doctor_id)
 );
+
+CREATE TABLE IF NOT EXISTS PatientNurse (
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	nurse_id INTEGER REFERENCES Employee(employee_id),
+	PRIMARY KEY (patient_id, nurse_id)
+);
+
+CREATE TABLE IF NOT EXISTS NursePatientHistory (
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	nurse_id INTEGER REFERENCES Employee(employee_id),
+	PRIMARY KEY (patient_history_id, nurse_id)
+)
 
 -- Pharmacy Management
 CREATE TABLE IF NOT EXISTS Warehouse (
@@ -208,6 +225,7 @@ CREATE TABLE IF NOT EXISTS DrugUsage (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	drug_id INTEGER REFERENCES DrugCard(drug_id),
 	transaction_id INTEGER REFERENCES DrugTransaction(transaction_id),
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	remaining_quantity INTEGER NOT NULL,
 	last_administered TIMESTAMP
 );
@@ -310,6 +328,13 @@ CREATE TABLE IF NOT EXISTS AuditLog (
 	details JSONB,
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS VaultManualPayments (
+	payment_id SERIAL PRIMARY KEY,
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	payment_type vault_manual_payment_type NOT NULL
+)
 
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);

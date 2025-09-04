@@ -420,14 +420,6 @@
                   <input type="number" class="form-control" id="basePay" step="0.01">
                 </div>
                 <div class="mb-3">
-                  <label for="shiftType" class="form-label">Shift Type</label>
-                  <select class="form-select" id="shiftType">
-                    <option value="">Select Shift</option>
-                    <option value="morning">Morning</option>
-                    <option value="night">Night</option>
-                  </select>
-                </div>
-                <div class="mb-3">
                   <label for="extraPaymentType" class="form-label">Extra Payment Type</label>
                   <select class="form-select" id="extraPaymentType">
                     <option value="none">None</option>
@@ -455,6 +447,22 @@
                     <option value="after_deductions">After Deductions</option>
                   </select>
                 </div>
+				<div class="mb-3">
+				  <label for="shiftType" class="form-label">Shift Type</label>
+				  <select class="form-select" id="shiftType">
+				    <option value="">Select Shift</option>
+				    <option value="morning">Morning</option>
+				    <option value="night">Night</option>
+				  </select>
+				</div>
+				<div class="mb-3">
+				  <label for="shiftStartTime" class="form-label">Shift Start Time</label>
+				  <input type="time" class="form-control" id="shiftStartTime" required>
+				</div>
+				<div class="mb-3">
+				  <label for="shiftEndTime" class="form-label">Shift End time</label>
+				  <input type="time" class="form-control" id="shiftEndTime" required>
+				</div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="needClockIn">
                   <label class="form-check-label" for="needClockIn">Requires Clock-In</label>
@@ -551,6 +559,14 @@
                     <option value="morning">Morning</option>
                     <option value="night">Night</option>
                   </select>
+                </div>
+                <div class="mb-3">
+                  <label for="shiftStartTimeDoctor" class="form-label">Shift Start Time</label>
+                  <input type="time" class="form-control" id="shiftStartTimeDoctor" required>
+                </div>
+                <div class="mb-3">
+                  <label for="shiftEndTimeDoctor" class="form-label">Shift End time</label>
+                  <input type="time" class="form-control" id="shiftEndTimeDoctor" required>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="needClockInDoctor">
