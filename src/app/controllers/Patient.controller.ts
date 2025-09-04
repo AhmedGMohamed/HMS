@@ -169,10 +169,12 @@ export class PatientController {
 				!admissionData.diagnosis ||
 				!admissionData.attending_doctors ||
 				!Array.isArray(admissionData.attending_doctors) ||
+				!admissionData.attending_nurses ||
+				!Array.isArray(admissionData.attending_nurses) ||
 				admissionData.attending_doctors.length === 0
 			) {
 				res.status(400).json({
-					error: "Diagnosis and at least one attending doctor are required"
+					error: "Diagnosis, at least one attending doctor and one attending nurse are required"
 				});
 				return;
 			}

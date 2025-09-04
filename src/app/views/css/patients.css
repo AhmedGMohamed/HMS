@@ -213,7 +213,7 @@
     margin-right: 0.5rem;
 }
 
-.doctors-selection {
+.doctors-selection, .nurses-selection {
     max-height: 200px;
     overflow-y: auto;
     border: 1px solid #dee2e6;
@@ -221,15 +221,15 @@
     padding: 0.75rem;
 }
 
-.doctor-checkbox {
+.doctor-checkbox, .nurse-checkbox {
     margin-bottom: 0.5rem;
 }
 
-.doctor-checkbox:last-child {
+.doctor-checkbox:last-child, .nurse-checkbox:last-child {
     margin-bottom: 0;
 }
 
-.doctor-checkbox .form-check-label {
+.doctor-checkbox .form-check-label, .nurse-checkbox .form-check-label {
     font-weight: 500;
     color: var(--bs-dark);
 }

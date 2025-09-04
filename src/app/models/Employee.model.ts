@@ -34,7 +34,7 @@ export default class EmployeeModel {
 			dto.is_active || true,
 			dto.employee_type,
 			dto.base_pay,
-			dto.extra_amount || 0.00,
+			dto.extra_amount || 0.0,
 			dto.extra_payment_type,
 			dto.per_patient_payment_type,
 			dto.percentage_scope,
@@ -84,5 +84,17 @@ export default class EmployeeModel {
 		const sql = "SELECT * FROM Employee WHERE name ILIKE $1";
 		const { rows } = await query(sql, [`%${name}%`]);
 		return rows;
+	}
+
+	// Add method to get available nurses
+	static async getAvailableNurses(): Promise<any[]> {
+		const sql = `
+			SELECT e.employee_id, e.name, e.phone, e.hire_date
+			FROM Employee e
+			WHERE e.employee_type = 'nurse' AND e.is_active = true
+			ORDER BY e.name;
+		`;
+		const result = await query(sql);
+		return result.rows;
 	}
 }

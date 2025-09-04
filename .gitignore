@@ -26,3 +26,5 @@ dist-electron
 *.sw?
 
 *copy*
+
+tree*
