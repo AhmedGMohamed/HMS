@@ -34,8 +34,8 @@ export default class DoctorModel {
         INSERT INTO Employee (
           name, phone, is_facility_employee, is_active, hire_date, employee_type, 
           base_pay, extra_amount, extra_payment_type, per_patient_payment_type, 
-          percentage_scope, need_clock_in, shift_type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          percentage_scope, need_clock_in, shift_type, shift_start_time, shift_end_time
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *
       `;
 			const employeeValues = [
@@ -51,7 +51,9 @@ export default class DoctorModel {
 				dto.per_patient_payment_type,
 				dto.percentage_scope,
 				dto.need_clock_in,
-				dto.shift_type
+				dto.shift_type,
+				dto.shift_start_time,
+				dto.shift_end_time
 			];
 			const { rows: employeeRows } = await query(
 				employeeQuery,
@@ -111,7 +113,9 @@ export default class DoctorModel {
 				"per_patient_payment_type",
 				"percentage_scope",
 				"need_clock_in",
-				"shift_type"
+				"shift_type",
+				"shift_start_time",
+				"shift_end_time"
 			];
 
 			Object.entries(dto).forEach(([key, value]) => {
@@ -125,9 +129,9 @@ export default class DoctorModel {
 			let employee: Employee | null = null;
 			if (employeeFields.length > 0) {
 				const employeeQuery = `
-          UPDATE Employee SET ${employeeFields.join(", ")}
-          WHERE employee_id = $${index} RETURNING *
-        `;
+        		  UPDATE Employee SET ${employeeFields.join(", ")}
+        		  WHERE employee_id = $${index} RETURNING *
+        		`;
 				employeeValues.push(doctor_id);
 				const { rows } = await query(
 					employeeQuery,

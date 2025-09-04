@@ -25,6 +25,6 @@
 		"downlevelIteration": true
 	},
 	"include": ["src", "src/app/assets/js/pdfmake/build/vfs_fonts.min.js"],
-	"exclude": ["src/electron"]
+	"exclude": ["src/electron", "src/app/tests"]
 }
 

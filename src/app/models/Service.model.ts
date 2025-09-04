@@ -183,7 +183,6 @@ export class ServiceModel {
 				}
 			}
 
-			console.log(serviceData.drugs);
 			// Handle drug associations if provided
 			if (serviceData.drugs !== undefined) {
 				await this.updateServiceDrugs(
@@ -310,7 +309,7 @@ export class ServiceModel {
                 ON CONFLICT (service_id, drug_id) DO NOTHING;
 				`;
 				
-				console.log((await query(insertSql, params)).rows);
+				(await query(insertSql, params)).rows;
 				
 				await query("COMMIT");
 			}

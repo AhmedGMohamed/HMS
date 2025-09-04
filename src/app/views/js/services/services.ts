@@ -660,7 +660,6 @@ class ServiceManager {
 				const defaultPriceList = document.querySelector(
 					".price-list-row.default-price-list .price-list-controls"
 				);
-				console.log(defaultPriceList)
 
 				if (defaultPriceList) {
 					defaultPriceList.classList.remove("disabled");

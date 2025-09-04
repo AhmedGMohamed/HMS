@@ -10,6 +10,7 @@ import {
 	DrugCard
 } from "../utils/types/drugs.js";
 import { Patient } from "../utils/types/patients.js";
+import PatientModel from "./Patient.model.js";
 
 export class DrugUsageModel {
 	async getAllDrugUsages(): Promise<DrugUsageWithDetails[]> {
@@ -129,7 +130,7 @@ export class DrugUsageModel {
                     shipment_id, transaction_type, quantity,
                     price, created_by_user_id
                 )	
-                VALUES ($1, 'patient', $2, $3, $4)	
+                VALUES ($1, 'patient', $2, $3, $4, $5)	
                 RETURNING transaction_id;
             `,
 				[
@@ -139,14 +140,14 @@ export class DrugUsageModel {
 					userId
 				]
 			);
-			
+
 			// Create drug usage record
 			const usageSql = `
                 INSERT INTO DrugUsage (
-                    patient_id, drug_id, transaction_id,
+                    patient_id, drug_id, transaction_id, patient_history_id,
                     remaining_quantity, last_administered
                 )
-                VALUES ($1, $2, $3, $4, null)
+                VALUES ($1, $2, $3, $4, $5, null)
                 RETURNING *;
             `;
 
@@ -154,6 +155,7 @@ export class DrugUsageModel {
 				data.patient_id,
 				data.drug_id,
 				transactionResult.rows[0].transaction_id,
+				data.patient_history_id,
 				quantityInSmallerUnits
 			]);
 

@@ -19,6 +19,8 @@ interface Doctor {
 	doctor_type: string;
 	referral_bonus?: number;
 	shift_type?: string;
+	shift_start_time: string;
+	shift_end_time: string;
 }
 
 interface Payment {
@@ -223,7 +225,6 @@ class DoctorManager {
 				return { doctor, payments: filteredPayments };
 			})
 		);
-		console.log(doctorData);
 
 		tbody.innerHTML = doctorData
 			.map(({ doctor, payments }) => {
@@ -243,9 +244,15 @@ class DoctorManager {
             <td>${this.escapeHtml(doctor.name)}</td>
             <td>${this.escapeHtml(doctor.doctor_type)}</td>
             <td>${new Date(doctor.hire_date).toLocaleDateString()}</td>
-            <td>$${Number(doctor.daily_pay) || "-"}</td>
+            <td>$${
+				this.userPermissions.includes("manage_payments")
+					? Number(doctor.daily_pay) || "-"
+					: "-"
+			}</td>
             <td>${doctor.per_patient_payment_type == "fixed" ? "$" : ""}${
-					Number(doctor.per_patient_pay) || "-"
+					this.userPermissions.includes("manage_payments")
+						? Number(doctor.per_patient_pay) || "-"
+						: "-"
 				}${doctor.per_patient_payment_type != "fixed" ? "%" : ""}</td>
 			<td>${this.escapeHtml(doctor.shift_type || "-")}</td>
             <td>${
@@ -404,7 +411,6 @@ class DoctorManager {
 	}
 
 	private populateDoctorForm(doctor: Doctor): void {
-		console.log(doctor);
 		(document.getElementById("doctorId") as HTMLInputElement).value =
 			doctor.employee_id.toString();
 		(document.getElementById("employeeId") as HTMLInputElement).value =
@@ -419,8 +425,9 @@ class DoctorManager {
 			doctor.hire_date;
 		(document.getElementById("dailyPayDoctor") as HTMLInputElement).value =
 			doctor.daily_pay?.toString() || "";
-		(document.getElementById("perPatientPayDoctor") as HTMLInputElement).value =
-			doctor.per_patient_pay?.toString() || "";
+		(
+			document.getElementById("perPatientPayDoctor") as HTMLInputElement
+		).value = doctor.per_patient_pay?.toString() || "";
 		(document.getElementById("referralBonus") as HTMLInputElement).value =
 			doctor.referral_bonus?.toString() || "";
 		(
@@ -432,14 +439,25 @@ class DoctorManager {
 			) as HTMLSelectElement
 		).value = doctor.per_patient_payment_type || "";
 		(
-			document.getElementById("percentageScopeDoctor") as HTMLSelectElement
+			document.getElementById(
+				"percentageScopeDoctor"
+			) as HTMLSelectElement
 		).value = doctor.percentage_scope || "";
-		(document.getElementById("shiftTypeDoctor") as HTMLSelectElement).value =
-			doctor.shift_type || "";
-		(document.getElementById("needClockInDoctor") as HTMLInputElement).checked =
-			doctor.need_clock_in;
-		(document.getElementById("isActiveDoctor") as HTMLInputElement).checked =
-			doctor.is_active;
+		(
+			document.getElementById("shiftTypeDoctor") as HTMLSelectElement
+		).value = doctor.shift_type || "";
+		(
+			document.getElementById("needClockInDoctor") as HTMLInputElement
+		).checked = doctor.need_clock_in;
+		(
+			document.getElementById("shiftStartTimeDoctor") as HTMLInputElement
+		).value = doctor.shift_start_time || "";
+		(
+			document.getElementById("shiftEndTimeDoctor") as HTMLInputElement
+		).value = doctor.shift_end_time || "";
+		(
+			document.getElementById("isActiveDoctor") as HTMLInputElement
+		).checked = doctor.is_active;
 		(
 			document.getElementById("isFacilityEmployee") as HTMLInputElement
 		).checked = doctor.is_facility_employee;
@@ -468,12 +486,16 @@ class DoctorManager {
 				(document.getElementById("phone") as HTMLInputElement).value ||
 				undefined,
 			employee_type: "doctor",
-			hire_date: (document.getElementById("hireDateDoctor") as HTMLInputElement)
-				.value,
+			hire_date: (
+				document.getElementById("hireDateDoctor") as HTMLInputElement
+			).value,
 			daily_pay:
 				parseFloat(
-					(document.getElementById("dailyPayDoctor") as HTMLInputElement)
-						.value
+					(
+						document.getElementById(
+							"dailyPayDoctor"
+						) as HTMLInputElement
+					).value
 				) || undefined,
 			per_patient_pay:
 				parseFloat(
@@ -514,8 +536,9 @@ class DoctorManager {
 			shift_type: (
 				document.getElementById("shiftTypeDoctor") as HTMLSelectElement
 			).value,
-			is_active: (document.getElementById("isActiveDoctor") as HTMLInputElement)
-				.checked,
+			is_active: (
+				document.getElementById("isActiveDoctor") as HTMLInputElement
+			).checked,
 			need_clock_in: (
 				document.getElementById("needClockInDoctor") as HTMLInputElement
 			).checked,
@@ -523,12 +546,18 @@ class DoctorManager {
 				document.getElementById(
 					"isFacilityEmployee"
 				) as HTMLInputElement
-			).checked
+			).checked,
+			shift_start_time: (
+				document.getElementById(
+					"shiftStartTimeDoctor"
+				) as HTMLInputElement
+			).value,
+			shift_end_time: (
+				document.getElementById(
+					"shiftEndTimeDoctor"
+				) as HTMLInputElement
+			).value
 		};
-		console.log(doctorData);
-		console.log(
-			document.getElementById("hireDateDoctor"),
-			(document.getElementById("hireDateDoctor") as HTMLInputElement).value);
 
 		try {
 			this.setDoctorLoading(true);
@@ -595,7 +624,6 @@ class DoctorManager {
 			this.showError("Only admins can edit doctors");
 			return;
 		}
-		console.log(doctorId);
 		this.showDoctorModal(doctorId);
 	}
 

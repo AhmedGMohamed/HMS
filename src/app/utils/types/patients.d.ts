@@ -2,6 +2,7 @@
 export interface Patient {
 	patient_id: number;
 	name: string;
+	national_id: string;
 	gender: "male" | "female" | "other";
 	phone: string | null;
 	address: string | null;
@@ -50,6 +51,7 @@ export interface DoctorPatientHistory {
 
 export interface CreatePatientDTO {
 	name: string;
+	national_id: string;
 	gender: "male" | "female" | "other";
 	phone?: string;
 	address?: string;
@@ -78,6 +80,7 @@ export interface CreatePatientDTO {
 export interface UpdatePatientDTO {
 	patient_id: number;
 	name?: string;
+	national_id?: string;
 	gender?: "male" | "female" | "other";
 	phone?: string;
 	address?: string;

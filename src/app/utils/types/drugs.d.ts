@@ -204,6 +204,7 @@ export interface DrugUsageWithDetails extends DrugUsage {
 export interface CreateDrugUsageDTO {
 	patient_id: number;
 	drug_id: number;
+	patient_history_id: number;
 	shipment_id: number;
 	quantity: number; // This will be in larger units
 	price: number | string;

@@ -14,9 +14,6 @@ declare global {
 }
 const pdfMake = { ...window.pdfMake };
 
-// Debug: Verify pdfMake after setup
-console.log("pdfMake after vfs setup:", pdfMake);
-
 export function generatePatientBill(
 	patient: Patient,
 	bill: Bill,

@@ -22,8 +22,8 @@ export default class EmployeeModel {
       INSERT INTO Employee (
         name, phone, is_facility_employee, hire_date, is_active, employee_type, 
         base_pay, extra_amount, extra_payment_type, per_patient_payment_type, 
-        percentage_scope, need_clock_in, shift_type
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        percentage_scope, need_clock_in, shift_type, shift_start_time, shift_end_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
 		const values = [
@@ -39,7 +39,9 @@ export default class EmployeeModel {
 			dto.per_patient_payment_type,
 			dto.percentage_scope,
 			dto.need_clock_in,
-			dto.shift_type
+			dto.shift_type,
+			dto.shift_start_time,
+			dto.shift_end_time
 		];
 		const { rows } = await query(sql, values);
 		return rows[0];

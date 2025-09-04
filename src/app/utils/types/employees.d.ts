@@ -1,3 +1,5 @@
+import { TimeLike } from "original-fs";
+
 // src/app/utils/types/employees.d.ts
 export type GenderType = "male" | "female" | "other";
 export type PaymentType = "cash" | "credit" | "insurance";
@@ -28,11 +30,15 @@ export interface Employee {
 	hire_date: string;
 	employee_type: EmployeeType;
 	base_pay?: number;
+	extra_amount?: number;
 	extra_payment_type?: extraPaymentType;
 	per_patient_payment_type?: perPatientPaymentType;
 	percentage_scope?: PercentageScope;
 	need_clock_in: boolean;
 	shift_type?: ShiftType;
+	shift_start_time?: TimeLike;
+	shift_end_time?: TimeLike;
+	is_active?: boolean;
 }
 
 export interface Doctor extends Employee {
@@ -81,6 +87,8 @@ export interface CreateEmployeeDTO {
 	percentage_scope?: PercentageScope;
 	need_clock_in: boolean;
 	shift_type?: ShiftType;
+	shift_start_time: Date;
+	shift_end_time: Date;
 }
 
 export interface CreateDoctorDTO extends CreateEmployeeDTO {
