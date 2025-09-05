@@ -1286,7 +1286,8 @@ class PatientManager {
 				break;
 		}
 
-		const vatAmount = ((vatBase + administrativeExpenses) * vatPercentage) / 100;
+		const vatAmount =
+			((vatBase + administrativeExpenses) * vatPercentage) / 100;
 		const totalFee =
 			totalAfterDiscount + vatAmount + administrativeExpenses;
 		const remaining = totalFee - paidAmount;
@@ -2822,8 +2823,10 @@ class PatientManager {
 
 		const doctors = admission.assigned_doctors || [];
 		const nurses = admission.assigned_nurses || [];
-		const services = admission.services || [];
-		const drugs = admission.drugs || [];
+		const services = this.groupServicesByServiceId(
+			admission.services || []
+		);
+		const drugs = this.groupDrugsByDrugId(admission.drugs || []);
 
 		container.innerHTML = `
         <!-- Admission Overview -->
@@ -2900,17 +2903,21 @@ class PatientManager {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Admin Expenses:</span>
-                        <span class="detail-value">$${(
+                        <span class="detail-value">$${
 							admission.administrative_expenses || 0
-						)}</span>
+						}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label"><strong>Total Amount:</strong></span>
-                        <span class="detail-value"><strong>$${totalAmount.toFixed(2)}</strong></span>
+                        <span class="detail-value"><strong>$${totalAmount.toFixed(
+							2
+						)}</strong></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Paid Amount:</span>
-                        <span class="detail-value">$${paidAmount.toFixed(2)}</span>
+                        <span class="detail-value">$${paidAmount.toFixed(
+							2
+						)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label"><strong>Balance:</strong></span>
@@ -3181,46 +3188,45 @@ class PatientManager {
 	private createBillDetailsFromAdmission(admission: any): any[] {
 		const billDetails: any[] = [];
 
-		// Add services
-		if (admission.services && admission.services.length > 0) {
-			admission.services.forEach((service: any) => {
-				billDetails.push({
-					bill_detail_id: `service_${
-						service.service_id
-					}_${Math.random()}`,
-					bill_id: admission.bill_id,
-					service_id: service.service_id,
-					service_name: service.service_name,
-					drug_shipment_id: null,
-					drug_name: null,
-					quantity: service.quantity,
-					unit_price: service.unit_price,
-					charge_type: service.charge_type || "service",
-					sale_type: "admitted",
-					generated_at:
-						service.generated_at || admission.admission_time
-				});
+		// Use grouped services for bill details
+		const groupedServices = this.groupServicesByServiceId(
+			admission.services || []
+		);
+		groupedServices.forEach((service: any) => {
+			billDetails.push({
+				bill_detail_id: `service_${
+					service.service_id
+				}_${Math.random()}`,
+				bill_id: admission.bill_id,
+				service_id: service.service_id,
+				service_name: service.service_name,
+				drug_shipment_id: null,
+				drug_name: null,
+				quantity: service.quantity,
+				unit_price: service.unit_price,
+				charge_type: service.charge_type,
+				sale_type: "admitted",
+				generated_at: service.generated_at
 			});
-		}
+		});
 
-		// Add drugs
-		if (admission.drugs && admission.drugs.length > 0) {
-			admission.drugs.forEach((drug: any) => {
-				billDetails.push({
-					bill_detail_id: `drug_${drug.drug_id}_${Math.random()}`,
-					bill_id: admission.bill_id,
-					service_id: null,
-					service_name: null,
-					drug_shipment_id: drug.drug_shipment_id || drug.drug_id,
-					drug_name: drug.drug_name,
-					quantity: drug.quantity,
-					unit_price: drug.unit_price,
-					charge_type: drug.charge_type || "drug",
-					sale_type: "admitted",
-					generated_at: drug.generated_at || admission.admission_time
-				});
+		// Use grouped drugs for bill details
+		const groupedDrugs = this.groupDrugsByDrugId(admission.drugs || []);
+		groupedDrugs.forEach((drug: any) => {
+			billDetails.push({
+				bill_detail_id: `drug_${drug.drug_id}_${Math.random()}`,
+				bill_id: admission.bill_id,
+				service_id: null,
+				service_name: null,
+				drug_shipment_id: drug.shipment_ids[0], // Use first shipment ID
+				drug_name: drug.drug_name,
+				quantity: drug.quantity,
+				unit_price: drug.unit_price,
+				charge_type: drug.charge_type,
+				sale_type: "admitted",
+				generated_at: drug.generated_at
 			});
-		}
+		});
 
 		return billDetails;
 	}
@@ -3280,6 +3286,90 @@ class PatientManager {
 	}
 
 	// Utility methods
+
+	private groupServicesByServiceId(services: any[]): any[] {
+		const grouped = new Map<number, any>();
+
+		services.forEach((service) => {
+			const serviceId = service.service_id;
+
+			if (grouped.has(serviceId)) {
+				const existing = grouped.get(serviceId);
+				existing.quantity += service.quantity;
+				existing.total_cost += parseFloat(service.total_cost || 0);
+				existing.charge_types.add(service.charge_type);
+				existing.bill_details.push(service);
+				// Keep the earliest date
+				if (service.generated_at < existing.generated_at) {
+					existing.generated_at = service.generated_at;
+				}
+			} else {
+				grouped.set(serviceId, {
+					service_id: serviceId,
+					service_name: service.service_name,
+					service_type: service.service_type,
+					quantity: service.quantity,
+					unit_price: service.unit_price,
+					total_cost: parseFloat(service.total_cost || 0),
+					charge_types: new Set([service.charge_type]),
+					generated_at: service.generated_at,
+					bill_details: [service]
+				});
+			}
+		});
+
+		// Convert charge_types Set to string and calculate average unit price
+		return Array.from(grouped.values()).map((service) => ({
+			...service,
+			charge_type: Array.from(service.charge_types).join(", "),
+			unit_price: service.total_cost / service.quantity, // Recalculate average price
+			instances_count: service.bill_details.length
+		}));
+	}
+
+	private groupDrugsByDrugId(drugs: any[]): any[] {
+		const grouped = new Map<number, any>();
+
+		drugs.forEach((drug) => {
+			const drugId = drug.drug_id;
+
+			if (grouped.has(drugId)) {
+				const existing = grouped.get(drugId);
+				existing.quantity += drug.quantity;
+				existing.total_cost += parseFloat(drug.total_cost || 0);
+				existing.charge_types.add(drug.charge_type);
+				existing.shipment_ids.add(drug.drug_shipment_id);
+				existing.bill_details.push(drug);
+				// Keep the earliest date
+				if (drug.generated_at < existing.generated_at) {
+					existing.generated_at = drug.generated_at;
+				}
+			} else {
+				grouped.set(drugId, {
+					drug_id: drugId,
+					drug_name: drug.drug_name,
+					manufacturer: drug.manufacturer,
+					unit_conversion: drug.unit_conversion,
+					quantity: drug.quantity,
+					unit_price: drug.unit_price,
+					total_cost: parseFloat(drug.total_cost || 0),
+					charge_types: new Set([drug.charge_type]),
+					shipment_ids: new Set([drug.drug_shipment_id]),
+					generated_at: drug.generated_at,
+					bill_details: [drug]
+				});
+			}
+		});
+
+		// Convert Sets to arrays/strings and calculate average unit price
+		return Array.from(grouped.values()).map((drug) => ({
+			...drug,
+			charge_type: Array.from(drug.charge_types).join(", "),
+			unit_price: drug.total_cost / drug.quantity, // Recalculate average price
+			shipment_ids: Array.from(drug.shipment_ids),
+			instances_count: drug.bill_details.length
+		}));
+	}
 	private formatGender(gender: string): string {
 		return gender.charAt(0).toUpperCase() + gender.slice(1);
 	}
@@ -3350,7 +3440,9 @@ class PatientManager {
 // Initialize and expose for HTML onclick handlers
 declare global {
 	interface Window {
-		patientManager: PatientManager & { showAdmissionDetails: (patientHistoryId: number) => Promise<void> };
+		patientManager: PatientManager & {
+			showAdmissionDetails: (patientHistoryId: number) => Promise<void>;
+		};
 		printBillManager: {
 			updatePrintItemQuantity: (index: number, quantity: string) => void;
 			updatePrintItemPrice: (index: number, price: string) => void;
