@@ -241,6 +241,58 @@ export class PatientController {
 		}
 	}
 
+	async getPastAdmissions(req: Request, res: Response) {
+		try {
+			const patientId = parseInt(req.params.id);
+
+			// Validate patient exists
+			const patient = await PatientModel.getPatientById(patientId);
+			if (!patient) {
+				res.status(404).json({ error: "Patient not found" });
+				return;
+			}
+
+			const pastAdmissions = await PatientModel.getPastAdmissions(
+				patientId
+			);
+			res.status(200).json(pastAdmissions);
+		} catch (error) {
+			console.error("Error fetching past admissions:", error);
+			res.status(500).json({ error: "Failed to fetch past admissions" });
+		}
+	}
+
+	async getAdmissionDetails(req: Request, res: Response) {
+		try {
+			const patientId = parseInt(req.params.id);
+			const patientHistoryId = parseInt(req.params.historyId);
+
+			// Validate patient exists
+			const patient = await PatientModel.getPatientById(patientId);
+			if (!patient) {
+				res.status(404).json({ error: "Patient not found" });
+				return;
+			}
+
+			const admissionDetails = await PatientModel.getAdmissionDetails(
+				patientId,
+				patientHistoryId
+			);
+
+			if (!admissionDetails) {
+				res.status(404).json({ error: "Admission not found" });
+				return;
+			}
+
+			res.status(200).json(admissionDetails);
+		} catch (error) {
+			console.error("Error fetching admission details:", error);
+			res.status(500).json({
+				error: "Failed to fetch admission details"
+			});
+		}
+	}
+
 	async getCurrentAdmission(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
@@ -416,7 +468,13 @@ export class PatientController {
 	async addDrugToPatient(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const { drug_id, shipment_id, quantity, price, patient_history_id } = req.body;
+			const {
+				drug_id,
+				shipment_id,
+				quantity,
+				price,
+				patient_history_id
+			} = req.body;
 
 			if (!req.user) {
 				res.status(401).json({ error: "Unauthorized" });
@@ -425,20 +483,36 @@ export class PatientController {
 			const userId = req.user.userId;
 
 			// Validate required fields
-			if (!drug_id || !shipment_id || !quantity || !price || !patient_history_id) {
+			if (
+				!drug_id ||
+				!shipment_id ||
+				!quantity ||
+				!price ||
+				!patient_history_id
+			) {
 				res.status(400).json({
 					error: "Drug ID, shipment ID, patient history ID, quantity, and price are required"
 				});
 				return;
 			}
 
-			const result = await DrugUsageModel.createDrugUsage({ patient_id: patientId, drug_id, patient_history_id, shipment_id, quantity, price }, userId);
-			
+			const result = await DrugUsageModel.createDrugUsage(
+				{
+					patient_id: patientId,
+					drug_id,
+					patient_history_id,
+					shipment_id,
+					quantity,
+					price
+				},
+				userId
+			);
+
 			await PatientModel.addDrugToPatientBill(
 				patientId,
 				shipment_id,
 				quantity,
-				price,
+				price
 			);
 			res.status(201).json(result);
 		} catch (error: any) {

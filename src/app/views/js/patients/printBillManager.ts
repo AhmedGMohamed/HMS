@@ -335,7 +335,7 @@ export class PrintBillManager {
 		const afterDiscount = subtotal - discountAmount;
 
 		// Calculate VAT
-		const vatAmount = (afterDiscount * vatPercentage) / 100;
+		const vatAmount = ((afterDiscount + adminExpenses) * vatPercentage) / 100;
 
 		// Calculate total
 		const totalAmount = afterDiscount + vatAmount + adminExpenses;
@@ -420,7 +420,7 @@ export class PrintBillManager {
                                 ${service.auto_renew ? " • Auto Renew" : ""}
                             </div>
                         </div>
-                        <div class="print-item-price">$${price.toFixed(2)}</div>
+                        <div class="print-item-price">$${parseInt(price as unknown as string).toFixed(2)}</div>
                     </div>
                 </div>
             `;

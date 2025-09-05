@@ -601,6 +601,164 @@ export class PatientModel {
 		return result.rows;
 	}
 
+	async getPastAdmissions(patientId: number): Promise<any[]> {
+		const sql = `
+    	    SELECT 
+    	        ph.patient_history_id,
+    	        ph.diagnosis,
+    	        ph.admission_time,
+    	        ph.discharge_time,
+    	        ph.leave_reason,
+    	        b.total_amount,
+    	        b.paid_amount,
+    	        array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL) as assigned_doctors,
+    	        array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as assigned_nurses,
+    	        (
+    	            SELECT COUNT(*) 
+    	            FROM BillDetail bd 
+    	            WHERE bd.bill_id = b.bill_id AND bd.service_id IS NOT NULL
+    	        ) as total_services_count,
+    	        (
+    	            SELECT COUNT(*) 
+    	            FROM BillDetail bd 
+    	            WHERE bd.bill_id = b.bill_id AND bd.drug_shipment_id IS NOT NULL
+    	        ) as total_drugs_count
+    	    FROM PatientHistory ph
+    	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+    	    LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
+    	    LEFT JOIN Employee e_doc ON dph.doctor_id = e_doc.employee_id
+    	    LEFT JOIN NursePatientHistory nph ON ph.patient_history_id = nph.patient_history_id
+    	    LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
+    	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NOT NULL
+    	    GROUP BY ph.patient_history_id, ph.diagnosis, ph.admission_time, 
+    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.bill_id
+    	    ORDER BY ph.discharge_time DESC;
+    	`;
+		const result = await query(sql, [patientId]);
+		return result.rows;
+	}
+
+	async getAdmissionDetails(
+		patientId: number,
+		patientHistoryId: number
+	): Promise<any> {
+		const sql = `
+    	    WITH doctors_agg AS (
+    	        SELECT 
+    	            dph.patient_history_id,
+    	            json_agg(
+    	                json_build_object(
+    	                    'doctor_id', dph.doctor_id,
+    	                    'doctor_name', e_doc.name,
+    	                    'doctor_type', d.doctor_type
+    	                ) ORDER BY e_doc.name
+    	            ) as assigned_doctors
+    	        FROM DoctorPatientHistory dph
+    	        LEFT JOIN Employee e_doc ON dph.doctor_id = e_doc.employee_id
+    	        LEFT JOIN Doctor d ON dph.doctor_id = d.doctor_id
+    	        WHERE dph.patient_history_id = $2
+    	        GROUP BY dph.patient_history_id
+    	    ),
+    	    nurses_agg AS (
+    	        SELECT 
+    	            nph.patient_history_id,
+    	            json_agg(
+    	                json_build_object(
+    	                    'nurse_id', nph.nurse_id,
+    	                    'nurse_name', e_nurse.name,
+    	                    'employee_type', e_nurse.employee_type
+    	                ) ORDER BY e_nurse.name
+    	            ) as assigned_nurses
+    	        FROM NursePatientHistory nph
+    	        LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
+    	        WHERE nph.patient_history_id = $2
+    	        GROUP BY nph.patient_history_id
+    	    )
+    	    SELECT 
+    	        ph.*,
+    	        b.total_amount,
+    	        b.paid_amount,
+    	        b.discount_type,
+    	        b.discount,
+    	        b.administrative_expenses,
+    	        b.vat_percentage,
+    	        b.vat_scope,
+    	        COALESCE(da.assigned_doctors, '[]'::json) as assigned_doctors,
+    	        COALESCE(na.assigned_nurses, '[]'::json) as assigned_nurses
+    	    FROM PatientHistory ph
+    	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+    	    LEFT JOIN doctors_agg da ON ph.patient_history_id = da.patient_history_id
+    	    LEFT JOIN nurses_agg na ON ph.patient_history_id = na.patient_history_id
+    	    WHERE ph.patient_id = $1 AND ph.patient_history_id = $2;
+    	`;
+
+		const result = await query(sql, [patientId, patientHistoryId]);
+		if (result.rows.length === 0) {
+			return null;
+		}
+
+		const admission = result.rows[0];
+
+		// Get detailed services for this admission
+		const servicesSql = `
+        SELECT 
+            bd.bill_detail_id,
+            bd.quantity,
+            bd.unit_price,
+            bd.charge_type,
+            bd.generated_at,
+            s.service_id,
+            s.name as service_name,
+            s.service_type,
+            (bd.quantity * bd.unit_price) as total_cost
+        FROM BillDetail bd
+        JOIN Service s ON bd.service_id = s.service_id
+        WHERE bd.bill_id = $1 AND bd.service_id IS NOT NULL
+        ORDER BY bd.generated_at DESC;
+    `;
+
+		const servicesResult = await query(servicesSql, [admission.bill_id]);
+		admission.services = servicesResult.rows;
+
+		// Get detailed drugs for this admission
+		const drugsSql = `
+        SELECT 
+            bd.bill_detail_id,
+            bd.quantity,
+            bd.unit_price,
+            bd.charge_type,
+            bd.generated_at,
+            dc.drug_id,
+            dc.name as drug_name,
+            dc.manufacturer,
+            dc.unit_conversion,
+            ds.expiry_date,
+            ds.shipment_id as drug_shipment_id,
+            (bd.quantity * bd.unit_price) as total_cost
+        FROM BillDetail bd
+        JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+        JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+        WHERE bd.bill_id = $1 AND bd.drug_shipment_id IS NOT NULL
+        ORDER BY bd.generated_at DESC;
+    `;
+
+		const drugsResult = await query(drugsSql, [admission.bill_id]);
+		admission.drugs = drugsResult.rows;
+
+		// Calculate summary totals
+		admission.services_total = admission.services.reduce(
+			(sum: number, service: any) =>
+				sum + parseFloat(service.total_cost || 0),
+			0
+		);
+		admission.drugs_total = admission.drugs.reduce(
+			(sum: number, drug: any) => sum + parseFloat(drug.total_cost || 0),
+			0
+		);
+
+		return admission;
+	}
+
 	async updateCurrentDiagnosis(
 		patientId: number,
 		diagnosis: string

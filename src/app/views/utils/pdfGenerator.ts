@@ -194,7 +194,7 @@ function buildTable(section: ReportSection, data: any): any {
 	console.log(tableData);
 
 	// Build data rows
-	const dataRows = tableData.map((item) =>
+	const dataRows = tableData.map((item: any) =>
 		section.fields!.map((field) => {
 			const value = field.key.includes(".")
 				? getNestedValue(item, field.key)
