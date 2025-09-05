@@ -3,15 +3,15 @@ import Swal from "../../sweetalert2/src/sweetalert2.js";
 import { generatePatientBill } from "../../utils/pdfGenerator.js";
 
 interface PrintBillItem {
-    id: string;
-    type: 'service' | 'drug';
-    service_id?: number;
-    service_name?: string;
-    drug_shipment_id?: number;
-    drug_name?: string;
-    description: string;
-    quantity: number;
-    unit_price: number;
+	id: string;
+	type: "service" | "drug";
+	service_id?: number;
+	service_name?: string;
+	drug_shipment_id?: number;
+	drug_name?: string;
+	description: string;
+	quantity: number;
+	unit_price: number;
 }
 
 export class PrintBillManager {
@@ -88,6 +88,7 @@ export class PrintBillManager {
 			"printDiscount",
 			"printDiscountType",
 			"printVatPercentage",
+			"printVatScope",
 			"printAdminExpenses",
 			"printIncludeDiscount"
 		].forEach((id) => {
@@ -201,6 +202,8 @@ export class PrintBillManager {
 		(
 			document.getElementById("printVatPercentage") as HTMLInputElement
 		).value = this.customBillData.vatPercentage.toString();
+		(document.getElementById("printVatScope") as HTMLSelectElement).value =
+			this.customBillData.bill.vat_scope || "both";
 		(
 			document.getElementById("printAdminExpenses") as HTMLInputElement
 		).value = this.customBillData.adminExpenses.toString();
@@ -209,9 +212,9 @@ export class PrintBillManager {
 		).checked = true;
 
 		// Populate paid amount (read-only)
-		document.getElementById(
-			"printPaidAmount"
-		)!.textContent = `$${parseInt(this.customBillData.bill.paid_amount as unknown as string).toFixed(2)}`;
+		document.getElementById("printPaidAmount")!.textContent = `$${parseInt(
+			this.customBillData.bill.paid_amount as unknown as string
+		).toFixed(2)}`;
 
 		// Populate bill items
 		this.updatePrintBillItemsTable();
@@ -291,11 +294,20 @@ export class PrintBillManager {
 	}
 
 	private calculatePrintBilling(): void {
-		// Calculate subtotal
-		const subtotal = this.customBillItems.reduce(
-			(sum, item) => sum + item.quantity * item.unit_price,
-			0
-		);
+		// Calculate services and drugs totals separately
+		let servicesTotal = 0;
+		let drugsTotal = 0;
+
+		this.customBillItems.forEach((item) => {
+			const lineTotal = item.quantity * item.unit_price;
+			if (item.type === "service") {
+				servicesTotal += lineTotal;
+			} else if (item.type === "drug") {
+				drugsTotal += lineTotal;
+			}
+		});
+
+		const subtotal = servicesTotal + drugsTotal;
 
 		// Get form values
 		const includeDiscount = (
@@ -317,6 +329,9 @@ export class PrintBillManager {
 					) as HTMLInputElement
 				).value
 			) || 0;
+		const vatScope =
+			(document.getElementById("printVatScope") as HTMLSelectElement)
+				?.value || "both";
 		const adminExpenses =
 			parseFloat(
 				(
@@ -327,18 +342,43 @@ export class PrintBillManager {
 			) || 0;
 
 		// Calculate discount amount (but only apply if includeDiscount is checked)
-		const discountAmount = includeDiscount
-			? isDiscountPercentage
-				? (subtotal * discount) / 100
-				: discount
-			: 0;
-		const afterDiscount = subtotal - discountAmount;
+		let discountAmount = 0;
+		if (includeDiscount) {
+			if (isDiscountPercentage) {
+				discountAmount = (subtotal * discount) / 100;
+			} else {
+				discountAmount = discount;
+			}
+		}
 
-		// Calculate VAT
-		const vatAmount = ((afterDiscount + adminExpenses) * vatPercentage) / 100;
+		const totalAfterDiscount = subtotal - discountAmount;
+
+		// Calculate VAT based on scope (matching the patients file logic)
+		let vatBase = 0;
+		if (subtotal > 0) {
+			// Avoid division by zero
+			switch (vatScope) {
+				case "services":
+					vatBase =
+						servicesTotal -
+						discountAmount * (servicesTotal / subtotal);
+					break;
+				case "drugs":
+					vatBase =
+						drugsTotal - discountAmount * (drugsTotal / subtotal);
+					break;
+				case "both":
+				default:
+					vatBase = totalAfterDiscount;
+					break;
+			}
+		}
+
+		// VAT calculation includes administrative expenses (matching patients file logic)
+		const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
 
 		// Calculate total
-		const totalAmount = afterDiscount + vatAmount + adminExpenses;
+		const totalAmount = totalAfterDiscount + vatAmount + adminExpenses;
 		const paidAmount = this.customBillData.bill.paid_amount || 0;
 		const balance = totalAmount - paidAmount;
 
@@ -346,6 +386,12 @@ export class PrintBillManager {
 		document.getElementById(
 			"printSubtotal"
 		)!.textContent = `$${subtotal.toFixed(2)}`;
+		document.getElementById(
+			"printServicesTotal"
+		)!.textContent = `$${servicesTotal.toFixed(2)}`;
+		document.getElementById(
+			"printDrugsTotal"
+		)!.textContent = `$${drugsTotal.toFixed(2)}`;
 		document.getElementById(
 			"printDiscountAmount"
 		)!.textContent = `$${discountAmount.toFixed(2)}`;
@@ -370,7 +416,9 @@ export class PrintBillManager {
 		discountTypeInput.disabled = !includeDiscount;
 
 		// Update visual styling
-		const discountContainer = discountInput.closest(".col-6") as HTMLElement;
+		const discountContainer = discountInput.closest(
+			".col-6"
+		) as HTMLElement;
 		if (discountContainer) {
 			discountContainer.style.opacity = includeDiscount ? "1" : "0.6";
 		}
@@ -420,7 +468,9 @@ export class PrintBillManager {
                                 ${service.auto_renew ? " • Auto Renew" : ""}
                             </div>
                         </div>
-                        <div class="print-item-price">$${parseInt(price as unknown as string).toFixed(2)}</div>
+                        <div class="print-item-price">$${parseInt(
+							price as unknown as string
+						).toFixed(2)}</div>
                     </div>
                 </div>
             `;
@@ -634,6 +684,9 @@ export class PrintBillManager {
 						) as HTMLInputElement
 					).value
 				) || 0;
+			const vatScope = (
+				document.getElementById("printVatScope") as HTMLSelectElement
+			).value;
 			const adminExpenses =
 				parseFloat(
 					(
@@ -644,18 +697,46 @@ export class PrintBillManager {
 				) || 0;
 
 			// Calculate totals
-			const subtotal = this.customBillItems.reduce(
-				(sum, item) => sum + item.quantity * item.unit_price,
-				0
-			);
+			let servicesTotal = 0;
+			let drugsTotal = 0;
+			this.customBillItems.forEach((item) => {
+				const lineTotal = item.quantity * item.unit_price;
+				if (item.type === "service") {
+					servicesTotal += lineTotal;
+				} else if (item.type === "drug") {
+					drugsTotal += lineTotal;
+				}
+			});
+
+			const subtotal = servicesTotal + drugsTotal;
 			const discountAmount = includeDiscount
 				? isDiscountPercentage
 					? (subtotal * discount) / 100
 					: discount
 				: 0;
-			const afterDiscount = subtotal - discountAmount;
-			const vatAmount = (afterDiscount * vatPercentage) / 100;
-			const totalAmount = afterDiscount + vatAmount + adminExpenses;
+			let vatBase = 0;
+			if (subtotal > 0) {
+				switch (vatScope) {
+					case "services":
+						vatBase =
+							servicesTotal -
+							discountAmount * (servicesTotal / subtotal);
+						break;
+					case "drugs":
+						vatBase =
+							drugsTotal -
+							discountAmount * (drugsTotal / subtotal);
+						break;
+					case "both":
+					default:
+						vatBase = subtotal - discountAmount;
+						break;
+				}
+			}
+
+			const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
+			const totalAmount =
+				subtotal - discountAmount + vatAmount + adminExpenses;
 
 			// Create custom bill object
 			const customBill = {
@@ -667,7 +748,11 @@ export class PrintBillManager {
 				total_amount: totalAmount,
 				show_discount: includeDiscount
 			};
-			console.log(customBill, this.customBillItems, this.customBillData.patient)
+			console.log(
+				customBill,
+				this.customBillItems,
+				this.customBillData.patient
+			);
 
 			// Generate PDF with custom data
 			const pdf = generatePatientBill(
