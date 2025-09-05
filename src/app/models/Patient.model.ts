@@ -64,9 +64,9 @@ export class PatientModel {
 			const patientSql = `
                 INSERT INTO Patient (
                     name, national_id, gender, phone, address, payment_type,
-                    insurance_id, insurance_card_id, guardian_info,
+                    insurance_id, insurance_card_id, insurance_form_id, guardian_info,
                     quick_check, referring_doctor_id, is_active, created_by_user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 RETURNING *;
             `;
 
@@ -79,6 +79,7 @@ export class PatientModel {
 				data.payment_type,
 				data.insurance_id || null,
 				data.insurance_card_id || null,
+				data.insurance_form_id || null,
 				data.guardian_info ? JSON.stringify(data.guardian_info) : null,
 				data.quick_check,
 				data.referring_doctor_id || null,
@@ -157,23 +158,26 @@ export class PatientModel {
 			const values: any[] = [];
 			let paramCount = 1;
 
+			if (data.diagnosis) {
+				this.updateCurrentDiagnosis(
+					data.patient_id,
+					data.diagnosis
+				);
+			}
+
 			// Build dynamic update query
 			Object.entries(data).forEach(([key, value]) => {
 				if (key !== "patient_id" && value !== undefined) {
-					if (data.diagnosis) {
-						this.updateCurrentDiagnosis(
-							data.patient_id,
-							data.diagnosis
-						);
-					} else if (key === "guardian_info" && value) {
+					if (key === "guardian_info" && value) {
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(JSON.stringify(value));
 						paramCount++;
 					} else if (
 						key !== "attending_doctors" &&
-						key !== "attending_nurses"
+						key !== "attending_nurses" && 
+						key !== "diagnosis"
 					) {
-						// Skip attending_doctors as it's handled separately
+						// Skip attending_doctors, attending_nurses and diagnosis as they're handled separately
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(value);
 						paramCount++;
@@ -199,6 +203,7 @@ export class PatientModel {
                     RETURNING *;
                 `;
 				await query(sql, values);
+				console.log(sql);
 			}
 
 			// Handle attending doctors updates if patient is currently admitted

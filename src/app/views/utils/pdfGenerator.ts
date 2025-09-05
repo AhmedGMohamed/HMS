@@ -170,28 +170,42 @@ function buildSectionContent(section: ReportSection, data: any): any {
 function buildTable(section: ReportSection, data: any): any {
 	if (!section.fields || !data) return { text: "" };
 
-	let tableData =
-		section.tableConfig?.groupBy === "billDetails"
-			? data.billDetails
-			: Array.isArray(data)
-			? data
-			: [data];
+	// Handle different data structures
+	let tableData: any[] = [];
 
-	// Group data if specified
-	if (
-		section.tableConfig?.groupBy &&
-		section.tableConfig.groupBy === "billDetails"
-	) {
-		tableData = groupBillDetails(tableData);
+	// For bill details (patient bills)
+	if (section.tableConfig?.groupBy === "billDetails" && data.billDetails) {
+		tableData = groupBillDetails(data.billDetails);
+	}
+	// For vault reports with data property
+	else if (data.data && Array.isArray(data.data)) {
+		tableData = data.data;
+	}
+	// For direct array data
+	else if (Array.isArray(data)) {
+		tableData = data;
+	}
+	// For single object data
+	else {
+		tableData = [data];
+	}
+
+	// If no data found, return empty table message
+	if (!tableData || tableData.length === 0) {
+		return {
+			text: "No data available for this report.",
+			style: "subheader",
+			alignment: "center",
+			margin: [0, 20, 0, 20]
+		};
 	}
 
 	// Build header row
 	const headerRow = section.fields.map((field) => ({
 		text: field.label,
-		bold: true
+		bold: true,
+		fillColor: "#f0f0f0"
 	}));
-
-	console.log(tableData);
 
 	// Build data rows
 	const dataRows = tableData.map((item: any) =>
@@ -199,7 +213,6 @@ function buildTable(section: ReportSection, data: any): any {
 			const value = field.key.includes(".")
 				? getNestedValue(item, field.key)
 				: item[field.key];
-			console.log(value);
 			return formatValue(value, field, item); // Pass item as context
 		})
 	);
@@ -211,6 +224,15 @@ function buildTable(section: ReportSection, data: any): any {
 				section.tableConfig?.widths ||
 				section.fields.map((f) => f.width || "*"),
 			body: [headerRow, ...dataRows]
+		},
+		layout: {
+			fillColor: function (rowIndex: number) {
+				return rowIndex === 0
+					? "#f0f0f0"
+					: rowIndex % 2 === 0
+					? "#f9f9f9"
+					: null;
+			}
 		}
 	};
 }

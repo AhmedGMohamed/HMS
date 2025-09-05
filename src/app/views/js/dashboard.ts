@@ -30,9 +30,10 @@ class DashboardManager {
 			this.toggleSidebar.bind(this)
 		);
 		this.logoutBtn.addEventListener("click", this.handleLogout.bind(this));
-
+		
 		// Initialize dashboard
 		this.initializeDashboard();
+		
 	}
 
 	private async initializeDashboard(): Promise<void> {
