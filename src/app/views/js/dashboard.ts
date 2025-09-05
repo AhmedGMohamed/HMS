@@ -2,6 +2,7 @@
 import "./chart.js/chart.js";
 //@ts-ignore
 import Swal from "./sweetalert2/src/sweetalert2.js";
+import { SidebarManager } from "./shared/sidebar.js";
 
 interface User {
 	userId: number;
@@ -10,46 +11,46 @@ interface User {
 	permissions: string[];
 }
 
+interface ChartDataPoint {
+	date: string;
+	revenue: number;
+	profit: number;
+	patient_revenue: number;
+	pharmacy_revenue: number;
+	patient_profit: number;
+	pharmacy_profit: number;
+}
+
 class DashboardManager {
 	private user: User | null = null;
-	private sidebarCollapse: HTMLElement;
-	private sidebar: HTMLElement;
-	private logoutBtn: HTMLElement;
 	private revenueChart: any | null = null;
-	private patientDistributionChart: any | null = null;
+	private distributionChart: any | null = null;
+	private currentDistributionView: "revenue" | "profit" = "revenue";
 
 	constructor() {
-		// Initialize elements
-		this.sidebarCollapse = document.getElementById("sidebarCollapse")!;
-		this.sidebar = document.getElementById("sidebar")!;
-		this.logoutBtn = document.getElementById("logoutBtn")!;
+		// Initialize sidebar manager
+		new SidebarManager();
 
-		// Bind event listeners
-		this.sidebarCollapse.addEventListener(
-			"click",
-			this.toggleSidebar.bind(this)
-		);
-		this.logoutBtn.addEventListener("click", this.handleLogout.bind(this));
-		
 		// Initialize dashboard
 		this.initializeDashboard();
-		
 	}
 
 	private async initializeDashboard(): Promise<void> {
 		try {
 			await this.verifyAuth();
 			this.loadUserInfo();
-			await this.checkPageAccess(); // Add page access check
+			await this.checkPageAccess();
 
 			await Promise.all([
 				this.loadStatistics(),
 				this.initializeCharts(),
 				this.loadRecentActivity()
 			]);
+
+			this.setupEventListeners();
 		} catch (error) {
 			console.error("Dashboard initialization error:", error);
-			//this.handleAuthError();
+			this.handleAuthError();
 		}
 	}
 
@@ -83,11 +84,11 @@ class DashboardManager {
 
 		this.user = JSON.parse(userString);
 
-		// Update welcome message and profile info
-		this.updateUserDisplay();
-
-		// Handle permission-based visibility
-		this.handlePermissionBasedVisibility();
+		// Update welcome message
+		const welcomeName = document.getElementById("welcomeName");
+		if (welcomeName && this.user) {
+			welcomeName.textContent = this.user.username;
+		}
 	}
 
 	private async loadStatistics(): Promise<void> {
@@ -105,53 +106,92 @@ class DashboardManager {
 
 			const stats = await response.json();
 
-			typeof stats.todayRevenue == "string"
-				? (stats.todayRevenue = parseFloat(stats.todayRevenue).toFixed(
-						2
-				  ))
-				: (stats.todayRevenue = stats.todayRevenue.toFixed(2));
-			
-			// Update statistics cards
-			document.getElementById("activePatients")!.textContent =
-				stats.activePatientsCount.toString();
-			document.getElementById(
-				"todayRevenue"
-			)!.textContent = `$${stats.todayRevenue}`;
-			document.getElementById("lowStockItemsCount")!.textContent =
-				stats.lowStockItemsCount.toString();
-			//document.getElementById("appointmentsCount")!.textContent =
-			//	stats.admissions.toString();
+			// Safely update statistics with proper error handling
+			this.updateStatElement(
+				"activePatients",
+				stats.activePatientsCount?.toString() || "0"
+			);
+			this.updateStatElement(
+				"todayRevenue",
+				`$${parseFloat(stats.todayRevenue || 0).toFixed(2)}`
+			);
+			this.updateStatElement(
+				"lowStockItemsCount",
+				stats.lowStockItemsCount?.toString() || "0"
+			);
+			this.updateStatElement(
+				"todayProfit",
+				`$${parseFloat(stats.todayProfit || 0).toFixed(2)}`
+			);
 		} catch (error) {
 			console.error("Error loading statistics:", error);
-			// Show error toast
-			Swal.fire({
-				icon: "error",
-				title: "Error",
-				text: "Failed to load dashboard statistics",
-				toast: true,
-				position: "top-end",
-				showConfirmButton: false,
-				timer: 3000
-			});
+			this.showErrorToast("Failed to load dashboard statistics");
+		}
+	}
+
+	private updateStatElement(id: string, value: string): void {
+		const element = document.getElementById(id);
+		if (element) {
+			element.textContent = value;
 		}
 	}
 
 	private async initializeCharts(): Promise<void> {
-		// Revenue Chart
-		const revenueCtx = document.getElementById(
+		try {
+			const chartData = await this.fetchChartData();
+			this.createRevenueChart(chartData);
+			this.createDistributionChart(chartData);
+		} catch (error) {
+			console.error("Error initializing charts:", error);
+			this.showErrorToast("Failed to load chart data");
+		}
+	}
+
+	private async fetchChartData(): Promise<ChartDataPoint[]> {
+		const token = localStorage.getItem("token");
+		const response = await fetch("/api/dashboard/chart-data", {
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
+
+		if (!response.ok) {
+			throw new Error("Failed to fetch chart data");
+		}
+
+		return await response.json();
+	}
+
+	private createRevenueChart(data: ChartDataPoint[]): void {
+		const ctx = document.getElementById(
 			"revenueChart"
 		) as HTMLCanvasElement;
+		if (!ctx) return;
+
+		const labels = data.map((d) => new Date(d.date).toLocaleDateString());
+		const revenueData = data.map((d) => parseFloat(d.revenue.toString()));
+		const profitData = data.map((d) => parseFloat(d.profit.toString()));
+
 		//@ts-ignore
-		this.revenueChart = new Chart(revenueCtx, {
+		this.revenueChart = new Chart(ctx, {
 			type: "line",
 			data: {
-				labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+				labels: labels,
 				datasets: [
 					{
 						label: "Revenue",
-						data: [12000, 19000, 15000, 25000, 22000, 30000],
-						fill: true,
+						data: revenueData,
 						borderColor: "rgb(75, 192, 192)",
+						backgroundColor: "rgba(75, 192, 192, 0.1)",
+						fill: false,
+						tension: 0.4
+					},
+					{
+						label: "Profit",
+						data: profitData,
+						borderColor: "rgb(255, 99, 132)",
+						backgroundColor: "rgba(255, 99, 132, 0.1)",
+						fill: "-1",
 						tension: 0.4
 					}
 				]
@@ -159,31 +199,82 @@ class DashboardManager {
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return "$" + value.toLocaleString();
+							}
+						}
+					}
+				},
 				plugins: {
 					legend: {
-						position: "top"
+						position: "top" as const
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								return (
+									context.dataset.label +
+									": $" +
+									context.parsed.y.toLocaleString()
+								);
+							}
+						}
 					}
+				},
+				interaction: {
+					intersect: false,
+					mode: "index" as const
 				}
 			}
 		});
+	}
 
-		// Patient Distribution Chart
-		const distributionCtx = document.getElementById(
-			"patientDistributionChart"
+	private createDistributionChart(data: ChartDataPoint[]): void {
+		const ctx = document.getElementById(
+			"distributionChart"
 		) as HTMLCanvasElement;
+		if (!ctx) return;
+
+		// Calculate totals for the period
+		const totals = data.reduce(
+			(acc, d) => ({
+				patientRevenue:
+					acc.patientRevenue +
+					parseFloat(d.patient_revenue.toString()),
+				pharmacyRevenue:
+					acc.pharmacyRevenue +
+					parseFloat(d.pharmacy_revenue.toString()),
+				patientProfit:
+					acc.patientProfit + parseFloat(d.patient_profit.toString()),
+				pharmacyProfit:
+					acc.pharmacyProfit +
+					parseFloat(d.pharmacy_profit.toString())
+			}),
+			{
+				patientRevenue: 0,
+				pharmacyRevenue: 0,
+				patientProfit: 0,
+				pharmacyProfit: 0
+			}
+		);
+
 		//@ts-ignore
-		this.patientDistributionChart = new Chart(distributionCtx, {
+		this.distributionChart = new Chart(ctx, {
 			type: "doughnut",
 			data: {
-				labels: ["Inpatient", "Outpatient", "Emergency"],
+				labels: ["Patient Services", "Pharmacy Sales"],
 				datasets: [
 					{
-						data: [300, 500, 200],
+						data: [totals.patientRevenue, totals.pharmacyRevenue],
 						backgroundColor: [
-							"rgb(255, 99, 132)",
 							"rgb(54, 162, 235)",
 							"rgb(255, 205, 86)"
-						]
+						],
+						borderWidth: 2
 					}
 				]
 			},
@@ -192,11 +283,124 @@ class DashboardManager {
 				maintainAspectRatio: false,
 				plugins: {
 					legend: {
-						position: "bottom"
+						position: "bottom" as const
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								const total = context.dataset.data.reduce(
+									(a: number, b: number) => a + b,
+									0
+								);
+								const percentage = (
+									(context.raw / total) *
+									100
+								).toFixed(1);
+								return (
+									context.label +
+									": $" +
+									context.raw.toLocaleString() +
+									" (" +
+									percentage +
+									"%)"
+								);
+							}
+						}
 					}
 				}
 			}
 		});
+	}
+
+	private setupEventListeners(): void {
+		// Chart toggle buttons
+		const revenueToggle = document.getElementById(
+			"revenueToggle"
+		) as HTMLInputElement;
+		const profitToggle = document.getElementById(
+			"profitToggle"
+		) as HTMLInputElement;
+
+		if (revenueToggle && profitToggle) {
+			revenueToggle.addEventListener("change", () => {
+				if (revenueToggle.checked) {
+					this.switchDistributionView("revenue");
+				}
+			});
+
+			profitToggle.addEventListener("change", () => {
+				if (profitToggle.checked) {
+					this.switchDistributionView("profit");
+				}
+			});
+		}
+
+		// Handle sidebar resize for charts
+		const sidebarCollapse = document.getElementById("sidebarCollapse");
+		if (sidebarCollapse) {
+			sidebarCollapse.addEventListener("click", () => {
+				setTimeout(() => {
+					if (this.revenueChart) {
+						this.revenueChart.resize();
+					}
+					if (this.distributionChart) {
+						this.distributionChart.resize();
+					}
+				}, 300);
+			});
+		}
+	}
+
+	private async switchDistributionView(
+		view: "revenue" | "profit"
+	): Promise<void> {
+		if (!this.distributionChart || this.currentDistributionView === view)
+			return;
+
+		try {
+			this.currentDistributionView = view;
+			const chartData = await this.fetchChartData();
+
+			const totals = chartData.reduce(
+				(acc, d) => ({
+					patientRevenue:
+						acc.patientRevenue +
+						parseFloat(d.patient_revenue.toString()),
+					pharmacyRevenue:
+						acc.pharmacyRevenue +
+						parseFloat(d.pharmacy_revenue.toString()),
+					patientProfit:
+						acc.patientProfit +
+						parseFloat(d.patient_profit.toString()),
+					pharmacyProfit:
+						acc.pharmacyProfit +
+						parseFloat(d.pharmacy_profit.toString())
+				}),
+				{
+					patientRevenue: 0,
+					pharmacyRevenue: 0,
+					patientProfit: 0,
+					pharmacyProfit: 0
+				}
+			);
+
+			if (view === "revenue") {
+				this.distributionChart.data.datasets[0].data = [
+					totals.patientRevenue,
+					totals.pharmacyRevenue
+				];
+			} else {
+				this.distributionChart.data.datasets[0].data = [
+					totals.patientProfit,
+					totals.pharmacyProfit
+				];
+			}
+
+			this.distributionChart.update();
+		} catch (error) {
+			console.error("Error switching distribution view:", error);
+			this.showErrorToast("Failed to update chart data");
+		}
 	}
 
 	private async loadRecentActivity(): Promise<void> {
@@ -213,7 +417,19 @@ class DashboardManager {
 			}
 
 			const activities = await response.json();
-			const tableBody = document.getElementById("recentActivityTable")!;
+			const tableBody = document.getElementById("recentActivityTable");
+			if (!tableBody) return;
+
+			if (activities.length === 0) {
+				tableBody.innerHTML = `
+					<tr>
+						<td colspan="4" class="text-center text-muted">
+							No recent activity found
+						</td>
+					</tr>
+				`;
+				return;
+			}
 
 			tableBody.innerHTML = activities
 				.map((activity: any) => {
@@ -231,230 +447,84 @@ class DashboardManager {
 						case "Delete":
 							badgeType = "danger";
 							break;
-
 						default:
-							badgeType = "info";
+							badgeType = "secondary";
 					}
 
 					return `
-                <tr>
-                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
-					<td>${activity.username}</td>
-                    <td>
-					<span class="badge bg-${badgeType} ">
-						${activity.action_type}
-                        </span>
-					</td>
-					<td>${activity.details.description}</td>
-                </tr>
-            `;
+						<tr>
+							<td>${new Date(activity.timestamp).toLocaleString()}</td>
+							<td>${this.escapeHtml(activity.username || "Unknown")}</td>
+							<td>
+								<span class="badge bg-${badgeType}">
+									${this.escapeHtml(activity.action_type)}
+								</span>
+							</td>
+							<td>${this.escapeHtml(activity.details?.description || "No description")}</td>
+						</tr>
+					`;
 				})
 				.join("");
 		} catch (error) {
 			console.error("Error loading recent activity:", error);
-			document.getElementById("recentActivityTable")!.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-danger">
-                        Failed to load recent activity
-                    </td>
-                </tr>
-            `;
-		}
-	}
-
-	private toggleSidebar(): void {
-		this.sidebar.classList.toggle("active");
-		// Redraw charts to fit new container size
-		if (this.revenueChart) {
-			setTimeout(() => this.revenueChart!.resize(), 300);
-		}
-		if (this.patientDistributionChart) {
-			setTimeout(() => this.patientDistributionChart!.resize(), 300);
-		}
-	}
-
-	private async handleLogout(): Promise<void> {
-		try {
-			const result = await Swal.fire({
-				title: "Logout Confirmation",
-				text: "Are you sure you want to logout?",
-				icon: "question",
-				showCancelButton: true,
-				confirmButtonColor: "#dc3545",
-				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, logout"
-			});
-
-			if (result.isConfirmed) {
-				// Clear local storage
-				localStorage.removeItem("token");
-				localStorage.removeItem("user");
-
-				// Show success message
-				await Swal.fire({
-					icon: "success",
-					title: "Logged Out Successfully",
-					text: "You have been logged out of the system.",
-					timer: 1500,
-					showConfirmButton: false
-				});
-
-				// Redirect to login page
-				window.location.href = "/login";
+			const tableBody = document.getElementById("recentActivityTable");
+			if (tableBody) {
+				tableBody.innerHTML = `
+					<tr>
+						<td colspan="4" class="text-center text-danger">
+							Failed to load recent activity
+						</td>
+					</tr>
+				`;
 			}
-		} catch (error) {
-			console.error("Logout error:", error);
-			Swal.fire({
-				icon: "error",
-				title: "Logout Failed",
-				text: "An error occurred during logout. Please try again."
-			});
 		}
 	}
 
-	private handleAuthError(): void {
-		// Clear local storage
-		localStorage.removeItem("token");
-		localStorage.removeItem("user");
+	private escapeHtml(text: string): string {
+		const map: { [key: string]: string } = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			'"': "&quot;",
+			"'": "&#039;"
+		};
+		return text.replace(/[&<>"']/g, (m) => map[m]);
+	}
 
-		// Show error message
+	private showErrorToast(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Authentication Error",
-			text: "Please log in again to continue.",
-			confirmButtonColor: "#0d6efd"
-		}).then(() => {
-			// Redirect to login page
-			window.location.href = "/login";
+			title: "Error",
+			text: message,
+			toast: true,
+			position: "top-end",
+			showConfirmButton: false,
+			timer: 3000,
+			timerProgressBar: true
 		});
 	}
 
-	private updateUserDisplay(): void {
-		if (!this.user) return;
-
-		// Update welcome message
-		const welcomeName = document.getElementById("welcomeName");
-		if (welcomeName) {
-			welcomeName.textContent = this.user.username;
-		}
-
-		// Update sidebar profile
-		const userFullName = document.getElementById("userFullName");
-		const userRole = document.getElementById("userRole");
-
-		if (userFullName) {
-			userFullName.textContent = this.user.username;
-		}
-		if (userRole) {
-			userRole.textContent = this.user.role;
-		}
-	}
-
-	private handlePermissionBasedVisibility(): void {
-		if (!this.user) return;
-
-		// Handle role-based visibility
-		const roleElements = document.querySelectorAll("[data-requires-role]");
-		roleElements.forEach((element) => {
-			const requiredRole = element.getAttribute("data-requires-role");
-			if (requiredRole && this.user!.role !== requiredRole) {
-				element.remove();
-			}
-		});
-
-		// Handle permission-based visibility
-		const permissionElements = document.querySelectorAll(
-			"[data-requires-permission]"
-		);
-		permissionElements.forEach((element) => {
-			const requiredPermission = element.getAttribute(
-				"data-requires-permission"
-			);
-			if (requiredPermission && !this.hasPermission(requiredPermission)) {
-				element.remove();
-			}
-		});
-
-		// Clean up empty sections
-		this.cleanupEmptySections();
-	}
-
-	private hasPermission(permission: string): boolean {
-		if (!this.user) return false;
-
-		// Admin role has all permissions
-		if (this.user.role === "Admin") return true;
-
-		return this.user.permissions.includes(permission);
-	}
-
-	private cleanupEmptySections(): void {
-		// Remove headers that have no visible items following them
-		const headers = document.querySelectorAll(".nav-item-header");
-		headers.forEach((header) => {
-			let nextElement = header.nextElementSibling;
-			while (
-				nextElement &&
-				nextElement.tagName !== "LI" &&
-				!nextElement.classList.contains("nav-item-header")
-			) {
-				nextElement = nextElement.nextElementSibling;
-			}
-
-			if (
-				!nextElement ||
-				nextElement.classList.contains("nav-item-header")
-			) {
-				header.remove();
-			}
-		});
-	}
-
-	// Add permission check for page access
 	private async checkPageAccess(): Promise<void> {
 		if (!this.user) {
 			this.handleAuthError();
 			return;
 		}
 
-		// Get current page path
-		const path = window.location.pathname;
-
-		// Define page permission requirements
-		const pagePermissions: Record<string, string> = {
-			"/users": "Admin",
-			"/roles": "Admin",
-			"/permissions": "Admin",
-			"/patients": "manage_patients",
-			"/admissions": "manage_patients",
-			"/drugs": "manage_pharmacy",
-			"/inventory": "manage_pharmacy",
-			"/services": "manage_services",
-			"/price-lists": "manage_prices",
-			"/reports": "view_reports"
-		};
-
-		const requiredPermission = pagePermissions[path];
-		if (requiredPermission) {
-			if (requiredPermission === "Admin" && this.user.role !== "Admin") {
-				this.handleUnauthorizedAccess();
-			} else if (
-				requiredPermission !== "Admin" &&
-				!this.hasPermission(requiredPermission)
-			) {
-				this.handleUnauthorizedAccess();
-			}
-		}
+		// Dashboard access is typically allowed for all authenticated users
+		// Additional checks can be added here if needed
 	}
 
-	private handleUnauthorizedAccess(): void {
+	private handleAuthError(): void {
+		localStorage.removeItem("token");
+		localStorage.removeItem("user");
+
 		Swal.fire({
 			icon: "error",
-			title: "Access Denied",
-			text: "You do not have permission to access this page.",
+			title: "Authentication Error",
+			text: "Please log in again to continue.",
 			confirmButtonColor: "#0d6efd"
 		}).then(() => {
-			window.location.href = "/dashboard";
+			window.location.href = "/login";
 		});
 	}
 }

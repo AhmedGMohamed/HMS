@@ -36,7 +36,7 @@ export class SidebarManager {
 		this.loadUserInfo();
 
 		// Load and build navigation
-		//await this.loadNavigation();
+		await this.loadNavigation();
 
 		// Add event listeners
 		this.sidebarCollapse.addEventListener(
