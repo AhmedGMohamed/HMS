@@ -33,159 +33,10 @@
         </div>
       </div>
 
-      <ul class="list-unstyled components">
-        <li class="active">
-          <a href="/dashboard" class="nav-link">
-            <i class="bi bi-speedometer2"></i>
-            <span>Dashboard</span>
-          </a>
-        </li>
-
-        <!-- Administration section - Admin only -->
-        <li class="nav-item-header" data-requires-role="Admin">Administration</li>
-        <li data-requires-role="Admin">
-          <a href="#userSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-people"></i>
-            <span>User Management</span>
-          </a>
-          <ul class="collapse list-unstyled" id="userSubmenu">
-            <li>
-              <a href="/admin/users" class="nav-link">
-                <i class="bi bi-person"></i>
-                <span>Users</span>
-              </a>
-            </li>
-            <li>
-              <a href="/admin/roles" class="nav-link">
-                <i class="bi bi-shield"></i>
-                <span>Roles</span>
-              </a>
-            </li>
-            <li>
-              <a href="/admin/permissions" class="nav-link">
-                <i class="bi bi-key"></i>
-                <span>Permissions</span>
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item-header">Management</li>
-        <!-- Patient Management - Requires manage_patients permission -->
-        <li data-requires-permission="manage_patients">
-          <a href="#patientSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-person-vcard"></i>
-            <span>Patient Management</span>
-          </a>
-          <ul class="collapse list-unstyled" id="patientSubmenu">
-
-            <li>
-              <a href="/patients" class="nav-link">
-                <i class="bi bi-person-lines-fill"></i>
-                <span>Patients</span>
-              </a>
-            </li>
-
-            <li>
-              <a href="/admissions" class="nav-link">
-                <i class="bi bi-hospital"></i>
-                <span>Admissions</span>
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <!-- Employee Management -->
-        <li data-requires-permission="manage_employees">
-          <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-person-badge-fill"></i>
-            <span>Employee Management</span>
-          </a>
-          <ul class="collapse list-unstyled" id="employeesSubmenu">
-            <li>
-              <a class="nav-link" href="/employees" data-requires-permission="manage_employees">
-                <i class="bi bi-person-fill-gear"></i>
-                <span>Employees</span>
-              </a>
-            </li>
-            <li>
-              <a class="nav-link" href="/doctors" data-requires-permission="manage_employees">
-                <i class="bi bi-person-heart"></i>
-                <span>Doctors</span>
-              </a>
-            </li>
-            <li>
-              <a class="nav-link" href="/nurses" data-requires-permission="manage_employees">
-                <i class="bi bi-person-heart"></i>
-                <span>Nurses</span>
-              </a>
-            </li>
-          </ul>
-        </li>
-        <!-- Clocking -->
-        <li data-requires-permission="manage_clocking">
-          <a href="/clocking" class="nav-link">
-            <i class="bi bi-clock-fill"></i>
-            <span>Clocking</span>
-          </a>
-        </li>
-
-        <!-- Pharmacy - Requires manage_pharmacy permission -->
-        <li data-requires-permission="manage_pharmacy">
-          <a href="#pharmacySubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
-            <i class="bi bi-capsule"></i>
-            <span>Pharmacy</span>
-          </a>
-          <ul class="collapse list-unstyled" id="pharmacySubmenu">
-            <li>
-              <a href="/drugs" class="nav-link">
-                <i class="bi bi-capsule-pill"></i>
-                <span>Drugs</span>
-              </a>
-            </li>
-            <li>
-              <a href="/inventory" class="nav-link">
-                <i class="bi bi-box-seam"></i>
-                <span>Inventory</span>
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <!-- Services - Requires manage_services permission -->
-        <li data-requires-permission="manage_services">
-          <a href="/services" class="nav-link">
-            <i class="bi bi-clipboard2-pulse"></i>
-            <span>Services</span>
-          </a>
-        </li>
-
-        <!-- Price Lists - Requires manage_prices permission -->
-        <li data-requires-permission="manage_prices">
-          <a href="/price-lists" class="nav-link">
-            <i class="bi bi-tag"></i>
-            <span>Price Lists</span>
-          </a>
-        </li>
-
-		<!-- Vault - Requires view_vault permission -->
-        <li data-requires-permission="view_vault">
-          <a href="/vault" class="nav-link">
-            <i class="bi bi-safe"></i>
-            <span>Vault</span>
-          </a>
-        </li>
-
-        <!-- Reports - Requires view_reports permission -->
-        <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
-        <li data-requires-permission="view_reports">
-          <a href="/reports" class="nav-link">
-            <i class="bi bi-file-earmark-text"></i>
-            <span>Reports</span>
-          </a>
-        </li>
+      <!-- Dynamic sidebar content will be populated here -->
+      <ul class="list-unstyled components" id="sidebarComponents">
+        <!-- SidebarManager will populate this -->
       </ul>
-
 
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
@@ -295,8 +146,8 @@
                     <i class="bi bi-calendar-check"></i>
                   </div>
                   <div class="ms-3">
-                    <h6 class="card-subtitle mb-1">Appointments</h6>
-                    <h3 class="card-title mb-0" id="admissionsCount">0</h3>
+                    <h6 class="card-subtitle mb-1">Today's Profit</h6>
+                    <h3 class="card-title mb-0" id="todayProfit">$0</h3>
                   </div>
                 </div>
               </div>
@@ -309,8 +160,8 @@
           <div class="col-md-8 mb-4">
             <div class="card">
               <div class="card-body">
-                <h5 class="card-title">Revenue Overview</h5>
-                <div class="h-100">
+                <h5 class="card-title">Revenue & Profit Overview (Last 30 Days)</h5>
+                <div class="chart-container" style="position: relative; height: 400px;">
                   <canvas id="revenueChart"></canvas>
                 </div>
               </div>
@@ -319,9 +170,18 @@
           <div class="col-md-4 mb-4">
             <div class="card">
               <div class="card-body">
-                <h5 class="card-title">Patient Distribution</h5>
-                <div class="h-100">
-                  <canvas id="patientDistributionChart"></canvas>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title mb-0">Revenue Distribution</h5>
+                  <div class="btn-group" role="group" aria-label="Chart toggle">
+                    <input type="radio" class="btn-check" name="chartToggle" id="revenueToggle" checked>
+                    <label class="btn btn-outline-primary btn-sm" for="revenueToggle">Revenue</label>
+
+                    <input type="radio" class="btn-check" name="chartToggle" id="profitToggle">
+                    <label class="btn btn-outline-primary btn-sm" for="profitToggle">Profit</label>
+                  </div>
+                </div>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                  <canvas id="distributionChart"></canvas>
                 </div>
               </div>
             </div>
@@ -346,7 +206,7 @@
                     </thead>
                     <tbody id="recentActivityTable">
                       <tr>
-                        <td colspan="3" class="text-center">Loading...</td>
+                        <td colspan="4" class="text-center">Loading...</td>
                       </tr>
                     </tbody>
                   </table>
