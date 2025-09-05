@@ -1,7 +1,6 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
-import { generatePatientBill } from "../../utils/pdfGenerator.js";
 import { PrintBillManager } from "./printBillManager.js";
 
 interface Patient {
@@ -138,6 +137,10 @@ class PatientManager {
 	private addDrugModal: Modal;
 	//@ts-ignore
 	private dischargeModal: Modal;
+	//@ts-ignore
+	private pastAdmissionsModal: Modal;
+	//@ts-ignore
+	private admissionDetailsModal: Modal;
 
 	private currentPatient: Patient | null = null;
 	private currentAdmission: PatientHistory | null = null;
@@ -154,6 +157,8 @@ class PatientManager {
 
 	private searchTimeout: NodeJS.Timeout | null = null;
 	private allPatients: Patient[] = [];
+
+	private currentAdmissionDetails: any = null;
 
 	private printBillManager: PrintBillManager | null = null;
 
@@ -186,6 +191,15 @@ class PatientManager {
 		//@ts-ignore
 		this.addItemToPrintModal = new bootstrap.Modal(
 			document.getElementById("addItemToPrintModal")!
+		);
+		// In the constructor, initialize the new modals:
+		//@ts-ignore
+		this.pastAdmissionsModal = new bootstrap.Modal(
+			document.getElementById("pastAdmissionsModal")!
+		);
+		//@ts-ignore
+		this.admissionDetailsModal = new bootstrap.Modal(
+			document.getElementById("admissionDetailsModal")!
 		);
 
 		this.initializeEventListeners();
@@ -332,6 +346,18 @@ class PatientManager {
 			.getElementById("patientSearchIcon")
 			?.addEventListener("click", () => {
 				this.loadAllPatients();
+			});
+
+		document
+			.getElementById("viewPastAdmissionsBtn")
+			?.addEventListener("click", () => {
+				this.showPastAdmissionsModal();
+			});
+
+		document
+			.getElementById("printAdmissionBillBtn")
+			?.addEventListener("click", () => {
+				this.printAdmissionBill();
 			});
 	}
 
@@ -1003,6 +1029,9 @@ class PatientManager {
 		const dischargeBtn = document.getElementById(
 			"dischargePatientBtn"
 		) as HTMLButtonElement;
+		const pastAdmissionsBtn = document.getElementById(
+			"viewPastAdmissionsBtn"
+		) as HTMLButtonElement;
 
 		if (this.currentPatient?.is_active) {
 			admitBtn.style.display = "none";
@@ -1010,6 +1039,10 @@ class PatientManager {
 		} else {
 			admitBtn.style.display = "inline-block";
 			dischargeBtn.style.display = "none";
+		}
+		// Show past admissions button for all patients
+		if (pastAdmissionsBtn) {
+			pastAdmissionsBtn.style.display = "inline-block";
 		}
 	}
 
@@ -1237,7 +1270,7 @@ class PatientManager {
 
 		const totalAfterDiscount = subtotal - discountAmount;
 
-		// Calculate VAT
+		// Calculate VAT (administrative expenses always included in VAT)
 		let vatBase = 0;
 		switch (vatScope) {
 			case "services":
@@ -1253,7 +1286,7 @@ class PatientManager {
 				break;
 		}
 
-		const vatAmount = (vatBase * vatPercentage) / 100;
+		const vatAmount = ((vatBase + administrativeExpenses) * vatPercentage) / 100;
 		const totalFee =
 			totalAfterDiscount + vatAmount + administrativeExpenses;
 		const remaining = totalFee - paidAmount;
@@ -2582,6 +2615,645 @@ class PatientManager {
 		}
 	}
 
+	private async showPastAdmissionsModal(): Promise<void> {
+		if (!this.currentPatient) {
+			this.showError("No patient selected");
+			return;
+		}
+
+		try {
+			const response = await fetch(
+				`/api/patients/${this.currentPatient.patient_id}/admissions/past`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch past admissions");
+			}
+
+			const pastAdmissions = await response.json();
+			this.displayPastAdmissions(pastAdmissions);
+			this.pastAdmissionsModal.show();
+		} catch (error) {
+			console.error("Error fetching past admissions:", error);
+			this.showError("Failed to load past admissions");
+		}
+	}
+
+	private displayPastAdmissions(admissions: any[]): void {
+		const container = document.getElementById("pastAdmissionsContent")!;
+
+		if (admissions.length === 0) {
+			container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-clock-history" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">No Past Admissions</h5>
+                <p>This patient has no previous admission history.</p>
+            </div>
+        `;
+			return;
+		}
+
+		container.innerHTML = `
+        <div class="past-admissions-list">
+            ${admissions
+				.map((admission) => this.renderAdmissionCard(admission))
+				.join("")}
+        </div>
+    `;
+	}
+	private renderAdmissionCard(admission: any): string {
+		const admissionDate = new Date(
+			admission.admission_time
+		).toLocaleDateString();
+		const dismissalDate = new Date(
+			admission.discharge_time
+		).toLocaleDateString();
+		const totalServices = admission.total_services_count || 0;
+		const totalDrugs = admission.total_drugs_count || 0;
+		const totalOwed = parseFloat(admission.total_amount || 0);
+		const totalPaid = parseFloat(admission.paid_amount || 0);
+		const balance = totalOwed - totalPaid;
+
+		const doctors = admission.assigned_doctors || [];
+		const nurses = admission.assigned_nurses || [];
+
+		return `
+        <div class="admission-card" onclick="patientManager.showAdmissionDetails(${
+			admission.patient_history_id
+		})">
+            <div class="admission-card-header">
+                <div class="admission-date-range">
+                    ${admissionDate} - ${dismissalDate}
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Admission ID: ${
+						admission.patient_history_id
+					}</small>
+                    <span class="dismissal-reason-badge dismissal-reason-${
+						admission.leave_reason
+					}">
+                        ${this.formatDismissalReason(admission.leave_reason)}
+                    </span>
+                </div>
+            </div>
+            <div class="admission-card-body">
+                <div class="admission-summary">
+                    <div class="admission-summary-item">
+                        <span class="admission-summary-label">Services Used</span>
+                        <span class="admission-summary-value">${totalServices}</span>
+                    </div>
+                    <div class="admission-summary-item">
+                        <span class="admission-summary-label">Drugs Used</span>
+                        <span class="admission-summary-value">${totalDrugs}</span>
+                    </div>
+                    <div class="admission-summary-item">
+                        <span class="admission-summary-label">Total Owed</span>
+                        <span class="admission-summary-value">$${totalOwed.toFixed(
+							2
+						)}</span>
+                    </div>
+                    <div class="admission-summary-item">
+                        <span class="admission-summary-label">Balance</span>
+                        <span class="admission-summary-value ${
+							balance > 0 ? "text-danger" : "text-success"
+						}">
+                            $${Math.abs(balance).toFixed(2)} ${
+			balance > 0 ? "Due" : "Credit"
+		}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="admission-staff-list">
+                    <div class="mb-2">
+                        <strong class="text-muted">Doctors:</strong>
+                        ${
+							doctors.length > 0
+								? doctors
+										.map(
+											(doctor: any) =>
+												`<span class="admission-staff-item">${this.escapeHtml(
+													doctor
+												)}</span>`
+										)
+										.join("")
+								: '<span class="text-muted">None assigned</span>'
+						}
+                    </div>
+                    <div>
+                        <strong class="text-muted">Nurses:</strong>
+                        ${
+							nurses.length > 0
+								? nurses
+										.map(
+											(nurse: any) =>
+												`<span class="admission-staff-item">${this.escapeHtml(
+													nurse
+												)}</span>`
+										)
+										.join("")
+								: '<span class="text-muted">None assigned</span>'
+						}
+                    </div>
+                </div>
+                
+                ${
+					admission.diagnosis
+						? `
+                    <div class="admission-diagnosis">
+                        <strong>Final Diagnosis:</strong> ${this.escapeHtml(
+							admission.diagnosis
+						)}
+                    </div>
+                `
+						: ""
+				}
+            </div>
+        </div>
+    `;
+	}
+
+	public async showAdmissionDetails(patientHistoryId: number): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			const response = await fetch(
+				`/api/patients/${this.currentPatient.patient_id}/admissions/${patientHistoryId}/details`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch admission details");
+			}
+
+			this.currentAdmissionDetails = await response.json();
+			this.displayAdmissionDetails(this.currentAdmissionDetails);
+
+			// Hide past admissions modal and show details modal
+			this.pastAdmissionsModal.hide();
+			this.admissionDetailsModal.show();
+		} catch (error) {
+			console.error("Error fetching admission details:", error);
+			this.showError("Failed to load admission details");
+		}
+	}
+
+	private displayAdmissionDetails(admission: any): void {
+		const container = document.getElementById("admissionDetailsContent")!;
+
+		const admissionDate = new Date(
+			admission.admission_time
+		).toLocaleString();
+		const dismissalDate = new Date(
+			admission.discharge_time
+		).toLocaleString();
+		const totalAmount = parseFloat(admission.total_amount || 0);
+		const paidAmount = parseFloat(admission.paid_amount || 0);
+		const balance = totalAmount - paidAmount;
+
+		const doctors = admission.assigned_doctors || [];
+		const nurses = admission.assigned_nurses || [];
+		const services = admission.services || [];
+		const drugs = admission.drugs || [];
+
+		container.innerHTML = `
+        <!-- Admission Overview -->
+        <div class="admission-details-grid">
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-calendar-event me-2"></i>Admission Information
+                </div>
+                <div class="admission-details-section-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Admission ID:</span>
+                        <span class="detail-value">${
+							admission.patient_history_id
+						}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Admission Date:</span>
+                        <span class="detail-value">${admissionDate}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Discharge Date:</span>
+                        <span class="detail-value">${dismissalDate}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Length of Stay:</span>
+                        <span class="detail-value">${this.calculateLengthOfStay(
+							admission.admission_time,
+							admission.discharge_time
+						)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Dismissal Reason:</span>
+                        <span class="detail-value">
+                            <span class="dismissal-reason-badge dismissal-reason-${
+								admission.leave_reason
+							}">
+                                ${this.formatDismissalReason(
+									admission.leave_reason
+								)}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-currency-dollar me-2"></i>Financial Summary
+                </div>
+                <div class="admission-details-section-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Services Total:</span>
+                        <span class="detail-value">$${
+							admission.services_total?.toFixed(2) || "0.00"
+						}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Drugs Total:</span>
+                        <span class="detail-value">$${
+							admission.drugs_total?.toFixed(2) || "0.00"
+						}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Discount:</span>
+                        <span class="detail-value">$${parseFloat(
+							admission.discount || 0
+						)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">VAT:</span>
+                        <span class="detail-value">${
+							admission.vat_percentage || 0
+						}%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Admin Expenses:</span>
+                        <span class="detail-value">$${(
+							admission.administrative_expenses || 0
+						)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><strong>Total Amount:</strong></span>
+                        <span class="detail-value"><strong>$${totalAmount.toFixed(2)}</strong></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Paid Amount:</span>
+                        <span class="detail-value">$${paidAmount.toFixed(2)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><strong>Balance:</strong></span>
+                        <span class="detail-value">
+                            <strong class="${
+								balance > 0 ? "text-danger" : "text-success"
+							}">
+                                $${Math.abs(balance).toFixed(2)} ${
+			balance > 0 ? "Due" : "Credit"
+		}
+                            </strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assigned Staff -->
+        <div class="admission-details-grid">
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-people me-2"></i>Assigned Doctors
+                </div>
+                <div class="admission-details-section-body">
+                    ${
+						doctors.length > 0
+							? doctors
+									.map(
+										(doctor: any) => `
+                        <div class="detail-row">
+                            <span class="detail-label">${this.escapeHtml(
+								doctor.doctor_name
+							)}</span>
+                            <span class="detail-value">
+                                <span class="badge bg-primary">${this.escapeHtml(
+									doctor.doctor_type || "Doctor"
+								)}</span>
+                            </span>
+                        </div>
+                    `
+									)
+									.join("")
+							: '<p class="text-muted">No doctors assigned</p>'
+					}
+                </div>
+            </div>
+
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-person-heart me-2"></i>Assigned Nurses
+                </div>
+                <div class="admission-details-section-body">
+                    ${
+						nurses.length > 0
+							? nurses
+									.map(
+										(nurse: any) => `
+                        <div class="detail-row">
+                            <span class="detail-label">${this.escapeHtml(
+								nurse.nurse_name
+							)}</span>
+                            <span class="detail-value">
+                                <span class="badge bg-success">Nurse</span>
+                            </span>
+                        </div>
+                    `
+									)
+									.join("")
+							: '<p class="text-muted">No nurses assigned</p>'
+					}
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnosis -->
+        ${
+			admission.diagnosis
+				? `
+            <div class="admission-details-section mb-4">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-clipboard2-pulse me-2"></i>Final Diagnosis
+                </div>
+                <div class="admission-details-section-body">
+                    <p class="mb-0">${this.escapeHtml(admission.diagnosis)}</p>
+                </div>
+            </div>
+        `
+				: ""
+		}
+
+        <!-- Services and Drugs -->
+        <div class="services-drugs-grid">
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-clipboard2-pulse me-2"></i>Services Used (${
+						services.length
+					})
+                </div>
+                <div class="admission-details-section-body">
+                    ${
+						services.length > 0
+							? `
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${services
+									.map(
+										(service: any) => `
+                                    <tr>
+                                        <td>${this.escapeHtml(
+											service.service_name
+										)}</td>
+                                        <td>${this.formatServiceType(
+											service.service_type || "once"
+										)}</td>
+                                        <td>${service.quantity}</td>
+                                        <td>$${parseFloat(
+											service.unit_price
+										).toFixed(2)}</td>
+                                        <td>$${
+											service.total_cost
+												? parseFloat(
+														service.total_cost
+												  ).toFixed(2)
+												: (
+														service.quantity *
+														service.unit_price
+												  ).toFixed(2)
+										}</td>
+                                    </tr>
+                                `
+									)
+									.join("")}
+                            </tbody>
+                        </table>
+                    `
+							: '<p class="text-muted">No services used</p>'
+					}
+                </div>
+            </div>
+
+            <div class="admission-details-section">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-capsule me-2"></i>Drugs Used (${
+						drugs.length
+					})
+                </div>
+                <div class="admission-details-section-body">
+                    ${
+						drugs.length > 0
+							? `
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Drug</th>
+                                    <th>Manufacturer</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${drugs
+									.map(
+										(drug: any) => `
+                                    <tr>
+                                        <td>${this.escapeHtml(
+											drug.drug_name
+										)}</td>
+                                        <td>${this.escapeHtml(
+											drug.manufacturer || "N/A"
+										)}</td>
+                                        <td>${drug.quantity}</td>
+                                        <td>$${parseFloat(
+											drug.unit_price
+										).toFixed(2)}</td>
+                                        <td>$${
+											drug.total_cost
+												? parseFloat(
+														drug.total_cost
+												  ).toFixed(2)
+												: (
+														drug.quantity *
+														drug.unit_price
+												  ).toFixed(2)
+										}</td>
+                                    </tr>
+                                `
+									)
+									.join("")}
+                            </tbody>
+                        </table>
+                    `
+							: '<p class="text-muted">No drugs used</p>'
+					}
+                </div>
+            </div>
+        </div>
+    `;
+	}
+
+	private async printAdmissionBill(): Promise<void> {
+		if (!this.currentAdmissionDetails || !this.currentPatient) {
+			this.showError("No admission details available for printing");
+			return;
+		}
+
+		try {
+			if (!this.printBillManager) {
+				this.showError("Print manager not initialized");
+				return;
+			}
+
+			// Create a bill object from admission details
+			const admissionBill = {
+				bill_id: this.currentAdmissionDetails.bill_id,
+				patient_id: this.currentPatient.patient_id,
+				total_amount: this.currentAdmissionDetails.total_amount || 0,
+				paid_amount: this.currentAdmissionDetails.paid_amount || 0,
+				discount_type:
+					this.currentAdmissionDetails.discount_type || "fixed",
+				discount: this.currentAdmissionDetails.discount || 0,
+				administrative_expenses:
+					this.currentAdmissionDetails.administrative_expenses || 0,
+				vat_percentage:
+					this.currentAdmissionDetails.vat_percentage || 0,
+				vat_scope: this.currentAdmissionDetails.vat_scope || "both",
+				generated_at: this.currentAdmissionDetails.admission_time,
+				updated_at: this.currentAdmissionDetails.discharge_time,
+				issued_by_user_id: null,
+				bill_details: this.createBillDetailsFromAdmission(
+					this.currentAdmissionDetails
+				)
+			};
+
+			// Update print manager with latest data
+			this.printBillManager.updateData(
+				this.availableServices,
+				this.availableDrugs,
+				this.servicePrices
+			);
+
+			// Show print modal
+			await this.printBillManager.showPrintModal(
+				this.currentPatient,
+				admissionBill
+			);
+
+			// Hide the admission details modal
+			this.admissionDetailsModal.hide();
+		} catch (error) {
+			console.error(
+				"Error preparing admission bill for printing:",
+				error
+			);
+			this.showError("Failed to prepare bill for printing");
+		}
+	}
+
+	private createBillDetailsFromAdmission(admission: any): any[] {
+		const billDetails: any[] = [];
+
+		// Add services
+		if (admission.services && admission.services.length > 0) {
+			admission.services.forEach((service: any) => {
+				billDetails.push({
+					bill_detail_id: `service_${
+						service.service_id
+					}_${Math.random()}`,
+					bill_id: admission.bill_id,
+					service_id: service.service_id,
+					service_name: service.service_name,
+					drug_shipment_id: null,
+					drug_name: null,
+					quantity: service.quantity,
+					unit_price: service.unit_price,
+					charge_type: service.charge_type || "service",
+					sale_type: "admitted",
+					generated_at:
+						service.generated_at || admission.admission_time
+				});
+			});
+		}
+
+		// Add drugs
+		if (admission.drugs && admission.drugs.length > 0) {
+			admission.drugs.forEach((drug: any) => {
+				billDetails.push({
+					bill_detail_id: `drug_${drug.drug_id}_${Math.random()}`,
+					bill_id: admission.bill_id,
+					service_id: null,
+					service_name: null,
+					drug_shipment_id: drug.drug_shipment_id || drug.drug_id,
+					drug_name: drug.drug_name,
+					quantity: drug.quantity,
+					unit_price: drug.unit_price,
+					charge_type: drug.charge_type || "drug",
+					sale_type: "admitted",
+					generated_at: drug.generated_at || admission.admission_time
+				});
+			});
+		}
+
+		return billDetails;
+	}
+
+	private formatDismissalReason(reason: string): string {
+		const reasons: { [key: string]: string } = {
+			improvement: "Improvement",
+			death: "Death",
+			transfer: "Transfer",
+			as_desired: "As Desired"
+		};
+		return reasons[reason] || reason;
+	}
+
+	private calculateLengthOfStay(
+		admissionTime: string,
+		dischargeTime: string
+	): string {
+		const admission = new Date(admissionTime);
+		const discharge = new Date(dischargeTime);
+		const diffTime = Math.abs(discharge.getTime() - admission.getTime());
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		if (diffDays === 1) {
+			return "1 day";
+		} else if (diffDays < 1) {
+			const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+			return `${diffHours} hour${diffHours !== 1 ? "s" : ""}`;
+		} else {
+			return `${diffDays} days`;
+		}
+	}
+
 	private async printBill(): Promise<void> {
 		if (!this.currentBill || !this.currentPatient) {
 			this.showError("No bill or patient selected");
@@ -2678,7 +3350,7 @@ class PatientManager {
 // Initialize and expose for HTML onclick handlers
 declare global {
 	interface Window {
-		patientManager: PatientManager;
+		patientManager: PatientManager & { showAdmissionDetails: (patientHistoryId: number) => Promise<void> };
 		printBillManager: {
 			updatePrintItemQuantity: (index: number, quantity: string) => void;
 			updatePrintItemPrice: (index: number, price: string) => void;

@@ -4,6 +4,7 @@ import PatientController from "../controllers/Patient.controller.js";
 import { verifyToken, checkPermission } from "../middleware/auth.middleware.js";
 import {
 	validateId,
+	validateHistoryId,
 	validateSearchTerm,
 	validatePrefix
 } from "../middleware/validate.middleware.js";
@@ -69,6 +70,16 @@ router.get(
 	(req, res) => PatientController.getPatientHistory(req, res)
 );
 
+// Get past admissions
+router.get(
+	"/:id/admissions/past",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPastAdmissions(req, res)
+);
+
 // Get current admission
 router.get(
 	"/:id/admission/current",
@@ -77,6 +88,17 @@ router.get(
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.getCurrentAdmission(req, res)
+);
+
+// Get detailed information for a specific admission
+router.get(
+	"/:id/admissions/:historyId/details",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	validateHistoryId,
+	auditLogger,
+	(req, res) => PatientController.getAdmissionDetails(req, res)
 );
 
 // Create new patient

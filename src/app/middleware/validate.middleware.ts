@@ -10,6 +10,19 @@ export const validateId = (req: Request, res: Response, next: NextFunction) => {
 	next();
 };
 
+export const validateHistoryId = (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	const historyId = parseInt(req.params.historyId);
+	if (isNaN(historyId) || historyId <= 0) {
+		res.status(400).json({ error: "Valid history ID is required" });
+		return;
+	}
+	next();
+};
+
 export const validateSearchTerm = (
 	req: Request,
 	res: Response,
