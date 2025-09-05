@@ -2,6 +2,7 @@
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 import { generatePatientBill } from "../../utils/pdfGenerator.js";
+import { PrintBillManager } from "./printBillManager.js";
 
 interface Patient {
 	patient_id: number;
@@ -154,12 +155,7 @@ class PatientManager {
 	private searchTimeout: NodeJS.Timeout | null = null;
 	private allPatients: Patient[] = [];
 
-	//@ts-ignore
-	private printCustomizationModal: Modal;
-	//@ts-ignore
-	private addItemToPrintModal: Modal;
-	private customBillItems: any[] = [];
-	private customBillData: any = {};
+	private printBillManager: PrintBillManager | null = null;
 
 	constructor() {
 		// Initialize sidebar
@@ -337,53 +333,6 @@ class PatientManager {
 			?.addEventListener("click", () => {
 				this.loadAllPatients();
 			});
-
-		// Print customization modal events
-		document
-			.getElementById("addPrintServiceBtn")
-			?.addEventListener("click", () => {
-				this.showAddItemModal("service");
-			});
-
-		document
-			.getElementById("addPrintDrugBtn")
-			?.addEventListener("click", () => {
-				this.showAddItemModal("drug");
-			});
-
-		document
-			.getElementById("generateCustomPdfBtn")
-			?.addEventListener("click", () => {
-				this.generateCustomPdf();
-			});
-
-		// Billing calculation events for print modal
-		[
-			"printDiscount",
-			"printDiscountType",
-			"printVatPercentage",
-			"printAdminExpenses"
-		].forEach((id) => {
-			document.getElementById(id)?.addEventListener("input", () => {
-				this.calculatePrintBilling();
-			});
-			document.getElementById(id)?.addEventListener("change", () => {
-				this.calculatePrintBilling();
-			});
-		});
-
-		// Search events for add item modal
-		document
-			.getElementById("serviceSearchInput")
-			?.addEventListener("input", (e) => {
-				this.filterPrintServices((e.target as HTMLInputElement).value);
-			});
-
-		document
-			.getElementById("drugSearchInput")
-			?.addEventListener("input", (e) => {
-				this.filterPrintDrugs((e.target as HTMLInputElement).value);
-			});
 	}
 
 	private async loadInitialData(): Promise<void> {
@@ -396,6 +345,8 @@ class PatientManager {
 				this.loadServices(),
 				this.loadDrugs()
 			]);
+
+			this.initializePrintManager();
 		} catch (error) {
 			console.error("Error loading initial data:", error);
 			this.showError("Failed to load initial data");
@@ -598,6 +549,21 @@ class PatientManager {
 		} catch (error) {
 			console.error("Error loading drugs:", error);
 		}
+	}
+
+	private initializePrintManager(): void {
+		this.printBillManager = new PrintBillManager(
+			this.availableServices,
+			this.availableDrugs,
+			this.servicePrices,
+			this.showSuccess.bind(this),
+			this.showError.bind(this),
+			this.escapeHtml.bind(this),
+			this.formatServiceType.bind(this)
+		);
+
+		// Expose to window for HTML onclick handlers
+		(window as any).printBillManager = this.printBillManager;
 	}
 
 	private populateDoctorSelects(): void {
@@ -2622,530 +2588,23 @@ class PatientManager {
 			return;
 		}
 
-		try {
-			// Initialize custom bill data with current bill
-			this.initializeCustomBillData();
-
-			// Populate the modal
-			this.populatePrintModal();
-
-			// Show the customization modal
-			this.printCustomizationModal.show();
-		} catch (error) {
-			console.error("Error preparing print modal:", error);
-			this.showError("Failed to prepare print customization");
-		}
-	}
-
-	private initializeCustomBillData(): void {
-		if (!this.currentBill || !this.currentPatient) return;
-
-		// Clone current bill details and group them
-		this.customBillItems = this.groupBillDetails([
-			...this.currentBill.bill_details
-		]);
-
-		this.customBillData = {
-			patient: { ...this.currentPatient },
-			bill: { ...this.currentBill },
-			discount: this.currentBill.discount || 0,
-			discountType: this.currentBill.discount_type || "fixed",
-			vatPercentage: this.currentBill.vat_percentage || 0,
-			adminExpenses: this.currentBill.administrative_expenses || 0
-		};
-	}
-
-	private groupBillDetails(billDetails: any[]): any[] {
-		const grouped = new Map<string, any>();
-
-		billDetails.forEach((detail) => {
-			const key = detail.service_id
-				? `service_${detail.service_id}`
-				: `drug_${detail.drug_shipment_id}`;
-
-			if (grouped.has(key)) {
-				const existing = grouped.get(key)!;
-				existing.quantity += detail.quantity;
-			} else {
-				grouped.set(key, {
-					...detail,
-					id: key,
-					type: detail.service_id ? "service" : "drug",
-					description:
-						detail.service_name ||
-						detail.drug_name ||
-						"Unknown Item"
-				});
-			}
-		});
-
-		return Array.from(grouped.values());
-	}
-
-	private populatePrintModal(): void {
-		// Populate patient info
-		document.getElementById("printPatientName")!.textContent =
-			this.customBillData.patient.name;
-		document.getElementById("printPatientPhone")!.textContent =
-			this.customBillData.patient.phone || "N/A";
-		document.getElementById("printPaymentType")!.textContent =
-			this.customBillData.patient.payment_type.charAt(0).toUpperCase() +
-			this.customBillData.patient.payment_type.slice(1);
-		document.getElementById("printBillId")!.textContent =
-			this.customBillData.bill.bill_id.toString();
-
-		// Populate billing fields
-		(document.getElementById("printDiscount") as HTMLInputElement).value =
-			this.customBillData.discount.toString();
-		(
-			document.getElementById("printDiscountType") as HTMLInputElement
-		).checked = this.customBillData.discountType === "percentage";
-		(
-			document.getElementById("printVatPercentage") as HTMLInputElement
-		).value = this.customBillData.vatPercentage.toString();
-		(
-			document.getElementById("printAdminExpenses") as HTMLInputElement
-		).value = this.customBillData.adminExpenses.toString();
-
-		// Populate paid amount (read-only)
-		document.getElementById(
-			"printPaidAmount"
-		)!.textContent = `$${this.customBillData.bill.paid_amount.toFixed(2)}`;
-
-		// Populate bill items
-		this.updatePrintBillItemsTable();
-
-		// Calculate totals
-		this.calculatePrintBilling();
-	}
-
-	private updatePrintBillItemsTable(): void {
-		const tbody = document.getElementById("printBillItemsBody")!;
-
-		if (this.customBillItems.length === 0) {
-			tbody.innerHTML =
-				'<tr><td colspan="5" class="text-center text-muted">No items in bill</td></tr>';
+		if (!this.printBillManager) {
+			this.showError("Print manager not initialized");
 			return;
 		}
 
-		tbody.innerHTML = this.customBillItems
-			.map(
-				(item, index) => `
-        <tr>
-            <td>
-                <div class="fw-medium">${this.escapeHtml(
-					item.description
-				)}</div>
-                <small class="text-muted">${
-					item.type === "service" ? "Service" : "Drug"
-				}</small>
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" 
-                       value="${item.quantity}" min="1" step="1"
-                       onchange="patientManager.updatePrintItemQuantity(${index}, this.value)">
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" 
-                       value="${item.unit_price}" min="0" step="0.01"
-                       onchange="patientManager.updatePrintItemPrice(${index}, this.value)">
-            </td>
-            <td class="fw-bold">$${(item.quantity * item.unit_price).toFixed(
-				2
-			)}</td>
-            <td>
-                <button type="button" class="btn btn-sm btn-outline-danger" 
-                        onclick="patientManager.removePrintItem(${index})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `
-			)
-			.join("");
-	}
-
-	public updatePrintItemQuantity(index: number, quantity: string): void {
-		const qty = parseInt(quantity) || 1;
-		if (this.customBillItems[index]) {
-			this.customBillItems[index].quantity = Math.max(1, qty);
-			this.updatePrintBillItemsTable();
-			this.calculatePrintBilling();
-		}
-	}
-
-	public updatePrintItemPrice(index: number, price: string): void {
-		const prc = parseFloat(price) || 0;
-		if (this.customBillItems[index]) {
-			this.customBillItems[index].unit_price = Math.max(0, prc);
-			this.updatePrintBillItemsTable();
-			this.calculatePrintBilling();
-		}
-	}
-
-	public removePrintItem(index: number): void {
-		this.customBillItems.splice(index, 1);
-		this.updatePrintBillItemsTable();
-		this.calculatePrintBilling();
-	}
-
-	private calculatePrintBilling(): void {
-		// Calculate subtotal
-		const subtotal = this.customBillItems.reduce(
-			(sum, item) => sum + item.quantity * item.unit_price,
-			0
+		// Update print manager with latest data
+		this.printBillManager.updateData(
+			this.availableServices,
+			this.availableDrugs,
+			this.servicePrices
 		);
 
-		// Get form values
-		const discount =
-			parseFloat(
-				(document.getElementById("printDiscount") as HTMLInputElement)
-					.value
-			) || 0;
-		const isDiscountPercentage = (
-			document.getElementById("printDiscountType") as HTMLInputElement
-		).checked;
-		const vatPercentage =
-			parseFloat(
-				(
-					document.getElementById(
-						"printVatPercentage"
-					) as HTMLInputElement
-				).value
-			) || 0;
-		const adminExpenses =
-			parseFloat(
-				(
-					document.getElementById(
-						"printAdminExpenses"
-					) as HTMLInputElement
-				).value
-			) || 0;
-
-		// Calculate discount amount
-		const discountAmount = isDiscountPercentage
-			? (subtotal * discount) / 100
-			: discount;
-		const afterDiscount = subtotal - discountAmount;
-
-		// Calculate VAT
-		const vatAmount = (afterDiscount * vatPercentage) / 100;
-
-		// Calculate total
-		const totalAmount = afterDiscount + vatAmount + adminExpenses;
-		const paidAmount = this.customBillData.bill.paid_amount || 0;
-		const balance = totalAmount - paidAmount;
-
-		// Update display
-		document.getElementById(
-			"printSubtotal"
-		)!.textContent = `$${subtotal.toFixed(2)}`;
-		document.getElementById(
-			"printDiscountAmount"
-		)!.textContent = `$${discountAmount.toFixed(2)}`;
-		document.getElementById(
-			"printVatAmount"
-		)!.textContent = `$${vatAmount.toFixed(2)}`;
-		document.getElementById(
-			"printTotalAmount"
-		)!.textContent = `$${totalAmount.toFixed(2)}`;
-		document.getElementById(
-			"printBalance"
-		)!.textContent = `$${balance.toFixed(2)}`;
-	}
-
-	private showAddItemModal(type: "service" | "drug"): void {
-		// Set active tab
-		if (type === "service") {
-			(
-				document.getElementById("services-tab") as HTMLButtonElement
-			).click();
-		} else {
-			(document.getElementById("drugs-tab") as HTMLButtonElement).click();
-		}
-
-		// Populate available items
-		this.populateAvailableItemsForPrint();
-
-		// Show modal
-		this.addItemToPrintModal.show();
-	}
-
-	private populateAvailableItemsForPrint(): void {
-		// Populate services
-		const servicesContainer = document.getElementById(
-			"availableServicesForPrint"
-		)!;
-		servicesContainer.innerHTML = this.availableServices
-			.map((service) => {
-				const price =
-					this.servicePrices.get(service.service_id) ||
-					service.price ||
-					0;
-				return `
-            <div class="print-item-row" onclick="patientManager.addPrintItem('service', ${
-				service.service_id
-			})">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="print-item-name">${this.escapeHtml(
-							service.name
-						)}</div>
-                        <div class="print-item-details">
-                            Type: ${this.formatServiceType(
-								service.service_type
-							)}
-                            ${service.auto_renew ? " • Auto Renew" : ""}
-                        </div>
-                    </div>
-                    <div class="print-item-price">$${price.toFixed(2)}</div>
-                </div>
-            </div>
-        `;
-			})
-			.join("");
-
-		// Populate drugs
-		const drugsContainer = document.getElementById(
-			"availableDrugsForPrint"
-		)!;
-		drugsContainer.innerHTML = this.availableDrugs
-			.filter((drug) => drug.available_quantity > 0)
-			.map(
-				(drug) => `
-        <div class="print-item-row" onclick="patientManager.addPrintItem('drug', ${
-			drug.drug_id
-		})">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="print-item-name">${this.escapeHtml(
-						drug.name
-					)}</div>
-                    <div class="print-item-details">
-                        Available: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || "units"
-				}
-                        ${drug.manufacturer ? ` • ${drug.manufacturer}` : ""}
-                    </div>
-                </div>
-                <div class="print-item-price">$${(drug.price || 0).toFixed(
-					2
-				)}</div>
-            </div>
-        </div>
-    `
-			)
-			.join("");
-	}
-
-	private filterPrintServices(searchTerm: string): void {
-		const servicesContainer = document.getElementById(
-			"availableServicesForPrint"
-		)!;
-		const filteredServices = this.availableServices.filter((service) =>
-			service.name.toLowerCase().includes(searchTerm.toLowerCase())
+		// Show print modal
+		await this.printBillManager.showPrintModal(
+			this.currentPatient,
+			this.currentBill
 		);
-
-		servicesContainer.innerHTML = filteredServices
-			.map((service) => {
-				const price =
-					this.servicePrices.get(service.service_id) ||
-					service.price ||
-					0;
-				return `
-            <div class="print-item-row" onclick="patientManager.addPrintItem('service', ${
-				service.service_id
-			})">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="print-item-name">${this.escapeHtml(
-							service.name
-						)}</div>
-                        <div class="print-item-details">
-                            Type: ${this.formatServiceType(
-								service.service_type
-							)}
-                            ${service.auto_renew ? " • Auto Renew" : ""}
-                        </div>
-                    </div>
-                    <div class="print-item-price">$${price.toFixed(2)}</div>
-                </div>
-            </div>
-        `;
-			})
-			.join("");
-	}
-
-	private filterPrintDrugs(searchTerm: string): void {
-		const drugsContainer = document.getElementById(
-			"availableDrugsForPrint"
-		)!;
-		const filteredDrugs = this.availableDrugs.filter(
-			(drug) =>
-				drug.available_quantity > 0 &&
-				drug.name.toLowerCase().includes(searchTerm.toLowerCase())
-		);
-
-		drugsContainer.innerHTML = filteredDrugs
-			.map(
-				(drug) => `
-        <div class="print-item-row" onclick="patientManager.addPrintItem('drug', ${
-			drug.drug_id
-		})">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="print-item-name">${this.escapeHtml(
-						drug.name
-					)}</div>
-                    <div class="print-item-details">
-                        Available: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || "units"
-				}
-                        ${drug.manufacturer ? ` • ${drug.manufacturer}` : ""}
-                    </div>
-                </div>
-                <div class="print-item-price">$${(drug.price || 0).toFixed(
-					2
-				)}</div>
-            </div>
-        </div>
-    `
-			)
-			.join("");
-	}
-
-	public addPrintItem(type: "service" | "drug", itemId: number): void {
-		let item: any = null;
-		let newBillItem: any = null;
-
-		if (type === "service") {
-			item = this.availableServices.find((s) => s.service_id === itemId);
-			if (item) {
-				const price =
-					this.servicePrices.get(item.service_id) || item.price || 0;
-				newBillItem = {
-					id: `service_${item.service_id}`,
-					type: "service",
-					service_id: item.service_id,
-					service_name: item.name,
-					drug_shipment_id: null,
-					drug_name: null,
-					description: item.name,
-					quantity: 1,
-					unit_price: price
-				};
-			}
-		} else {
-			item = this.availableDrugs.find((d) => d.drug_id === itemId);
-			if (item) {
-				newBillItem = {
-					id: `drug_${item.drug_id}`,
-					type: "drug",
-					service_id: null,
-					service_name: null,
-					drug_shipment_id: item.drug_id, // Using drug_id as shipment_id for simplicity
-					drug_name: item.name,
-					description: item.name,
-					quantity: 1,
-					unit_price: item.price || 0
-				};
-			}
-		}
-
-		if (newBillItem) {
-			// Check if item already exists
-			const existingIndex = this.customBillItems.findIndex(
-				(existing) => existing.id === newBillItem.id
-			);
-
-			if (existingIndex >= 0) {
-				// Increase quantity of existing item
-				this.customBillItems[existingIndex].quantity += 1;
-			} else {
-				// Add new item
-				this.customBillItems.push(newBillItem);
-			}
-
-			// Update the table and calculations
-			this.updatePrintBillItemsTable();
-			this.calculatePrintBilling();
-
-			// Close the add item modal
-			this.addItemToPrintModal.hide();
-
-			this.showSuccess(`${item.name} added to bill`);
-		}
-	}
-
-	private async generateCustomPdf(): Promise<void> {
-		try {
-			// Update custom bill data with current form values
-			const discount =
-				parseFloat(
-					(
-						document.getElementById(
-							"printDiscount"
-						) as HTMLInputElement
-					).value
-				) || 0;
-			const isDiscountPercentage = (
-				document.getElementById("printDiscountType") as HTMLInputElement
-			).checked;
-			const vatPercentage =
-				parseFloat(
-					(
-						document.getElementById(
-							"printVatPercentage"
-						) as HTMLInputElement
-					).value
-				) || 0;
-			const adminExpenses =
-				parseFloat(
-					(
-						document.getElementById(
-							"printAdminExpenses"
-						) as HTMLInputElement
-					).value
-				) || 0;
-
-			// Calculate totals
-			const subtotal = this.customBillItems.reduce(
-				(sum, item) => sum + item.quantity * item.unit_price,
-				0
-			);
-			const discountAmount = isDiscountPercentage
-				? (subtotal * discount) / 100
-				: discount;
-			const afterDiscount = subtotal - discountAmount;
-			const vatAmount = (afterDiscount * vatPercentage) / 100;
-			const totalAmount = afterDiscount + vatAmount + adminExpenses;
-
-			// Create custom bill object
-			const customBill = {
-				...this.customBillData.bill,
-				discount: discountAmount,
-				discount_type: isDiscountPercentage ? "percentage" : "fixed",
-				vat_percentage: vatPercentage,
-				administrative_expenses: adminExpenses,
-				total_amount: totalAmount
-			};
-
-			// Generate PDF with custom data
-			const pdf = generatePatientBill(
-				this.customBillData.patient,
-				customBill,
-				this.customBillItems
-			);
-
-			// Close modal and open PDF
-			this.printCustomizationModal.hide();
-			pdf.open();
-
-			this.showSuccess("Custom bill generated successfully");
-		} catch (error) {
-			console.error("Error generating custom PDF:", error);
-			this.showError("Failed to generate custom PDF");
-		}
 	}
 
 	// Utility methods
@@ -3219,7 +2678,8 @@ class PatientManager {
 // Initialize and expose for HTML onclick handlers
 declare global {
 	interface Window {
-		patientManager: PatientManager & {
+		patientManager: PatientManager;
+		printBillManager: {
 			updatePrintItemQuantity: (index: number, quantity: string) => void;
 			updatePrintItemPrice: (index: number, price: string) => void;
 			removePrintItem: (index: number) => void;

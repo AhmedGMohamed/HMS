@@ -361,7 +361,9 @@ export class PatientAutoRenewalCron {
 					[quantityToDispense, shipment.shipment_id]
 				);
 
-				const currentAdmission = await PatientModel.getCurrentAdmission(drugInfo.patient_id);
+				const currentAdmission = await PatientModel.getCurrentAdmission(
+					drugInfo.patient_id
+				);
 
 				// Create new drug usage record
 				await query(
@@ -484,6 +486,22 @@ export class PatientAutoRenewalCron {
 	): Promise<void> {
 		try {
 			await query("BEGIN");
+
+			// Check if there is available drug usage for that drug
+			const availableDrugUsagesSql = `
+				SELECT du.drug_id, du.remaining_quantity
+				FROM DrugUsage du
+				WHERE du.patient_id = $1 AND du.drug_id = $2
+				AND du.remaining_quantity > 0
+				ORDER BY du.last_administered ASC;
+			`;
+			const availableDrugUsagesResult = await query(
+				availableDrugUsagesSql,
+				[patientId, drugId]
+			);
+
+			// skip if there is available drug usage
+			if (availableDrugUsagesResult.rows.length !== 0) return;
 
 			// Get system user ID
 			const systemUserId = await this.getSystemUserId();
