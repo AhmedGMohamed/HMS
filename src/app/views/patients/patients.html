@@ -791,6 +791,190 @@
     </div>
   </div>
 
+  <!-- Print Customization Modal -->
+  <div class="modal fade" id="printCustomizationModal" tabindex="-1" aria-labelledby="printCustomizationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="printCustomizationModalLabel">Customize Bill for Printing</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Bill Items Section -->
+          <div class="row">
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Bill Items</h6>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="addPrintServiceBtn">
+                    <i class="bi bi-plus-circle"></i> Add Service
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="addPrintDrugBtn">
+                    <i class="bi bi-plus-circle"></i> Add Drug
+                  </button>
+                </div>
+              </div>
+
+              <!-- Bill Items Table -->
+              <div class="table-responsive">
+                <table class="table table-bordered" id="printBillItemsTable">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 40%;">Description</th>
+                      <th style="width: 15%;">Quantity</th>
+                      <th style="width: 20%;">Unit Price</th>
+                      <th style="width: 20%;">Total</th>
+                      <th style="width: 5%;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="printBillItemsBody">
+                    <!-- Items will be populated here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing Summary -->
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <!-- Patient Info (Read-only) -->
+              <h6>Patient Information</h6>
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-2">
+                    <div class="col-6"><strong>Name:</strong> <span id="printPatientName">-</span></div>
+                    <div class="col-6"><strong>Phone:</strong> <span id="printPatientPhone">-</span></div>
+                    <div class="col-6"><strong>Payment:</strong> <span id="printPaymentType">-</span></div>
+                    <div class="col-6"><strong>Bill ID:</strong> <span id="printBillId">-</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <!-- Billing Calculations -->
+              <h6>Billing Summary</h6>
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-2">
+                    <div class="col-8">Subtotal:</div>
+                    <div class="col-4 text-end fw-bold" id="printSubtotal">$0.00</div>
+
+                    <div class="col-6">
+                      <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="printIncludeDiscount" checked>
+                        <label class="form-check-label" for="printIncludeDiscount">
+                          Include discount in print
+                        </label>
+                      </div>
+                      <label class="form-label mb-1">Discount:</label>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" id="printDiscount" value="0" min="0" step="0.01">
+                        <div class="input-group-text">
+                          <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="printDiscountType">
+                            <label class="form-check-label" for="printDiscountType">%</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted">Discount Amount:</small><br>
+                        <span id="printDiscountAmount" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+
+                    <div class="col-6">
+                      <label class="form-label mb-1">VAT (%):</label>
+                      <input type="number" class="form-control form-control-sm" id="printVatPercentage" value="0" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="col-6 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted">VAT Amount:</small><br>
+                        <span id="printVatAmount" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+
+                    <div class="col-8">
+                      <label class="form-label mb-1">Administrative Expenses:</label>
+                      <input type="number" class="form-control form-control-sm" id="printAdminExpenses" value="0" min="0" step="0.01">
+                    </div>
+                    <div class="col-4"></div>
+
+                    <div class="col-8"><strong>Total Amount:</strong></div>
+                    <div class="col-4 text-end"><strong id="printTotalAmount">$0.00</strong></div>
+
+                    <div class="col-8">Paid Amount:</div>
+                    <div class="col-4 text-end" id="printPaidAmount">$0.00</div>
+
+                    <div class="col-8"><strong>Balance:</strong></div>
+                    <div class="col-4 text-end"><strong id="printBalance">$0.00</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="generateCustomPdfBtn">
+            <i class="bi bi-printer"></i> Generate PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Service/Drug Selection Modal -->
+  <div class="modal fade" id="addItemToPrintModal" tabindex="-1" aria-labelledby="addItemToPrintModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addItemToPrintModalLabel">Add Item to Bill</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-tabs" id="addItemTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-pane" type="button" role="tab">Services</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="drugs-tab" data-bs-toggle="tab" data-bs-target="#drugs-pane" type="button" role="tab">Drugs</button>
+            </li>
+          </ul>
+
+          <div class="tab-content mt-3" id="addItemTabsContent">
+            <!-- Services Tab -->
+            <div class="tab-pane fade show active" id="services-pane" role="tabpanel">
+              <div class="row mb-3">
+                <div class="col">
+                  <input type="text" class="form-control" id="serviceSearchInput" placeholder="Search services...">
+                </div>
+              </div>
+              <div id="availableServicesForPrint" style="max-height: 300px; overflow-y: auto;">
+                <!-- Services will be populated here -->
+              </div>
+            </div>
+
+            <!-- Drugs Tab -->
+            <div class="tab-pane fade" id="drugs-pane" role="tabpanel">
+              <div class="row mb-3">
+                <div class="col">
+                  <input type="text" class="form-control" id="drugSearchInput" placeholder="Search drugs...">
+                </div>
+              </div>
+              <div id="availableDrugsForPrint" style="max-height: 300px; overflow-y: auto;">
+                <!-- Drugs will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- jQuery -->
@@ -801,10 +985,11 @@
   <script src="../js/toastr/toastr.min.js"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
+  <script src="utils/pdfGenerator.js" type="module"></script>
+  <script src="../js/patients/printBillManager.js" type="module"></script>
   <script src="../js/patients/patients.js" type="module"></script>
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
   <script src="../js/pdfmake/build/vfs_fonts.min.js"></script>
-  <script src="utils/pdfGenerator.js" type="module"></script>
 </body>
 
 </html>
