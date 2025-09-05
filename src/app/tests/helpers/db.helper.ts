@@ -72,6 +72,7 @@ export const dbHelper = {
             ('manage_billing', 'Can manage billing'),
             ('manage_pharmacy', 'Can manage pharmacy'),
             ('manage_employees', 'Can manage employees'),
+			('view_vault', 'Can view vault details'),
             ('manage_reports', 'Can access reports'),
             ('manage_settings', 'Can manage system settings'),
 			('manage_users', 'Can manage users'),
@@ -1216,7 +1217,7 @@ CREATE TABLE IF NOT EXISTS AuditLog (
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS VaultManualPayments (
+CREATE TABLE IF NOT EXISTS VaultManualPayment (
 	payment_id SERIAL PRIMARY KEY,
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

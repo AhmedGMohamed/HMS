@@ -9,6 +9,7 @@ export interface Patient {
 	payment_type: "cash" | "credit" | "insurance";
 	insurance_id: number | null;
 	insurance_card_id: string | null;
+	insurance_form_id: string | null;
 	guardian_info: {
 		name: string;
 		phone: string;
@@ -60,6 +61,7 @@ export interface CreatePatientDTO {
 	payment_type: "cash" | "credit" | "insurance";
 	insurance_id?: number;
 	insurance_card_id?: string;
+	insurance_form_id?: string;
 	guardian_info?: {
 		name: string;
 		phone: string;
@@ -89,6 +91,7 @@ export interface UpdatePatientDTO {
 	payment_type?: "cash" | "credit" | "insurance";
 	insurance_id?: number;
 	insurance_card_id?: string;
+	insurance_form_id?: string;
 	guardian_info?: {
 		name: string;
 		phone: string;

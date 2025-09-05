@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS - Vault Management</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="../css/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="../css/dashboard.css" rel="stylesheet">
+  <link href="../css/vault.css" rel="stylesheet">
+  <!-- SweetAlert2 CSS -->
+  <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
+  <!-- Toastr CSS -->
+  <link href="../css/toastr/toastr.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="active">
+      <div class="sidebar-header">
+        <h3>HMS</h3>
+        <h3 class="sidebar-mini">H</h3>
+      </div>
+
+      <div class="sidebar-profile">
+        <div class="profile-image d-flex justify-content-center">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="userFullName">Loading...</div>
+          <div class="profile-role" id="userRole">Loading...</div>
+        </div>
+      </div>
+
+      <ul class="list-unstyled components">
+        <li>
+          <a href="/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+
+        <!-- Administration section - Admin only -->
+        <li class="nav-item-header" data-requires-role="Admin">Administration</li>
+        <li data-requires-role="Admin">
+          <a href="#userSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-people"></i>
+            <span>User Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="userSubmenu">
+            <li>
+              <a href="/admin/users" class="nav-link">
+                <i class="bi bi-person"></i>
+                <span>Users</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/roles" class="nav-link">
+                <i class="bi bi-shield"></i>
+                <span>Roles</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/permissions" class="nav-link">
+                <i class="bi bi-key"></i>
+                <span>Permissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item-header">Management</li>
+        <!-- Patient Management -->
+        <li data-requires-permission="manage_patients">
+          <a href="#patientSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-vcard"></i>
+            <span>Patient Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="patientSubmenu">
+            <li>
+              <a href="/patients" class="nav-link">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Patients</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admissions" class="nav-link">
+                <i class="bi bi-hospital"></i>
+                <span>Admissions</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Employee Management -->
+        <li data-requires-permission="manage_employees">
+          <a href="#employeesSubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-person-badge-fill"></i>
+            <span>Employee Management</span>
+          </a>
+          <ul class="collapse list-unstyled" id="employeesSubmenu">
+            <li>
+              <a class="nav-link" href="/employees" data-requires-permission="manage_employees">
+                <i class="bi bi-person-fill-gear"></i>
+                <span>Employees</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/doctors" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Doctors</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" href="/nurses" data-requires-permission="manage_employees">
+                <i class="bi bi-person-heart"></i>
+                <span>Nurses</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Clocking -->
+        <li data-requires-permission="manage_clocking">
+          <a href="/clocking" class="nav-link">
+            <i class="bi bi-clock-fill"></i>
+            <span>Clocking</span>
+          </a>
+        </li>
+
+        <!-- Pharmacy -->
+        <li data-requires-permission="manage_pharmacy">
+          <a href="#pharmacySubmenu" data-bs-toggle="collapse" class="dropdown-toggle">
+            <i class="bi bi-capsule"></i>
+            <span>Pharmacy</span>
+          </a>
+          <ul class="collapse list-unstyled" id="pharmacySubmenu">
+            <li>
+              <a href="/drugs" class="nav-link">
+                <i class="bi bi-capsule-pill"></i>
+                <span>Drugs</span>
+              </a>
+            </li>
+            <li>
+              <a href="/inventory" class="nav-link">
+                <i class="bi bi-box-seam"></i>
+                <span>Inventory</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Services -->
+        <li data-requires-permission="manage_services">
+          <a href="/services" class="nav-link">
+            <i class="bi bi-clipboard2-pulse"></i>
+            <span>Services</span>
+          </a>
+        </li>
+
+        <!-- Price Lists -->
+        <li data-requires-permission="manage_prices">
+          <a href="/price-lists" class="nav-link">
+            <i class="bi bi-tag"></i>
+            <span>Price Lists</span>
+          </a>
+        </li>
+
+        <!-- Vault - Active -->
+        <li class="active" data-requires-permission="view_vault">
+          <a href="/vault" class="nav-link">
+            <i class="bi bi-safe"></i>
+            <span>Vault</span>
+          </a>
+        </li>
+
+        <!-- Reports -->
+        <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
+        <li data-requires-permission="view_reports">
+          <a href="/reports" class="nav-link">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Reports</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="btn btn-link">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navigation -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-light">
+            <i class="bi bi-list"></i>
+          </button>
+          <div class="page-title">
+            <h4>Vault Management</h4>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="container-fluid">
+        <!-- Date Range Selection -->
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="bi bi-calendar-range me-2"></i>Date Range Selection
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row g-3 align-items-end">
+                  <div class="col-md-3">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                  </div>
+                  <div class="col-md-3">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                  </div>
+                  <div class="col-md-3">
+                    <button type="button" class="btn btn-primary" id="loadVaultDataBtn">
+                      <i class="bi bi-search"></i> Load Data
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" id="todayBtn">
+                      Today
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" id="thisMonthBtn">
+                      This Month
+                    </button>
+                  </div>
+                  <div class="col-md-3 text-end" data-requires-permission="manage_vault">
+                    <button type="button" class="btn btn-success" id="addManualPaymentBtn">
+                      <i class="bi bi-plus-circle"></i> Manual Payment
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5" style="display: none;">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3">Loading vault data...</p>
+        </div>
+
+        <!-- Vault Content -->
+        <div id="vaultContent" style="display: none;">
+          <!-- Summary Cards Row -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card summary-card revenue-card">
+                <div class="card-body">
+                  <div class="summary-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                  </div>
+                  <div class="summary-content">
+                    <h6 class="summary-title">Total Revenue</h6>
+                    <h3 class="summary-amount text-success" id="totalRevenue">$0.00</h3>
+                    <small class="text-muted">All income sources</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card summary-card expense-card">
+                <div class="card-body">
+                  <div class="summary-icon">
+                    <i class="bi bi-graph-down-arrow"></i>
+                  </div>
+                  <div class="summary-content">
+                    <h6 class="summary-title">Total Expenses</h6>
+                    <h3 class="summary-amount text-danger" id="totalExpenses">$0.00</h3>
+                    <small class="text-muted">All expenditures</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card summary-card profit-card">
+                <div class="card-body">
+                  <div class="summary-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                  </div>
+                  <div class="summary-content">
+                    <h6 class="summary-title">Net Profit</h6>
+                    <h3 class="summary-amount" id="netProfit">$0.00</h3>
+                    <small class="text-muted">Revenue - Expenses</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Patient Revenue Section -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-person-heart me-2"></i>Patient Revenue
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Services Revenue</span>
+                      <span class="metric-value" id="patientServicesTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-services" title="View Services Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Drugs Revenue</span>
+                      <span class="metric-value" id="patientDrugsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-drugs" title="View Drugs Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Total Payments</span>
+                      <span class="metric-value text-success" id="patientPaymentsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-payments" title="View Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Outstanding Balance</span>
+                      <span class="metric-value text-warning" id="patientOutstandingTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-outstanding" title="View Outstanding Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Total Discounts</span>
+                      <span class="metric-value text-info" id="patientDiscountsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-discounts" title="View Discounts Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Payments Section -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-hand-thumbs-up me-2"></i>Manual Payments
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Manual Additions</span>
+                      <span class="metric-value text-success" id="manualAdditionsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Manual Deductions</span>
+                      <span class="metric-value text-danger" id="manualDeductionsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Net Manual</span>
+                      <span class="metric-value" id="manualNetTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pharmacy Section -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-capsule me-2"></i>Pharmacy Operations
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Shipment Costs</span>
+                      <span class="metric-value text-danger" id="drugShipmentCostsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-shipments" title="View Shipments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Sales Revenue</span>
+                      <span class="metric-value text-success" id="drugSalesRevenueTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-sales" title="View Sales Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Sales Profit</span>
+                      <span class="metric-value text-primary" id="drugSalesProfitTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-profits" title="View Profits Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employee Wages Section -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-people me-2"></i>Employee Wages
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Wages Owed</span>
+                      <span class="metric-value text-warning" id="wagesOwedTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" title="View Wages Owed Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Wages Paid</span>
+                      <span class="metric-value text-success" id="wagesPaidTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-paid" title="View Wages Paid Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Outstanding Wages</span>
+                      <span class="metric-value text-danger" id="wagesOutstandingTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" title="View Outstanding Wages Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5" style="display: none;">
+          <i class="bi bi-safe" style="font-size: 4rem; color: #6c757d;"></i>
+          <h3 class="mt-3 text-muted">No Data Selected</h3>
+          <p class="text-muted">Please select a date range to view vault information.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Payment Modal -->
+  <div class="modal fade" id="manualPaymentModal" tabindex="-1" aria-labelledby="manualPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="manualPaymentModalLabel">Add Manual Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="manualPaymentForm" novalidate>
+            <div class="mb-3">
+              <label for="paymentAmount" class="form-label">Amount *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="paymentAmount" min="0.01" step="0.01" required>
+                <div class="invalid-feedback">Please enter a valid amount.</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="paymentType" class="form-label">Type *</label>
+              <select class="form-select" id="paymentType" required>
+                <option value="">Select payment type</option>
+                <option value="addition">Addition (Income)</option>
+                <option value="deduction">Deduction (Expense)</option>
+              </select>
+              <div class="invalid-feedback">Please select a payment type.</div>
+            </div>
+            <div class="mb-3">
+              <label for="paymentDescription" class="form-label">Description</label>
+              <textarea class="form-control" id="paymentDescription" rows="3" placeholder="Optional description of the payment"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveManualPaymentBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text">Add Payment</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Details Modal -->
+  <div class="modal fade" id="reportDetailsModal" tabindex="-1" aria-labelledby="reportDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reportDetailsModalLabel">Report Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="reportDetailsContent">
+            <!-- Report content will be loaded here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="printReportBtn">
+            <i class="bi bi-printer"></i> Print Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="../js/jquery/jquery-3.7.1.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- Toastr -->
+  <script src="../js/toastr/toastr.min.js"></script>
+  <!-- PDF Make -->
+  <script src="../js/pdfmake/build/pdfmake.min.js"></script>
+  <script src="../js/pdfmake/build/vfs_fonts.min.js"></script>
+  <!-- Custom JS -->
+  <script src="../js/shared/sidebar.js" type="module"></script>
+  <script src="utils/pdfGenerator.js" type="module"></script>
+  <script src="../js/vault/vault.js" type="module"></script>
+</body>
+
+</html>

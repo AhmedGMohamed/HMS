@@ -171,6 +171,14 @@
           </a>
         </li>
 
+        <!-- Vault - Requires view_vault permission -->
+        <li data-requires-permission="view_vault">
+          <a href="/vault" class="nav-link">
+            <i class="bi bi-safe"></i>
+            <span>Vault</span>
+          </a>
+        </li>
+
         <!-- Reports - Requires view_reports permission -->
         <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
         <li data-requires-permission="view_reports">
@@ -245,9 +253,9 @@
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Patient Details</h5>
               <div class="action-buttons">
-				<button class="btn btn-sm btn-outline-secondary" id="viewPastAdmissionsBtn">
-				  <i class="bi bi-clock-history"></i> Past Admissions
-				</button>
+                <button class="btn btn-sm btn-outline-secondary" id="viewPastAdmissionsBtn">
+                  <i class="bi bi-clock-history"></i> Past Admissions
+                </button>
                 <button class="btn btn-sm btn-outline-primary" id="editPatientBtn">
                   <i class="bi bi-pencil"></i> Edit
                 </button>
@@ -336,6 +344,10 @@
                     <div class="info-item">
                       <span class="info-label">Insurance Card ID:</span>
                       <span class="info-value" id="insuranceCardId">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Expense Claim Form ID:</span>
+                      <span class="info-value" id="insuranceFormId">-</span>
                     </div>
                     <div class="info-item">
                       <span class="info-label">Price List:</span>
@@ -633,6 +645,10 @@
                 <label for="modalInsuranceCardId" class="form-label">Insurance Card ID</label>
                 <input type="text" class="form-control" id="modalInsuranceCardId">
               </div>
+              <div class="col-md-4" id="insuranceFormGroup" style="display: none;">
+                <label for="modalInsuranceFormId" class="form-label">Expense Claim Form ID</label>
+                <input type="text" class="form-control" id="modalInsuranceFormId">
+              </div>
               <div class="col-md-4">
                 <label for="modalPriceList" class="form-label">Price List</label>
                 <select class="form-select" id="modalPriceList">
@@ -863,18 +879,18 @@
                   <div class="row g-2">
                     <div class="col-8">Subtotal:</div>
                     <div class="col-4 text-end fw-bold" id="printSubtotal">$0.00</div>
-					<div class="col-6 d-flex align-items-end">
-					  <div class="text-end w-100">
-					    <small class="text-muted">Services Total:</small><br>
-					    <span id="printServicesTotal" class="fw-bold">$0.00</span>
-					  </div>
-					</div>
-					<div class="col-6 d-flex align-items-end">
-					  <div class="text-end w-100">
-					    <small class="text-muted">Drugs Total:</small><br>
-					    <span id="printDrugsTotal" class="fw-bold">$0.00</span>
-					  </div>
-					</div>
+                    <div class="col-6 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted">Services Total:</small><br>
+                        <span id="printServicesTotal" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+                    <div class="col-6 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted">Drugs Total:</small><br>
+                        <span id="printDrugsTotal" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
 
                     <div class="col-6">
                       <div class="form-check mb-2">
@@ -911,15 +927,15 @@
                         <span id="printVatAmount" class="fw-bold">$0.00</span>
                       </div>
                     </div>
-					<div class="col-6">
-					  <label class="form-label mb-1">VAT Scope:</label>
-					  <select class="form-select form-select-sm" id="printVatScope">
-					    <option value="both">Services & Drugs</option>
-					    <option value="services">Services Only</option>
-					    <option value="drugs">Drugs Only</option>
-					  </select>
-					</div>
-					
+                    <div class="col-6">
+                      <label class="form-label mb-1">VAT Scope:</label>
+                      <select class="form-select form-select-sm" id="printVatScope">
+                        <option value="both">Services & Drugs</option>
+                        <option value="services">Services Only</option>
+                        <option value="drugs">Drugs Only</option>
+                      </select>
+                    </div>
+
                     <div class="col-8">
                       <label class="form-label mb-1">Administrative Expenses:</label>
                       <input type="number" class="form-control form-control-sm" id="printAdminExpenses" value="0" min="0" step="0.01">

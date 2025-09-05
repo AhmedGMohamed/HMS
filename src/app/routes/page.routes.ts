@@ -6,8 +6,13 @@ import {
 	verifyToken
 } from "../middleware/auth.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
+import navigationController from "../controllers/navigation.controller.js";
 
 const router = Router();
+
+router.get("/navigation", verifyToken, (req, res) =>
+	navigationController.getNavigation(req, res)
+);
 
 router.get("/login", (_req, res) => {
 	res.sendFile("./views/login.html", { root: __dirname });
@@ -111,5 +116,9 @@ router.get(
 		res.sendFile("./views/patients/patients.html", { root: __dirname });
 	}
 );
+
+router.get("/vault", (req, res) => {
+	res.sendFile("./views/vault/vault.html", { root: __dirname });
+});
 
 export default router;

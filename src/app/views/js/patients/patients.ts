@@ -13,6 +13,7 @@ interface Patient {
 	payment_type: "cash" | "credit" | "insurance";
 	insurance_id: number | null;
 	insurance_card_id: string | null;
+	insurance_form_id: string | null;
 	guardian_info: {
 		name: string;
 		phone: string;
@@ -417,6 +418,7 @@ class PatientManager {
 						<th>Payment Type</th>
 						<th>Insurance Company</th>
 						<th>Insurance ID</th>
+						<th>Claims Form ID</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -442,6 +444,7 @@ class PatientManager {
 					<td>${this.formatPaymentType(patient.payment_type)}</td>
 					<td>${insurance}</td>
 					<td>${patient.insurance_card_id || "-"}</td>
+					<td>${patient.insurance_form_id || "-"}</td>
 				</tr>
 			`;
 		});
@@ -982,6 +985,8 @@ class PatientManager {
 			patient.insurance_company_name || "-";
 		document.getElementById("insuranceCardId")!.textContent =
 			patient.insurance_card_id || "-";
+		document.getElementById("insuranceFormId")!.textContent =
+			patient.insurance_form_id || "-";
 		document.getElementById("priceList")!.textContent =
 			this.getPriceListName() || "Default";
 
@@ -1558,6 +1563,7 @@ class PatientManager {
 		document.getElementById("insuranceCompanyGroup")!.style.display =
 			"block";
 		document.getElementById("insuranceCardGroup")!.style.display = "block";
+		document.getElementById("insuranceFormGroup")!.style.display = "block";
 	}
 
 	private hideInsuranceFields(): void {
@@ -1572,6 +1578,10 @@ class PatientManager {
 		(
 			document.getElementById("modalInsuranceCardId") as HTMLInputElement
 		).value = "";
+		(
+			document.getElementById("modalInsuranceFormId") as HTMLInputElement
+		).value = "";
+		document.getElementById("insuranceFormGroup")!.style.display = "non";
 	}
 
 	private toggleAdmissionSection(show: boolean): void {
@@ -1691,6 +1701,12 @@ class PatientManager {
 					) as HTMLInputElement
 				).value.trim();
 
+				const insuranceFormId = (
+					document.getElementById(
+						"modalInsuranceCardId"
+					) as HTMLInputElement
+				).value.trim();
+
 				if (!insuranceCompanyId) {
 					this.showError("Please select an insurance company");
 					return;
@@ -1698,6 +1714,7 @@ class PatientManager {
 
 				patientData.insurance_id = parseInt(insuranceCompanyId);
 				patientData.insurance_card_id = insuranceCardId || null;
+				patientData.insurance_form_id = insuranceFormId || null;
 			}
 
 			// Handle admission if checkbox is checked

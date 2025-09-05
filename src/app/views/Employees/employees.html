@@ -159,6 +159,13 @@
             <span>Price Lists</span>
           </a>
         </li>
+        <!-- Vault - Requires view_vault permission -->
+        <li data-requires-permission="view_vault">
+          <a href="/vault" class="nav-link">
+            <i class="bi bi-safe"></i>
+            <span>Vault</span>
+          </a>
+        </li>
         <!-- Reports -->
         <li class="nav-item-header" data-requires-permission="view_reports">Reports</li>
         <li data-requires-permission="view_reports">
@@ -447,22 +454,22 @@
                     <option value="after_deductions">After Deductions</option>
                   </select>
                 </div>
-				<div class="mb-3">
-				  <label for="shiftType" class="form-label">Shift Type</label>
-				  <select class="form-select" id="shiftType">
-				    <option value="">Select Shift</option>
-				    <option value="morning">Morning</option>
-				    <option value="night">Night</option>
-				  </select>
-				</div>
-				<div class="mb-3">
-				  <label for="shiftStartTime" class="form-label">Shift Start Time</label>
-				  <input type="time" class="form-control" id="shiftStartTime" required>
-				</div>
-				<div class="mb-3">
-				  <label for="shiftEndTime" class="form-label">Shift End time</label>
-				  <input type="time" class="form-control" id="shiftEndTime" required>
-				</div>
+                <div class="mb-3">
+                  <label for="shiftType" class="form-label">Shift Type</label>
+                  <select class="form-select" id="shiftType">
+                    <option value="">Select Shift</option>
+                    <option value="morning">Morning</option>
+                    <option value="night">Night</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="shiftStartTime" class="form-label">Shift Start Time</label>
+                  <input type="time" class="form-control" id="shiftStartTime" required>
+                </div>
+                <div class="mb-3">
+                  <label for="shiftEndTime" class="form-label">Shift End time</label>
+                  <input type="time" class="form-control" id="shiftEndTime" required>
+                </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="needClockIn">
                   <label class="form-check-label" for="needClockIn">Requires Clock-In</label>
