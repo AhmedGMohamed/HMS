@@ -2,12 +2,12 @@ import DashboardService from "../services/Dashboard.service.js";
 import { Request, Response } from "express";
 
 class DashboardController {
-	async getStatistics(_req: Request, res: Response): Promise<void> {
+	async getAdminStatistics(_req: Request, res: Response): Promise<void> {
 		try {
-			const statistics = await DashboardService.getStatistics();
+			const statistics = await DashboardService.getAdminStatistics();
 			res.status(200).json(statistics);
 		} catch (error) {
-			res.status(500).json({ error: "Failed to retrieve statistics" });
+			res.status(500).json({error: "Failed to retrieve admin statistics"});
 		}
 	}
 
@@ -16,7 +16,7 @@ class DashboardController {
 			const chartData = await DashboardService.getChartData();
 			res.status(200).json(chartData);
 		} catch (error) {
-			res.status(500).json({ error: "Failed to retrieve statistics" });
+			res.status(500).json({error: "Failed to retrieve chart data"});
 		}
 	}
 }

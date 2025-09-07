@@ -11,7 +11,6 @@ import {
 	validateSearchTerm
 } from "../middleware/validate.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
-import { verify } from "jsonwebtoken";
 
 const router = Router();
 
@@ -21,6 +20,10 @@ router.get(
 	checkPermission("manage_employees"),
 	auditLogger,
 	(req, res) => EmployeeController.getAllEmployees(req, res)
+);
+
+router.get("/nurses/available", verifyToken, auditLogger, (req, res) =>
+	EmployeeController.getAvailableNurses(req, res)
 );
 
 router.get(
@@ -63,7 +66,5 @@ router.get(
 	(req, res) => EmployeeController.searchEmployeesByName(req, res)
 );
 
-
-router.get("/nurses/available", verifyToken, auditLogger, (req, res) =>EmployeeController.getAvailableNurses(req, res));
 
 export default router;

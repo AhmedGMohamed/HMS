@@ -21,6 +21,9 @@ export interface VaultSummary {
 	wages_paid_total: number;
 	wages_outstanding_total: number;
 
+	// Insurance Payments
+	insurance_payments_total: number;
+
 	// Net Summary
 	total_revenue: number;
 	total_expenses: number;

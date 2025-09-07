@@ -1,8 +1,11 @@
 import { query } from "../models/database/connection.js";
-import { DashboardStatistics, ChartDataPoint } from "../utils/types/dashboard.js";
+import {
+	DashboardStatistics,
+	ChartDataPoint
+} from "../utils/types/dashboard.js";
 
 export class DashboardService {
-	async getStatistics(): Promise<DashboardStatistics> {
+	async getAdminStatistics(): Promise<DashboardStatistics> {
 		try {
 			const [
 				activePatientsCount,
@@ -23,8 +26,8 @@ export class DashboardService {
 				lowStockItemsCount
 			};
 		} catch (error) {
-			console.error("Error getting dashboard statistics:", error);
-			throw new Error("Failed to retrieve dashboard statistics");
+			console.error("Error getting admin statistics:", error);
+			throw new Error("Failed to retrieve admin statistics");
 		}
 	}
 

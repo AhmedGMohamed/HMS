@@ -95,14 +95,8 @@ export class NavigationController {
 					{
 						id: "patients",
 						label: "Patients",
-						icon: "bi-person-lines-fill",
-						url: "/patients"
-					},
-					{
-						id: "admissions",
-						label: "Admissions",
 						icon: "bi-hospital",
-						url: "/admissions"
+						url: "/patients"
 					}
 				]
 			},
@@ -156,12 +150,6 @@ export class NavigationController {
 						label: "Drugs",
 						icon: "bi-capsule-pill",
 						url: "/drugs"
-					},
-					{
-						id: "inventory",
-						label: "Inventory",
-						icon: "bi-box-seam",
-						url: "/inventory"
 					}
 				]
 			},
@@ -209,6 +197,15 @@ export class NavigationController {
 				icon: "bi-file-earmark-text",
 				url: "/reports",
 				permission: "view_reports"
+			},
+
+			// Insurance Companies
+			{
+				id: "insurance",
+				label: "Insurance Companies",
+				icon: "bi bi-shield-check",
+				url: "/insurance",
+				permission: "view_patients"
 			}
 		];
 

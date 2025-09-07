@@ -26,6 +26,7 @@ class DashboardManager {
 	private revenueChart: any | null = null;
 	private distributionChart: any | null = null;
 	private currentDistributionView: "revenue" | "profit" = "revenue";
+	private isDashboardAdmin: boolean = false;
 
 	constructor() {
 		// Initialize sidebar manager
@@ -41,13 +42,17 @@ class DashboardManager {
 			this.loadUserInfo();
 			await this.checkPageAccess();
 
-			await Promise.all([
-				this.loadStatistics(),
-				this.initializeCharts(),
-				this.loadRecentActivity()
-			]);
+			// Check permissions
+			this.isDashboardAdmin = this.hasPermission("view_dashboard");
+			console.log(this.isDashboardAdmin);
 
-			this.setupEventListeners();
+			if (this.isDashboardAdmin) {
+				await this.loadAdminDashboard();
+			} else {
+				await this.loadUserDashboard();
+			}
+
+			await this.loadRecentActivity();
 		} catch (error) {
 			console.error("Dashboard initialization error:", error);
 			this.handleAuthError();
@@ -89,24 +94,166 @@ class DashboardManager {
 		if (welcomeName && this.user) {
 			welcomeName.textContent = this.user.username;
 		}
+
+		// Update welcome subtitle based on dashboard type
+		const welcomeSubtitle = document.getElementById("welcomeSubtitle");
+		if (welcomeSubtitle) {
+			if (this.isDashboardAdmin) {
+				welcomeSubtitle.textContent =
+					"Hospital overview and financial metrics";
+			} else {
+				welcomeSubtitle.textContent = "Time tracking and system access";
+			}
+		}
 	}
 
-	private async loadStatistics(): Promise<void> {
+	private async loadAdminDashboard(): Promise<void> {
+		try {
+			// Show admin dashboard
+			const adminDashboard = document.getElementById("adminDashboard");
+			if (adminDashboard) {
+				adminDashboard.style.display = "block";
+			}
+
+			await Promise.all([
+				this.loadAdminStatistics(),
+				this.initializeCharts()
+			]);
+
+			this.setupEventListeners();
+		} catch (error) {
+			console.error("Error loading admin dashboard:", error);
+			this.showErrorToast("Failed to load admin dashboard");
+		}
+	}
+
+	private async loadUserDashboard(): Promise<void> {
+		try {
+			// Show user dashboard
+			const userDashboard = document.getElementById("userDashboard");
+			if (userDashboard) {
+				userDashboard.style.display = "block";
+			}
+
+			// Load and display available navigation links
+			await this.loadAvailableLinks();
+		} catch (error) {
+			console.error("Error loading user dashboard:", error);
+			this.showErrorToast("Failed to load user dashboard");
+		}
+	}
+
+	private async loadAvailableLinks(): Promise<void> {
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch("/api/dashboard/statistics", {
+			const response = await fetch("/navigation", {
 				headers: {
 					Authorization: `Bearer ${token}`
 				}
 			});
 
 			if (!response.ok) {
-				throw new Error("Failed to load statistics");
+				throw new Error("Failed to fetch navigation");
+			}
+
+			const navigation: any[] = await response.json();
+			this.displayAvailableLinks(navigation);
+		} catch (error) {
+			console.error("Error loading available links:", error);
+			const container = document.getElementById(
+				"availableLinksContainer"
+			);
+			if (container) {
+				container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+                    <p class="mt-3 text-muted">Failed to load available features</p>
+                </div>
+            `;
+			}
+		}
+	}
+
+	private displayAvailableLinks(navigation: any[]): void {
+		const container = document.getElementById("availableLinksContainer");
+		if (!container) return;
+
+		// Filter out headers and flatten the navigation
+		const availableLinks = this.flattenNavigation(navigation);
+
+		if (availableLinks.length === 0) {
+			container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-info-circle text-info" style="font-size: 3rem;"></i>
+                <p class="mt-3 text-muted">No additional features available</p>
+            </div>
+        `;
+			return;
+		}
+
+		// Group links by category for better organization
+		const groupedLinks = this.groupLinksByCategory(availableLinks);
+
+		let html = "";
+
+		for (const [category, links] of Object.entries(groupedLinks)) {
+			if (links.length === 0) continue;
+
+			html += `
+            <div class="mb-4">
+                <h6 class="text-uppercase text-muted mb-3">${category}</h6>
+                <div class="row">
+        `;
+
+			links.forEach((link: any) => {
+				html += `
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <a href="${link.url}" class="text-decoration-none">
+                        <div class="card feature-card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <div class="feature-icon mb-3">
+                                    <i class="${
+										link.icon
+									}" style="font-size: 2.5rem; color: #0d6efd;"></i>
+                                </div>
+                                <h6 class="card-title mb-2">${this.escapeHtml(
+									link.label
+								)}</h6>
+                                <p class="card-text text-muted small">
+                                    ${this.getFeatureDescription(link.id)}
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            `;
+			});
+
+			html += `
+                </div>
+            </div>
+        `;
+		}
+
+		container.innerHTML = html;
+	}
+
+	private async loadAdminStatistics(): Promise<void> {
+		try {
+			const token = localStorage.getItem("token");
+			const response = await fetch("/api/dashboard/admin-statistics", {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to load admin statistics");
 			}
 
 			const stats = await response.json();
 
-			// Safely update statistics with proper error handling
+			// Safely update statistics
 			this.updateStatElement(
 				"activePatients",
 				stats.activePatientsCount?.toString() || "0"
@@ -124,7 +271,7 @@ class DashboardManager {
 				`$${parseFloat(stats.todayProfit || 0).toFixed(2)}`
 			);
 		} catch (error) {
-			console.error("Error loading statistics:", error);
+			console.error("Error loading admin statistics:", error);
 			this.showErrorToast("Failed to load dashboard statistics");
 		}
 	}
@@ -504,14 +651,100 @@ class DashboardManager {
 		});
 	}
 
+	private hasPermission(permission: string): boolean {
+		if (!this.user) return false;
+
+		// Admin role has all permissions
+		if (this.user.role === "Admin") return true;
+
+		return this.user.permissions.includes(permission);
+	}
+
 	private async checkPageAccess(): Promise<void> {
 		if (!this.user) {
 			this.handleAuthError();
 			return;
 		}
 
-		// Dashboard access is typically allowed for all authenticated users
-		// Additional checks can be added here if needed
+		// Dashboard access is allowed for all authenticated users
+		// Different content is shown based on permissions
+	}
+
+	private flattenNavigation(navigation: any[]): any[] {
+		const flattened: any[] = [];
+
+		for (const item of navigation) {
+			if (item.isHeader) {
+				continue; // Skip headers
+			}
+
+			if (item.children && item.children.length > 0) {
+				// Add children instead of parent
+				flattened.push(...item.children);
+			} else if (item.url && item.id !== "dashboard") {
+				// Add regular items (exclude dashboard since we're on it)
+				flattened.push(item);
+			}
+		}
+
+		return flattened;
+	}
+
+	private groupLinksByCategory(links: any[]): { [key: string]: any[] } {
+		const groups: { [key: string]: any[] } = {
+			"Patient Care": [],
+			"Employee Management": [],
+			Pharmacy: [],
+			Administration: [],
+			System: [],
+			Other: []
+		};
+
+		for (const link of links) {
+			if (["patients", "admissions"].includes(link.id)) {
+				groups["Patient Care"].push(link);
+			} else if (
+				["employees", "doctors", "nurses", "clocking"].includes(link.id)
+			) {
+				groups["Employee Management"].push(link);
+			} else if (["drugs", "inventory"].includes(link.id)) {
+				groups["Pharmacy"].push(link);
+			} else if (
+				["users", "roles", "permissions", "vault"].includes(link.id)
+			) {
+				groups["Administration"].push(link);
+			} else if (
+				["services", "price_lists", "reports"].includes(link.id)
+			) {
+				groups["System"].push(link);
+			} else {
+				groups["Other"].push(link);
+			}
+		}
+
+		return groups;
+	}
+
+	private getFeatureDescription(id: string): string {
+		const descriptions: { [key: string]: string } = {
+			patients: "Manage patient records and medical information",
+			admissions: "Handle patient admissions and discharges",
+			employees: "Manage hospital staff and employee records",
+			doctors: "Doctor profiles and medical staff management",
+			nurses: "Nursing staff management and assignments",
+			clocking: "Employee time tracking and attendance",
+			drugs: "Medication inventory and prescription management",
+			inventory: "Stock management and drug supplies",
+			services: "Hospital services and treatment options",
+			price_lists: "Service pricing and insurance management",
+			vault: "Financial overview and revenue tracking",
+			reports: "System reports and analytics",
+			users: "System user accounts and access control",
+			roles: "User roles and permission management",
+			permissions: "System security and access permissions"
+		};
+
+		return descriptions[id] || "Access this system feature";
 	}
 
 	private handleAuthError(): void {
@@ -529,7 +762,15 @@ class DashboardManager {
 	}
 }
 
+// Make dashboard manager available globally for employee clocking buttons
+declare global {
+	interface Window {
+		dashboardManager: DashboardManager;
+	}
+}
+
 // Initialize dashboard when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-	new DashboardManager();
+	const dashboardManager = new DashboardManager();
+	window.dashboardManager = dashboardManager;
 });
