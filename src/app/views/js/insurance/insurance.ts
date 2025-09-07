@@ -2,7 +2,6 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
-import { createCustomReport } from "../../utils/pdfGenerator.js";
 
 interface InsuranceCompany {
     insurance_id: number;
@@ -48,13 +47,16 @@ interface InsurancePatient {
 }
 
 interface InsuranceStatistics {
-    total_patients: number;
-    active_patients: number;
-    total_admissions: number;
-    current_admissions: number;
-    total_billed: number;
-    total_paid: number;
-    total_outstanding: number;
+	total_patients: number;
+	active_patients: number;
+	total_admissions: number;
+	current_admissions: number;
+	total_billed: number;
+	total_paid: number;
+	total_outstanding: number;
+	total_insurance_payments: number;
+	net_outstanding: number;
+	payment_coverage_percentage: number;
 }
 
 interface InsuranceReportSummary {
@@ -317,14 +319,24 @@ class InsuranceManager {
 		document.getElementById("emptyState")!.style.display = "none";
 		document.getElementById("insuranceContent")!.style.display = "block";
 
-		const html = this.insuranceCompanies
-			.map((insurance) => this.createInsuranceCard(insurance))
-			.join("");
+		const html = `
+        <div class="row">
+            ${this.insuranceCompanies
+				.map((insurance) => this.createInsuranceCard(insurance))
+				.join("")}
+        </div>
+    `;
 		container.innerHTML = html;
+
+		// Force layout recalculation
+		container.offsetHeight;
 
 		// Add event listeners to cards
 		container.querySelectorAll(".insurance-card").forEach((card) => {
-			card.addEventListener("click", () => {
+			// Add layout fix class
+			card.classList.add("layout-fix");
+
+			card.addEventListener("click", (e) => {
 				const insuranceId = parseInt(
 					card.getAttribute("data-insurance-id")!
 				);
@@ -333,7 +345,9 @@ class InsuranceManager {
 		});
 
 		// Add animation
-		container.classList.add("fade-in");
+		setTimeout(() => {
+			container.classList.add("fade-in");
+		}, 50);
 	}
 
 	private createInsuranceCard(insurance: InsuranceCompany): string {
@@ -342,68 +356,68 @@ class InsuranceManager {
 		).toLocaleDateString();
 
 		return `
-            <div class="col-md-6 col-lg-4">
-                <div class="card insurance-card" data-insurance-id="${
-					insurance.insurance_id
-				}">
-                    <div class="card-body insurance-card-body">
-                        <div class="insurance-icon">
-                            <i class="bi bi-shield-check"></i>
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card insurance-card h-100" data-insurance-id="${
+				insurance.insurance_id
+			}">
+                <div class="card-body insurance-card-body d-flex flex-column">
+                    <div class="insurance-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="insurance-name">${this.escapeHtml(
+						insurance.name
+					)}</div>
+                    
+                    <div class="insurance-meta">
+                        <div class="insurance-meta-item">
+                            <i class="bi bi-list-check"></i>
+                            <span>${
+								insurance.pricelist_name || "No price list"
+							}</span>
                         </div>
-                        <div class="insurance-name">${this.escapeHtml(
-							insurance.name
-						)}</div>
-                        
+                        <div class="insurance-meta-item">
+                            <i class="bi bi-calendar-check"></i>
+                            <span>Cleared: ${lastClearedDate}</span>
+                        </div>
+                    </div>
+
+                    ${
+						insurance.contact_info
+							? `
                         <div class="insurance-meta">
                             <div class="insurance-meta-item">
-                                <i class="bi bi-list-check"></i>
-                                <span>${
-									insurance.pricelist_name || "No price list"
-								}</span>
-                            </div>
-                            <div class="insurance-meta-item">
-                                <i class="bi bi-calendar-check"></i>
-                                <span>Cleared: ${lastClearedDate}</span>
+                                <i class="bi bi-telephone"></i>
+                                <span>${this.escapeHtml(
+									insurance.contact_info.substring(0, 50)
+								)}${
+									insurance.contact_info.length > 50
+										? "..."
+										: ""
+							  }</span>
                             </div>
                         </div>
+                    `
+							: ""
+					}
 
-                        ${
-							insurance.contact_info
-								? `
-                            <div class="insurance-meta">
-                                <div class="insurance-meta-item">
-                                    <i class="bi bi-telephone"></i>
-                                    <span>${this.escapeHtml(
-										insurance.contact_info.substring(0, 50)
-									)}${
-										insurance.contact_info.length > 50
-											? "..."
-											: ""
-								  }</span>
-                                </div>
-                            </div>
-                        `
-								: ""
-						}
-
-                        <div class="insurance-stats">
-                            <div class="insurance-stat">
-                                <span class="insurance-stat-value">${
-									insurance.patient_count || 0
-								}</span>
-                                <span class="insurance-stat-label">Patients</span>
-                            </div>
-                            <div class="insurance-stat">
-                                <span class="insurance-stat-value">
-                                    <i class="bi bi-arrow-right text-primary"></i>
-                                </span>
-                                <span class="insurance-stat-label">View Details</span>
-                            </div>
+                    <div class="insurance-stats mt-auto">
+                        <div class="insurance-stat">
+                            <span class="insurance-stat-value">${
+								insurance.patient_count || 0
+							}</span>
+                            <span class="insurance-stat-label">Patients</span>
+                        </div>
+                        <div class="insurance-stat">
+                            <span class="insurance-stat-value">
+                                <i class="bi bi-arrow-right text-primary"></i>
+                            </span>
+                            <span class="insurance-stat-label">View Details</span>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 	}
 
 	private async selectInsuranceCompany(insuranceId: number): Promise<void> {
@@ -548,13 +562,13 @@ class InsuranceManager {
 	private displayInsuranceStatistics(): void {
 		if (!this.currentStatistics) {
 			document.getElementById("insuranceStatistics")!.innerHTML = `
-                <div class="col-md-12">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Unable to load statistics at this time.
-                    </div>
+            <div class="col-md-12">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Unable to load statistics at this time.
                 </div>
-            `;
+            </div>
+        `;
 			return;
 		}
 
@@ -562,39 +576,86 @@ class InsuranceManager {
 		const container = document.getElementById("insuranceStatistics")!;
 
 		container.innerHTML = `
-            <div class="col-md-6 col-lg-3">
-                <div class="stat-metric">
-                    <span class="stat-metric-value">${
-						stats.total_patients
-					}</span>
-                    <span class="stat-metric-label">Total Patients</span>
-                </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value">${stats.total_patients}</span>
+                <span class="stat-metric-label">Total Patients</span>
             </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="stat-metric">
-                    <span class="stat-metric-value text-success">${
-						stats.active_patients
-					}</span>
-                    <span class="stat-metric-label">Active Patients</span>
-                </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value text-success">${
+					stats.active_patients
+				}</span>
+                <span class="stat-metric-label">Active Patients</span>
             </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="stat-metric">
-                    <span class="stat-metric-value text-info">${
-						stats.current_admissions
-					}</span>
-                    <span class="stat-metric-label">Current Admissions</span>
-                </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value text-info">${
+					stats.current_admissions
+				}</span>
+                <span class="stat-metric-label">Current Admissions</span>
             </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="stat-metric">
-                    <span class="stat-metric-value text-warning">${this.formatCurrency(
-						stats.total_outstanding
-					)}</span>
-                    <span class="stat-metric-label">Outstanding</span>
-                </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value">${this.formatCurrency(
+					stats.total_billed
+				)}</span>
+                <span class="stat-metric-label">Total Billed*</span>
             </div>
-        `;
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value text-primary">${this.formatCurrency(
+					stats.total_insurance_payments
+				)}</span>
+                <span class="stat-metric-label">Insurance Payments</span>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value text-success">${this.formatCurrency(
+					stats.total_paid
+				)}</span>
+                <span class="stat-metric-label">Patient Payments*</span>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value text-warning">${this.formatCurrency(
+					stats.total_outstanding
+				)}</span>
+                <span class="stat-metric-label">Outstanding*</span>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-metric">
+                <span class="stat-metric-value ${
+					stats.net_outstanding > 0 ? "text-danger" : "text-success"
+				}">${this.formatCurrency(stats.net_outstanding)}</span>
+                <span class="stat-metric-label">Net Outstanding</span>
+            </div>
+        </div>
+        <div class="col-md-12 mt-3">
+            <div class="alert alert-info">
+                <small>
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>*</strong> Financial figures only include data after last cleared date 
+                    (${new Date(
+						this.selectedInsurance!.last_cleared_date
+					).toLocaleDateString()}).
+                    <br>
+                    <strong>Net Outstanding:</strong> Outstanding amount minus insurance payments received.
+                    <br>
+                    <strong>Payment Coverage:</strong> ${stats.payment_coverage_percentage.toFixed(
+						1
+					)}% of billed amount covered by insurance payments.
+                </small>
+            </div>
+        </div>
+    `;
 	}
 
 	private displayPatientsList(): void {
@@ -1113,127 +1174,194 @@ class InsuranceManager {
 			this.currentReport.last_cleared_date
 		).toLocaleDateString();
 
-		// Generate report summary
+		// Generate report summary (same as before)
 		const summaryHtml = `
-            <div class="report-summary">
-                <div class="report-summary-title">
-                    Report Summary - ${reportStartDate} to ${reportEndDate}
+        <div class="report-summary">
+            <div class="report-summary-title">
+                Report Summary - ${reportStartDate} to ${reportEndDate}
+            </div>
+            <div class="report-summary-grid">
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${this.formatCurrency(
+						this.currentReport.total_services_cost
+					)}</span>
+                    <span class="report-summary-label">Services Cost</span>
                 </div>
-                <div class="report-summary-grid">
-                    <div class="report-summary-item">
-                        <span class="report-summary-value">${this.formatCurrency(
-							this.currentReport.total_services_cost
-						)}</span>
-                        <span class="report-summary-label">Services Cost</span>
-                    </div>
-                    <div class="report-summary-item">
-                        <span class="report-summary-value">${this.formatCurrency(
-							this.currentReport.total_drugs_cost
-						)}</span>
-                        <span class="report-summary-label">Drugs Cost</span>
-                    </div>
-                    <div class="report-summary-item">
-                        <span class="report-summary-value">${this.formatCurrency(
-							this.currentReport.total_cost
-						)}</span>
-                        <span class="report-summary-label">Total Cost</span>
-                    </div>
-                    <div class="report-summary-item">
-                        <span class="report-summary-value">${this.formatCurrency(
-							this.currentReport.total_patient_payments
-						)}</span>
-                        <span class="report-summary-label">Patient Payments</span>
-                    </div>
-                    <div class="report-summary-item">
-                        <span class="report-summary-value text-warning">${this.formatCurrency(
-							this.currentReport.outstanding_amount
-						)}</span>
-                        <span class="report-summary-label">Outstanding</span>
-                    </div>
-                    <div class="report-summary-item">
-                        <span class="report-summary-value">${
-							this.currentReport.patient_count
-						}</span>
-                        <span class="report-summary-label">Patients</span>
-                    </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${this.formatCurrency(
+						this.currentReport.total_drugs_cost
+					)}</span>
+                    <span class="report-summary-label">Drugs Cost</span>
                 </div>
-                <div class="mt-3 text-center">
-                    <small class="text-muted">Last Cleared Date: ${lastClearedDate}</small>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${this.formatCurrency(
+						this.currentReport.total_cost
+					)}</span>
+                    <span class="report-summary-label">Total Cost</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${this.formatCurrency(
+						this.currentReport.total_patient_payments
+					)}</span>
+                    <span class="report-summary-label">Patient Payments</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-warning">${this.formatCurrency(
+						this.currentReport.outstanding_amount
+					)}</span>
+                    <span class="report-summary-label">Outstanding</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${
+						this.currentReport.patient_count
+					}</span>
+                    <span class="report-summary-label">Patients</span>
                 </div>
             </div>
-        `;
+            <div class="mt-3 text-center">
+                <small class="text-muted">Last Cleared Date: ${lastClearedDate}</small>
+            </div>
+        </div>
+    `;
 
-		// Generate items table
-		let itemsTableHtml = "";
+		// Generate updated patient-grouped items display
+		let itemsDisplayHtml = "";
 		if (this.currentReport.items && this.currentReport.items.length > 0) {
-			const tableRows = this.currentReport.items
-				.map(
-					(item) => `
-                <tr>
-                    <td>${this.escapeHtml(item.patient_name)}</td>
-                    <td>${item.insurance_card_id || "-"}</td>
-                    <td>${item.insurance_form_id || "-"}</td>
-                    <td>${new Date(
-						item.admission_time
-					).toLocaleDateString()}</td>
-                    <td>${
-						item.discharge_time
-							? new Date(item.discharge_time).toLocaleDateString()
-							: "Current"
-					}</td>
-                    <td>${
-						item.item_type === "service"
-							? item.service_name || "-"
-							: item.drug_name || "-"
-					}</td>
-                    <td>${this.capitalizeFirst(item.item_type)}</td>
-                    <td>${item.quantity}</td>
-                    <td>${this.formatCurrency(item.unit_price)}</td>
-                    <td>${this.formatCurrency(item.total_cost)}</td>
-                    <td>${new Date(item.service_date).toLocaleDateString()}</td>
-                </tr>
-            `
-				)
-				.join("");
+			const patientGroups = this.groupItemsByPatient(
+				this.currentReport.items
+			);
 
-			itemsTableHtml = `
-                <div class="mt-4">
-                    <h6>Detailed Items (${this.currentReport.items.length} items)</h6>
-                    <div class="table-responsive">
-                        <table class="insurance-report-table">
-                            <thead>
-                                <tr>
-                                    <th>Patient Name</th>
-                                    <th>Card ID</th>
-                                    <th>Form ID</th>
-                                    <th>Admission</th>
-                                    <th>Discharge</th>
-                                    <th>Item Name</th>
-                                    <th>Type</th>
-                                    <th>Qty</th>
-                                    <th>Unit Price</th>
-                                    <th>Total</th>
-                                    <th>Service Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableRows}
-                            </tbody>
-                        </table>
+			itemsDisplayHtml = `
+            <div class="mt-4">
+                <h6>Patient Details (${
+					Object.keys(patientGroups).length
+				} patients, ${this.currentReport.items.length} items)</h6>
+                ${Object.entries(patientGroups)
+					.map(
+						(
+							[patientName, patientData]: [string, any],
+							index: number
+						) => `
+                    <div class="patient-group-card mb-4">
+                        <div class="patient-group-header">
+                            <h6 class="mb-2">${index + 1}. ${this.escapeHtml(
+							patientName
+						)}</h6>
+                            <div class="patient-group-info">
+                                ${
+									patientData.items[0].insurance_card_id
+										? `<span class="badge bg-primary me-2">Card: ${patientData.items[0].insurance_card_id}</span>`
+										: ""
+								}
+                                ${
+									patientData.items[0].insurance_form_id
+										? `<span class="badge bg-info me-2">Form: ${patientData.items[0].insurance_form_id}</span>`
+										: ""
+								}
+                                <span class="badge bg-secondary">Admission: ${new Date(
+									patientData.items[0].admission_time
+								).toLocaleDateString()}</span>
+                                ${
+									patientData.items[0].discharge_time
+										? `<span class="badge bg-success">Discharge: ${new Date(
+												patientData.items[0].discharge_time
+										  ).toLocaleDateString()}</span>`
+										: `<span class="badge bg-warning">Currently Admitted</span>`
+								}
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Type</th>
+                                        <th>Service Date</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${patientData.items
+										.map(
+											(item: any) => `
+                                        <tr>
+                                            <td>${
+												item.item_type === "service"
+													? item.service_name || "-"
+													: item.drug_name || "-"
+											}</td>
+                                            <td><span class="badge ${
+												item.item_type === "service"
+													? "bg-success"
+													: "bg-primary"
+											}">${this.capitalizeFirst(
+												item.item_type
+											)}</span></td>
+                                            <td>${new Date(
+												item.service_date
+											).toLocaleDateString()}</td>
+                                            <td>${item.quantity}</td>
+                                            <td>${this.formatCurrency(
+												item.unit_price
+											)}</td>
+                                            <td>${this.formatCurrency(
+												item.total_cost
+											)}</td>
+                                        </tr>
+                                    `
+										)
+										.join("")}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr class="border-top-2">
+                                        <td colspan="5" class="fw-bold">Total Charges:</td>
+                                        <td class="fw-bold">${this.formatCurrency(
+											patientData.totalCost
+										)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="5" class="fw-bold">Patient Paid:</td>
+                                        <td class="fw-bold text-success">${this.formatCurrency(
+											patientData.patientPaid
+										)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="5" class="fw-bold">Outstanding Amount:</td>
+                                        <td class="fw-bold ${
+											patientData.totalCost -
+												patientData.patientPaid >
+											0
+												? "text-warning"
+												: "text-success"
+										}">
+                                            ${this.formatCurrency(
+												patientData.totalCost -
+													patientData.patientPaid
+											)}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            `;
+                `
+					)
+					.join("")}
+            </div>
+        `;
 		} else {
-			itemsTableHtml = `
-                <div class="mt-4 text-center text-muted">
-                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                    <h6 class="mt-3">No Items Found</h6>
-                    <p>No billable items found for the selected period and criteria.</p>
-                </div>
-            `;
+			itemsDisplayHtml = `
+            <div class="mt-4 text-center text-muted">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <h6 class="mt-3">No Items Found</h6>
+                <p>No billable items found for the selected period and criteria.</p>
+            </div>
+        `;
 		}
 
-		// Generate payments section
+		// Generate payments section (same as before)
 		let paymentsHtml = "";
 		if (
 			this.currentReport.cleared_payments &&
@@ -1242,47 +1370,43 @@ class InsuranceManager {
 			const paymentRows = this.currentReport.cleared_payments
 				.map(
 					(payment) => `
-                <tr>
-                    <td>${this.formatCurrency(payment.payment_amount)}</td>
-                    <td>${new Date(
-						payment.payment_from
-					).toLocaleDateString()}</td>
-                    <td>${new Date(
-						payment.payment_to
-					).toLocaleDateString()}</td>
-                    <td>${new Date(
-						payment.issued_timestamp
-					).toLocaleDateString()}</td>
-                    <td>${payment.added_by_username || "-"}</td>
-                </tr>
-            `
+            <tr>
+                <td>${this.formatCurrency(payment.payment_amount)}</td>
+                <td>${new Date(payment.payment_from).toLocaleDateString()}</td>
+                <td>${new Date(payment.payment_to).toLocaleDateString()}</td>
+                <td>${new Date(
+					payment.issued_timestamp
+				).toLocaleDateString()}</td>
+                <td>${payment.added_by_username || "-"}</td>
+            </tr>
+        `
 				)
 				.join("");
 
 			paymentsHtml = `
-                <div class="mt-4">
-                    <h6>Insurance Payments in Period (${this.currentReport.cleared_payments.length} payments)</h6>
-                    <div class="table-responsive">
-                        <table class="insurance-report-table">
-                            <thead>
-                                <tr>
-                                    <th>Amount</th>
-                                    <th>Period From</th>
-                                    <th>Period To</th>
-                                    <th>Recorded Date</th>
-                                    <th>Added By</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${paymentRows}
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="mt-4">
+                <h6>Insurance Payments in Period (${this.currentReport.cleared_payments.length} payments)</h6>
+                <div class="table-responsive">
+                    <table class="insurance-report-table">
+                        <thead>
+                            <tr>
+                                <th>Amount</th>
+                                <th>Period From</th>
+                                <th>Period To</th>
+                                <th>Recorded Date</th>
+                                <th>Added By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${paymentRows}
+                        </tbody>
+                    </table>
                 </div>
-            `;
+            </div>
+        `;
 		}
 
-		container.innerHTML = summaryHtml + itemsTableHtml + paymentsHtml;
+		container.innerHTML = summaryHtml + itemsDisplayHtml + paymentsHtml;
 		this.reportDetailsModal.show();
 	}
 
@@ -1293,16 +1417,153 @@ class InsuranceManager {
 		}
 
 		try {
-			const reportConfig = this.createInsuranceReportConfig();
-			const pdf = createCustomReport(
-				reportConfig.title,
-				reportConfig.sections,
-				{
-					report: this.currentReport,
-					data: this.currentReport.items
+			// Create custom PDF with patient grouping
+			const docDefinition = {
+				content: [
+					{
+						text: `${this.currentReport.insurance_name} - Insurance Report`,
+						style: "header",
+						alignment: "center"
+					},
+					{
+						text: `Report Period: ${new Date(
+							this.currentReport.report_period.start_date
+						).toLocaleDateString()} - ${new Date(
+							this.currentReport.report_period.end_date
+						).toLocaleDateString()}`,
+						style: "subheader",
+						alignment: "center"
+					},
+					{
+						text: `Last Cleared Date: ${new Date(
+							this.currentReport.last_cleared_date
+						).toLocaleDateString()}`,
+						style: "info",
+						alignment: "center",
+						margin: [0, 0, 0, 20]
+					},
+					// Summary section
+					{
+						columns: [
+							{
+								width: "*",
+								table: {
+									widths: ["*", "auto"],
+									body: [
+										[
+											{
+												text: "Report Summary",
+												colSpan: 2,
+												bold: true,
+												fillColor: "#f0f0f0",
+												alignment: "center"
+											},
+											{}
+										],
+										[
+											"Services Cost:",
+											this.formatCurrency(
+												this.currentReport
+													.total_services_cost
+											)
+										],
+										[
+											"Drugs Cost:",
+											this.formatCurrency(
+												this.currentReport
+													.total_drugs_cost
+											)
+										],
+										[
+											{ text: "Total Cost:", bold: true },
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_cost
+												),
+												bold: true
+											}
+										],
+										[
+											"Patient Payments:",
+											this.formatCurrency(
+												this.currentReport
+													.total_patient_payments
+											)
+										],
+										[
+											{
+												text: "Outstanding:",
+												bold: true,
+												color: "#dc3545"
+											},
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.outstanding_amount
+												),
+												bold: true,
+												color: "#dc3545"
+											}
+										],
+										[
+											"Total Patients:",
+											this.currentReport.patient_count.toString()
+										]
+									]
+								},
+								layout: {
+									fillColor: function (rowIndex: number) {
+										return rowIndex === 0
+											? "#f0f0f0"
+											: null;
+									}
+								}
+							}
+						],
+						margin: [0, 0, 0, 0]
+					},
+					// Patient details
+					...this.generatePatientGroupedReport()
+				],
+				styles: {
+					header: {
+						fontSize: 18,
+						bold: true,
+						margin: [0, 0, 0, 10]
+					},
+					subheader: {
+						fontSize: 14,
+						bold: true,
+						margin: [0, 10, 0, 5]
+					},
+					info: {
+						fontSize: 10,
+						color: "#6c757d"
+					},
+					patientHeader: {
+						fontSize: 12,
+						bold: true,
+						color: "#0d6efd"
+					},
+					patientInfo: {
+						fontSize: 10,
+						color: "#6c757d"
+					}
+				},
+				pageMargins: [40, 60, 40, 60],
+				footer: function (currentPage: number, pageCount: number) {
+					return {
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						alignment: "center",
+						fontSize: 8,
+						margin: [0, 10, 0, 0]
+					};
 				}
-			);
+			};
 
+			//@ts-ignore
+			const pdf = pdfMake.createPdf(docDefinition);
 			pdf.open();
 			this.showSuccess("Report generated successfully");
 		} catch (error) {
@@ -1311,116 +1572,285 @@ class InsuranceManager {
 		}
 	}
 
-	private createInsuranceReportConfig(): any {
-		if (!this.currentReport) return null;
-
-		const reportStartDate = new Date(
-			this.currentReport.report_period.start_date
-		).toLocaleDateString();
-		const reportEndDate = new Date(
-			this.currentReport.report_period.end_date
-		).toLocaleDateString();
-
-		return {
-			title: `${this.currentReport.insurance_name} - Insurance Report`,
-			sections: [
+	private generatePatientGroupedReport(): any[] {
+		if (
+			!this.currentReport ||
+			!this.currentReport.items ||
+			this.currentReport.items.length === 0
+		) {
+			return [
 				{
-					type: "header" as const,
-					title: `Report Period: ${reportStartDate} - ${reportEndDate}`
-				},
-				{
-					type: "columns" as const,
-					columns: [
-						{
-							type: "summary" as const,
-							fields: [
-								{
-									key: "report.total_services_cost",
-									label: "Services Cost:",
-									type: "currency" as const
-								},
-								{
-									key: "report.total_drugs_cost",
-									label: "Drugs Cost:",
-									type: "currency" as const
-								},
-								{
-									key: "report.total_cost",
-									label: "Total Cost:",
-									type: "currency" as const,
-									bold: true
-								},
-								{
-									key: "report.total_patient_payments",
-									label: "Patient Payments:",
-									type: "currency" as const
-								},
-								{
-									key: "report.outstanding_amount",
-									label: "Outstanding:",
-									type: "currency" as const,
-									bold: true
-								}
-							]
-						}
-					]
-				},
-				{
-					type: "table" as const,
-					fields: [
-						{
-							key: "patient_name",
-							label: "Patient Name",
-							type: "text" as const,
-							width: "*"
-						},
-						{
-							key: "insurance_card_id",
-							label: "Card ID",
-							type: "text" as const,
-							width: "auto"
-						},
-						{
-							key: "item_name",
-							label: "Item",
-							type: "text" as const,
-							formatter: (_value: any, item: any) => {
-								return item.item_type === "service"
-									? item.service_name || "-"
-									: item.drug_name || "-";
-							},
-							width: "*"
-						},
-						{
-							key: "item_type",
-							label: "Type",
-							type: "text" as const,
-							formatter: (value: string) =>
-								this.capitalizeFirst(value),
-							width: "auto"
-						},
-						{
-							key: "quantity",
-							label: "Qty",
-							type: "number" as const,
-							width: "auto"
-						},
-						{
-							key: "unit_price",
-							label: "Unit Price",
-							type: "currency" as const,
-							width: "auto"
-						},
-						{
-							key: "total_cost",
-							label: "Total",
-							type: "currency" as const,
-							width: "auto"
-						}
-					]
+					text: "No patient data available for the selected period and criteria.",
+					style: "subheader",
+					alignment: "center",
+					margin: [0, 20, 0, 20]
 				}
-			]
-		};
+			];
+		}
+
+		// Group items by patient
+		const patientGroups = this.groupItemsByPatient(
+			this.currentReport.items
+		);
+		const content: any[] = [];
+
+		// Add section header
+		content.push({
+			text: "Patient Details",
+			style: "subheader",
+			margin: [0, 20, 0, 15]
+		});
+
+		Object.entries(patientGroups).forEach(
+			([patientName, patientData]: [string, any], index: number) => {
+				// Add patient header
+				content.push({
+					text: `${index + 1}. Patient: ${patientName}`,
+					style: "patientHeader",
+					margin: [0, index === 0 ? 0 : 20, 0, 5]
+				});
+
+				// Add patient info
+				const sampleItem = patientData.items[0];
+				const patientInfo: string[] = [];
+
+				if (sampleItem.insurance_card_id) {
+					patientInfo.push(
+						`Card ID: ${sampleItem.insurance_card_id}`
+					);
+				}
+				if (sampleItem.insurance_form_id) {
+					patientInfo.push(
+						`Form ID: ${sampleItem.insurance_form_id}`
+					);
+				}
+				patientInfo.push(
+					`Admission: ${new Date(
+						sampleItem.admission_time
+					).toLocaleDateString()}`
+				);
+				if (sampleItem.discharge_time) {
+					patientInfo.push(
+						`Discharge: ${new Date(
+							sampleItem.discharge_time
+						).toLocaleDateString()}`
+					);
+				} else {
+					patientInfo.push(`Status: Currently Admitted`);
+				}
+
+				content.push({
+					text: patientInfo.join(" • "),
+					style: "patientInfo",
+					margin: [0, 0, 0, 10]
+				});
+
+				// Create patient items table with summary rows included
+				const tableBody = [];
+
+				// Add header row
+				tableBody.push([
+					{ text: "Item Name", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Type", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Service Date", bold: true, fillColor: "#f0f0f0" },
+					{
+						text: "Qty",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{
+						text: "Unit Price",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					},
+					{
+						text: "Total",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					}
+				]);
+
+				// Add data rows for items
+				patientData.items.forEach((item: any) => {
+					const itemName =
+						item.item_type === "service"
+							? item.service_name || "Unknown Service"
+							: item.drug_name || "Unknown Drug";
+
+					tableBody.push([
+						itemName,
+						this.capitalizeFirst(item.item_type),
+						new Date(item.service_date).toLocaleDateString(),
+						{ text: item.quantity.toString(), alignment: "center" },
+						{
+							text: this.formatCurrency(item.unit_price),
+							alignment: "right"
+						},
+						{
+							text: this.formatCurrency(item.total_cost),
+							alignment: "right"
+						}
+					]);
+				});
+
+				// Add summary rows at the end of the same table
+				const outstandingAmount =
+					patientData.totalCost - patientData.patientPaid;
+
+				tableBody.push([
+					{
+						text: "Total Charges:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						border: [true, true, true, true]
+					},
+					{},
+					{},
+					{},
+					{},
+					{
+						text: this.formatCurrency(patientData.totalCost),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				tableBody.push([
+					{
+						text: "Patient Paid:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						border: [true, true, true, true]
+					},
+					{},
+					{},
+					{},
+					{},
+					{
+						text: this.formatCurrency(patientData.patientPaid),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				tableBody.push([
+					{
+						text: "Outstanding Amount:",
+						colSpan: 5,
+						bold: true,
+						fillColor:
+							outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
+						border: [true, true, true, true]
+					},
+					{},
+					{},
+					{},
+					{},
+					{
+						text: this.formatCurrency(outstandingAmount),
+						bold: true,
+						alignment: "right",
+						color: outstandingAmount > 0 ? "#856404" : "#0c5460",
+						fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff"
+					}
+				]);
+
+				// Add the complete patient table
+				content.push({
+					table: {
+						headerRows: 1,
+						widths: ["*", "auto", "auto", "auto", "auto", "auto"],
+						body: tableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number, node: any) {
+							// Header row
+							if (rowIndex === 0) return "#f0f0f0";
+
+							// Find where summary rows start (after separator)
+							const summaryIndex = node.table.body.findIndex(
+								(row: any) => row[0].colSpan === 5
+							);
+
+							// Summary rows - use their individual fill colors
+							if (rowIndex == summaryIndex) return null;
+
+							// Regular data rows - alternate colors
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						},
+						hLineWidth: function (i: number, node: any) {
+							// Find separator row index
+							const summaryIndex = node.table.body.findIndex(
+								(row: any) => row[0].colSpan === 5
+							);
+
+							// Thicker line before summary rows
+							if (i === summaryIndex) return 2;
+
+							// Normal lines elsewhere
+							return 1;
+						}
+					},
+					margin: [0, 0, 0, 15]
+				});
+			}
+		);
+
+		return content;
+	}
+
+	private groupItemsByPatient(items: any[]): { [patientName: string]: any } {
+		const groups: { [patientName: string]: any } = {};
+
+		items.forEach((item) => {
+			const patientName = item.patient_name;
+
+			if (!groups[patientName]) {
+				groups[patientName] = {
+					items: [],
+					totalCost: 0,
+					patientPaid: item.patient_paid_amount || 0,
+					patientTotal: item.patient_total_amount || 0
+				};
+			}
+
+			groups[patientName].items.push(item);
+			groups[patientName].totalCost += parseFloat(item.total_cost) || 0;
+
+			// Update patient payment info if it's higher (in case of multiple bills)
+			if (
+				(item.patient_paid_amount || 0) >
+				groups[patientName].patientPaid
+			) {
+				groups[patientName].patientPaid = item.patient_paid_amount || 0;
+			}
+			if (
+				(item.patient_total_amount || 0) >
+				groups[patientName].patientTotal
+			) {
+				groups[patientName].patientTotal =
+					item.patient_total_amount || 0;
+			}
+		});
+
+		// Sort items within each patient group by service date
+		Object.keys(groups).forEach((patientName) => {
+			groups[patientName].items.sort((a: any, b: any) => {
+				return (
+					new Date(a.service_date).getTime() -
+					new Date(b.service_date).getTime()
+				);
+			});
+		});
+
+		return groups;
 	}
 
 	private showClearBalanceModal(): void {
@@ -1574,7 +2004,8 @@ class InsuranceManager {
 		}
 
 		const totalPayments = payments.reduce(
-			(sum, payment) => sum + payment.payment_amount,
+			(sum, payment) =>
+				sum + parseInt(payment.payment_amount as unknown as string),
 			0
 		);
 
@@ -1643,8 +2074,6 @@ class InsuranceManager {
 		// Hide insurance details and show list
 		document.getElementById("selectedInsuranceDetails")!.style.display =
 			"none";
-		document.getElementById("insuranceCompaniesList")!.style.display =
-			"block";
 
 		// Clear selected insurance
 		this.selectedInsurance = null;
@@ -1656,10 +2085,41 @@ class InsuranceManager {
 			card.classList.remove("selected");
 		});
 
-		// Add animation
-		document
-			.getElementById("insuranceCompaniesList")!
-			.classList.add("fade-in");
+		// Show the list with proper layout
+		document.getElementById("insuranceCompaniesList")!.style.display =
+			"block";
+
+		// Reset layout and re-render if needed
+		setTimeout(() => {
+			this.resetInsuranceListLayout();
+			document
+				.getElementById("insuranceCompaniesList")!
+				.classList.add("fade-in");
+		}, 50);
+	}
+
+	private resetInsuranceListLayout(): void {
+		const container = document.getElementById("insuranceCompaniesList")!;
+		const row = container.querySelector(".row");
+
+		if (row) {
+			// Force re-render by clearing and re-adding content
+			const currentHTML = container.innerHTML;
+			container.innerHTML = "";
+			// Force a reflow
+			container.offsetHeight;
+			container.innerHTML = currentHTML;
+		}
+
+		// Re-attach event listeners
+		container.querySelectorAll(".insurance-card").forEach((card) => {
+			card.addEventListener("click", (e) => {
+				const insuranceId = parseInt(
+					card.getAttribute("data-insurance-id")!
+				);
+				this.selectInsuranceCompany(insuranceId);
+			});
+		});
 	}
 
 	// State Management Methods

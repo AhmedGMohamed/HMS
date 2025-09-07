@@ -87,46 +87,21 @@ export class NavigationController {
 
 			// Patient Management
 			{
-				id: "patient_management",
-				label: "Patient Management",
-				icon: "bi-person-vcard",
-				permission: "manage_patients",
-				children: [
-					{
-						id: "patients",
-						label: "Patients",
-						icon: "bi-hospital",
-						url: "/patients"
-					}
-				]
+				id: "patients",
+				label: "Patients",
+				icon: "bi-hospital",
+				url: "/patients",
+				permission: "manage_patients"
 			},
 
 			// Employee Management
+
 			{
-				id: "employee_management",
-				label: "Employee Management",
+				id: "employees",
+				label: "Employees",
 				icon: "bi-person-badge-fill",
-				permission: "manage_employees",
-				children: [
-					{
-						id: "employees",
-						label: "Employees",
-						icon: "bi-person-fill-gear",
-						url: "/employees"
-					},
-					{
-						id: "doctors",
-						label: "Doctors",
-						icon: "bi-person-heart",
-						url: "/doctors"
-					},
-					{
-						id: "nurses",
-						label: "Nurses",
-						icon: "bi-person-heart",
-						url: "/nurses"
-					}
-				]
+				url: "/employees",
+				permission: "manage_employees"
 			},
 
 			// Clocking

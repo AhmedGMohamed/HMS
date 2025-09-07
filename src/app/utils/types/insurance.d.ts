@@ -82,6 +82,8 @@ export interface InsuranceReportItem {
 	total_cost: number;
 	service_date: Date;
 	sale_type: "outside" | "medical_check" | "admitted";
+	patient_paid_amount: number;
+	patient_total_amount: number;
 }
 
 export interface InsuranceReportSummary {
