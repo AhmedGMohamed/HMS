@@ -117,9 +117,19 @@ CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
-	contact_info TEXT
+	contact_info TEXT,
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
-	last_cleared_date DATE
+	last_cleared_date DATE DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE IF NOT EXISTS InsurancePayments (
+	payment_id SERIAL PRIMARY KEY,
+	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	payment_from DATE NOT NULL,
+	payment_to DATE NOT NULL,
+	added_by_user_id INTEGER REFERENCES "User"(user_id),
+	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS Patient (
@@ -176,9 +186,7 @@ CREATE TABLE IF NOT EXISTS NursePatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
 	PRIMARY KEY (patient_history_id, nurse_id)
-)
-
--- Pharmacy Management
+) -- Pharmacy Management
 CREATE TABLE IF NOT EXISTS Warehouse (
 	warehouse_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -245,8 +253,7 @@ CREATE TABLE IF NOT EXISTS ActivePatientService (
 	service_id INTEGER REFERENCES Service(service_id),
 	start_date TIMESTAMP NOT NULL,
 	end_date TIMESTAMP,
-	is_active BOOLEAN DEFAULT true
-	last_renewed TIMESTAMP DEFAULT NULL
+	is_active BOOLEAN DEFAULT true last_renewed TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS ServiceDrug (
@@ -329,12 +336,13 @@ CREATE TABLE IF NOT EXISTS AuditLog (
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS VaultManualPayments (
+CREATE TABLE IF NOT EXISTS VaultManualPayment (
 	payment_id SERIAL PRIMARY KEY,
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	payment_type vault_manual_payment_type NOT NULL
-)
+	payment_type vault_manual_payment_type NOT NULL,
+	description TEXT
+);
 
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);
@@ -587,7 +595,7 @@ CREATE
 OR REPLACE FUNCTION calculate_next_service_charge(
 	start_date TIMESTAMP,
 	service_type service_type
-) RETURNS TIMESTAMP AS $$ BEGIN CASE
+) RETURNS TIMESTAMP AS $ $ BEGIN CASE
 	service_type
 	WHEN 'hourly' THEN RETURN start_date + (
 		FLOOR(
@@ -616,4 +624,36 @@ END CASE
 
 END;
 
-$$ LANGUAGE plpgsql;
+$ $ LANGUAGE plpgsql;
+
+-- Insert required permissions
+INSERT INTO
+	Permission (feature_name, description)
+VALUES
+	('view_dashboard', 'Can view admin dashboard and statistics'),
+	('manage_patients', 'Can manage patient records'),
+	('view_patients', 'Can view patient records'),
+	('manage_services', 'Can manage services'),
+	('manage_billing', 'Can manage billing'),
+	('manage_pharmacy', 'Can manage pharmacy'),
+	('manage_insurance', 'Can manage insurance companies and their payments'),
+	('manage_employees', 'Can manage employees'),
+	('view_vault', 'Can view vault details'),
+	(
+		'manage_vault',
+		'Can manage vault and add vault payments'
+	),
+	('manage_reports', 'Can access reports'),
+	('manage_settings', 'Can manage system settings'),
+	('manage_users', 'Can manage users'),
+	('manage_prices', 'Can manage price lists'),
+	('manage_employees', 'Can manage employees'),
+	(
+		'manage_payments',
+		'Can manage employee payments'
+	),
+	(
+		'manage_clocking',
+		'Can manage employee clock-in/out'
+	),
+	('view_only', 'Can only view records');

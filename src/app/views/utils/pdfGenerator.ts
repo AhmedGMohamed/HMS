@@ -28,10 +28,11 @@ interface ReportField {
 
 interface ReportSection {
 	title?: string;
-	type: "header" | "columns" | "table" | "summary";
+	type: "header" | "columns" | "table" | "summary" | "custom";
 	data?: any;
 	fields?: ReportField[];
 	columns?: ReportSection[];
+	customContent?: any;
 	tableConfig?: {
 		headerRows?: number;
 		widths?: (string | number)[];
@@ -120,6 +121,17 @@ export function generateReport(config: ReportConfig, data?: any) {
 			case "summary":
 				content.push(buildSummary(section, data));
 				break;
+
+			case "custom":
+				// Handle custom content for patient grouping
+				if (section.customContent) {
+					if (Array.isArray(section.customContent)) {
+						content.push(...section.customContent);
+					} else {
+						content.push(section.customContent);
+					}
+				}
+				break;
 		}
 	});
 
@@ -136,8 +148,18 @@ export function generateReport(config: ReportConfig, data?: any) {
 				bold: true,
 				margin: [0, 10, 0, 5]
 			},
+			patientHeader: {
+				fontSize: 12,
+				bold: true,
+				color: "#0d6efd"
+			},
+			patientInfo: {
+				fontSize: 10,
+				color: "#6c757d"
+			},
 			...config.styles
-		}
+		},
+		pageMargins: [40, 60, 40, 60]
 	};
 
 	return pdfMake.createPdf(docDefinition);

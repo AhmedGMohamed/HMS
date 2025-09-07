@@ -320,6 +320,7 @@ class InsuranceController {
 		try {
 			const data: CreateInsurancePaymentDTO = {
 				...req.body,
+				insurance_id: parseInt(req.params.id),
 				added_by_user_id: req.user?.userId
 			};
 

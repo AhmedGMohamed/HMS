@@ -458,38 +458,40 @@ class InsuranceModel {
 		filters: InsuranceReportFilters
 	): Promise<InsuranceReportItem[]> {
 		let sql = `
-            SELECT 
-                p.patient_id,
-                p.name as patient_name,
-                p.insurance_card_id,
-                p.insurance_form_id,
-                ph.admission_time,
-                ph.discharge_time,
-                b.bill_id,
-                bd.service_id,
-                s.name as service_name,
-                bd.drug_shipment_id,
-                dc.name as drug_name,
-                CASE 
-                    WHEN bd.service_id IS NOT NULL THEN 'service'
-                    ELSE 'drug'
-                END as item_type,
-                bd.quantity,
-                bd.unit_price,
-                (bd.quantity * bd.unit_price) as total_cost,
-                bd.generated_at as service_date,
-                bd.sale_type
-            FROM Patient p
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            JOIN Bill b ON ph.bill_id = b.bill_id
-            JOIN BillDetail bd ON b.bill_id = bd.bill_id
-            LEFT JOIN Service s ON bd.service_id = s.service_id
-            LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
-            LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
-            WHERE p.insurance_id = $1
-                AND bd.generated_at >= $2 
-                AND bd.generated_at <= $3
-        `;
+        SELECT 
+            p.patient_id,
+            p.name as patient_name,
+            p.insurance_card_id,
+            p.insurance_form_id,
+            ph.admission_time,
+            ph.discharge_time,
+            b.bill_id,
+            bd.service_id,
+            s.name as service_name,
+            bd.drug_shipment_id,
+            dc.name as drug_name,
+            CASE 
+                WHEN bd.service_id IS NOT NULL THEN 'service'
+                ELSE 'drug'
+            END as item_type,
+            SUM(bd.quantity) as quantity,  -- Group and sum quantities
+            bd.unit_price,
+            SUM(bd.quantity * bd.unit_price) as total_cost,  -- Sum total costs
+            DATE(bd.generated_at) as service_date,  -- Group by date only
+            bd.sale_type,
+            b.paid_amount as patient_paid_amount,  -- Add patient paid amount
+            b.total_amount as patient_total_amount  -- Add patient total amount
+        FROM Patient p
+        JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+        JOIN Bill b ON ph.bill_id = b.bill_id
+        JOIN BillDetail bd ON b.bill_id = bd.bill_id
+        LEFT JOIN Service s ON bd.service_id = s.service_id
+        LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+        LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+        WHERE p.insurance_id = $1
+            AND bd.generated_at >= $2 
+            AND bd.generated_at <= $3
+    `;
 
 		const values = [
 			filters.insurance_id,
@@ -505,18 +507,30 @@ class InsuranceModel {
 		// Filter by cleared items
 		if (!filters.include_cleared_items) {
 			sql += ` AND bd.generated_at > (
-                SELECT last_cleared_date 
-                FROM InsuranceCompany 
-                WHERE insurance_id = $1
-            )`;
+            SELECT last_cleared_date 
+            FROM InsuranceCompany 
+            WHERE insurance_id = $1
+        )`;
 		}
 
-		sql += " ORDER BY bd.generated_at DESC";
+		// Group by patient, item, and date
+		sql += `
+        GROUP BY 
+            p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
+            ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
+            s.name, bd.drug_shipment_id, dc.name, bd.unit_price, 
+            DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount
+        ORDER BY p.name, DATE(bd.generated_at) DESC
+    `;
 
 		const { rows } = await query(sql, values);
 		return rows.map((row) => ({
 			...row,
-			total_cost: parseFloat(row.total_cost)
+			total_cost: parseFloat(row.total_cost),
+			quantity: parseInt(row.quantity),
+			unit_price: parseFloat(row.unit_price),
+			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
+			patient_total_amount: parseFloat(row.patient_total_amount || 0)
 		}));
 	}
 
@@ -565,31 +579,72 @@ class InsuranceModel {
 
 	// Additional utility methods for reports and analytics
 	async getInsuranceStatistics(insuranceId: number): Promise<any> {
-		const sql = `
-            SELECT 
-                COUNT(DISTINCT p.patient_id) as total_patients,
-                COUNT(DISTINCT CASE WHEN p.is_active THEN p.patient_id END) as active_patients,
-                COUNT(DISTINCT ph.patient_history_id) as total_admissions,
-                COUNT(DISTINCT CASE WHEN ph.discharge_time IS NULL THEN ph.patient_history_id END) as current_admissions,
-                COALESCE(SUM(b.total_amount), 0) as total_billed,
-                COALESCE(SUM(b.paid_amount), 0) as total_paid,
-                COALESCE(SUM(b.total_amount - b.paid_amount), 0) as total_outstanding
-            FROM Patient p
-            LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE p.insurance_id = $1;
-        `;
+		// Get basic patient and admission statistics (not filtered by date)
+		const basicStatsSql = `
+        SELECT 
+            COUNT(DISTINCT p.patient_id) as total_patients,
+            COUNT(DISTINCT CASE WHEN p.is_active THEN p.patient_id END) as active_patients,
+            COUNT(DISTINCT ph.patient_history_id) as total_admissions,
+            COUNT(DISTINCT CASE WHEN ph.discharge_time IS NULL THEN ph.patient_history_id END) as current_admissions
+        FROM Patient p
+        LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+        WHERE p.insurance_id = $1;
+    `;
 
-		const { rows } = await query(sql, [insuranceId]);
+		// Get financial statistics (filtered by last_cleared_date)
+		const financialStatsSql = `
+        SELECT 
+            COALESCE(SUM(b.total_amount), 0) as total_billed,
+            COALESCE(SUM(b.paid_amount), 0) as total_paid,
+            COALESCE(SUM(b.total_amount - b.paid_amount), 0) as total_outstanding
+        FROM Patient p
+        JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+        JOIN Bill b ON ph.bill_id = b.bill_id
+        JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+        WHERE p.insurance_id = $1
+            AND b.generated_at > ic.last_cleared_date;
+    `;
+
+		// Get insurance payments total
+		const insurancePaymentsSql = `
+        SELECT COALESCE(SUM(payment_amount), 0) as total_insurance_payments
+        FROM InsurancePayments
+        WHERE insurance_id = $1;
+    `;
+
+		// Execute all queries
+		const [basicStatsResult, financialStatsResult, paymentsResult] =
+			await Promise.all([
+				query(basicStatsSql, [insuranceId]),
+				query(financialStatsSql, [insuranceId]),
+				query(insurancePaymentsSql, [insuranceId])
+			]);
+
+		const basicStats = basicStatsResult.rows[0];
+		const financialStats = financialStatsResult.rows[0];
+		const paymentsStats = paymentsResult.rows[0];
+
 		return {
-			...rows[0],
-			total_patients: parseInt(rows[0].total_patients),
-			active_patients: parseInt(rows[0].active_patients),
-			total_admissions: parseInt(rows[0].total_admissions),
-			current_admissions: parseInt(rows[0].current_admissions),
-			total_billed: parseFloat(rows[0].total_billed),
-			total_paid: parseFloat(rows[0].total_paid),
-			total_outstanding: parseFloat(rows[0].total_outstanding)
+			total_patients: parseInt(basicStats.total_patients),
+			active_patients: parseInt(basicStats.active_patients),
+			total_admissions: parseInt(basicStats.total_admissions),
+			current_admissions: parseInt(basicStats.current_admissions),
+			total_billed: parseFloat(financialStats.total_billed),
+			total_paid: parseFloat(financialStats.total_paid),
+			total_outstanding: parseFloat(financialStats.total_outstanding),
+			total_insurance_payments: parseFloat(
+				paymentsStats.total_insurance_payments
+			),
+			// Additional calculated fields
+			net_outstanding:
+				parseFloat(financialStats.total_outstanding) -
+				parseFloat(paymentsStats.total_insurance_payments),
+			payment_coverage_percentage:
+				parseFloat(financialStats.total_billed) > 0
+					? (parseFloat(paymentsStats.total_insurance_payments) /
+							parseFloat(financialStats.total_billed)) *
+					  100
+					: 0
 		};
 	}
 
@@ -599,19 +654,18 @@ class InsuranceModel {
 		endDate: string
 	): Promise<number> {
 		const sql = `
-            SELECT COALESCE(SUM(b.total_amount - b.paid_amount), 0) as outstanding_amount
-            FROM Patient p
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE p.insurance_id = $1
-                AND b.generated_at >= $2
-                AND b.generated_at <= $3
-                AND b.generated_at > (
-                    SELECT last_cleared_date 
-                    FROM InsuranceCompany 
-                    WHERE insurance_id = $1
-                );
-        `;
+        SELECT 
+            COALESCE(SUM(b.total_amount - b.paid_amount), 0) as outstanding_amount
+        FROM Patient p
+        JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+        JOIN Bill b ON ph.bill_id = b.bill_id
+        JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+        WHERE p.insurance_id = $1
+            AND b.generated_at >= $2
+            AND b.generated_at <= $3
+            AND b.generated_at > ic.last_cleared_date
+            AND (b.total_amount - b.paid_amount) > 0;
+    `;
 
 		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
 		return parseFloat(rows[0].outstanding_amount);
