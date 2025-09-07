@@ -1,5 +1,9 @@
 import { query } from "./database/connection.js";
-import { VaultSummary, VaultReportData, ManualPayment } from "../utils/types/vault.js";
+import {
+	VaultSummary,
+	VaultReportData,
+	ManualPayment
+} from "../utils/types/vault.js";
 export class VaultModel {
 	async getVaultSummary(
 		startDate: string,
@@ -16,7 +20,8 @@ export class VaultModel {
 			drugSalesRevenueTotal,
 			drugSalesProfitTotal,
 			wagesOwedTotal,
-			wagesPaidTotal
+			wagesPaidTotal,
+			insurancePaymentsTotal
 		] = await Promise.all([
 			this.getPatientServicesTotalAmount(startDate, endDate),
 			this.getPatientDrugsTotalAmount(startDate, endDate),
@@ -28,7 +33,8 @@ export class VaultModel {
 			this.getDrugSalesRevenueTotalAmount(startDate, endDate),
 			this.getDrugSalesProfitTotalAmount(startDate, endDate),
 			this.getEmployeeWagesOwedTotalAmount(startDate, endDate),
-			this.getEmployeeWagesPaidTotalAmount(startDate, endDate)
+			this.getEmployeeWagesPaidTotalAmount(startDate, endDate),
+			this.getInsurancePaymentsTotalAmount(startDate, endDate)
 		]);
 
 		const wagesOutstandingTotal = wagesOwedTotal - wagesPaidTotal;
@@ -37,7 +43,8 @@ export class VaultModel {
 		const totalRevenue =
 			patientPaymentsTotal +
 			drugSalesRevenueTotal +
-			manualPaymentTotals.additions;
+			manualPaymentTotals.additions +
+			insurancePaymentsTotal;
 		const totalExpenses =
 			drugShipmentCostsTotal +
 			wagesPaidTotal +
@@ -59,6 +66,7 @@ export class VaultModel {
 			wages_owed_total: wagesOwedTotal,
 			wages_paid_total: wagesPaidTotal,
 			wages_outstanding_total: wagesOutstandingTotal,
+			insurance_payments_total: insurancePaymentsTotal,
 			total_revenue: totalRevenue,
 			total_expenses: totalExpenses,
 			net_profit: netProfit
@@ -559,6 +567,45 @@ export class VaultModel {
                 AND is_paid = true
                 AND is_void = false;
         `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	async getInsurancePaymentsRevenue(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+        SELECT 
+            ic.insurance_id,
+            ic.name as insurance_name,
+            ip.payment_id,
+            ip.payment_amount,
+            ip.payment_from,
+            ip.payment_to,
+            ip.issued_timestamp,
+            u.username as added_by
+        FROM InsurancePayments ip
+        JOIN InsuranceCompany ic ON ip.insurance_id = ic.insurance_id
+        LEFT JOIN "User" u ON ip.added_by_user_id = u.user_id
+        WHERE ip.issued_timestamp >= $1 AND ip.issued_timestamp <= $2
+        ORDER BY ip.issued_timestamp DESC;
+    `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
+	}
+
+	private async getInsurancePaymentsTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+        SELECT COALESCE(SUM(payment_amount), 0) as total
+        FROM InsurancePayments
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+    `;
 
 		const result = await query(sql, [startDate, endDate]);
 		return parseFloat(result.rows[0].total);

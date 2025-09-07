@@ -117,8 +117,24 @@ router.get(
 	}
 );
 
-router.get("/vault", (req, res) => {
-	res.sendFile("./views/vault/vault.html", { root: __dirname });
-});
+router.get(
+	"/vault",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(_req, res) => {
+		res.sendFile("./views/vault/vault.html", { root: __dirname });
+	}
+);
+
+// Add this route to your existing page.routes.ts
+router.get(
+	"/insurance",
+	verifyToken,
+	checkPermission("manage_insurance"),
+	(_req, res) => {
+		res.sendFile("./views/insurance/insurance.html", { root: __dirname });
+	}
+);
 
 export default router;

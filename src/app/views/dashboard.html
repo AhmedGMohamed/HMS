@@ -86,68 +86,131 @@
           <p class="text-muted">Here's what's happening today</p>
         </div>
 
-        <!-- Quick Stats -->
-        <div class="row mb-4">
-          <div class="col-md-3 mb-3">
-            <div class="card stat-card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="stat-icon bg-primary">
-                    <i class="bi bi-people"></i>
-                  </div>
-                  <div class="ms-3">
-                    <h6 class="card-subtitle mb-1">Active Patients</h6>
-                    <h3 class="card-title mb-0" id="activePatients">0</h3>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-3 mb-3">
-            <div class="card stat-card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="stat-icon bg-success">
-                    <i class="bi bi-currency-dollar"></i>
-                  </div>
-                  <div class="ms-3">
-                    <h6 class="card-subtitle mb-1">Today's Revenue</h6>
-                    <h3 class="card-title mb-0" id="todayRevenue">$0</h3>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-3 mb-3">
-            <a href="/drugs" class="text-decoration-none">
+        <div id="adminDashboard" style="display: none">
+          <!-- Quick Stats -->
+          <div class="row mb-4">
+            <div class="col-md-3 mb-3">
               <div class="card stat-card">
                 <div class="card-body">
                   <div class="d-flex align-items-center">
-                    <div class="stat-icon bg-warning">
-                      <i class="bi bi-capsule"></i>
+                    <div class="stat-icon bg-primary">
+                      <i class="bi bi-people"></i>
                     </div>
                     <div class="ms-3">
-                      <h6 class="card-subtitle mb-1">Low Stock Items</h6>
-                      <h3 class="card-title mb-0" id="lowStockItemsCount">0</h3>
+                      <h6 class="card-subtitle mb-1">Active Patients</h6>
+                      <h3 class="card-title mb-0" id="activePatients">0</h3>
                     </div>
                   </div>
                 </div>
               </div>
-            </a>
+            </div>
+
+            <div class="col-md-3 mb-3">
+              <div class="card stat-card">
+                <div class="card-body">
+                  <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-success">
+                      <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div class="ms-3">
+                      <h6 class="card-subtitle mb-1">Today's Revenue</h6>
+                      <h3 class="card-title mb-0" id="todayRevenue">$0</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+              <a href="/drugs" class="text-decoration-none">
+                <div class="card stat-card">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center">
+                      <div class="stat-icon bg-warning">
+                        <i class="bi bi-capsule"></i>
+                      </div>
+                      <div class="ms-3">
+                        <h6 class="card-subtitle mb-1">Low Stock Items</h6>
+                        <h3 class="card-title mb-0" id="lowStockItemsCount">0</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-md-3 mb-3">
+              <div class="card stat-card">
+                <div class="card-body">
+                  <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-info">
+                      <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="ms-3">
+                      <h6 class="card-subtitle mb-1">Today's Profit</h6>
+                      <h3 class="card-title mb-0" id="todayProfit">$0</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="col-md-3 mb-3">
-            <div class="card stat-card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="stat-icon bg-info">
-                    <i class="bi bi-calendar-check"></i>
+          <!-- Charts Row -->
+          <div class="row mb-4">
+            <div class="col-md-8 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Revenue & Profit Overview (Last 30 Days)</h5>
+                  <div class="chart-container" style="position: relative; height: 400px;">
+                    <canvas id="revenueChart"></canvas>
                   </div>
-                  <div class="ms-3">
-                    <h6 class="card-subtitle mb-1">Today's Profit</h6>
-                    <h3 class="card-title mb-0" id="todayProfit">$0</h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Revenue Distribution</h5>
+                    <div class="btn-group" role="group" aria-label="Chart toggle">
+                      <input type="radio" class="btn-check" name="chartToggle" id="revenueToggle" checked>
+                      <label class="btn btn-outline-primary btn-sm" for="revenueToggle">Revenue</label>
+
+                      <input type="radio" class="btn-check" name="chartToggle" id="profitToggle">
+                      <label class="btn btn-outline-primary btn-sm" for="profitToggle">Profit</label>
+                    </div>
+                  </div>
+                  <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="distributionChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Recent Activity</h5>
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Time</th>
+                          <th>User</th>
+                          <th>Action</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody id="recentActivityTable">
+                        <tr>
+                          <td colspan="4" class="text-center">Loading...</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -155,61 +218,25 @@
           </div>
         </div>
 
-        <!-- Charts Row -->
-        <div class="row mb-4">
-          <div class="col-md-8 mb-4">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">Revenue & Profit Overview (Last 30 Days)</h5>
-                <div class="chart-container" style="position: relative; height: 400px;">
-                  <canvas id="revenueChart"></canvas>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 mb-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="card-title mb-0">Revenue Distribution</h5>
-                  <div class="btn-group" role="group" aria-label="Chart toggle">
-                    <input type="radio" class="btn-check" name="chartToggle" id="revenueToggle" checked>
-                    <label class="btn btn-outline-primary btn-sm" for="revenueToggle">Revenue</label>
+        <!-- Regular User Dashboard Content -->
+        <div id="userDashboard" style="display: none;">
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="bi bi-grid"></i> Available Features
+                  </h5>
+                  <p class="text-muted mb-4">Access your available system features below:</p>
 
-                    <input type="radio" class="btn-check" name="chartToggle" id="profitToggle">
-                    <label class="btn btn-outline-primary btn-sm" for="profitToggle">Profit</label>
+                  <div id="availableLinksContainer">
+                    <div class="text-center py-5">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                      <p class="mt-3 text-muted">Loading available features...</p>
+                    </div>
                   </div>
-                </div>
-                <div class="chart-container" style="position: relative; height: 300px;">
-                  <canvas id="distributionChart"></canvas>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">Recent Activity</h5>
-                <div class="table-responsive">
-                  <table class="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Details</th>
-                      </tr>
-                    </thead>
-                    <tbody id="recentActivityTable">
-                      <tr>
-                        <td colspan="4" class="text-center">Loading...</td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </div>

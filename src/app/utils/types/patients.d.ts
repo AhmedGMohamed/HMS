@@ -178,6 +178,7 @@ export interface InsuranceCompany {
 	name: string;
 	contact_info: string | null;
 	pricelist_id: number | null;
+	last_cleared_date: Date;
 }
 
 export interface InsuranceCoverage {

@@ -66,6 +66,7 @@ export const dbHelper = {
 	async seedPermissions(): Promise<Permission[]> {
 		const result = await query(`
             INSERT INTO Permission (feature_name, description) VALUES 
+			('view_dashboard', 'Can view admin dashboard and statistics'),
             ('manage_patients', 'Can manage patient records'),
 			('view_patients', 'Can view patient records'),
             ('manage_services', 'Can manage services'),
@@ -73,6 +74,7 @@ export const dbHelper = {
             ('manage_pharmacy', 'Can manage pharmacy'),
             ('manage_employees', 'Can manage employees'),
 			('view_vault', 'Can view vault details'),
+			('manage_vault', 'Can add manual payments to vault'),
             ('manage_reports', 'Can access reports'),
             ('manage_settings', 'Can manage system settings'),
 			('manage_users', 'Can manage users'),
@@ -1010,6 +1012,16 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	last_cleared_date DATE
 );
 
+CREATE TABLE IF NOT EXISTS InsurancePayments (
+	payment_id SERIAL PRIMARY KEY,
+	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	payment_from DATE NOT NULL,
+	payment_to DATE NOT NULL,
+	added_by_user_id INTEGER REFERENCES "User"(user_id),
+	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS Patient (
 	patient_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -1483,6 +1495,37 @@ END CASE;
 END;
 
 $$ LANGUAGE plpgsql;
-			`);
+-- Insert required permissions
+INSERT INTO
+	Permission (feature_name, description)
+VALUES
+	('view_dashboard', 'Can view admin dashboard and statistics'),
+	('manage_patients', 'Can manage patient records'),
+	('view_patients', 'Can view patient records'),
+	('manage_services', 'Can manage services'),
+	('manage_billing', 'Can manage billing'),
+	('manage_pharmacy', 'Can manage pharmacy'),
+	('manage_insurance', 'Can manage insurance companies and their payments'),
+	('manage_employees', 'Can manage employees'),
+	('view_vault', 'Can view vault details'),
+	(
+		'manage_vault',
+		'Can manage vault and add vault payments'
+	),
+	('manage_reports', 'Can access reports'),
+	('manage_settings', 'Can manage system settings'),
+	('manage_users', 'Can manage users'),
+	('manage_prices', 'Can manage price lists'),
+	('manage_employees', 'Can manage employees'),
+	(
+		'manage_payments',
+		'Can manage employee payments'
+	),
+	(
+		'manage_clocking',
+		'Can manage employee clock-in/out'
+	),
+	('view_only', 'Can only view records');
+`);
 	}
 };

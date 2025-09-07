@@ -1,12 +1,620 @@
 // src/app/models/Insurance.model.ts
 import { query } from "./database/connection.js";
-import { InsuranceCompany } from "../utils/types/patients.js";
+import { 
+    InsuranceCompany, 
+    InsurancePayment,
+    CreateInsuranceCompanyDTO,
+    UpdateInsuranceCompanyDTO,
+    CreateInsurancePaymentDTO,
+    InsurancePatient,
+    InsuranceReportSummary,
+    InsuranceReportFilters,
+    InsuranceReportItem
+} from "../utils/types/insurance.js";
 
 class InsuranceModel {
+	// Basic CRUD Operations
 	async getAllInsuranceCompanies(): Promise<InsuranceCompany[]> {
-		const sql = "SELECT * FROM InsuranceCompany ORDER BY name";
+		const sql = `
+            SELECT 
+                ic.*,
+                pl.name as pricelist_name,
+                COUNT(p.patient_id) as patient_count
+            FROM InsuranceCompany ic
+            LEFT JOIN PriceList pl ON ic.pricelist_id = pl.pricelist_id
+            LEFT JOIN Patient p ON ic.insurance_id = p.insurance_id
+            GROUP BY ic.insurance_id, pl.name
+            ORDER BY ic.name;
+        `;
 		const { rows } = await query(sql);
+		return rows.map((row) => ({
+			...row,
+			patient_count: parseInt(row.patient_count) || 0
+		}));
+	}
+
+	async getInsuranceCompanyById(
+		insuranceId: number
+	): Promise<InsuranceCompany | null> {
+		const sql = `
+            SELECT 
+                ic.*,
+                pl.name as pricelist_name,
+                COUNT(p.patient_id) as patient_count
+            FROM InsuranceCompany ic
+            LEFT JOIN PriceList pl ON ic.pricelist_id = pl.pricelist_id
+            LEFT JOIN Patient p ON ic.insurance_id = p.insurance_id
+            WHERE ic.insurance_id = $1
+            GROUP BY ic.insurance_id, pl.name;
+        `;
+		const { rows } = await query(sql, [insuranceId]);
+		if (rows.length === 0) return null;
+
+		return {
+			...rows[0],
+			patient_count: parseInt(rows[0].patient_count) || 0
+		};
+	}
+
+	async createInsuranceCompany(
+		data: CreateInsuranceCompanyDTO
+	): Promise<InsuranceCompany> {
+		await query("BEGIN");
+		try {
+			// Validate pricelist if provided
+			if (data.pricelist_id) {
+				const pricelistCheck = await query(
+					"SELECT pricelist_id FROM PriceList WHERE pricelist_id = $1",
+					[data.pricelist_id]
+				);
+				if (pricelistCheck.rows.length === 0) {
+					throw new Error("Price list not found");
+				}
+			}
+
+			const sql = `
+                INSERT INTO InsuranceCompany (name, contact_info, pricelist_id, last_cleared_date)
+                VALUES ($1, $2, $3, CURRENT_DATE)
+                RETURNING *;
+            `;
+			const { rows } = await query(sql, [
+				data.name,
+				data.contact_info || null,
+				data.pricelist_id || null
+			]);
+
+			await query("COMMIT");
+			return rows[0];
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	async updateInsuranceCompany(
+		data: UpdateInsuranceCompanyDTO
+	): Promise<InsuranceCompany | null> {
+		await query("BEGIN");
+		try {
+			// Check if insurance company exists
+			const existingInsurance = await this.getInsuranceCompanyById(
+				data.insurance_id
+			);
+			if (!existingInsurance) {
+				throw new Error("Insurance company not found");
+			}
+
+			// Validate pricelist if provided
+			if (data.pricelist_id) {
+				const pricelistCheck = await query(
+					"SELECT pricelist_id FROM PriceList WHERE pricelist_id = $1",
+					[data.pricelist_id]
+				);
+				if (pricelistCheck.rows.length === 0) {
+					throw new Error("Price list not found");
+				}
+			}
+
+			const updateFields: string[] = [];
+			const values: any[] = [];
+			let paramCount = 1;
+
+			// Build dynamic update query
+			Object.entries(data).forEach(([key, value]) => {
+				if (key !== "insurance_id" && value !== undefined) {
+					updateFields.push(`${key} = $${paramCount}`);
+					values.push(value);
+					paramCount++;
+				}
+			});
+
+			if (updateFields.length === 0) {
+				return existingInsurance;
+			}
+
+			values.push(data.insurance_id);
+			const sql = `
+                UPDATE InsuranceCompany 
+                SET ${updateFields.join(", ")}
+                WHERE insurance_id = $${paramCount}
+                RETURNING *;
+            `;
+
+			await query(sql, values);
+			await query("COMMIT");
+
+			return await this.getInsuranceCompanyById(data.insurance_id);
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	async deleteInsuranceCompany(insuranceId: number): Promise<boolean> {
+		await query("BEGIN");
+		try {
+			// Check if there are patients using this insurance
+			const patientCheck = await query(
+				"SELECT COUNT(*) as count FROM Patient WHERE insurance_id = $1",
+				[insuranceId]
+			);
+
+			if (parseInt(patientCheck.rows[0].count) > 0) {
+				throw new Error(
+					"Cannot delete insurance company with existing patients"
+				);
+			}
+
+			// Delete insurance payments first
+			await query(
+				"DELETE FROM InsurancePayments WHERE insurance_id = $1",
+				[insuranceId]
+			);
+
+			// Delete insurance company
+			const result = await query(
+				"DELETE FROM InsuranceCompany WHERE insurance_id = $1",
+				[insuranceId]
+			);
+
+			await query("COMMIT");
+			return result.rowCount! > 0;
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	// Patient Management
+	async getPatientsByInsurance(
+		insuranceId: number
+	): Promise<InsurancePatient[]> {
+		const sql = `
+            SELECT 
+                p.patient_id,
+                p.name,
+                p.national_id,
+                p.gender,
+                p.phone,
+                p.insurance_card_id,
+                p.insurance_form_id,
+                p.payment_type,
+                p.is_active,
+                p.registration_date,
+                ph.patient_history_id,
+                ph.admission_time,
+                ph.diagnosis,
+                ph.bill_id,
+                b.total_amount,
+                b.paid_amount,
+                (b.total_amount - b.paid_amount) as outstanding_amount
+            FROM Patient p
+            LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id AND ph.discharge_time IS NULL
+            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+            WHERE p.insurance_id = $1
+            ORDER BY 
+                CASE WHEN p.is_active THEN 0 ELSE 1 END,
+                p.name;
+        `;
+
+		const { rows } = await query(sql, [insuranceId]);
+
+		return rows.map((row) => ({
+			patient_id: row.patient_id,
+			name: row.name,
+			national_id: row.national_id,
+			gender: row.gender,
+			phone: row.phone,
+			insurance_card_id: row.insurance_card_id,
+			insurance_form_id: row.insurance_form_id,
+			payment_type: row.payment_type,
+			is_active: row.is_active,
+			registration_date: row.registration_date,
+			current_admission: row.patient_history_id
+				? {
+						patient_history_id: row.patient_history_id,
+						admission_time: row.admission_time,
+						diagnosis: row.diagnosis,
+						bill_id: row.bill_id,
+						total_amount: parseFloat(row.total_amount || 0),
+						paid_amount: parseFloat(row.paid_amount || 0),
+						outstanding_amount: parseFloat(
+							row.outstanding_amount || 0
+						)
+				  }
+				: undefined
+		}));
+	}
+
+	// Insurance Payments Management
+	async getAllInsurancePayments(
+		insuranceId?: number
+	): Promise<InsurancePayment[]> {
+		let sql = `
+            SELECT 
+                ip.*,
+                u.username as added_by_username,
+                ic.name as insurance_name
+            FROM InsurancePayments ip
+            JOIN "User" u ON ip.added_by_user_id = u.user_id
+            JOIN InsuranceCompany ic ON ip.insurance_id = ic.insurance_id
+        `;
+
+		const values: any[] = [];
+		if (insuranceId) {
+			sql += " WHERE ip.insurance_id = $1";
+			values.push(insuranceId);
+		}
+
+		sql += " ORDER BY ip.issued_timestamp DESC";
+
+		const { rows } = await query(sql, values);
 		return rows;
+	}
+
+	async createInsurancePayment(
+		data: CreateInsurancePaymentDTO
+	): Promise<InsurancePayment> {
+		await query("BEGIN");
+		try {
+			// Validate insurance company exists
+			const insuranceCheck = await query(
+				"SELECT insurance_id FROM InsuranceCompany WHERE insurance_id = $1",
+				[data.insurance_id]
+			);
+			if (insuranceCheck.rows.length === 0) {
+				throw new Error("Insurance company not found");
+			}
+
+			// Validate date range
+			const paymentFrom = new Date(data.payment_from);
+			const paymentTo = new Date(data.payment_to);
+			if (paymentFrom >= paymentTo) {
+				throw new Error(
+					"Payment from date must be before payment to date"
+				);
+			}
+
+			const sql = `
+                INSERT INTO InsurancePayments (
+                    insurance_id, payment_amount, payment_from, payment_to, added_by_user_id
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *;
+            `;
+
+			const { rows } = await query(sql, [
+				data.insurance_id,
+				data.payment_amount,
+				paymentFrom,
+				paymentTo,
+				data.added_by_user_id
+			]);
+
+			await query("COMMIT");
+			return rows[0];
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	async deleteInsurancePayment(paymentId: number): Promise<boolean> {
+		const result = await query(
+			"DELETE FROM InsurancePayments WHERE payment_id = $1",
+			[paymentId]
+		);
+		return result.rowCount! > 0;
+	}
+
+	// Clear Outstanding Balance
+	async clearInsuranceBalance(
+		insuranceId: number,
+		clearDate: string
+	): Promise<InsuranceCompany> {
+		await query("BEGIN");
+		try {
+			// Validate insurance company exists
+			const insuranceCompany = await this.getInsuranceCompanyById(
+				insuranceId
+			);
+			if (!insuranceCompany) {
+				throw new Error("Insurance company not found");
+			}
+
+			// Validate clear date
+			const newClearDate = new Date(clearDate);
+			if (newClearDate > new Date()) {
+				throw new Error("Clear date cannot be in the future");
+			}
+
+			// Update last_cleared_date
+			const sql = `
+                UPDATE InsuranceCompany 
+                SET last_cleared_date = $1
+                WHERE insurance_id = $2
+                RETURNING *;
+            `;
+
+			const { rows } = await query(sql, [newClearDate, insuranceId]);
+
+			await query("COMMIT");
+			return rows[0];
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	// Insurance Report Generation
+	async generateInsuranceReport(
+		filters: InsuranceReportFilters
+	): Promise<InsuranceReportSummary> {
+		await query("BEGIN");
+		try {
+			// Get insurance company details
+			const insuranceCompany = await this.getInsuranceCompanyById(
+				filters.insurance_id
+			);
+			if (!insuranceCompany) {
+				throw new Error("Insurance company not found");
+			}
+
+			const startDate = new Date(filters.start_date);
+			const endDate = new Date(filters.end_date);
+
+			// Validate date range
+			if (startDate >= endDate) {
+				throw new Error("Start date must be before end date");
+			}
+
+			// Get report items based on filters
+			const reportItems = await this.getInsuranceReportItems(filters);
+
+			// Get cleared payments in the period
+			const clearedPayments = await this.getInsurancePaymentsByPeriod(
+				filters.insurance_id,
+				filters.start_date,
+				filters.end_date
+			);
+
+			// Calculate totals
+			const serviceItems = reportItems.filter(
+				(item) => item.item_type === "service"
+			);
+			const drugItems = reportItems.filter(
+				(item) => item.item_type === "drug"
+			);
+
+			const totalServicesCost = serviceItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalDrugsCost = drugItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalCost = totalServicesCost + totalDrugsCost;
+
+			// Get total patient payments for these bills
+			const patientPayments =
+				await this.getPatientPaymentsByInsuranceAndPeriod(
+					filters.insurance_id,
+					filters.start_date,
+					filters.end_date
+				);
+
+			const outstandingAmount = totalCost - patientPayments;
+			const uniquePatients = [
+				...new Set(reportItems.map((item) => item.patient_id))
+			].length;
+
+			await query("COMMIT");
+
+			return {
+				insurance_id: filters.insurance_id,
+				insurance_name: insuranceCompany.name,
+				report_period: {
+					start_date: startDate,
+					end_date: endDate
+				},
+				last_cleared_date: insuranceCompany.last_cleared_date,
+				total_services_cost: totalServicesCost,
+				total_drugs_cost: totalDrugsCost,
+				total_cost: totalCost,
+				total_patient_payments: patientPayments,
+				outstanding_amount: outstandingAmount,
+				patient_count: uniquePatients,
+				items: reportItems,
+				cleared_payments: clearedPayments
+			};
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	private async getInsuranceReportItems(
+		filters: InsuranceReportFilters
+	): Promise<InsuranceReportItem[]> {
+		let sql = `
+            SELECT 
+                p.patient_id,
+                p.name as patient_name,
+                p.insurance_card_id,
+                p.insurance_form_id,
+                ph.admission_time,
+                ph.discharge_time,
+                b.bill_id,
+                bd.service_id,
+                s.name as service_name,
+                bd.drug_shipment_id,
+                dc.name as drug_name,
+                CASE 
+                    WHEN bd.service_id IS NOT NULL THEN 'service'
+                    ELSE 'drug'
+                END as item_type,
+                bd.quantity,
+                bd.unit_price,
+                (bd.quantity * bd.unit_price) as total_cost,
+                bd.generated_at as service_date,
+                bd.sale_type
+            FROM Patient p
+            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            JOIN Bill b ON ph.bill_id = b.bill_id
+            JOIN BillDetail bd ON b.bill_id = bd.bill_id
+            LEFT JOIN Service s ON bd.service_id = s.service_id
+            LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+            LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+            WHERE p.insurance_id = $1
+                AND bd.generated_at >= $2 
+                AND bd.generated_at <= $3
+        `;
+
+		const values = [
+			filters.insurance_id,
+			filters.start_date,
+			filters.end_date
+		];
+
+		// Filter by drugs inclusion
+		if (!filters.include_drugs) {
+			sql += " AND bd.service_id IS NOT NULL";
+		}
+
+		// Filter by cleared items
+		if (!filters.include_cleared_items) {
+			sql += ` AND bd.generated_at > (
+                SELECT last_cleared_date 
+                FROM InsuranceCompany 
+                WHERE insurance_id = $1
+            )`;
+		}
+
+		sql += " ORDER BY bd.generated_at DESC";
+
+		const { rows } = await query(sql, values);
+		return rows.map((row) => ({
+			...row,
+			total_cost: parseFloat(row.total_cost)
+		}));
+	}
+
+	private async getInsurancePaymentsByPeriod(
+		insuranceId: number,
+		startDate: string,
+		endDate: string
+	): Promise<InsurancePayment[]> {
+		const sql = `
+            SELECT 
+                ip.*,
+                u.username as added_by_username
+            FROM InsurancePayments ip
+            JOIN "User" u ON ip.added_by_user_id = u.user_id
+            WHERE ip.insurance_id = $1
+                AND (
+                    (ip.payment_from >= $2 AND ip.payment_from <= $3)
+                    OR (ip.payment_to >= $2 AND ip.payment_to <= $3)
+                    OR (ip.payment_from <= $2 AND ip.payment_to >= $3)
+                )
+            ORDER BY ip.issued_timestamp DESC;
+        `;
+
+		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
+		return rows;
+	}
+
+	private async getPatientPaymentsByInsuranceAndPeriod(
+		insuranceId: number,
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(b.paid_amount), 0) as total_payments
+            FROM Patient p
+            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            JOIN Bill b ON ph.bill_id = b.bill_id
+            WHERE p.insurance_id = $1
+                AND b.updated_at >= $2
+                AND b.updated_at <= $3;
+        `;
+
+		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
+		return parseFloat(rows[0].total_payments);
+	}
+
+	// Additional utility methods for reports and analytics
+	async getInsuranceStatistics(insuranceId: number): Promise<any> {
+		const sql = `
+            SELECT 
+                COUNT(DISTINCT p.patient_id) as total_patients,
+                COUNT(DISTINCT CASE WHEN p.is_active THEN p.patient_id END) as active_patients,
+                COUNT(DISTINCT ph.patient_history_id) as total_admissions,
+                COUNT(DISTINCT CASE WHEN ph.discharge_time IS NULL THEN ph.patient_history_id END) as current_admissions,
+                COALESCE(SUM(b.total_amount), 0) as total_billed,
+                COALESCE(SUM(b.paid_amount), 0) as total_paid,
+                COALESCE(SUM(b.total_amount - b.paid_amount), 0) as total_outstanding
+            FROM Patient p
+            LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+            WHERE p.insurance_id = $1;
+        `;
+
+		const { rows } = await query(sql, [insuranceId]);
+		return {
+			...rows[0],
+			total_patients: parseInt(rows[0].total_patients),
+			active_patients: parseInt(rows[0].active_patients),
+			total_admissions: parseInt(rows[0].total_admissions),
+			current_admissions: parseInt(rows[0].current_admissions),
+			total_billed: parseFloat(rows[0].total_billed),
+			total_paid: parseFloat(rows[0].total_paid),
+			total_outstanding: parseFloat(rows[0].total_outstanding)
+		};
+	}
+
+	async getInsuranceOutstandingByPeriod(
+		insuranceId: number,
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(b.total_amount - b.paid_amount), 0) as outstanding_amount
+            FROM Patient p
+            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            JOIN Bill b ON ph.bill_id = b.bill_id
+            WHERE p.insurance_id = $1
+                AND b.generated_at >= $2
+                AND b.generated_at <= $3
+                AND b.generated_at > (
+                    SELECT last_cleared_date 
+                    FROM InsuranceCompany 
+                    WHERE insurance_id = $1
+                );
+        `;
+
+		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
+		return parseFloat(rows[0].outstanding_amount);
 	}
 }
 

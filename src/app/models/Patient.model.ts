@@ -1,4 +1,4 @@
-// Enhanced src/app/models/Patient.model.ts
+//src/app/models/Patient.model.ts
 import { query } from "./database/connection.js";
 import {
 	Patient,
