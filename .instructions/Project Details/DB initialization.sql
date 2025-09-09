@@ -46,18 +46,25 @@ CREATE TABLE IF NOT EXISTS Permission (
 	description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS RolePermission (
-	role_id INTEGER REFERENCES Role(role_id),
-	permission_id INTEGER REFERENCES Permission(permission_id),
-	PRIMARY KEY (role_id, permission_id)
-);
-
 CREATE TABLE IF NOT EXISTS "User" (
 	user_id SERIAL PRIMARY KEY,
 	username VARCHAR(255) UNIQUE NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
 	role_id INTEGER REFERENCES Role(role_id),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS RolePermission (
+	role_id INTEGER REFERENCES Role(role_id),
+	permission_id INTEGER REFERENCES Permission(permission_id),
+	PRIMARY KEY (role_id, permission_id)
+);
+
+-- Inventory and Pricing
+CREATE TABLE IF NOT EXISTS PriceList (
+	pricelist_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	is_default BOOLEAN DEFAULT false
 );
 
 -- Employee Management
@@ -90,27 +97,45 @@ CREATE TABLE IF NOT EXISTS Doctor (
 	referral_bonus DECIMAL(15, 2)
 );
 
-CREATE TABLE IF NOT EXISTS EmployeePayment (
-	payment_id SERIAL PRIMARY KEY,
-	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
-	payment_amount DECIMAL(15, 2) NOT NULL,
-	extra_payment_type VARCHAR(50),
-	payment_type VARCHAR(50) NOT NULL,
-	percentage_scope percentage_scope,
-	extra_amount DECIMAL(15, 2),
-	is_paid BOOLEAN DEFAULT false,
-	is_void BOOLEAN DEFAULT false,
-	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	paid_timestamp TIMESTAMP,
-	paid_by_user_id INTEGER REFERENCES "User"(user_id)
+-- Pharmacy Management
+CREATE TABLE IF NOT EXISTS Warehouse (
+	warehouse_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	location TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS EmployeeClockIn (
-	clock_id SERIAL PRIMARY KEY,
-	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
-	clock_in TIMESTAMP NOT NULL,
-	clock_out TIMESTAMP,
-	pay_deduction DECIMAL(15, 2) DEFAULT 0
+CREATE TABLE IF NOT EXISTS DrugCard (
+	drug_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	manufacturer VARCHAR(255),
+	provider VARCHAR(255),
+	is_obligatory_continuous BOOLEAN DEFAULT false,
+	sale_quantity INTEGER NOT NULL,
+	frequency INTERVAL,
+	min_stock_alert INTEGER,
+	max_days_expiry_alert INTEGER,
+	unit_conversion JSONB NOT NULL,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS DrugShipment (
+	shipment_id SERIAL PRIMARY KEY,
+	drug_id INTEGER REFERENCES DrugCard(drug_id),
+	warehouse_id INTEGER REFERENCES Warehouse(warehouse_id),
+	quantity INTEGER NOT NULL,
+	buy_price DECIMAL(15, 2) NOT NULL,
+	expiry_date DATE NOT NULL,
+	received_date DATE DEFAULT CURRENT_DATE,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+-- Services and Pricing
+CREATE TABLE IF NOT EXISTS Service (
+	service_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	auto_renew BOOLEAN DEFAULT false,
+	auto_add_on_admission BOOLEAN DEFAULT false,
+	service_type service_type NOT NULL
 );
 
 -- Patient Related tables
@@ -120,16 +145,6 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	contact_info TEXT,
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
 	last_cleared_date DATE DEFAULT CURRENT_DATE
-);
-
-CREATE TABLE IF NOT EXISTS InsurancePayments (
-	payment_id SERIAL PRIMARY KEY,
-	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
-	payment_amount DECIMAL(15, 2) NOT NULL,
-	payment_from DATE NOT NULL,
-	payment_to DATE NOT NULL,
-	added_by_user_id INTEGER REFERENCES "User"(user_id),
-	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS Patient (
@@ -149,6 +164,21 @@ CREATE TABLE IF NOT EXISTS Patient (
 	registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	referring_doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS Bill (
+	bill_id SERIAL PRIMARY KEY,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	total_amount DECIMAL(15, 2) NOT NULL,
+	paid_amount DECIMAL(15, 2) DEFAULT 0,
+	discount_type discount_type,
+	discount DECIMAL(15, 2) DEFAULT 0,
+	administrative_expenses DECIMAL(15, 2) DEFAULT 0,
+	vat_percentage DECIMAL(5, 2),
+	vat_scope vat_scope_type,
+	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	issued_by_user_id INTEGER REFERENCES "User"(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS PatientHistory (
@@ -186,96 +216,6 @@ CREATE TABLE IF NOT EXISTS NursePatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
 	PRIMARY KEY (patient_history_id, nurse_id)
-) -- Pharmacy Management
-CREATE TABLE IF NOT EXISTS Warehouse (
-	warehouse_id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	location TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS DrugCard (
-	drug_id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	manufacturer VARCHAR(255),
-	provider VARCHAR(255),
-	is_obligatory_continuous BOOLEAN DEFAULT false,
-	sale_quantity INTEGER NOT NULL,
-	frequency INTERVAL,
-	min_stock_alert INTEGER,
-	max_days_expiry_alert INTEGER,
-	unit_conversion JSONB NOT NULL,
-	created_by_user_id INTEGER REFERENCES "User"(user_id)
-);
-
-CREATE TABLE IF NOT EXISTS DrugShipment (
-	shipment_id SERIAL PRIMARY KEY,
-	drug_id INTEGER REFERENCES DrugCard(drug_id),
-	warehouse_id INTEGER REFERENCES Warehouse(warehouse_id),
-	quantity INTEGER NOT NULL,
-	buy_price DECIMAL(15, 2) NOT NULL,
-	expiry_date DATE NOT NULL,
-	received_date DATE DEFAULT CURRENT_DATE,
-	created_by_user_id INTEGER REFERENCES "User"(user_id)
-);
-
-CREATE TABLE IF NOT EXISTS DrugTransaction (
-	transaction_id SERIAL PRIMARY KEY,
-	shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
-	transaction_type transaction_type NOT NULL,
-	quantity INTEGER NOT NULL,
-	price DECIMAL(15, 2) NOT NULL,
-	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	created_by_user_id INTEGER REFERENCES "User"(user_id)
-);
-
-CREATE TABLE IF NOT EXISTS DrugUsage (
-	usage_id SERIAL PRIMARY KEY,
-	patient_id INTEGER REFERENCES Patient(patient_id),
-	drug_id INTEGER REFERENCES DrugCard(drug_id),
-	transaction_id INTEGER REFERENCES DrugTransaction(transaction_id),
-	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
-	remaining_quantity INTEGER NOT NULL,
-	last_administered TIMESTAMP
-);
-
--- Services and Pricing
-CREATE TABLE IF NOT EXISTS Service (
-	service_id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	auto_renew BOOLEAN DEFAULT false,
-	auto_add_on_admission BOOLEAN DEFAULT false,
-	service_type service_type NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS ActivePatientService (
-	active_service_id SERIAL PRIMARY KEY,
-	patient_id INTEGER REFERENCES Patient(patient_id),
-	service_id INTEGER REFERENCES Service(service_id),
-	start_date TIMESTAMP NOT NULL,
-	end_date TIMESTAMP,
-	is_active BOOLEAN DEFAULT true last_renewed TIMESTAMP DEFAULT NULL
-);
-
-CREATE TABLE IF NOT EXISTS ServiceDrug (
-	service_id INTEGER REFERENCES Service(service_id),
-	drug_id INTEGER REFERENCES DrugCard(drug_id),
-	PRIMARY KEY (service_id, drug_id)
-);
-
--- Billing System
-CREATE TABLE IF NOT EXISTS Bill (
-	bill_id SERIAL PRIMARY KEY,
-	patient_id INTEGER REFERENCES Patient(patient_id),
-	total_amount DECIMAL(15, 2) NOT NULL,
-	paid_amount DECIMAL(15, 2) DEFAULT 0,
-	discount_type discount_type,
-	discount DECIMAL(15, 2) DEFAULT 0,
-	administrative_expenses DECIMAL(15, 2) DEFAULT 0,
-	vat_percentage DECIMAL(5, 2),
-	vat_scope vat_scope_type,
-	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	issued_by_user_id INTEGER REFERENCES "User"(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS BillDetail (
@@ -299,15 +239,44 @@ CREATE TABLE IF NOT EXISTS BillDetail (
 	)
 );
 
--- Inventory and Pricing
-CREATE TABLE IF NOT EXISTS PriceList (
-	pricelist_id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	is_default BOOLEAN DEFAULT false
+CREATE TABLE IF NOT EXISTS DrugTransaction (
+	transaction_id SERIAL PRIMARY KEY,
+	shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
+	transaction_type transaction_type NOT NULL,
+	quantity INTEGER NOT NULL,
+	price DECIMAL(15, 2) NOT NULL,
+	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS DrugUsage (
+	usage_id SERIAL PRIMARY KEY,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	drug_id INTEGER REFERENCES DrugCard(drug_id),
+	transaction_id INTEGER REFERENCES DrugTransaction(transaction_id),
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	remaining_quantity INTEGER NOT NULL,
+	last_administered TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ActivePatientService (
+	active_service_id SERIAL PRIMARY KEY,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	service_id INTEGER REFERENCES Service(service_id),
+	start_date TIMESTAMP NOT NULL,
+	end_date TIMESTAMP,
+	is_active BOOLEAN DEFAULT true,
+	last_renewed TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ServiceDrug (
+	service_id INTEGER REFERENCES Service(service_id),
+	drug_id INTEGER REFERENCES DrugCard(drug_id),
+	PRIMARY KEY (service_id, drug_id)
 );
 
 CREATE TABLE IF NOT EXISTS ServicePrice (
-	service_price_id SERIAL PRIMARY KEY,
+	service_price_id SERIAL,
 	service_id INTEGER REFERENCES Service(service_id) ON DELETE CASCADE,
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id) ON DELETE CASCADE,
 	price DECIMAL(15, 2) NOT NULL,
@@ -325,6 +294,39 @@ CREATE TABLE IF NOT EXISTS ShipmentPrice (
 	prepayment_type prepayment_type,
 	prepayment_amount DECIMAL(15, 2),
 	PRIMARY KEY (shipment_id, pricelist_id)
+);
+
+CREATE TABLE IF NOT EXISTS EmployeePayment (
+	payment_id SERIAL PRIMARY KEY,
+	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	extra_payment_type VARCHAR(50),
+	payment_type VARCHAR(50) NOT NULL,
+	percentage_scope percentage_scope,
+	extra_amount DECIMAL(15, 2),
+	is_paid BOOLEAN DEFAULT false,
+	is_void BOOLEAN DEFAULT false,
+	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	paid_timestamp TIMESTAMP,
+	paid_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS EmployeeClockIn (
+	clock_id SERIAL PRIMARY KEY,
+	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
+	clock_in TIMESTAMP NOT NULL,
+	clock_out TIMESTAMP,
+	pay_deduction DECIMAL(15, 2) DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS InsurancePayments (
+	payment_id SERIAL PRIMARY KEY,
+	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	payment_from DATE NOT NULL,
+	payment_to DATE NOT NULL,
+	added_by_user_id INTEGER REFERENCES "User"(user_id),
+	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Audit System
@@ -352,12 +354,6 @@ CREATE INDEX IF NOT EXISTS idx_drug_name ON DrugCard(name);
 CREATE INDEX IF NOT EXISTS idx_bill_date ON Bill(generated_at);
 
 CREATE INDEX IF NOT EXISTS idx_employee_hire_date ON Employee(hire_date);
-
--- Foreign Key Constraints
-ALTER TABLE
-	PatientHistory
-ADD
-	CONSTRAINT patienthistory_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES Bill(bill_id);
 
 -- Additional database schema updates for enhanced patient management
 -- Add indexes for better performance on patient queries
@@ -595,7 +591,7 @@ CREATE
 OR REPLACE FUNCTION calculate_next_service_charge(
 	start_date TIMESTAMP,
 	service_type service_type
-) RETURNS TIMESTAMP AS $ $ BEGIN CASE
+) RETURNS TIMESTAMP AS $$ BEGIN CASE
 	service_type
 	WHEN 'hourly' THEN RETURN start_date + (
 		FLOOR(
@@ -624,19 +620,25 @@ END CASE
 
 END;
 
-$ $ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Insert required permissions
 INSERT INTO
 	Permission (feature_name, description)
 VALUES
-	('view_dashboard', 'Can view admin dashboard and statistics'),
+	(
+		'view_dashboard',
+		'Can view admin dashboard and statistics'
+	),
 	('manage_patients', 'Can manage patient records'),
 	('view_patients', 'Can view patient records'),
 	('manage_services', 'Can manage services'),
 	('manage_billing', 'Can manage billing'),
 	('manage_pharmacy', 'Can manage pharmacy'),
-	('manage_insurance', 'Can manage insurance companies and their payments'),
+	(
+		'manage_insurance',
+		'Can manage insurance companies and their payments'
+	),
 	('manage_employees', 'Can manage employees'),
 	('view_vault', 'Can view vault details'),
 	(
