@@ -2216,7 +2216,7 @@ class PatientManager {
 	}
 
 	private showAddServiceModal(): void {
-		if (!this.currentPatient || !this.currentPatient.is_active) {
+		if (!this.currentPatient || !this.currentPatient.is_active ) {
 			this.showError("Patient must be admitted to add services");
 			return;
 		}

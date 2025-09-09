@@ -6,6 +6,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HMS - User Management</title>
 
+  <style>
+    /* Hide the Google Translate widget */
+    #google_translate_element {
+      display: none;
+    }
+
+    .goog-te-gadget img {
+      display: none !important;
+    }
+
+    body>.skiptranslate {
+      display: none;
+    }
+
+    body {
+      top: 0px !important;
+    }
+
+    #goog-gt-tt,
+    .goog-te-balloon-frame {
+      display: none !important;
+    }
+
+    .goog-text-highlight {
+      background: none !important;
+      box-shadow: none !important;
+    }
+
+    ::selection {
+      background: transparent;
+    }
+
+    /* Optional: Adjust for right-to-left Arabic text */
+    body[lang="ar"] {
+      direction: rtl;
+      text-align: right;
+    }
+  </style>
+
+
   <!-- Bootstrap CSS -->
   <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
@@ -16,6 +56,8 @@
 </head>
 
 <body>
+  <!-- Placeholder for Google Translate widget (hidden) -->
+  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -183,6 +225,35 @@
       </div>
     </div>
   </div>
+
+  <!-- Google Translate -->
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  <script>
+    function googleTranslateElementInit() {
+      // Initialize only if not already initialized
+      if (!window.googleTranslateInitialized) {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en', // Source language (English)
+          includedLanguages: 'ar', // Target language (Arabic)
+          autoDisplay: false // Prevent automatic popup
+        }, 'google_translate_element');
+        window.googleTranslateInitialized = true;
+      }
+
+      // Automatically select Arabic
+      setTimeout(() => {
+        const select = document.querySelector('#google_translate_element select');
+        if (select && select.value !== 'ar') {
+          select.value = 'ar';
+          select.dispatchEvent(new Event('change'));
+        }
+      }, 500); // Delay to ensure widget is loaded
+    }
+
+    // Initialize on page load and when navigating back
+    window.onload = googleTranslateElementInit;
+    window.onpageshow = googleTranslateElementInit;
+  </script>
 
   <!-- Bootstrap Bundle with Popper-->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
