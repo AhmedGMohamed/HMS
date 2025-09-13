@@ -5,7 +5,8 @@ import {
 	CreateInsuranceCompanyDTO,
 	UpdateInsuranceCompanyDTO,
 	CreateInsurancePaymentDTO,
-	InsuranceReportFilters
+	InsuranceReportFilters,
+	PatientReportFilters
 } from "../utils/types/insurance.js";
 
 class InsuranceController {
@@ -628,6 +629,80 @@ class InsuranceController {
 			res.status(500).json({
 				success: false,
 				message: "Failed to retrieve outstanding amount",
+				error: error instanceof Error ? error.message : "Unknown error"
+			});
+		}
+	}
+
+	async generatePatientReport(req: Request, res: Response): Promise<void> {
+		try {
+			const insuranceId = parseInt(req.params.id);
+			const patientId = parseInt(req.params.patientId);
+
+			if (isNaN(insuranceId) || isNaN(patientId)) {
+				res.status(400).json({
+					success: false,
+					message: "Invalid insurance company ID or patient ID"
+				});
+				return;
+			}
+
+			const {
+				start_date,
+				end_date,
+				include_drugs = true,
+				include_cleared_items = false
+			} = req.body;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					success: false,
+					message: "Start date and end date are required"
+				});
+				return;
+			}
+
+			// Validate dates
+			const startDate = new Date(start_date);
+			const endDate = new Date(end_date);
+
+			if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+				res.status(400).json({
+					success: false,
+					message: "Invalid date format"
+				});
+				return;
+			}
+
+			if (startDate >= endDate) {
+				res.status(400).json({
+					success: false,
+					message: "Start date must be before end date"
+				});
+				return;
+			}
+
+			const filters: PatientReportFilters = {
+				insurance_id: insuranceId,
+				patient_id: patientId,
+				start_date,
+				end_date,
+				include_drugs: Boolean(include_drugs),
+				include_cleared_items: Boolean(include_cleared_items)
+			};
+
+			const report = await InsuranceModel.generatePatientReport(filters);
+
+			res.json({
+				success: true,
+				data: report,
+				message: "Patient report generated successfully"
+			});
+		} catch (error) {
+			console.error("Error generating patient report:", error);
+			res.status(500).json({
+				success: false,
+				message: "Failed to generate patient report",
 				error: error instanceof Error ? error.message : "Unknown error"
 			});
 		}

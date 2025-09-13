@@ -4,32 +4,37 @@ import { SidebarManager } from "../shared/sidebar.js";
 import { createCustomReport } from "../../utils/pdfGenerator.js";
 
 interface VaultSummary {
-    // Patient Revenue
-    patient_services_total: number;
-    patient_drugs_total: number;
-    patient_payments_total: number;
-    patient_outstanding_total: number;
-    patient_discounts_total: number;
-    
-    // Manual Payments
-    manual_additions_total: number;
-    manual_deductions_total: number;
-    manual_net_total: number;
-    
-    // Pharmacy
-    drug_shipment_costs_total: number;
-    drug_sales_revenue_total: number;
-    drug_sales_profit_total: number;
-    
-    // Employee Wages
-    wages_owed_total: number;
-    wages_paid_total: number;
-    wages_outstanding_total: number;
-    
-    // Net Summary
-    total_revenue: number;
-    total_expenses: number;
-    net_profit: number;
+	// Patient Revenue
+	patient_services_total: number;
+	patient_drugs_total: number;
+	patient_payments_total: number;
+	patient_outstanding_total: number;
+	patient_discounts_total: number;
+
+	// Manual Payments
+	manual_additions_total: number;
+	manual_deductions_total: number;
+	manual_net_total: number;
+
+	// Insurance Payments
+	insurance_payments_total: number;
+	insurance_payment_count: number;
+	insurance_payment_average: number;
+
+	// Pharmacy
+	drug_shipment_costs_total: number;
+	drug_sales_revenue_total: number;
+	drug_sales_profit_total: number;
+
+	// Employee Wages
+	wages_owed_total: number;
+	wages_paid_total: number;
+	wages_outstanding_total: number;
+
+	// Net Summary
+	total_revenue: number;
+	total_expenses: number;
+	net_profit: number;
 }
 
 class VaultManager {
@@ -256,6 +261,13 @@ class VaultManager {
 		manualNetElement.className = `metric-value ${
 			summary.manual_net_total >= 0 ? "text-success" : "text-danger"
 		}`;
+
+		document.getElementById("insurancePaymentsTotal")!.textContent =
+			this.formatCurrency(summary.insurance_payments_total);
+		document.getElementById("insurancePaymentCount")!.textContent =
+			summary.insurance_payment_count.toString();
+		document.getElementById("insurancePaymentAverage")!.textContent =
+			this.formatCurrency(summary.insurance_payment_average);
 
 		// Update pharmacy metrics
 		document.getElementById("drugShipmentCostsTotal")!.textContent =
@@ -581,6 +593,27 @@ class VaultManager {
 							: 0
 				};
 
+			case "insurance-payments":
+				return {
+					total_payments: data.reduce(
+						(sum, row) => sum + parseFloat(row.payment_amount || 0),
+						0
+					),
+					total_records: data.length,
+					avg_payment:
+						data.length > 0
+							? data.reduce(
+									(sum, row) =>
+										sum +
+										parseFloat(row.payment_amount || 0),
+									0
+							  ) / data.length
+							: 0,
+					unique_companies: new Set(
+						data.map((row) => row.insurance_id)
+					).size
+				};
+
 			case "drug-shipments":
 				return {
 					total_cost: data.reduce(
@@ -694,6 +727,7 @@ class VaultManager {
 			"patient-outstanding": "Outstanding Balances",
 			"patient-discounts": "Patient Discounts",
 			"manual-payments": "Manual Payments",
+			"insurance-payments": "Insurance Payments",
 			"drug-shipments": "Drug Shipment Costs",
 			"drug-sales": "Drug Sales Revenue",
 			"drug-profits": "Drug Sales Profit",
@@ -711,6 +745,7 @@ class VaultManager {
 			"patient-outstanding": "patient-outstanding",
 			"patient-discounts": "patient-discounts",
 			"manual-payments": "manual-payments",
+			"insurance-payments": "insurance-payments",
 			"drug-shipments": "drug-shipments",
 			"drug-sales": "drug-sales",
 			"drug-profits": "drug-profits",
@@ -800,6 +835,22 @@ class VaultManager {
 				},
 				{ key: "payment_amount", label: "Amount", type: "currency" },
 				{ key: "description", label: "Description", type: "text" }
+			],
+			"insurance-payments": [
+				{
+					key: "insurance_name",
+					label: "Insurance Company",
+					type: "text"
+				},
+				{ key: "payment_amount", label: "Amount", type: "currency" },
+				{ key: "payment_from", label: "Period From", type: "date" },
+				{ key: "payment_to", label: "Period To", type: "date" },
+				{
+					key: "issued_timestamp",
+					label: "Recorded Date",
+					type: "date"
+				},
+				{ key: "added_by", label: "Added By", type: "text" }
 			],
 			"drug-shipments": [
 				{ key: "drug_name", label: "Drug Name", type: "text" },

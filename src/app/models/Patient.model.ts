@@ -203,7 +203,6 @@ export class PatientModel {
                     RETURNING *;
                 `;
 				await query(sql, values);
-				console.log(sql);
 			}
 
 			// Handle attending doctors updates if patient is currently admitted

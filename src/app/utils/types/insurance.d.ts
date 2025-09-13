@@ -111,3 +111,49 @@ export interface InsuranceReportFilters {
 	include_drugs?: boolean;
 	include_cleared_items?: boolean;
 }
+
+export interface PatientReportFilters {
+	insurance_id: number;
+	patient_id: number;
+	start_date: string;
+	end_date: string;
+	include_drugs: boolean;
+	include_cleared_items: boolean;
+}
+
+export interface PatientReportSummary {
+	insurance_id: number;
+	insurance_name: string;
+	patient_id: number;
+	patient_name: string;
+	patient_info: {
+		national_id: string | null;
+		gender: string;
+		phone: string | null;
+		insurance_card_id: string | null;
+		insurance_form_id: string | null;
+		registration_date: string;
+	};
+	report_period: {
+		start_date: string;
+		end_date: string;
+	};
+	last_cleared_date: string;
+	admissions: Array<{
+		patient_history_id: number;
+		admission_time: string;
+		discharge_time: string | null;
+		diagnosis: string | null;
+		bill_id: number;
+		total_amount: number;
+		paid_amount: number;
+		outstanding_amount: number;
+		items: any[];
+	}>;
+	total_services_cost: number;
+	total_drugs_cost: number;
+	total_cost: number;
+	total_patient_payments: number;
+	outstanding_amount: number;
+	items: any[];
+}

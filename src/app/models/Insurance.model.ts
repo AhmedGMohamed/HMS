@@ -9,7 +9,10 @@ import {
     InsurancePatient,
     InsuranceReportSummary,
     InsuranceReportFilters,
-    InsuranceReportItem
+	InsuranceReportItem,
+	PatientReportSummary,
+	PatientReportFilters,
+	
 } from "../utils/types/insurance.js";
 
 class InsuranceModel {
@@ -669,6 +672,303 @@ class InsuranceModel {
 
 		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
 		return parseFloat(rows[0].outstanding_amount);
+	}
+
+	async generatePatientReport(
+		filters: PatientReportFilters
+	): Promise<PatientReportSummary> {
+		await query("BEGIN");
+		try {
+			// Get insurance company details
+			const insuranceCompany = await this.getInsuranceCompanyById(
+				filters.insurance_id
+			);
+			if (!insuranceCompany) {
+				throw new Error("Insurance company not found");
+			}
+
+			// Get patient details and verify they belong to this insurance
+			const patientSql = `
+			SELECT 
+				p.*,
+				ic.name as insurance_name,
+				ic.last_cleared_date
+			FROM Patient p
+			JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+			WHERE p.patient_id = $1 AND p.insurance_id = $2;
+		`;
+
+			const patientResult = await query(patientSql, [
+				filters.patient_id,
+				filters.insurance_id
+			]);
+			if (patientResult.rows.length === 0) {
+				throw new Error(
+					"Patient not found or does not belong to this insurance company"
+				);
+			}
+
+			const patient = patientResult.rows[0];
+
+			const startDate = new Date(filters.start_date);
+			const endDate = new Date(filters.end_date);
+
+			// Validate date range
+			if (startDate >= endDate) {
+				throw new Error("Start date must be before end date");
+			}
+
+			// Get patient admissions in the date range
+			const admissionsData = await this.getPatientAdmissionsWithItems(
+				filters
+			);
+
+			// Get report items for this specific patient
+			const reportItems = await this.getPatientReportItems(filters);
+
+			// Calculate totals
+			const serviceItems = reportItems.filter(
+				(item) => item.item_type === "service"
+			);
+			const drugItems = reportItems.filter(
+				(item) => item.item_type === "drug"
+			);
+
+			const totalServicesCost = serviceItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalDrugsCost = drugItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalCost = totalServicesCost + totalDrugsCost;
+
+			// Get total patient payments for this patient in the period
+			const patientPayments = await this.getPatientPaymentsByPeriod(
+				filters.patient_id,
+				filters.start_date,
+				filters.end_date
+			);
+
+			const outstandingAmount = totalCost - patientPayments;
+
+			await query("COMMIT");
+
+			return {
+				insurance_id: filters.insurance_id,
+				insurance_name: patient.insurance_name,
+				patient_id: filters.patient_id,
+				patient_name: patient.name,
+				patient_info: {
+					national_id: patient.national_id,
+					gender: patient.gender,
+					phone: patient.phone,
+					insurance_card_id: patient.insurance_card_id,
+					insurance_form_id: patient.insurance_form_id,
+					registration_date: patient.registration_date
+				},
+				report_period: {
+					start_date: startDate.toISOString(),
+					end_date: endDate.toISOString()
+				},
+				last_cleared_date: patient.last_cleared_date,
+				admissions: admissionsData,
+				total_services_cost: totalServicesCost,
+				total_drugs_cost: totalDrugsCost,
+				total_cost: totalCost,
+				total_patient_payments: patientPayments,
+				outstanding_amount: outstandingAmount,
+				items: reportItems
+			};
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	private async getPatientAdmissionsWithItems(
+		filters: PatientReportFilters
+	): Promise<any[]> {
+		const sql = `
+		SELECT 
+			ph.patient_history_id,
+			ph.admission_time,
+			ph.discharge_time,
+			ph.diagnosis,
+			ph.bill_id,
+			b.total_amount,
+			b.paid_amount,
+			(b.total_amount - b.paid_amount) as outstanding_amount
+		FROM PatientHistory ph
+		JOIN Bill b ON ph.bill_id = b.bill_id
+		WHERE ph.patient_id = $1
+			AND ph.admission_time >= $2
+			AND ph.admission_time <= $3
+		ORDER BY ph.admission_time DESC;
+	`;
+
+		const { rows } = await query(sql, [
+			filters.patient_id,
+			filters.start_date,
+			filters.end_date
+		]);
+
+		// For each admission, get the items
+		for (let admission of rows) {
+			let itemsSql = `
+			SELECT 
+				bd.service_id,
+				s.name as service_name,
+				bd.drug_shipment_id,
+				dc.name as drug_name,
+				CASE 
+					WHEN bd.service_id IS NOT NULL THEN 'service'
+					ELSE 'drug'
+				END as item_type,
+				bd.quantity,
+				bd.unit_price,
+				(bd.quantity * bd.unit_price) as total_cost,
+				bd.generated_at as service_date,
+				bd.sale_type
+			FROM BillDetail bd
+			LEFT JOIN Service s ON bd.service_id = s.service_id
+			LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+			LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+			WHERE bd.bill_id = $1
+				AND bd.generated_at >= $2 
+				AND bd.generated_at <= $3
+		`;
+
+			let itemsQuery = [
+				admission.bill_id,
+				filters.start_date,
+				filters.end_date
+			];
+
+			if (!filters.include_drugs) {
+				itemsSql += " AND bd.service_id IS NOT NULL";
+			}
+
+			if (!filters.include_cleared_items) {
+				itemsSql += ` AND bd.generated_at > (
+				SELECT last_cleared_date 
+				FROM InsuranceCompany 
+				WHERE insurance_id = $${itemsQuery.length + 1}
+			)`;
+				itemsQuery.push(filters.insurance_id);
+			}
+
+			itemsSql += " ORDER BY bd.generated_at DESC";
+
+			const itemsResult = await query(itemsSql, itemsQuery);
+			admission.items = itemsResult.rows.map((row) => ({
+				...row,
+				total_cost: parseFloat(row.total_cost),
+				quantity: parseInt(row.quantity),
+				unit_price: parseFloat(row.unit_price)
+			}));
+		}
+
+		return rows.map((row) => ({
+			...row,
+			total_amount: parseFloat(row.total_amount || 0),
+			paid_amount: parseFloat(row.paid_amount || 0),
+			outstanding_amount: parseFloat(row.outstanding_amount || 0)
+		}));
+	}
+
+	private async getPatientReportItems(
+		filters: PatientReportFilters
+	): Promise<any[]> {
+		let sql = `
+		SELECT 
+			p.patient_id,
+			p.name as patient_name,
+			p.insurance_card_id,
+			p.insurance_form_id,
+			ph.admission_time,
+			ph.discharge_time,
+			b.bill_id,
+			bd.service_id,
+			s.name as service_name,
+			bd.drug_shipment_id,
+			dc.name as drug_name,
+			CASE 
+				WHEN bd.service_id IS NOT NULL THEN 'service'
+				ELSE 'drug'
+			END as item_type,
+			bd.quantity,
+			bd.unit_price,
+			(bd.quantity * bd.unit_price) as total_cost,
+			bd.generated_at as service_date,
+			bd.sale_type,
+			b.paid_amount as patient_paid_amount,
+			b.total_amount as patient_total_amount
+		FROM Patient p
+		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+		JOIN Bill b ON ph.bill_id = b.bill_id
+		JOIN BillDetail bd ON b.bill_id = bd.bill_id
+		LEFT JOIN Service s ON bd.service_id = s.service_id
+		LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+		LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+		WHERE p.patient_id = $1
+			AND p.insurance_id = $2
+			AND bd.generated_at >= $3 
+			AND bd.generated_at <= $4
+	`;
+
+		const values = [
+			filters.patient_id,
+			filters.insurance_id,
+			filters.start_date,
+			filters.end_date
+		];
+
+		// Filter by drugs inclusion
+		if (!filters.include_drugs) {
+			sql += " AND bd.service_id IS NOT NULL";
+		}
+
+		// Filter by cleared items
+		if (!filters.include_cleared_items) {
+			sql += ` AND bd.generated_at > (
+			SELECT last_cleared_date 
+			FROM InsuranceCompany 
+			WHERE insurance_id = $2
+		)`;
+		}
+
+		sql += " ORDER BY bd.generated_at DESC";
+
+		const { rows } = await query(sql, values);
+		return rows.map((row) => ({
+			...row,
+			total_cost: parseFloat(row.total_cost),
+			quantity: parseInt(row.quantity),
+			unit_price: parseFloat(row.unit_price),
+			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
+			patient_total_amount: parseFloat(row.patient_total_amount || 0)
+		}));
+	}
+
+	private async getPatientPaymentsByPeriod(
+		patientId: number,
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+		SELECT COALESCE(SUM(b.paid_amount), 0) as total_payments
+		FROM Patient p
+		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+		JOIN Bill b ON ph.bill_id = b.bill_id
+		WHERE p.patient_id = $1
+			AND b.updated_at >= $2
+			AND b.updated_at <= $3;
+	`;
+
+		const { rows } = await query(sql, [patientId, startDate, endDate]);
+		return parseFloat(rows[0].total_payments);
 	}
 }
 

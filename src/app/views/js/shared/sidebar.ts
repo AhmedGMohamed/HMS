@@ -27,7 +27,6 @@ export class SidebarManager {
 		this.sidebarComponents = document.getElementById("sidebarComponents")!;
 		this.currentPath = window.location.pathname;
 
-		console.log("here");
 		this.initializeSidebar();
 	}
 
@@ -88,7 +87,6 @@ export class SidebarManager {
 	}
 
 	private buildNavigationHTML(navigation: NavigationItem[]): void {
-		console.log(navigation);
 		const html = navigation
 			.map((item) => this.buildNavigationItem(item))
 			.join("");

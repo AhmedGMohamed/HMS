@@ -812,6 +812,57 @@
     color: #f57c00 !important;
 }
 
+/* Patient Report Specific Styles */
+.patient-actions {
+	border-top: 1px solid #e9ecef;
+	padding-top: 0.75rem;
+}
+
+.generate-patient-report-btn {
+	transition: all 0.2s;
+}
+
+.generate-patient-report-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+}
+
+.patient-info-section .card {
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+}
+
+.patient-info-section .card-header {
+	background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+	border-bottom: 1px solid #dee2e6;
+	font-weight: 600;
+}
+
+.admission-summary {
+	border-top: 2px solid #dee2e6;
+	margin-top: 1rem;
+}
+
+.admission-summary .row > div {
+	padding: 0.5rem;
+	border-right: 1px solid #dee2e6;
+}
+
+.admission-summary .row > div:last-child {
+	border-right: none;
+}
+
+/* Patient report modal adjustments */
+#patientReportModal .modal-body {
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+#patientReportDetailsModal .modal-body {
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
 	.insurance-card-body {
@@ -887,6 +938,29 @@
 	.patient-group-card .table th,
 	.patient-group-card .table td {
 		padding: 0.25rem;
+	}
+
+		.patient-actions {
+		margin-top: 1rem;
+	}
+	
+	.generate-patient-report-btn {
+		font-size: 0.875rem;
+		padding: 0.5rem;
+	}
+	
+	.admission-summary .row {
+		flex-direction: column;
+	}
+	
+	.admission-summary .row > div {
+		border-right: none;
+		border-bottom: 1px solid #dee2e6;
+		padding: 0.75rem;
+	}
+	
+	.admission-summary .row > div:last-child {
+		border-bottom: none;
 	}
 }
 

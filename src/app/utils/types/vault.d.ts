@@ -23,6 +23,8 @@ export interface VaultSummary {
 
 	// Insurance Payments
 	insurance_payments_total: number;
+	insurance_payment_count: number;
+	insurance_payment_average: number;
 
 	// Net Summary
 	total_revenue: number;

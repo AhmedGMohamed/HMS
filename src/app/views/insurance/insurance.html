@@ -422,6 +422,102 @@
     </div>
   </div>
 
+  <!-- Patient Report Modal -->
+  <div class="modal fade" id="patientReportModal" tabindex="-1" aria-labelledby="patientReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="patientReportModalLabel">Generate Patient Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="patientReportForm" novalidate>
+            <input type="hidden" id="selectedPatientId">
+
+            <div class="alert alert-info">
+              <i class="bi bi-person-check me-2"></i>
+              <strong>Patient:</strong> <span id="selectedPatientName">-</span>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="patientReportStartDate" class="form-label">Start Date *</label>
+                  <input type="date" class="form-control" id="patientReportStartDate" required>
+                  <div class="invalid-feedback">Please select a start date.</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="patientReportEndDate" class="form-label">End Date *</label>
+                  <input type="date" class="form-control" id="patientReportEndDate" required>
+                  <div class="invalid-feedback">Please select an end date.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label class="form-label">Report Options</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="patientIncludeDrugs" checked>
+                    <label class="form-check-label" for="patientIncludeDrugs">
+                      Include drugs in report
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="patientIncludeClearedItems">
+                    <label class="form-check-label" for="patientIncludeClearedItems">
+                      Include items from before last cleared date
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              <strong>Important:</strong> This report will show all services and drugs for this specific patient during the selected period.
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-info" id="generatePatientReportBtnModal">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text">
+              <i class="bi bi-file-earmark-text"></i> Generate Patient Report
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Report Details Modal -->
+  <div class="modal fade" id="patientReportDetailsModal" tabindex="-1" aria-labelledby="patientReportDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="patientReportDetailsModalLabel">Patient Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="patientReportDetailsContent">
+            <!-- Patient report content will be loaded here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="printPatientReportBtn">
+            <i class="bi bi-printer"></i> Print Patient Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Clear Balance Modal -->
   <div class="modal fade" id="clearBalanceModal" tabindex="-1" aria-labelledby="clearBalanceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -516,7 +612,7 @@
   <script src="../js/toastr/toastr.min.js"></script>
   <!-- PDF Make -->
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
-  <script src="../js/pdfmake/build/vfs_fonts.min.js"></script>
+  <script src="../js/pdfmake/build/vfs_fonts.js"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../utils/pdfGenerator.js" type="module"></script>

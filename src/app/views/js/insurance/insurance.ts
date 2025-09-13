@@ -4,46 +4,46 @@ import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 
 interface InsuranceCompany {
-    insurance_id: number;
-    name: string;
-    contact_info: string | null;
-    pricelist_id: number | null;
-    last_cleared_date: string;
-    pricelist_name?: string;
-    patient_count?: number;
+	insurance_id: number;
+	name: string;
+	contact_info: string | null;
+	pricelist_id: number | null;
+	last_cleared_date: string;
+	pricelist_name?: string;
+	patient_count?: number;
 }
 
 interface InsurancePayment {
-    payment_id: number;
-    insurance_id: number;
-    payment_amount: number;
-    payment_from: string;
-    payment_to: string;
-    added_by_user_id: number;
-    issued_timestamp: string;
-    added_by_username?: string;
+	payment_id: number;
+	insurance_id: number;
+	payment_amount: number;
+	payment_from: string;
+	payment_to: string;
+	added_by_user_id: number;
+	issued_timestamp: string;
+	added_by_username?: string;
 }
 
 interface InsurancePatient {
-    patient_id: number;
-    name: string;
-    national_id: string;
-    gender: "male" | "female" | "other";
-    phone: string | null;
-    insurance_card_id: string | null;
-    insurance_form_id: string | null;
-    payment_type: "cash" | "credit" | "insurance";
-    is_active: boolean;
-    registration_date: string;
-    current_admission?: {
-        patient_history_id: number;
-        admission_time: string;
-        diagnosis: string | null;
-        bill_id: number;
-        total_amount: number;
-        paid_amount: number;
-        outstanding_amount: number;
-    };
+	patient_id: number;
+	name: string;
+	national_id: string;
+	gender: "male" | "female" | "other";
+	phone: string | null;
+	insurance_card_id: string | null;
+	insurance_form_id: string | null;
+	payment_type: "cash" | "credit" | "insurance";
+	is_active: boolean;
+	registration_date: string;
+	current_admission?: {
+		patient_history_id: number;
+		admission_time: string;
+		diagnosis: string | null;
+		bill_id: number;
+		total_amount: number;
+		paid_amount: number;
+		outstanding_amount: number;
+	};
 }
 
 interface InsuranceStatistics {
@@ -60,21 +60,67 @@ interface InsuranceStatistics {
 }
 
 interface InsuranceReportSummary {
-    insurance_id: number;
-    insurance_name: string;
-    report_period: {
-        start_date: string;
-        end_date: string;
-    };
-    last_cleared_date: string;
-    total_services_cost: number;
-    total_drugs_cost: number;
-    total_cost: number;
-    total_patient_payments: number;
-    outstanding_amount: number;
-    patient_count: number;
-    items: any[];
-    cleared_payments: InsurancePayment[];
+	insurance_id: number;
+	insurance_name: string;
+	report_period: {
+		start_date: string;
+		end_date: string;
+	};
+	last_cleared_date: string;
+	total_services_cost: number;
+	total_drugs_cost: number;
+	total_cost: number;
+	total_patient_payments: number;
+	outstanding_amount: number;
+	patient_count: number;
+	items: any[];
+	cleared_payments: InsurancePayment[];
+}
+
+export interface PatientReportFilters {
+	insurance_id: number;
+	patient_id: number;
+	start_date: string;
+	end_date: string;
+	include_drugs: boolean;
+	include_cleared_items: boolean;
+}
+
+interface PatientReportSummary {
+	insurance_id: number;
+	insurance_name: string;
+	patient_id: number;
+	patient_name: string;
+	patient_info: {
+		national_id: string | null;
+		gender: string;
+		phone: string | null;
+		insurance_card_id: string | null;
+		insurance_form_id: string | null;
+		registration_date: string;
+	};
+	report_period: {
+		start_date: string;
+		end_date: string;
+	};
+	last_cleared_date: string;
+	admissions: Array<{
+		patient_history_id: number;
+		admission_time: string;
+		discharge_time: string | null;
+		diagnosis: string | null;
+		bill_id: number;
+		total_amount: number;
+		paid_amount: number;
+		outstanding_amount: number;
+		items: any[];
+	}>;
+	total_services_cost: number;
+	total_drugs_cost: number;
+	total_cost: number;
+	total_patient_payments: number;
+	outstanding_amount: number;
+	items: any[];
 }
 
 class InsuranceManager {
@@ -90,6 +136,10 @@ class InsuranceManager {
 	private clearBalanceModal: Modal;
 	//@ts-ignore
 	private paymentHistoryModal: Modal;
+	//@ts-ignore
+	private patientReportModal: Modal;
+	//@ts-ignore
+	private patientReportDetailsModal: Modal;
 
 	private insuranceCompanies: InsuranceCompany[] = [];
 	private selectedInsurance: InsuranceCompany | null = null;
@@ -97,6 +147,7 @@ class InsuranceManager {
 	private currentStatistics: InsuranceStatistics | null = null;
 	private priceLists: any[] = [];
 	private currentReport: InsuranceReportSummary | null = null;
+	private currentPatientReport: PatientReportSummary | null = null;
 	private isEditMode: boolean = false;
 
 	constructor() {
@@ -127,6 +178,14 @@ class InsuranceManager {
 		//@ts-ignore
 		this.paymentHistoryModal = new bootstrap.Modal(
 			document.getElementById("paymentHistoryModal")!
+		);
+		//@ts-ignore
+		this.patientReportModal = new bootstrap.Modal(
+			document.getElementById("patientReportModal")!
+		);
+		//@ts-ignore
+		this.patientReportDetailsModal = new bootstrap.Modal(
+			document.getElementById("patientReportDetailsModal")!
 		);
 
 		this.initializeEventListeners();
@@ -219,6 +278,20 @@ class InsuranceManager {
 				this.printReport();
 			});
 
+		// Patient report modal
+		document
+			.getElementById("generatePatientReportBtnModal")
+			?.addEventListener("click", () => {
+				this.generatePatientReport();
+			});
+
+		// Print patient report
+		document
+			.getElementById("printPatientReportBtn")
+			?.addEventListener("click", () => {
+				this.printPatientReport();
+			});
+
 		// Form validations
 		const insuranceForm = document.getElementById(
 			"insuranceForm"
@@ -242,6 +315,15 @@ class InsuranceManager {
 		reportForm?.addEventListener("submit", (e) => {
 			e.preventDefault();
 			this.generateReport();
+		});
+
+		// Patient report form validation
+		const patientReportForm = document.getElementById(
+			"patientReportForm"
+		) as HTMLFormElement;
+		patientReportForm?.addEventListener("submit", (e) => {
+			e.preventDefault();
+			this.generatePatientReport();
 		});
 
 		const clearBalanceForm = document.getElementById(
@@ -679,6 +761,20 @@ class InsuranceManager {
 			.map((patient) => this.createPatientCard(patient))
 			.join("");
 		container.innerHTML = html;
+
+		container
+			.querySelectorAll(".generate-patient-report-btn")
+			.forEach((button) => {
+				button.addEventListener("click", (e) => {
+					e.stopPropagation();
+					const patientId = parseInt(
+						button.getAttribute("data-patient-id")!
+					);
+					const patientName =
+						button.getAttribute("data-patient-name")!;
+					this.showPatientReportModal(patientId, patientName);
+				});
+			});
 	}
 
 	private createPatientCard(patient: InsurancePatient): string {
@@ -793,8 +889,910 @@ class InsuranceManager {
                 </div>
                 
                 ${admissionHtml}
-            </div>
+				<div class="patient-actions mt-3">
+					<button type="button" 
+						class="btn btn-outline-info btn-sm w-100 generate-patient-report-btn" 
+						data-patient-id="${patient.patient_id}"
+						data-patient-name="${this.escapeHtml(patient.name)}"
+						data-requires-permission="manage_reports">
+						<i class="bi bi-file-earmark-text me-2"></i>Generate Patient Report
+					</button>
+				</div>
+			</div>
         `;
+	}
+
+	private showPatientReportModal(
+		patientId: number,
+		patientName: string
+	): void {
+		if (!this.selectedInsurance) return;
+
+		const form = document.getElementById(
+			"patientReportForm"
+		) as HTMLFormElement;
+		form.reset();
+		form.classList.remove("was-validated");
+
+		// Set patient information
+		(
+			document.getElementById("selectedPatientId") as HTMLInputElement
+		).value = patientId.toString();
+		document.getElementById("selectedPatientName")!.textContent =
+			patientName;
+
+		// Set default dates (current month)
+		const today = new Date();
+		const firstDayOfMonth = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			1
+		);
+
+		(
+			document.getElementById(
+				"patientReportStartDate"
+			) as HTMLInputElement
+		).value = firstDayOfMonth.toISOString().split("T")[0];
+		(
+			document.getElementById("patientReportEndDate") as HTMLInputElement
+		).value = today.toISOString().split("T")[0];
+
+		// Set default options
+		(
+			document.getElementById("patientIncludeDrugs") as HTMLInputElement
+		).checked = true;
+		(
+			document.getElementById(
+				"patientIncludeClearedItems"
+			) as HTMLInputElement
+		).checked = false;
+
+		this.patientReportModal.show();
+	}
+
+	private async generatePatientReport(): Promise<void> {
+		const form = document.getElementById(
+			"patientReportForm"
+		) as HTMLFormElement;
+		const generateBtn = document.getElementById(
+			"generatePatientReportBtnModal"
+		) as HTMLButtonElement;
+
+		if (!form.checkValidity()) {
+			form.classList.add("was-validated");
+			return;
+		}
+
+		if (!this.selectedInsurance) {
+			this.showError("No insurance company selected");
+			return;
+		}
+
+		try {
+			this.setButtonLoading(generateBtn, true);
+
+			const patientId = parseInt(
+				(
+					document.getElementById(
+						"selectedPatientId"
+					) as HTMLInputElement
+				).value
+			);
+			const startDate = (
+				document.getElementById(
+					"patientReportStartDate"
+				) as HTMLInputElement
+			).value;
+			const endDate = (
+				document.getElementById(
+					"patientReportEndDate"
+				) as HTMLInputElement
+			).value;
+			const includeDrugs = (
+				document.getElementById(
+					"patientIncludeDrugs"
+				) as HTMLInputElement
+			).checked;
+			const includeClearedItems = (
+				document.getElementById(
+					"patientIncludeClearedItems"
+				) as HTMLInputElement
+			).checked;
+
+			// Validate dates
+			if (new Date(startDate) >= new Date(endDate)) {
+				this.showError("Start date must be before end date");
+				return;
+			}
+
+			const response = await fetch(
+				`/api/insurance-companies/${this.selectedInsurance.insurance_id}/patients/${patientId}/reports`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					},
+					body: JSON.stringify({
+						start_date: startDate,
+						end_date: endDate,
+						include_drugs: includeDrugs,
+						include_cleared_items: includeClearedItems
+					})
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(
+					errorData.message || "Failed to generate patient report"
+				);
+			}
+
+			this.currentPatientReport = await response
+				.json()
+				.then((result) => result.data);
+
+			this.patientReportModal.hide();
+			this.displayPatientReportDetails();
+			this.showSuccess("Patient report generated successfully");
+		} catch (error: any) {
+			console.error("Error generating patient report:", error);
+			this.showError(
+				error.message || "Failed to generate patient report"
+			);
+		} finally {
+			this.setButtonLoading(generateBtn, false);
+		}
+	}
+
+	private displayPatientReportDetails(): void {
+		if (!this.currentPatientReport) return;
+
+		const modalLabel = document.getElementById(
+			"patientReportDetailsModalLabel"
+		)!;
+		const container = document.getElementById(
+			"patientReportDetailsContent"
+		)!;
+
+		modalLabel.textContent = `${this.currentPatientReport.patient_name} - Patient Report`;
+
+		const reportStartDate = new Date(
+			this.currentPatientReport.report_period.start_date
+		).toLocaleDateString();
+		const reportEndDate = new Date(
+			this.currentPatientReport.report_period.end_date
+		).toLocaleDateString();
+		const lastClearedDate = new Date(
+			this.currentPatientReport.last_cleared_date
+		).toLocaleDateString();
+		const registrationDate = new Date(
+			this.currentPatientReport.patient_info.registration_date
+		).toLocaleDateString();
+
+		// Generate patient information section
+		const patientInfoHtml = `
+		<div class="patient-info-section mb-4">
+			<div class="card">
+				<div class="card-header">
+					<h6 class="mb-0">
+						<i class="bi bi-person-check me-2"></i>Patient Information
+					</h6>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6">
+							<div class="patient-info-item">
+								<div class="patient-info-label">Patient Name</div>
+								<div class="patient-info-value">${this.escapeHtml(
+									this.currentPatientReport.patient_name
+								)}</div>
+							</div>
+							${
+								this.currentPatientReport.patient_info
+									.national_id
+									? `
+								<div class="patient-info-item">
+									<div class="patient-info-label">National ID</div>
+									<div class="patient-info-value">${this.currentPatientReport.patient_info.national_id}</div>
+								</div>
+							`
+									: ""
+							}
+							<div class="patient-info-item">
+								<div class="patient-info-label">Gender</div>
+								<div class="patient-info-value">${this.capitalizeFirst(
+									this.currentPatientReport.patient_info
+										.gender
+								)}</div>
+							</div>
+						</div>
+						<div class="col-md-6">
+							${
+								this.currentPatientReport.patient_info.phone
+									? `
+								<div class="patient-info-item">
+									<div class="patient-info-label">Phone</div>
+									<div class="patient-info-value">${this.currentPatientReport.patient_info.phone}</div>
+								</div>
+							`
+									: ""
+							}
+							${
+								this.currentPatientReport.patient_info
+									.insurance_card_id
+									? `
+								<div class="patient-info-item">
+									<div class="patient-info-label">Insurance Card ID</div>
+									<div class="patient-info-value">${this.currentPatientReport.patient_info.insurance_card_id}</div>
+								</div>
+							`
+									: ""
+							}
+							${
+								this.currentPatientReport.patient_info
+									.insurance_form_id
+									? `
+								<div class="patient-info-item">
+									<div class="patient-info-label">Insurance Form ID</div>
+									<div class="patient-info-value">${this.currentPatientReport.patient_info.insurance_form_id}</div>
+								</div>
+							`
+									: ""
+							}
+							<div class="patient-info-item">
+								<div class="patient-info-label">Registration Date</div>
+								<div class="patient-info-value">${registrationDate}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	`;
+
+		// Generate report summary
+		const summaryHtml = `
+		<div class="report-summary">
+			<div class="report-summary-title">
+				Patient Report Summary - ${reportStartDate} to ${reportEndDate}
+			</div>
+			<div class="report-summary-grid">
+				<div class="report-summary-item">
+					<span class="report-summary-value">${this.formatCurrency(
+						this.currentPatientReport.total_services_cost
+					)}</span>
+					<span class="report-summary-label">Services Cost</span>
+				</div>
+				<div class="report-summary-item">
+					<span class="report-summary-value">${this.formatCurrency(
+						this.currentPatientReport.total_drugs_cost
+					)}</span>
+					<span class="report-summary-label">Drugs Cost</span>
+				</div>
+				<div class="report-summary-item">
+					<span class="report-summary-value">${this.formatCurrency(
+						this.currentPatientReport.total_cost
+					)}</span>
+					<span class="report-summary-label">Total Cost</span>
+				</div>
+				<div class="report-summary-item">
+					<span class="report-summary-value">${this.formatCurrency(
+						this.currentPatientReport.total_patient_payments
+					)}</span>
+					<span class="report-summary-label">Patient Payments</span>
+				</div>
+				<div class="report-summary-item">
+					<span class="report-summary-value text-warning">${this.formatCurrency(
+						this.currentPatientReport.outstanding_amount
+					)}</span>
+					<span class="report-summary-label">Outstanding</span>
+				</div>
+				<div class="report-summary-item">
+					<span class="report-summary-value">${
+						this.currentPatientReport.admissions.length
+					}</span>
+					<span class="report-summary-label">Admissions</span>
+				</div>
+			</div>
+	
+		</div>
+	`;
+
+		// Generate admissions details
+		let admissionsHtml = "";
+		if (this.currentPatientReport.admissions.length > 0) {
+			admissionsHtml = `
+			<div class="mt-4">
+				<h6>Admissions Details (${
+					this.currentPatientReport.admissions.length
+				} admissions)</h6>
+				${this.currentPatientReport.admissions
+					.map((admission, index) =>
+						this.createAdmissionCard(admission, index)
+					)
+					.join("")}
+			</div>
+		`;
+		} else {
+			admissionsHtml = `
+			<div class="mt-4 text-center text-muted">
+				<i class="bi bi-hospital" style="font-size: 3rem;"></i>
+				<h6 class="mt-3">No Admissions Found</h6>
+				<p>No admissions found for this patient in the selected period.</p>
+			</div>
+		`;
+		}
+
+		container.innerHTML = patientInfoHtml + summaryHtml + admissionsHtml;
+		this.patientReportDetailsModal.show();
+	}
+
+	private createAdmissionCard(admission: any, index: number): string {
+		const admissionDate = new Date(
+			admission.admission_time
+		).toLocaleDateString();
+		const dischargeDate = admission.discharge_time
+			? new Date(admission.discharge_time).toLocaleDateString()
+			: null;
+
+		let itemsHtml = "";
+		if (admission.items && admission.items.length > 0) {
+			const itemRows = admission.items
+				.map(
+					(item: any) => `
+			<tr>
+				<td>${
+					item.item_type === "service"
+						? item.service_name || "-"
+						: item.drug_name || "-"
+				}</td>
+				<td><span class="badge ${
+					item.item_type === "service" ? "bg-success" : "bg-primary"
+				}">${this.capitalizeFirst(item.item_type)}</span></td>
+				<td>${new Date(item.service_date).toLocaleDateString()}</td>
+				<td class="text-center">${item.quantity}</td>
+				<td class="text-end">${this.formatCurrency(item.unit_price)}</td>
+				<td class="text-end">${this.formatCurrency(item.total_cost)}</td>
+			</tr>
+		`
+				)
+				.join("");
+
+			const totalItemsCost = admission.items.reduce(
+				(sum: number, item: any) => sum + item.total_cost,
+				0
+			);
+
+			itemsHtml = `
+			<div class="table-responsive">
+				<table class="table table-sm">
+					<thead>
+						<tr>
+							<th>Item Name</th>
+							<th>Type</th>
+							<th>Service Date</th>
+							<th class="text-center">Qty</th>
+							<th class="text-end">Unit Price</th>
+							<th class="text-end">Total</th>
+						</tr>
+					</thead>
+					<tbody>
+						${itemRows}
+					</tbody>
+					<tfoot class="table-light">
+						<tr class="border-top-2">
+							<td colspan="5" class="fw-bold">Admission Total:</td>
+							<td class="fw-bold text-end">${this.formatCurrency(totalItemsCost)}</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+		`;
+		} else {
+			itemsHtml = `
+			<div class="text-center text-muted py-3">
+				<i class="bi bi-inbox"></i>
+				<p class="mb-0">No billable items found for this admission in the selected period.</p>
+			</div>
+		`;
+		}
+
+		return `
+		<div class="patient-group-card mb-4">
+			<div class="patient-group-header">
+				<h6 class="mb-2">${index + 1}. Admission ${admissionDate}</h6>
+				<div class="patient-group-info">
+					<span class="badge bg-info me-2">Bill ID: ${admission.bill_id}</span>
+					${
+						dischargeDate
+							? `<span class="badge bg-success">Discharged: ${dischargeDate}</span>`
+							: `<span class="badge bg-warning">Currently Admitted</span>`
+					}
+					${
+						admission.diagnosis
+							? `<span class="badge bg-secondary ms-2">Diagnosis: ${admission.diagnosis}</span>`
+							: ""
+					}
+				</div>
+			</div>
+			${itemsHtml}
+			<div class="admission-summary p-3 bg-light">
+				<div class="row">
+					<div class="col-md-3">
+						<strong>Total Bill:</strong> ${this.formatCurrency(admission.total_amount)}
+					</div>
+					<div class="col-md-3">
+						<strong>Patient Paid:</strong> 
+						<span class="text-success">${this.formatCurrency(admission.paid_amount)}</span>
+					</div>
+					<div class="col-md-3">
+						<strong>Outstanding:</strong> 
+						<span class="${
+							admission.outstanding_amount > 0
+								? "text-warning"
+								: "text-success"
+						}">
+							${this.formatCurrency(admission.outstanding_amount)}
+						</span>
+					</div>
+					<div class="col-md-3">
+						<strong>Items Count:</strong> ${admission.items ? admission.items.length : 0}
+					</div>
+				</div>
+			</div>
+		</div>
+	`;
+	}
+
+	private async printPatientReport(): Promise<void> {
+		if (!this.currentPatientReport) {
+			this.showError("No patient report data to print");
+			return;
+		}
+
+		try {
+			// Create custom PDF for patient report
+			const docDefinition = {
+				content: [
+					{
+						text: `Patient Medical Report`,
+						style: "header",
+						alignment: "center"
+					},
+					{
+						text: `${this.currentPatientReport.insurance_name}`,
+						style: "subheader",
+						alignment: "center"
+					},
+					{
+						text: `Report Period: ${new Date(
+							this.currentPatientReport.report_period.start_date
+						).toLocaleDateString()} - ${new Date(
+							this.currentPatientReport.report_period.end_date
+						).toLocaleDateString()}`,
+						style: "info",
+						alignment: "center",
+						margin: [0, 0, 0, 20]
+					},
+
+					// Patient Information Section
+					{
+						text: "Patient Information",
+						style: "sectionHeader",
+						margin: [0, 20, 0, 10]
+					},
+					{
+						columns: [
+							{
+								width: "50%",
+								table: {
+									widths: ["*", "*"],
+									body: [
+										[
+											"Patient Name:",
+											this.currentPatientReport
+												.patient_name
+										],
+										...(this.currentPatientReport
+											.patient_info.national_id
+											? [
+													[
+														"National ID:",
+														this
+															.currentPatientReport
+															.patient_info
+															.national_id
+													]
+											  ]
+											: []),
+										[
+											"Gender:",
+											this.capitalizeFirst(
+												this.currentPatientReport
+													.patient_info.gender
+											)
+										],
+										...(this.currentPatientReport
+											.patient_info.phone
+											? [
+													[
+														"Phone:",
+														this
+															.currentPatientReport
+															.patient_info.phone
+													]
+											  ]
+											: [])
+									]
+								},
+								layout: "noBorders"
+							},
+							{
+								width: "50%",
+								table: {
+									widths: ["*", "*"],
+									body: [
+										...(this.currentPatientReport
+											.patient_info.insurance_card_id
+											? [
+													[
+														"Card ID:",
+														this
+															.currentPatientReport
+															.patient_info
+															.insurance_card_id
+													]
+											  ]
+											: []),
+										...(this.currentPatientReport
+											.patient_info.insurance_form_id
+											? [
+													[
+														"Form ID:",
+														this
+															.currentPatientReport
+															.patient_info
+															.insurance_form_id
+													]
+											  ]
+											: []),
+										[
+											"Registration:",
+											new Date(
+												this.currentPatientReport.patient_info.registration_date
+											).toLocaleDateString()
+										],
+										[
+											"Insurance:",
+											this.currentPatientReport
+												.insurance_name
+										]
+									]
+								},
+								layout: "noBorders"
+							}
+						],
+						margin: [0, 0, 0, 20]
+					},
+
+					// Report Summary Section
+					{
+						text: "Financial Summary",
+						style: "sectionHeader",
+						margin: [0, 20, 0, 10]
+					},
+					{
+						table: {
+							widths: ["*", "auto"],
+							body: [
+								[
+									{
+										text: "Financial Summary",
+										colSpan: 2,
+										bold: true,
+										fillColor: "#f0f0f0",
+										alignment: "center"
+									},
+									{}
+								],
+								[
+									"Services Cost:",
+									this.formatCurrency(
+										this.currentPatientReport
+											.total_services_cost
+									)
+								],
+								[
+									"Drugs Cost:",
+									this.formatCurrency(
+										this.currentPatientReport
+											.total_drugs_cost
+									)
+								],
+								[
+									{ text: "Total Cost:", bold: true },
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport.total_cost
+										),
+										bold: true
+									}
+								],
+								[
+									"Patient Payments:",
+									this.formatCurrency(
+										this.currentPatientReport
+											.total_patient_payments
+									)
+								],
+								[
+									{
+										text: "Outstanding Amount:",
+										bold: true,
+										color: "#dc3545"
+									},
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.outstanding_amount
+										),
+										bold: true,
+										color: "#dc3545"
+									}
+								],
+								[
+									"Total Admissions:",
+									this.currentPatientReport.admissions.length.toString()
+								]
+							]
+						},
+						layout: {
+							fillColor: function (rowIndex: number) {
+								return rowIndex === 0 ? "#f0f0f0" : null;
+							}
+						},
+						margin: [0, 0, 0, 20]
+					},
+
+					// Admissions Details
+					...this.generatePatientAdmissionsReport()
+				],
+				styles: {
+					header: {
+						fontSize: 18,
+						bold: true,
+						margin: [0, 0, 0, 10]
+					},
+					subheader: {
+						fontSize: 14,
+						bold: true,
+						margin: [0, 10, 0, 5]
+					},
+					sectionHeader: {
+						fontSize: 14,
+						bold: true,
+						color: "#0d6efd",
+						margin: [0, 15, 0, 8]
+					},
+					info: {
+						fontSize: 10,
+						color: "#6c757d"
+					},
+					admissionHeader: {
+						fontSize: 12,
+						bold: true,
+						color: "#198754"
+					}
+				},
+				pageMargins: [40, 60, 40, 60],
+				footer: function (currentPage: number, pageCount: number) {
+					return {
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						alignment: "center",
+						fontSize: 8,
+						margin: [0, 10, 0, 0]
+					};
+				},
+				defaultStyle: {
+					font: "Segoe UI"
+				}
+			};
+
+			//@ts-ignore
+			const pdf = pdfMake.createPdf(docDefinition);
+			pdf.open();
+			this.showSuccess("Patient report generated successfully");
+		} catch (error) {
+			console.error("Error generating patient report:", error);
+			this.showError("Failed to generate patient report");
+		}
+	}
+
+	private generatePatientAdmissionsReport(): any[] {
+		if (
+			!this.currentPatientReport ||
+			!this.currentPatientReport.admissions ||
+			this.currentPatientReport.admissions.length === 0
+		) {
+			return [
+				{
+					text: "No admissions found for the selected period.",
+					style: "info",
+					alignment: "center",
+					margin: [0, 20, 0, 20]
+				}
+			];
+		}
+
+		const content: any[] = [];
+
+		// Add section header
+		content.push({
+			text: "Admissions Details",
+			style: "sectionHeader",
+			margin: [0, 20, 0, 15]
+		});
+
+		this.currentPatientReport.admissions.forEach((admission, index) => {
+			// Add admission header
+			const admissionDate = new Date(
+				admission.admission_time
+			).toLocaleDateString();
+			const dischargeDate = admission.discharge_time
+				? new Date(admission.discharge_time).toLocaleDateString()
+				: "Currently Admitted";
+
+			content.push({
+				text: `Admission ${
+					index + 1
+				}: ${admissionDate} - ${dischargeDate}`,
+				style: "admissionHeader",
+				margin: [0, index === 0 ? 0 : 20, 0, 5]
+			});
+
+			// Add admission info
+			content.push({
+				table: {
+					widths: ["*", "*", "*", "*"],
+					body: [
+						[
+							`Bill ID: ${admission.bill_id}`,
+							`Total: ${this.formatCurrency(
+								admission.total_amount
+							)}`,
+							`Paid: ${this.formatCurrency(
+								admission.paid_amount
+							)}`,
+							`Outstanding: ${this.formatCurrency(
+								admission.outstanding_amount
+							)}`
+						]
+					]
+				},
+				layout: "noBorders",
+				margin: [0, 0, 0, 10]
+			});
+
+			if (admission.diagnosis) {
+				content.push({
+					text: `Diagnosis: ${admission.diagnosis}`,
+					fontSize: 10,
+					color: "#6c757d",
+					margin: [0, 0, 0, 10]
+				});
+			}
+
+			// Add items table if there are items
+			if (admission.items && admission.items.length > 0) {
+				const tableBody = [];
+
+				// Add header row
+				tableBody.push([
+					{ text: "Item Name", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Type", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Service Date", bold: true, fillColor: "#f0f0f0" },
+					{
+						text: "Qty",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{
+						text: "Unit Price",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					},
+					{
+						text: "Total",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					}
+				]);
+
+				// Add data rows
+				let admissionTotal = 0;
+				admission.items.forEach((item: any) => {
+					const itemName =
+						item.item_type === "service"
+							? item.service_name || "Unknown Service"
+							: item.drug_name || "Unknown Drug";
+
+					tableBody.push([
+						itemName,
+						this.capitalizeFirst(item.item_type),
+						new Date(item.service_date).toLocaleDateString(),
+						{ text: item.quantity.toString(), alignment: "center" },
+						{
+							text: this.formatCurrency(item.unit_price),
+							alignment: "right"
+						},
+						{
+							text: this.formatCurrency(item.total_cost),
+							alignment: "right"
+						}
+					]);
+
+					admissionTotal += item.total_cost;
+				});
+
+				// Add total row
+				tableBody.push([
+					{
+						text: "Admission Items Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa"
+					},
+					{},
+					{},
+					{},
+					{},
+					{
+						text: this.formatCurrency(admissionTotal),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				content.push({
+					table: {
+						headerRows: 1,
+						widths: ["*", "auto", "auto", "auto", "auto", "auto"],
+						body: tableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number) {
+							if (rowIndex === 0) return "#f0f0f0";
+							if (rowIndex === tableBody.length - 1)
+								return "#f8f9fa";
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						}
+					},
+					margin: [0, 0, 0, 15]
+				});
+			} else {
+				content.push({
+					text: "No billable items found for this admission in the selected period.",
+					fontSize: 10,
+					color: "#6c757d",
+					italics: true,
+					margin: [0, 0, 0, 15]
+				});
+			}
+
+			// Add page break after each admission except the last one
+			if (index < this.currentPatientReport!.admissions.length - 1) {
+				content.push({ text: "", pageBreak: "before" });
+			}
+		});
+
+		return content;
 	}
 
 	private populatePriceListOptions(): void {
@@ -1218,9 +2216,6 @@ class InsuranceManager {
                     <span class="report-summary-label">Patients</span>
                 </div>
             </div>
-            <div class="mt-3 text-center">
-                <small class="text-muted">Last Cleared Date: ${lastClearedDate}</small>
-            </div>
         </div>
     `;
 
@@ -1417,7 +2412,29 @@ class InsuranceManager {
 		}
 
 		try {
-			// Create custom PDF with patient grouping
+			const patientsSummaryColumns: any[] = [];
+			const groupedPatients = this.groupItemsByPatient(
+				this.currentReport.items
+			);
+			patientsSummaryColumns.push([
+				{
+					text: "Total Owed By patient",
+					colSpan: 2,
+					bold: true,
+					alignment: "center",
+					fillColor: "#f0f0f0"
+				}
+			]);
+			Object.entries(groupedPatients).forEach(([key, value]) => {
+				patientsSummaryColumns.push([
+					key,
+					{
+						text: `$${value.totalCost - value.patientPaid || 0}`,
+						color: "red"
+					}
+				]);
+			});
+			console.log(groupedPatients);
 			const docDefinition = {
 				content: [
 					{
@@ -1433,14 +2450,6 @@ class InsuranceManager {
 						).toLocaleDateString()}`,
 						style: "subheader",
 						alignment: "center"
-					},
-					{
-						text: `Last Cleared Date: ${new Date(
-							this.currentReport.last_cleared_date
-						).toLocaleDateString()}`,
-						style: "info",
-						alignment: "center",
-						margin: [0, 0, 0, 20]
 					},
 					// Summary section
 					{
@@ -1509,7 +2518,8 @@ class InsuranceManager {
 										[
 											"Total Patients:",
 											this.currentReport.patient_count.toString()
-										]
+										],
+										...(patientsSummaryColumns as any[])
 									]
 								},
 								layout: {
@@ -1559,6 +2569,9 @@ class InsuranceManager {
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
 					};
+				},
+				defaultStyle: {
+					font: "Segoe UI"
 				}
 			};
 
@@ -1800,6 +2813,11 @@ class InsuranceManager {
 					},
 					margin: [0, 0, 0, 15]
 				});
+
+				// Add page break after each patient except the last one
+				if (index < Object.keys(patientGroups).length - 1) {
+					content.push({ text: "", pageBreak: "before" });
+				}
 			}
 		);
 

@@ -748,11 +748,6 @@ export class PrintBillManager {
 				total_amount: totalAmount,
 				show_discount: includeDiscount
 			};
-			console.log(
-				customBill,
-				this.customBillItems,
-				this.customBillData.patient
-			);
 
 			// Generate PDF with custom data
 			const pdf = generatePatientBill(

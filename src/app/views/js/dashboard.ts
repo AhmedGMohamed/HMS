@@ -44,7 +44,6 @@ class DashboardManager {
 
 			// Check permissions
 			this.isDashboardAdmin = this.hasPermission("view_dashboard");
-			console.log(this.isDashboardAdmin);
 
 			if (this.isDashboardAdmin) {
 				await this.loadAdminDashboard();
