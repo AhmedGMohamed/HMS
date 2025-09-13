@@ -1,7 +1,6 @@
 import { query } from "./database/connection.js";
 import {
 	VaultSummary,
-	VaultReportData,
 	ManualPayment
 } from "../utils/types/vault.js";
 export class VaultModel {
@@ -21,7 +20,9 @@ export class VaultModel {
 			drugSalesProfitTotal,
 			wagesOwedTotal,
 			wagesPaidTotal,
-			insurancePaymentsTotal
+			insurancePaymentsTotal,
+			insurancePaymentCount,
+			insurancePaymentAverage
 		] = await Promise.all([
 			this.getPatientServicesTotalAmount(startDate, endDate),
 			this.getPatientDrugsTotalAmount(startDate, endDate),
@@ -34,7 +35,9 @@ export class VaultModel {
 			this.getDrugSalesProfitTotalAmount(startDate, endDate),
 			this.getEmployeeWagesOwedTotalAmount(startDate, endDate),
 			this.getEmployeeWagesPaidTotalAmount(startDate, endDate),
-			this.getInsurancePaymentsTotalAmount(startDate, endDate)
+			this.getInsurancePaymentsTotalAmount(startDate, endDate),
+			this.getInsurancePaymentsCount(startDate, endDate),
+			this.getInsurancePaymentsAverage(startDate, endDate)
 		]);
 
 		const wagesOutstandingTotal = wagesOwedTotal - wagesPaidTotal;
@@ -67,6 +70,8 @@ export class VaultModel {
 			wages_paid_total: wagesPaidTotal,
 			wages_outstanding_total: wagesOutstandingTotal,
 			insurance_payments_total: insurancePaymentsTotal,
+			insurance_payment_count: insurancePaymentCount,
+			insurance_payment_average: insurancePaymentAverage,
 			total_revenue: totalRevenue,
 			total_expenses: totalExpenses,
 			net_profit: netProfit
@@ -609,6 +614,34 @@ export class VaultModel {
 
 		const result = await query(sql, [startDate, endDate]);
 		return parseFloat(result.rows[0].total);
+	}
+
+	private async getInsurancePaymentsCount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+        SELECT COUNT(*) as count
+        FROM InsurancePayments
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+    `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseInt(result.rows[0].count);
+	}
+
+	private async getInsurancePaymentsAverage(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+        SELECT COALESCE(AVG(payment_amount), 0) as average
+        FROM InsurancePayments
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+    `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].average);
 	}
 }
 

@@ -499,7 +499,6 @@ class PatientManager {
 				throw new Error("Failed to fetch insurance companies");
 
 			this.insuranceCompanies = (await response.json()).data;
-			console.log(this.insuranceCompanies)
 			this.populateInsuranceSelect();
 		} catch (error) {
 			console.error("Error loading insurance companies:", error);

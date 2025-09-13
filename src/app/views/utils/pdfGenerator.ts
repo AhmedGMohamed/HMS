@@ -9,10 +9,25 @@ declare global {
 			vfs?: any;
 			fonts?: any;
 		};
+		vfs?: any;
 	}
 }
 
-const pdfMake = { ...window.pdfMake };
+const pdfMake = window.pdfMake
+
+window.pdfMake.vfs = { ...window.vfs };
+window.pdfMake.fonts = {
+	Roboto: {
+		normal: "Roboto-Regular.ttf",
+		bold: "Roboto-Medium.ttf",
+		italics: "Roboto-Italic.ttf",
+		bolditalics: "Roboto-MediumItalic.ttf"
+	},
+	"Segoe UI": {
+		normal: "Segoe UI.ttf",
+		bold: "Segoe UI Semibold.ttf"
+	}
+};
 
 // Generic report configuration interfaces
 interface ReportField {
@@ -159,7 +174,24 @@ export function generateReport(config: ReportConfig, data?: any) {
 			},
 			...config.styles
 		},
-		pageMargins: [40, 60, 40, 60]
+		pageMargins: [40, 60, 40, 60],
+		defaultStyle: {
+			font: "Segoe UI"
+		}
+	};
+
+	pdfMake.vfs = { ...window.vfs };
+	pdfMake.fonts = {
+		Roboto: {
+			normal: "Roboto-Regular.ttf",
+			bold: "Roboto-Medium.ttf",
+			italics: "Roboto-Italic.ttf",
+			bolditalics: "Roboto-MediumItalic.ttf"
+		},
+		"Segoe UI": {
+			normal: "Segoe UI.ttf",
+			bold: "Segoe UI Semibold.ttf"
+		}
 	};
 
 	return pdfMake.createPdf(docDefinition);

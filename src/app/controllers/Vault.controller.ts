@@ -205,6 +205,28 @@ export class VaultController {
 		}
 	}
 
+	async getInsurancePaymentsRevenue(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json("Start date and end date are required");
+				return;
+			}
+
+			const data = await VaultModel.getInsurancePaymentsRevenue(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(data);
+		} catch (error) {
+			res.status(500).json({
+				error: error instanceof Error ? error.message : "Unknown error"
+			});
+		}
+	}
+
 	// Pharmacy Methods
 	async getDrugShipmentCosts(req: Request, res: Response) {
 		try {

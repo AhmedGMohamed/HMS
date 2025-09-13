@@ -114,4 +114,12 @@ router.get(
 	(req, res) => VaultController.getEmployeeWagesPaid(req, res)
 );
 
+// Add this route to your vault.routes.ts file
+router.get(
+	"/insurance-payments",
+	verifyToken,
+	checkPermission("view_vault"),
+	(req, res) => VaultController.getInsurancePaymentsRevenue(req, res)
+);
+
 export default router;

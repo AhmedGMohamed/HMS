@@ -224,6 +224,63 @@
     border-top: 1px solid #e9ecef;
 }
 
+/* Insurance Payments Section */
+.insurance-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.insurance-card .card-header {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+}
+
+.insurance-card .summary-icon {
+    background: linear-gradient(135deg, #0d6efd, #0056b3);
+}
+
+/* Insurance metric items */
+.metric-item.insurance-metric {
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.05);
+}
+
+.metric-item.insurance-metric:hover {
+    border-color: #0056b3;
+    background: rgba(13, 110, 253, 0.1);
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);
+}
+
+/* Insurance payment status indicators */
+.insurance-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.insurance-status.received {
+    background: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.insurance-status.pending {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+/* Insurance company badges in reports */
+.insurance-company-badge {
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+    margin: 0.25rem 0;
+}
+
 /* Form Styles */
 .form-label {
     font-weight: 600;

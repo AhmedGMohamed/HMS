@@ -167,7 +167,7 @@
                   <div class="summary-content">
                     <h6 class="summary-title">Total Revenue</h6>
                     <h3 class="summary-amount text-success" id="totalRevenue">$0.00</h3>
-                    <small class="text-muted">All income sources</small>
+                    <small class="text-muted">Includes insurance payments</small>
                   </div>
                 </div>
               </div>
@@ -308,6 +308,52 @@
                       <span class="metric-value" id="manualNetTotal">$0.00</span>
                     </div>
                     <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Insurance Payments Section -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-shield-check me-2"></i>Insurance Payments
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Total Received</span>
+                      <span class="metric-value text-success" id="insurancePaymentsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Payment Count</span>
+                      <span class="metric-value text-info" id="insurancePaymentCount">0</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Average Payment</span>
+                      <span class="metric-value text-primary" id="insurancePaymentAverage">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -525,7 +571,7 @@
   <script src="../js/toastr/toastr.min.js"></script>
   <!-- PDF Make -->
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
-  <script src="../js/pdfmake/build/vfs_fonts.min.js"></script>
+  <script src="../js/pdfmake/build/vfs_fonts.js"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../utils/pdfGenerator.js" type="module"></script>

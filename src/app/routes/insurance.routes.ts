@@ -114,4 +114,11 @@ router.get(
 	InsuranceController.getInsuranceOutstanding
 );
 
+router.post(
+	"/:id/patients/:patientId/reports",
+	verifyToken,
+	checkPermission("manage_insurance"),
+	InsuranceController.generatePatientReport
+);
+
 export default router;
