@@ -11,19 +11,22 @@ export class DashboardService {
 				activePatientsCount,
 				todayRevenue,
 				todayProfit,
-				lowStockItemsCount
+				lowStockItemsCount,
+				todayInsurancePayments
 			] = await Promise.all([
 				this.getActivePatientsCount(),
 				this.getTodayRevenue(),
 				this.getTodayProfit(),
-				this.getLowStockItemsCount()
+				this.getLowStockItemsCount(),
+				this.getTodayInsurancePayments()
 			]);
 
 			return {
 				activePatientsCount,
 				todayRevenue,
 				todayProfit,
-				lowStockItemsCount
+				lowStockItemsCount,
+				todayInsurancePayments
 			};
 		} catch (error) {
 			console.error("Error getting admin statistics:", error);
@@ -69,6 +72,11 @@ export class DashboardService {
 					 FROM DrugTransaction dt 
 					 WHERE dt.timestamp >= $1 AND dt.timestamp <= $2 
 					 AND dt.transaction_type IN ('outside', 'check')), 0
+				) + 
+				COALESCE(
+					(SELECT SUM(payment_amount) 
+					 FROM InsurancePayments 
+					 WHERE issued_timestamp >= $1 AND issued_timestamp <= $2), 0
 				) as total_revenue
 		`;
 
@@ -87,26 +95,50 @@ export class DashboardService {
 
 		const sql = `
 			SELECT 
+				-- Patient revenue (bills paid)
 				COALESCE(
 					(SELECT SUM(paid_amount) FROM Bill WHERE updated_at >= $1 AND updated_at <= $2), 0
 				) + 
+				-- Pharmacy profit (revenue minus cost)
 				COALESCE(
 					(SELECT SUM(dt.quantity * (dt.price - ds.buy_price)) 
 					 FROM DrugTransaction dt 
 					 JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
 					 WHERE dt.timestamp >= $1 AND dt.timestamp <= $2 
 					 AND dt.transaction_type IN ('outside', 'check')), 0
+				) + 
+				-- Insurance payments received
+				COALESCE(
+					(SELECT SUM(payment_amount) 
+					 FROM InsurancePayments 
+					 WHERE issued_timestamp >= $1 AND issued_timestamp <= $2), 0
 				) - 
+				-- Drug purchase costs
 				COALESCE(
 					(SELECT SUM(ds.quantity * ds.buy_price) 
 					 FROM DrugShipment ds 
 					 WHERE ds.received_date >= $1 AND ds.received_date <= $2), 0
 				) - 
+				-- Employee payments
 				COALESCE(
 					(SELECT SUM(ep.payment_amount + COALESCE(ep.extra_amount, 0)) 
 					 FROM EmployeePayment ep 
 					 WHERE ep.paid_timestamp >= $1 AND ep.paid_timestamp <= $2 
 					 AND ep.is_paid = true AND ep.is_void = false), 0
+				) - 
+				-- Vault manual deductions
+				COALESCE(
+					(SELECT SUM(payment_amount)
+					 FROM VaultManualPayment
+					 WHERE payment_time >= $1 AND payment_time <= $2
+					 AND payment_type = 'deduction'), 0
+				) +
+				-- Vault manual additions
+				COALESCE(
+					(SELECT SUM(payment_amount)
+					 FROM VaultManualPayment
+					 WHERE payment_time >= $1 AND payment_time <= $2
+					 AND payment_type = 'addition'), 0
 				) as total_profit
 		`;
 
@@ -115,6 +147,25 @@ export class DashboardService {
 			todayEnd.toISOString()
 		]);
 		return parseFloat(result.rows[0].total_profit) || 0;
+	}
+
+	private async getTodayInsurancePayments(): Promise<number> {
+		const todayStart = new Date();
+		todayStart.setHours(0, 0, 0, 0);
+		const todayEnd = new Date();
+		todayEnd.setHours(23, 59, 59, 999);
+
+		const sql = `
+			SELECT COALESCE(SUM(payment_amount), 0) as total_insurance_payments
+			FROM InsurancePayments 
+			WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+		`;
+
+		const result = await query(sql, [
+			todayStart.toISOString(),
+			todayEnd.toISOString()
+		]);
+		return parseFloat(result.rows[0].total_insurance_payments) || 0;
 	}
 
 	private async getLowStockItemsCount(): Promise<number> {
@@ -164,6 +215,14 @@ export class DashboardService {
 				AND dt.transaction_type IN ('outside', 'check')
 				GROUP BY DATE(dt.timestamp)
 			),
+			daily_insurance_revenue AS (
+				SELECT 
+					DATE(ip.issued_timestamp) as date,
+					SUM(ip.payment_amount) as revenue
+				FROM InsurancePayments ip
+				WHERE ip.issued_timestamp >= CURRENT_DATE - INTERVAL '29 days'
+				GROUP BY DATE(ip.issued_timestamp)
+			),
 			daily_pharmacy_profit AS (
 				SELECT 
 					DATE(dt.timestamp) as date,
@@ -177,18 +236,31 @@ export class DashboardService {
 			daily_expenses AS (
 				SELECT 
 					DATE(ds.received_date) as date,
-					SUM(ds.quantity * ds.buy_price) as drug_costs
+					SUM(ds.quantity * ds.buy_price) as drug_costs,
+					'drug_costs' as expense_type
 				FROM DrugShipment ds
 				WHERE ds.received_date >= CURRENT_DATE - INTERVAL '29 days'
 				GROUP BY DATE(ds.received_date)
 				UNION ALL
 				SELECT 
 					DATE(ep.paid_timestamp) as date,
-					SUM(ep.payment_amount + COALESCE(ep.extra_amount, 0)) as wage_costs
+					SUM(ep.payment_amount + COALESCE(ep.extra_amount, 0)) as expense_amount,
+					'employee_payment' as expense_type
 				FROM EmployeePayment ep
 				WHERE ep.paid_timestamp >= CURRENT_DATE - INTERVAL '29 days'
 				AND ep.is_paid = true AND ep.is_void = false
 				GROUP BY DATE(ep.paid_timestamp)
+				UNION ALL
+				SELECT 
+					DATE(vmp.payment_time) as date,
+					SUM(CASE 
+						WHEN vmp.payment_type = 'deduction' THEN vmp.payment_amount
+						ELSE -vmp.payment_amount
+					END) as expense_amount,
+					'vault_manual' as expense_type
+				FROM VaultManualPayment vmp
+				WHERE vmp.payment_time >= CURRENT_DATE - INTERVAL '29 days'
+				GROUP BY DATE(vmp.payment_time)
 			),
 			aggregated_expenses AS (
 				SELECT 
@@ -201,13 +273,16 @@ export class DashboardService {
 				ds.date,
 				COALESCE(dpr.revenue, 0) as patient_revenue,
 				COALESCE(dphr.revenue, 0) as pharmacy_revenue,
-				COALESCE(dpr.revenue, 0) + COALESCE(dphr.revenue, 0) as revenue,
+				COALESCE(dir.revenue, 0) as insurance_revenue,
+				COALESCE(dpr.revenue, 0) + COALESCE(dphr.revenue, 0) + COALESCE(dir.revenue, 0) as revenue,
 				COALESCE(dpr.revenue, 0) as patient_profit,
 				COALESCE(dphp.profit, 0) as pharmacy_profit,
-				COALESCE(dpr.revenue, 0) + COALESCE(dphp.profit, 0) - COALESCE(ae.total_expenses, 0) as profit
+				COALESCE(dir.revenue, 0) as insurance_profit,
+				COALESCE(dpr.revenue, 0) + COALESCE(dphp.profit, 0) + COALESCE(dir.revenue, 0) - COALESCE(ae.total_expenses, 0) as profit
 			FROM date_series ds
 			LEFT JOIN daily_patient_revenue dpr ON ds.date = dpr.date
 			LEFT JOIN daily_pharmacy_revenue dphr ON ds.date = dphr.date
+			LEFT JOIN daily_insurance_revenue dir ON ds.date = dir.date
 			LEFT JOIN daily_pharmacy_profit dphp ON ds.date = dphp.date
 			LEFT JOIN aggregated_expenses ae ON ds.date = ae.date
 			ORDER BY ds.date;
@@ -220,8 +295,10 @@ export class DashboardService {
 			profit: parseFloat(row.profit) || 0,
 			patient_revenue: parseFloat(row.patient_revenue) || 0,
 			pharmacy_revenue: parseFloat(row.pharmacy_revenue) || 0,
+			insurance_revenue: parseFloat(row.insurance_revenue) || 0,
 			patient_profit: parseFloat(row.patient_profit) || 0,
-			pharmacy_profit: parseFloat(row.pharmacy_profit) || 0
+			pharmacy_profit: parseFloat(row.pharmacy_profit) || 0,
+			insurance_profit: parseFloat(row.insurance_profit) || 0
 		}));
 	}
 }

@@ -5,6 +5,7 @@ export interface DashboardStatistics {
 	todayRevenue: number;
 	todayProfit: number;
 	lowStockItemsCount: number;
+	todayInsurancePayments: number;
 }
 
 export interface ChartDataPoint {
@@ -13,8 +14,10 @@ export interface ChartDataPoint {
 	profit: number;
 	patient_revenue: number;
 	pharmacy_revenue: number;
+	insurance_revenue: number;
 	patient_profit: number;
 	pharmacy_profit: number;
+	insurance_profit: number;
 }
 
 export interface RevenueBreakdown {
