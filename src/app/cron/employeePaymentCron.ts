@@ -542,10 +542,6 @@ class EmployeePaymentCron {
 
 				let baseAmount = parseFloat(paid_amount);
 
-				// Apply work time proportionally if worked less than full day
-				const workRatio = Math.min(staff.hours_worked / 24.0, 1.0);
-				baseAmount = baseAmount * workRatio;
-
 				// Calculate deductions if percentage_scope is 'after_deductions'
 				if (staff.percentage_scope === "after_deductions") {
 					const deductionsResult = await query(
