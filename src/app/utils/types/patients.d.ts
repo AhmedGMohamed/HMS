@@ -68,7 +68,6 @@ export interface CreatePatientDTO {
 		address: string;
 		kinship: string;
 	};
-	quick_check: boolean;
 	referring_doctor_id?: number;
 
 	// Optional admission fields
@@ -79,6 +78,7 @@ export interface CreatePatientDTO {
 	is_active?: boolean;
 	created_by_user_id?: number;
 	pricelist_id?: number | null;
+	quick_check?: boolean;
 }
 
 export interface UpdatePatientDTO {
@@ -116,6 +116,7 @@ export interface AdmitPatientDTO {
 	attending_doctors: number[];
 	attending_nurses: number[];
 	pricelist_id?: number | null;
+	quick_check?: boolean;
 }
 
 export interface DischargePatientDTO {

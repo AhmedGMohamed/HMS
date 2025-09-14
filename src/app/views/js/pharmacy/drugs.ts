@@ -962,9 +962,7 @@ class DrugManager {
 					) as HTMLInputElement
 				).value
 			);
-		const priceListId = parseInt(
-			(document.getElementById("priceList") as HTMLSelectElement).value
-		);
+
 		const patientId =
 			transactionType === "patient"
 				? parseInt(

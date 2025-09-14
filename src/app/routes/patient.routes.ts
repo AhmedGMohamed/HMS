@@ -1,4 +1,3 @@
-// Enhanced src/app/routes/patient.routes.ts
 import { Router } from "express";
 import PatientController from "../controllers/Patient.controller.js";
 import { verifyToken, checkPermission } from "../middleware/auth.middleware.js";
@@ -160,16 +159,27 @@ router.post(
 	(req, res) => PatientController.addServiceToPatient(req, res)
 );
 
+// Add drug to patient
 router.post(
 	"/:id/drugs",
 	verifyToken,
-	checkPermission("manage_patients"),	
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.addDrugToPatient(req, res)
 );
 
-// Remove service from patient
+// Stop service for patient (deactivate but keep billing)
+router.patch(
+	"/:id/services/:serviceId/stop",
+	verifyToken,
+	checkPermission("manage_patient_services"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.stopServiceForPatient(req, res)
+);
+
+// Completely remove service from patient (remove billing)
 router.delete(
 	"/:id/services/:serviceId",
 	verifyToken,
@@ -179,17 +189,31 @@ router.delete(
 	(req, res) => PatientController.removeServiceFromPatient(req, res)
 );
 
+// Completely remove drug from patient (remove billing and restore inventory)
+router.delete(
+	"/:id/drugs/:drugUsageId",
+	verifyToken,
+	checkPermission("manage_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.removeDrugFromPatient(req, res)
+);
+
+// Get patient services
 router.get(
 	"/:id/services",
 	verifyToken,
 	checkPermission("view_patients"),
+	validateId,
 	(req, res) => PatientController.getPatientServices(req, res)
 );
 
+// Get patient drugs
 router.get(
 	"/:id/drugs",
 	verifyToken,
 	checkPermission("view_patients"),
+	validateId,
 	(req, res) => PatientController.getPatientDrugs(req, res)
 );
 

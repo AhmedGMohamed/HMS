@@ -43,6 +43,7 @@ interface PatientHistory {
 	total_amount?: number;
 	paid_amount?: number;
 	pricelist_id: number | null;
+	quick_check: boolean;
 }
 
 interface Doctor {
@@ -217,16 +218,6 @@ class PatientManager {
 			const searchTerm = (e.target as HTMLInputElement).value;
 			this.handlePatientSearch(searchTerm);
 		});
-
-		// Hide suggestions when clicking outside
-		/*document.addEventListener("click", (e) => {
-			const searchContainer = document.querySelector(
-				".patient-search-container"
-			);
-			if (!searchContainer?.contains(e.target as Node)) {
-				this.hideSuggestions();
-			}
-		});*/
 
 		// Create patient button
 		document
@@ -707,45 +698,6 @@ class PatientManager {
 		}, 300);
 	}
 
-	private displaySuggestions(suggestions: any[]): void {
-		const container = document.getElementById("searchSuggestions")!;
-
-		if (suggestions.length === 0) {
-			container.style.display = "none";
-			return;
-		}
-
-		container.innerHTML = suggestions
-			.map(
-				(patient) => `
-            <div class="suggestion-item" onclick="patientManager.selectPatient(${
-				patient.patient_id
-			})">
-                <div class="suggestion-name">${this.escapeHtml(
-					patient.name
-				)}</div>
-                <div class="suggestion-details">
-                    Registered: ${new Date(
-						patient.registration_date
-					).toLocaleDateString()}
-                </div>
-                <div class="suggestion-status ${
-					patient.is_active ? "admitted" : "not-admitted"
-				}">
-                    ${patient.is_active ? "Currently Admitted" : "Not Admitted"}
-                </div>
-            </div>
-        `
-			)
-			.join("");
-
-		container.style.display = "block";
-	}
-
-	/*private hideSuggestions(): void {
-		document.getElementById("searchSuggestions")!.style.display = "none";
-	}*/
-
 	public async selectPatient(patientId: number): Promise<void> {
 		try {
 			//this.hideSuggestions();
@@ -991,7 +943,8 @@ class PatientManager {
 			this.getPriceListName() || "Default";
 
 		// Medical information
-		document.getElementById("quickCheck")!.innerHTML = patient.quick_check
+		document.getElementById("quickCheck")!.innerHTML = this.currentAdmission
+			?.quick_check
 			? '<span class="badge bg-warning">Yes</span>'
 			: '<span class="badge bg-secondary">No</span>';
 
@@ -1063,41 +1016,85 @@ class PatientManager {
 		container.innerHTML = this.assignedServices
 			.map(
 				(service) => `
-            <div class="assigned-item">
-                <div class="assigned-item-info">
-                    <div class="assigned-item-name">${this.escapeHtml(
-						service.name
-					)}</div>
-                    <div class="assigned-item-details">
-                        Type: ${this.formatServiceType(service.service_type)} • 
-                        Started: ${new Date(
-							service.start_date
-						).toLocaleDateString()}
-                        ${
-							service.end_date
-								? ` • Ended: ${new Date(
-										service.end_date
-								  ).toLocaleDateString()}`
-								: ""
+    		    <div class="assigned-item">
+    		        <div class="assigned-item-info">
+    		            <div class="assigned-item-name">${this.escapeHtml(
+							service.name
+						)}</div>
+    		            <div class="assigned-item-details">
+    		                Type: ${this.formatServiceType(service.service_type)} • 
+    		                Started: ${new Date(
+								service.start_date
+							).toLocaleDateString()}
+    		                ${
+								service.end_date
+									? ` • Ended: ${new Date(
+											service.end_date
+									  ).toLocaleDateString()}`
+									: ""
+							}
+    		            </div>
+    		        </div>
+    		        <div class="assigned-item-actions">
+    		            ${
+							service.is_active
+								? `
+    		                <button class="btn btn-sm btn-outline-warning" 
+    		                        onclick="patientManager.stopService(${service.service_id})">
+    		                    <i class="bi bi-pause-circle"></i> Stop
+    		                </button>
+    		                <button class="btn btn-sm btn-outline-danger" 
+    		                        onclick="patientManager.removeService(${service.service_id})">
+    		                    <i class="bi bi-trash"></i> Remove
+    		                </button>
+    		            `
+								: '<span class="badge bg-secondary">Completed</span>'
 						}
-                    </div>
-                </div>
-                <div class="assigned-item-actions">
-                    ${
-						service.is_active
-							? `
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="patientManager.removeService(${service.service_id})">
-                            <i class="bi bi-x-circle"></i> Remove
-                        </button>
-                    `
-							: '<span class="badge bg-secondary">Completed</span>'
-					}
-                </div>
-            </div>
-        `
+    		        </div>
+    		    </div>
+    		`
 			)
 			.join("");
+	}
+
+	public async stopService(serviceId: number): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			const result = await Swal.fire({
+				title: "Stop Service",
+				text: "Stop this service but keep it in billing history?",
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonColor: "#ffc107",
+				cancelButtonColor: "#6c757d",
+				confirmButtonText: "Stop Service"
+			});
+
+			if (result.isConfirmed) {
+				const response = await fetch(
+					`/api/patients/${this.currentPatient.patient_id}/services/${serviceId}/stop`,
+					{
+						method: "PATCH",
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem(
+								"token"
+							)}`
+						}
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error("Failed to stop service");
+				}
+
+				this.showSuccess("Service stopped successfully");
+				await this.loadPatientData(this.currentPatient.patient_id);
+			}
+		} catch (error) {
+			console.error("Error stopping service:", error);
+			this.showError("Failed to stop service");
+		}
 	}
 
 	private updateAssignedDrugsDisplay(): void {
@@ -1112,36 +1109,89 @@ class PatientManager {
 		container.innerHTML = this.assignedDrugs
 			.map(
 				(drug) => `
-            <div class="assigned-item">
-                <div class="assigned-item-info">
-                    <div class="assigned-item-name">${this.escapeHtml(
-						drug.drug_name
-					)}</div>
-                    <div class="assigned-item-details">
-                        Remaining: ${drug.remaining_quantity} ${
+    		    <div class="assigned-item">
+    		        <div class="assigned-item-info">
+    		            <div class="assigned-item-name">${this.escapeHtml(
+							drug.drug_name
+						)}</div>
+    		            <div class="assigned-item-details">
+    		                Remaining: ${drug.remaining_quantity} ${
 					drug.unit_conversion?.smaller || "units"
 				}
-                        ${
-							drug.last_administered
-								? ` • Last: ${new Date(
-										drug.last_administered
-								  ).toLocaleString()}`
-								: " • Not administered yet"
-						}
-                    </div>
-                </div>
-                <div class="assigned-item-actions">
-                    <button class="btn btn-sm btn-outline-primary" 
-                            onclick="patientManager.administerDrug(${
-								drug.usage_id
-							})">
-                        <i class="bi bi-capsule"></i> Administer
-                    </button>
-                </div>
-            </div>
-        `
+    		                ${
+								drug.last_administered
+									? ` • Last: ${new Date(
+											drug.last_administered
+									  ).toLocaleString()}`
+									: " • Not administered yet"
+							}
+    		            </div>
+    		        </div>
+    		        <div class="assigned-item-actions">
+    		            <button class="btn btn-sm btn-outline-primary" 
+    		                    onclick="patientManager.administerDrug(${
+									drug.usage_id
+								})">
+    		                <i class="bi bi-capsule"></i> Administer
+    		            </button>
+    		            <button class="btn btn-sm btn-outline-danger" 
+    		                    onclick="patientManager.removeDrug(${drug.usage_id})">
+    		                <i class="bi bi-trash"></i> Remove
+    		            </button>
+    		        </div>
+    		    </div>
+    		`
 			)
 			.join("");
+	}
+
+	public async removeDrug(drugUsageId: number): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			const result = await Swal.fire({
+				title: "Remove Drug",
+				html: `
+					<p>This will completely remove the drug and:</p>
+					<ul style="text-align: left; margin-top: 1rem;">
+						<li>Restore quantity to inventory</li>
+						<li>Remove from patient's bill</li>
+						<li>Delete usage records</li>
+					</ul>
+					<p class="text-danger"><strong>This action cannot be undone!</strong></p>
+				`,
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonColor: "#dc3545",
+				cancelButtonColor: "#6c757d",
+				confirmButtonText: "Remove Drug"
+			});
+
+			if (result.isConfirmed) {
+				const response = await fetch(
+					`/api/patients/${this.currentPatient.patient_id}/drugs/${drugUsageId}`,
+					{
+						method: "DELETE",
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem(
+								"token"
+							)}`
+						}
+					}
+				);
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || "Failed to remove drug");
+				}
+
+				this.showSuccess("Drug removed successfully");
+				await this.loadPatientData(this.currentPatient.patient_id);
+			}
+		} catch (error: any) {
+			console.error("Error removing drug:", error);
+			this.showError(error.message || "Failed to remove drug");
+		}
 	}
 
 	private updateBillingDisplay(): void {
@@ -1498,9 +1548,6 @@ class PatientManager {
 		(document.getElementById("modalAddress") as HTMLTextAreaElement).value =
 			patient.address || "";
 		(
-			document.getElementById("modalQuickCheck") as HTMLInputElement
-		).checked = patient.quick_check;
-		(
 			document.getElementById("modalPaymentType") as HTMLSelectElement
 		).value = patient.payment_type;
 
@@ -1548,6 +1595,41 @@ class PatientManager {
 					"modalInsuranceCardId"
 				) as HTMLInputElement
 			).value = patient.insurance_card_id || "";
+		}
+
+		if (this.currentAdmission) {
+			this.toggleAdmissionSection(true);
+
+			// Set quick check value
+			(
+				document.getElementById(
+					"modalAdmissionQuickCheck"
+				) as HTMLInputElement
+			).checked = this.currentAdmission.quick_check || false;
+
+			// Set diagnosis
+			(
+				document.getElementById("modalDiagnosis") as HTMLInputElement
+			).innerHTML = this.currentAdmission.diagnosis || "";
+
+			// Set attending doctor and nurse
+			if (this.currentAdmission.attending_doctor_ids) {
+				this.currentAdmission.attending_doctor_ids.forEach(
+					(doctorId) => {
+						(document.getElementById(
+							`doctor_${doctorId}`
+						) as HTMLInputElement)!.checked = true;
+					}
+				);
+			}
+
+			if (this.currentAdmission.attending_nurse_ids) {
+				this.currentAdmission.attending_nurse_ids.forEach((nurseId) => {
+					(document.getElementById(
+						`nurse_${nurseId}`
+					) as HTMLInputElement)!.checked = true;
+				});
+			}
 		}
 	}
 
@@ -1670,13 +1752,7 @@ class PatientManager {
 					document.getElementById(
 						"modalPaymentType"
 					) as HTMLSelectElement
-				).value,
-				quick_check: (
-					document.getElementById(
-						"modalQuickCheck"
-					) as HTMLInputElement
-				).checked,
-				guardian_info: guardianInfo
+				).value
 			};
 
 			const referringDoctorId = (
@@ -1752,6 +1828,11 @@ class PatientManager {
 					return;
 				}
 				patientData.diagnosis = diagnosis;
+				patientData.quick_check = (
+					document.getElementById(
+						"modalAdmissionQuickCheck"
+					) as HTMLInputElement
+				).checked;
 
 				if (isEdit) {
 					let attendingDoctors = {
@@ -1977,6 +2058,15 @@ class PatientManager {
                     <label for="swal-diagnosis" class="form-label">Diagnosis</label>
                     <textarea id="swal-diagnosis" class="form-control" rows="3" placeholder="Enter diagnosis"></textarea>
                 </div>
+				<div class="mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="swal-admission-quick-check">
+                    <label class="form-check-label" for="swal-admission-quick-check">
+                      Quick Check Admission
+                    </label>
+                    <div class="form-text">Quick check admissions don't auto-add services</div>
+                  </div>
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Attending Doctors</label>
                     <div class="doctors-selection" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
@@ -2041,6 +2131,11 @@ class PatientManager {
 			confirmButtonColor: "#28a745",
 			cancelButtonColor: "#6c757d",
 			preConfirm: () => {
+				const quickCheck = (
+					document.getElementById(
+						"swal-admission-quick-check"
+					) as HTMLInputElement
+				).checked;
 				const diagnosis = (
 					document.getElementById(
 						"swal-diagnosis"
@@ -2080,6 +2175,7 @@ class PatientManager {
 				}
 
 				return {
+					quick_check: quickCheck,
 					diagnosis: diagnosis,
 					attending_doctors: selectedDoctors,
 					attending_nurses: selectedNurses,
@@ -2089,6 +2185,7 @@ class PatientManager {
 		}).then(async (result: any) => {
 			if (result.isConfirmed && result.value) {
 				await this.admitPatient(
+					result.value.quick_check,
 					result.value.diagnosis,
 					result.value.attending_doctors,
 					result.value.attending_nurses,
@@ -2099,6 +2196,7 @@ class PatientManager {
 	}
 
 	private async admitPatient(
+		quickCheck: boolean,
 		diagnosis: string,
 		attendingDoctors: number[],
 		attendingNurses: number[],
@@ -2116,6 +2214,7 @@ class PatientManager {
 						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
 					body: JSON.stringify({
+						quick_check: quickCheck,
 						diagnosis: diagnosis,
 						attending_doctors: attendingDoctors,
 						attending_nurses: attendingNurses,
@@ -2215,7 +2314,7 @@ class PatientManager {
 	}
 
 	private showAddServiceModal(): void {
-		if (!this.currentPatient || !this.currentPatient.is_active ) {
+		if (!this.currentPatient || !this.currentPatient.is_active) {
 			this.showError("Patient must be admitted to add services");
 			return;
 		}
@@ -2225,7 +2324,6 @@ class PatientManager {
 	}
 
 	private renderAvailableServices(): void {
-		const container = document.getElementById("availableServicesList")!;
 		const searchInput = document.getElementById(
 			"serviceSearch"
 		) as HTMLInputElement;
@@ -2379,7 +2477,6 @@ class PatientManager {
 	}
 
 	private renderAvailableDrugs(): void {
-		const container = document.getElementById("availableDrugsList")!;
 		const searchInput = document.getElementById(
 			"drugSearch"
 		) as HTMLInputElement;

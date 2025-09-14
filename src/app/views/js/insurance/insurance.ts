@@ -418,7 +418,7 @@ class InsuranceManager {
 			// Add layout fix class
 			card.classList.add("layout-fix");
 
-			card.addEventListener("click", (e) => {
+			card.addEventListener("click", () => {
 				const insuranceId = parseInt(
 					card.getAttribute("data-insurance-id")!
 				);
@@ -1064,9 +1064,6 @@ class InsuranceManager {
 		).toLocaleDateString();
 		const reportEndDate = new Date(
 			this.currentPatientReport.report_period.end_date
-		).toLocaleDateString();
-		const lastClearedDate = new Date(
-			this.currentPatientReport.last_cleared_date
 		).toLocaleDateString();
 		const registrationDate = new Date(
 			this.currentPatientReport.patient_info.registration_date
@@ -2167,9 +2164,6 @@ class InsuranceManager {
 		).toLocaleDateString();
 		const reportEndDate = new Date(
 			this.currentReport.report_period.end_date
-		).toLocaleDateString();
-		const lastClearedDate = new Date(
-			this.currentReport.last_cleared_date
 		).toLocaleDateString();
 
 		// Generate report summary (same as before)
