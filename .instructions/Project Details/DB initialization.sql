@@ -203,19 +203,34 @@ CREATE TABLE IF NOT EXISTS DoctorPatientHistory (
 CREATE TABLE IF NOT EXISTS PatientDoctor (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	doctor_id INTEGER REFERENCES Doctor(doctor_id),
-	PRIMARY KEY (patient_id, doctor_id)
+	PRIMARY KEY (patient_id, doctor_id),
+	assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	unassigned_at TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS PatientNurse (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
-	PRIMARY KEY (patient_id, nurse_id)
+	PRIMARY KEY (patient_id, nurse_id),
+	assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	unassigned_at TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS NursePatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
 	PRIMARY KEY (patient_history_id, nurse_id)
+);
+
+CREATE TABLE IF NOT EXISTS DailyStaffAssignment (
+	assignment_id SERIAL PRIMARY KEY,
+	employee_id INTEGER REFERENCES Employee(employee_id),
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	work_date DATE NOT NULL,
+	hours_worked DECIMAL(4, 2) DEFAULT 24.0,
+	payment_processed BOOLEAN DEFAULT FALSE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE(employee_id, patient_id, work_date)
 );
 
 CREATE TABLE IF NOT EXISTS BillDetail (
@@ -299,6 +314,7 @@ CREATE TABLE IF NOT EXISTS ShipmentPrice (
 CREATE TABLE IF NOT EXISTS EmployeePayment (
 	payment_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
+	patient_id INTEGER REFERENCES Patient(patient_id) ON DELETE CASCADE DEFAULT NULL,
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	extra_payment_type VARCHAR(50),
 	payment_type VARCHAR(50) NOT NULL,
@@ -411,6 +427,10 @@ CREATE INDEX IF NOT EXISTS idx_drug_usage_administered ON DrugUsage(last_adminis
 CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_patient ON DoctorPatientHistory(patient_history_id);
 
 CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_doctor ON DoctorPatientHistory(doctor_id);
+
+CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_date ON DailyStaffAssignment(work_date, payment_processed);
+
+CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_employee ON DailyStaffAssignment(employee_id, work_date);
 
 -- Add a view for currently admitted patients with their details
 CREATE

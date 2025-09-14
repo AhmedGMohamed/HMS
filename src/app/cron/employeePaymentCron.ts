@@ -11,6 +11,7 @@ import { query } from "../models/database/connection.js";
 class EmployeePaymentCron {
 	private dailyPaymentJob: CronJob;
 	private perPatientDismissalJob: CronJob;
+	private dailyAssignmentJob: CronJob;
 
 	constructor() {
 		// Run daily at 8 AM for daily payments and clock-in deductions
@@ -30,18 +31,28 @@ class EmployeePaymentCron {
 			true,
 			"system"
 		);
+
+		this.dailyAssignmentJob = new CronJob(
+			"0 0 0 * * *", // Run at midnight to create daily assignments
+			this.createDailyAssignments.bind(this),
+			null,
+			true,
+			"system"
+		);
 	}
 
 	start() {
 		console.log("Starting employee payment cron jobs...");
 		this.dailyPaymentJob.start();
 		this.perPatientDismissalJob.start();
+		this.dailyAssignmentJob.start();
 	}
 
 	stop() {
 		console.log("Stopping employee payment cron jobs...");
 		this.dailyPaymentJob.stop();
 		this.perPatientDismissalJob.stop();
+		this.dailyAssignmentJob.stop();
 	}
 
 	private async processDailyPayments() {
@@ -135,10 +146,10 @@ class EmployeePaymentCron {
 
 		const clockInsResult = await query(
 			`SELECT clock_in, clock_out, pay_deduction 
-		 FROM EmployeeClockIn 
-		 WHERE employee_id = $1 
-		 AND clock_in >= $2 
-		 ORDER BY clock_in ASC`,
+			 FROM EmployeeClockIn 
+			 WHERE employee_id = $1 
+			 AND clock_in >= $2 
+			 ORDER BY clock_in ASC`,
 			[employee.employee_id, past24HoursStart.toISOString()]
 		);
 
@@ -256,11 +267,11 @@ class EmployeePaymentCron {
 		// Get unprocessed clock-ins
 		const clockInsResult = await query(
 			`SELECT clock_in, clock_out 
-		 FROM EmployeeClockIn 
-		 WHERE employee_id = $1 
-		 AND clock_in >= $2
-		 AND pay_deduction IS NULL
-		 ORDER BY clock_in ASC`,
+			 FROM EmployeeClockIn 
+			 WHERE employee_id = $1 
+			 AND clock_in >= $2
+			 AND pay_deduction IS NULL
+			 ORDER BY clock_in ASC`,
 			[employeeId, past24HoursStart.toISOString()]
 		);
 		// Distribute deductions proportionally across clock-in records
@@ -271,9 +282,9 @@ class EmployeePaymentCron {
 			for (const clockIn of clockInsResult.rows) {
 				await query(
 					`UPDATE EmployeeClockIn 
-				 SET pay_deduction = $1 
-				 WHERE employee_id = $2 
-				 AND clock_in = $3`,
+					 SET pay_deduction = $1 
+					 WHERE employee_id = $2 
+					 AND clock_in = $3`,
 					[deductionPerRecord, employeeId, clockIn.clock_in]
 				);
 			}
@@ -423,55 +434,31 @@ class EmployeePaymentCron {
 			return 0;
 		}
 
-		// Count patients assigned to this employee during the past 24 hours
-		const past24HoursStart = new Date();
-		past24HoursStart.setHours(past24HoursStart.getHours() - 24);
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-		let patientCount = 0;
+		// Count unique patients worked on yesterday that haven't been paid yet
+		const assignmentResult = await query(
+			`SELECT COUNT(*) as patient_count
+        	 FROM DailyStaffAssignment dsa
+        	 WHERE dsa.employee_id = $1 
+        	 AND dsa.work_date = $2
+        	 AND dsa.payment_processed = FALSE
+        	 AND dsa.hours_worked > 0`,
+			[employee.employee_id, yesterdayStr]
+		);
 
-		if (employee.employee_type === "doctor") {
-			// Count patients who were actively assigned during the past 24 hours
-			const doctorResult = await query(
-				`SELECT COUNT(DISTINCT p.patient_id) as patient_count
-				 FROM Patient p
-				 JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-				 LEFT JOIN PatientDoctor pd ON p.patient_id = pd.patient_id AND pd.doctor_id = $1
-				 LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id AND dph.doctor_id = $1
-				 WHERE p.is_active = true
-				 AND (
-					-- Currently assigned and was assigned during the period
-					(pd.patient_id IS NOT NULL AND ph.discharge_time IS NULL)
-					OR
-					-- Was assigned to dismissed patients in the past 24 hours
-					(dph.patient_history_id IS NOT NULL AND ph.discharge_time >= $2)
-					OR
-					-- Was assigned to currently admitted patients
-					(pd.patient_id IS NOT NULL AND ph.admission_time <= NOW() AND (ph.discharge_time IS NULL OR ph.discharge_time >= $2))
-				 )`,
-				[employee.employee_id, past24HoursStart.toISOString()]
+		const patientCount = parseInt(assignmentResult.rows[0].patient_count);
+
+		if (patientCount > 0) {
+			// Mark assignments as payment processed
+			await query(
+				`UPDATE DailyStaffAssignment 
+        	     SET payment_processed = TRUE 
+        	     WHERE employee_id = $1 AND work_date = $2 AND payment_processed = FALSE`,
+				[employee.employee_id, yesterdayStr]
 			);
-			patientCount = parseInt(doctorResult.rows[0].patient_count);
-		} else if (employee.employee_type === "nurse") {
-			const nurseResult = await query(
-				`SELECT COUNT(DISTINCT p.patient_id) as patient_count
-				 FROM Patient p
-				 JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-				 LEFT JOIN PatientNurse pn ON p.patient_id = pn.nurse_id AND pn.nurse_id = $1
-				 LEFT JOIN NursePatientHistory nph ON ph.patient_history_id = nph.patient_history_id AND nph.nurse_id = $1
-				 WHERE p.is_active = true
-				 AND (
-					-- Currently assigned and was assigned during the period
-					(pn.patient_id IS NOT NULL AND ph.discharge_time IS NULL)
-					OR
-					-- Was assigned to dismissed patients in the past 24 hours
-					(nph.patient_history_id IS NOT NULL AND ph.discharge_time >= $2)
-					OR
-					-- Was assigned to currently admitted patients
-					(pn.patient_id IS NOT NULL AND ph.admission_time <= NOW() AND (ph.discharge_time IS NULL OR ph.discharge_time >= $2))
-				 )`,
-				[employee.employee_id, past24HoursStart.toISOString()]
-			);
-			patientCount = parseInt(nurseResult.rows[0].patient_count);
 		}
 
 		return patientCount * employee.extra_amount;
@@ -509,65 +496,64 @@ class EmployeePaymentCron {
 		}
 	}
 
-	private async processPerPatientDismissalPayment(dismissedPatient: any) {
+	private async processPerPatientDismissalPayment(
+		dismissedPatient: any
+	): Promise<void> {
 		const { patient_history_id, patient_id, bill_id, paid_amount } =
 			dismissedPatient;
 
-		// Get all employees/doctors assigned to this patient who get percentage per patient pay
-		const employeesResult = await query(
-			`SELECT DISTINCT e.employee_id, e.extra_amount, e.percentage_scope,
-				e.per_patient_payment_type, e.extra_payment_type
-			 FROM Employee e
-			 LEFT JOIN PatientNurse pn ON e.employee_id = pn.nurse_id
-			 LEFT JOIN NursePatientHistory nph ON e.employee_id = nph.nurse_id
-			 WHERE e.is_active = true
-			 AND e.extra_payment_type = 'per_patient'
-			 AND e.per_patient_payment_type = 'percentage'
-			 AND (pn.patient_id = $1 OR nph.patient_history_id = $2)
-			 
-			 UNION
-			 
-			 SELECT DISTINCT e.employee_id, d.per_patient_pay as extra_amount, 
-				d.percentage_scope, 'percentage' as per_patient_payment_type,
-				'per_patient' as extra_payment_type
-			 FROM Employee e
-			 JOIN Doctor d ON e.employee_id = d.doctor_id
-			 LEFT JOIN PatientDoctor pd ON d.doctor_id = pd.doctor_id
-			 LEFT JOIN DoctorPatientHistory dph ON d.doctor_id = dph.doctor_id
-			 WHERE e.is_active = true
-			 AND d.is_active = true
-			 AND (d.payment_calculation = 'per_patient' OR d.payment_calculation = 'both')
-			 AND (pd.patient_id = $1 OR dph.patient_history_id = $2)`,
-			[patient_id, patient_history_id]
+		// Get all staff assignments for this patient that haven't been paid percentage
+		const staffResult = await query(
+			`SELECT DISTINCT dsa.employee_id, e.extra_amount, e.percentage_scope,
+                e.per_patient_payment_type, e.extra_payment_type, d.per_patient_pay,
+                d.payment_calculation, dsa.work_date, dsa.hours_worked
+        	 FROM DailyStaffAssignment dsa
+        	 JOIN Employee e ON dsa.employee_id = e.employee_id
+        	 LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
+        	 WHERE dsa.patient_id = $1
+        	 AND dsa.payment_processed = FALSE
+        	 AND dsa.hours_worked > 0
+        	 AND (
+        	    (e.extra_payment_type = 'per_patient' AND e.per_patient_payment_type = 'percentage')
+        	    OR
+        	    (d.doctor_id IS NOT NULL AND d.payment_calculation IN ('per_patient', 'both') AND d.per_patient_pay > 0)
+        	 )`,
+			[patient_id]
 		);
 
-		for (const employee of employeesResult.rows) {
-			// Check if payment already exists for this dismissal
-			const past1Hour = new Date();
-			past1Hour.setHours(past1Hour.getHours() - 1);
-
-			const existingPaymentResult = await query(
+		for (const staff of staffResult.rows) {
+			// Check if already paid for this dismissal
+			const existingPayment = await query(
 				`SELECT payment_id FROM EmployeePayment 
-				 WHERE employee_id = $1 
-				 AND extra_payment_type = 'per_patient'
-				 AND issued_timestamp >= $2`,
-				[employee.employee_id, past1Hour.toISOString()]
+            	 WHERE employee_id = $1 
+            	 AND extra_payment_type = 'per_patient'
+            	 AND issued_timestamp >= (
+            	    SELECT discharge_time - INTERVAL '1 hour' 
+            	    FROM PatientHistory 
+            	    WHERE patient_history_id = $2
+            	 )`,
+				[staff.employee_id, patient_history_id]
 			);
 
-			if (existingPaymentResult.rows.length === 0) {
+			if (existingPayment.rows.length === 0) {
 				let paymentAmount = 0;
-				const percentageRate = employee.extra_amount || 0;
+				const percentageRate =
+					staff.extra_amount || staff.per_patient_pay || 0;
 
 				let baseAmount = parseFloat(paid_amount);
 
+				// Apply work time proportionally if worked less than full day
+				const workRatio = Math.min(staff.hours_worked / 24.0, 1.0);
+				baseAmount = baseAmount * workRatio;
+
 				// Calculate deductions if percentage_scope is 'after_deductions'
-				if (employee.percentage_scope === "after_deductions") {
+				if (staff.percentage_scope === "after_deductions") {
 					const deductionsResult = await query(
 						`SELECT 
-							COALESCE(b.administrative_expenses, 0) as admin_expenses,
-							COALESCE(b.discount, 0) as discount
-						 FROM Bill b 
-						 WHERE b.bill_id = $1`,
+                	        COALESCE(b.administrative_expenses, 0) as admin_expenses,
+                	        COALESCE(b.discount, 0) as discount
+                	     FROM Bill b 
+                	     WHERE b.bill_id = $1`,
 						[bill_id]
 					);
 
@@ -585,19 +571,67 @@ class EmployeePaymentCron {
 
 				if (paymentAmount > 0) {
 					const payment: CreateEmployeePaymentDTO = {
-						employee_id: employee.employee_id,
+						employee_id: staff.employee_id,
 						payment_amount: paymentAmount,
 						payment_type: "cash",
 						extra_payment_type: "per_patient",
 						extra_amount: paymentAmount,
-						percentage_scope: employee.percentage_scope,
-						paid_by_user_id: null // System-generated
+						percentage_scope: staff.percentage_scope,
+						paid_by_user_id: null
 					};
 
 					await EmployeePaymentModel.createPayment(payment);
+
+					// Mark this staff assignment as payment processed
+					await query(
+						`UPDATE DailyStaffAssignment 
+                    	 SET payment_processed = TRUE 
+                    	 WHERE employee_id = $1 AND patient_id = $2 AND work_date = $3`,
+						[staff.employee_id, patient_id, staff.work_date]
+					);
 				}
 			}
 		}
+	}
+
+	private async createDailyAssignments(): Promise<void> {
+		const today = new Date().toISOString().split("T")[0];
+
+		// Create assignments for all currently active doctor-patient relationships
+		await query(
+			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+        	 SELECT pd.doctor_id, pd.patient_id, $1, 
+        	        CASE 
+        	            WHEN pd.assigned_at::date = $1 THEN 
+        	                EXTRACT(EPOCH FROM (NOW() - pd.assigned_at)) / 3600.0
+        	            ELSE 24.0 
+        	        END
+        	 FROM PatientDoctor pd
+        	 JOIN Patient p ON pd.patient_id = p.patient_id
+        	 WHERE p.is_active = true 
+        	 AND pd.unassigned_at IS NULL
+        	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+        	    hours_worked = EXCLUDED.hours_worked`,
+			[today]
+		);
+
+		// Create assignments for all currently active nurse-patient relationships
+		await query(
+			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+        	 SELECT pn.nurse_id, pn.patient_id, $1,
+        	        CASE 
+        	            WHEN pn.assigned_at::date = $1 THEN 
+        	                EXTRACT(EPOCH FROM (NOW() - pn.assigned_at)) / 3600.0
+        	            ELSE 24.0 
+        	        END
+        	 FROM PatientNurse pn
+        	 JOIN Patient p ON pn.patient_id = p.patient_id
+        	 WHERE p.is_active = true 
+        	 AND pn.unassigned_at IS NULL
+        	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+        	    hours_worked = EXCLUDED.hours_worked`,
+			[today]
+		);
 	}
 }
 
