@@ -1,4 +1,3 @@
-//src/app/models/Patient.model.ts
 import { query } from "./database/connection.js";
 import {
 	Patient,
@@ -60,13 +59,13 @@ export class PatientModel {
 				}
 			}
 
-			// Create patient
+			// Create patient (removed quick_check from patient creation)
 			const patientSql = `
                 INSERT INTO Patient (
                     name, national_id, gender, phone, address, payment_type,
                     insurance_id, insurance_card_id, insurance_form_id, guardian_info,
-                    quick_check, referring_doctor_id, is_active, created_by_user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                    referring_doctor_id, is_active, created_by_user_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING *;
             `;
 
@@ -81,7 +80,6 @@ export class PatientModel {
 				data.insurance_card_id || null,
 				data.insurance_form_id || null,
 				data.guardian_info ? JSON.stringify(data.guardian_info) : null,
-				data.quick_check,
 				data.referring_doctor_id || null,
 				data.is_active || false,
 				data.created_by_user_id
@@ -102,7 +100,8 @@ export class PatientModel {
 						diagnosis: data.diagnosis,
 						attending_doctors: data.attending_doctors,
 						attending_nurses: data.attending_nurses,
-						pricelist_id: data.pricelist_id
+						pricelist_id: data.pricelist_id,
+						quick_check: data.quick_check || false // Pass quick_check to admission
 					},
 					data.created_by_user_id!
 				);
@@ -159,13 +158,10 @@ export class PatientModel {
 			let paramCount = 1;
 
 			if (data.diagnosis) {
-				this.updateCurrentDiagnosis(
-					data.patient_id,
-					data.diagnosis
-				);
+				this.updateCurrentDiagnosis(data.patient_id, data.diagnosis);
 			}
 
-			// Build dynamic update query
+			// Build dynamic update query (removed quick_check handling)
 			Object.entries(data).forEach(([key, value]) => {
 				if (key !== "patient_id" && value !== undefined) {
 					if (key === "guardian_info" && value) {
@@ -174,10 +170,10 @@ export class PatientModel {
 						paramCount++;
 					} else if (
 						key !== "attending_doctors" &&
-						key !== "attending_nurses" && 
-						key !== "diagnosis"
+						key !== "attending_nurses" &&
+						key !== "diagnosis" &&
+						key !== "quick_check" // Skip quick_check as it's now admission-level
 					) {
-						// Skip attending_doctors, attending_nurses and diagnosis as they're handled separately
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(value);
 						paramCount++;
@@ -386,7 +382,7 @@ export class PatientModel {
 			const billResult = await query(billSql, [data.patient_id, userId]);
 			const bill = billResult.rows[0];
 
-			// Create patient history entry
+			// Create patient history entry with quick_check from admission data
 			const historySql = `
                 INSERT INTO PatientHistory (
                     patient_id, bill_id, quick_check, diagnosis, admission_time, pricelist_id
@@ -396,7 +392,7 @@ export class PatientModel {
 			const historyResult = await query(historySql, [
 				data.patient_id,
 				bill.bill_id,
-				patient.quick_check,
+				data.quick_check || false, // Use quick_check from admission data
 				data.diagnosis,
 				pricelistId
 			]);
@@ -426,19 +422,14 @@ export class PatientModel {
 				[data.patient_id]
 			);
 
-			// Auto-add services if quick_check is false
-			/*if (!patient.quick_check) {
+			// Auto-add services only if NOT a quick check
+			if (!data.quick_check) {
 				await this.addAutoAdmissionServices(
 					data.patient_id,
 					bill.bill_id,
 					userId
 				);
-			}*/
-			await this.addAutoAdmissionServices(
-				data.patient_id,
-				bill.bill_id,
-				userId
-			);
+			}
 
 			await query("COMMIT");
 			return { admission, bill };
@@ -498,6 +489,11 @@ export class PatientModel {
 
 			// Clear current doctors
 			await query(`DELETE FROM PatientDoctor WHERE patient_id = $1`, [
+				data.patient_id
+			]);
+
+			// Clear current nurses
+			await query(`DELETE FROM PatientNurse WHERE patient_id = $1`, [
 				data.patient_id
 			]);
 
@@ -609,6 +605,7 @@ export class PatientModel {
 		const sql = `
     	    SELECT 
     	        ph.patient_history_id,
+				ph.quick_check,
     	        ph.diagnosis,
     	        ph.admission_time,
     	        ph.discharge_time,
@@ -635,7 +632,7 @@ export class PatientModel {
     	    LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NOT NULL
     	    GROUP BY ph.patient_history_id, ph.diagnosis, ph.admission_time, 
-    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.bill_id
+    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.bill_id, ph.quick_check
     	    ORDER BY ph.discharge_time DESC;
     	`;
 		const result = await query(sql, [patientId]);
@@ -884,7 +881,8 @@ export class PatientModel {
 		}
 	}
 
-	async removeServiceFromPatient(
+	// Updated method: Stop service (deactivate but keep billing)
+	async stopServiceForPatient(
 		patientId: number,
 		serviceId: number
 	): Promise<any> {
@@ -914,6 +912,197 @@ export class PatientModel {
 
 			await query("COMMIT");
 			return activeServiceResult.rows[0];
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	// New method: Completely remove service and its billing
+	async removeServiceFromPatient(
+		patientId: number,
+		serviceId: number
+	): Promise<any> {
+		await query("BEGIN");
+		try {
+			// Validate patient exists and is admitted
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+
+			// Find active service
+			const activeServiceSql = `
+                SELECT * FROM ActivePatientService 
+                WHERE patient_id = $1 AND service_id = $2 AND is_active = true;
+            `;
+			const activeServiceResult = await query(activeServiceSql, [
+				patientId,
+				serviceId
+			]);
+
+			if (activeServiceResult.rows.length === 0) {
+				throw new Error("Active service not found");
+			}
+
+			// Remove service from ActivePatientService
+			await query(
+				`DELETE FROM ActivePatientService 
+                 WHERE active_service_id = $1`,
+				[activeServiceResult.rows[0].active_service_id]
+			);
+
+			// Remove service charges from bill
+			await query(
+				`DELETE FROM BillDetail 
+                 WHERE bill_id = $1 AND service_id = $2`,
+				[currentAdmission.bill_id, serviceId]
+			);
+
+			// Handle removing service drugs if any
+			await this.removeServiceDrugsFromPatient(
+				patientId,
+				serviceId,
+				currentAdmission.bill_id!
+			);
+
+			// Update bill total
+			await this.updateBillTotal(currentAdmission.bill_id!);
+
+			await query("COMMIT");
+			return activeServiceResult.rows[0];
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	private async removeServiceDrugsFromPatient(
+		patientId: number,
+		serviceId: number,
+		billId: number
+	): Promise<void> {
+		// Get drugs associated with this service
+		const serviceDrugsSql = `
+            SELECT sd.drug_id
+            FROM ServiceDrug sd
+            WHERE sd.service_id = $1;
+        `;
+		const serviceDrugsResult = await query(serviceDrugsSql, [serviceId]);
+
+		for (const drugInfo of serviceDrugsResult.rows) {
+			// Remove drug usages for this service
+			const drugUsagesSql = `
+				SELECT du.*, dt.shipment_id, dt.transaction_id
+				FROM DrugUsage du
+				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
+				JOIN BillDetail bd ON dt.shipment_id = bd.drug_shipment_id
+				WHERE du.patient_id = $1 AND du.drug_id = $2 AND bd.bill_id = $3
+				AND bd.charge_type = 'service';
+			`;
+			const drugUsagesResult = await query(drugUsagesSql, [
+				patientId,
+				drugInfo.drug_id,
+				billId
+			]);
+
+			for (const usage of drugUsagesResult.rows) {
+				// Return quantity to shipment
+				await query(
+					`UPDATE DrugShipment 
+					 SET quantity = quantity + $1 
+					 WHERE shipment_id = $2`,
+					[usage.remaining_quantity, usage.shipment_id]
+				);
+
+				// Remove drug transaction
+				await query(
+					`DELETE FROM DrugTransaction 
+					 WHERE transaction_id = $1`,
+					[usage.transaction_id]
+				);
+
+				// Remove drug usage
+				await query(
+					`DELETE FROM DrugUsage 
+					 WHERE usage_id = $1`,
+					[usage.usage_id]
+				);
+
+				// Remove from bill details
+				await query(
+					`DELETE FROM BillDetail 
+					 WHERE bill_id = $1 AND drug_shipment_id = $2 AND charge_type = 'service'`,
+					[billId, usage.shipment_id]
+				);
+			}
+		}
+	}
+
+	async removeDrugFromPatient(
+		patientId: number,
+		drugUsageId: number
+	): Promise<any> {
+		await query("BEGIN");
+		try {
+			// Validate patient exists and is admitted
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+
+			// Get drug usage details
+			const drugUsageSql = `
+				SELECT du.*, dt.shipment_id, dt.transaction_id, dt.quantity as transaction_quantity
+				FROM DrugUsage du
+				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
+				WHERE du.usage_id = $1 AND du.patient_id = $2;
+			`;
+			const drugUsageResult = await query(drugUsageSql, [
+				drugUsageId,
+				patientId
+			]);
+
+			if (drugUsageResult.rows.length === 0) {
+				throw new Error("Drug usage not found");
+			}
+
+			const usage = drugUsageResult.rows[0];
+
+			// Return the original transaction quantity to shipment
+			await query(
+				`UPDATE DrugShipment 
+				 SET quantity = quantity + $1 
+				 WHERE shipment_id = $2`,
+				[usage.transaction_quantity, usage.shipment_id]
+			);
+
+			// Remove drug transaction
+			await query(
+				`DELETE FROM DrugTransaction 
+				 WHERE transaction_id = $1`,
+				[usage.transaction_id]
+			);
+
+			// Remove drug usage
+			await query(
+				`DELETE FROM DrugUsage 
+				 WHERE usage_id = $1`,
+				[drugUsageId]
+			);
+
+			// Remove from bill details
+			await query(
+				`DELETE FROM BillDetail 
+				 WHERE bill_id = $1 AND drug_shipment_id = $2`,
+				[currentAdmission.bill_id, usage.shipment_id]
+			);
+
+			// Update bill total
+			await this.updateBillTotal(currentAdmission.bill_id!);
+
+			await query("COMMIT");
+			return usage;
 		} catch (error) {
 			await query("ROLLBACK");
 			throw error;

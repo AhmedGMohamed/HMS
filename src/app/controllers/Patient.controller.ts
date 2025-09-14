@@ -1,4 +1,3 @@
-// src/app/controllers/Patient.controller.ts
 import { Request, Response } from "express";
 import PatientModel from "../models/Patient.model.js";
 import {
@@ -379,6 +378,32 @@ export class PatientController {
 		}
 	}
 
+	// Updated method: Stop service (rename from removeServiceFromPatient)
+	async stopServiceForPatient(req: Request, res: Response) {
+		try {
+			const patientId = parseInt(req.params.id);
+			const serviceId = parseInt(req.params.serviceId);
+
+			const result = await PatientModel.stopServiceForPatient(
+				patientId,
+				serviceId
+			);
+			res.status(200).json(result);
+		} catch (error: any) {
+			if (error.message === "Patient not found") {
+				res.status(404).json({ error: error.message });
+			} else if (error.message === "Active service not found") {
+				res.status(404).json({ error: error.message });
+			} else {
+				console.error("Error stopping service for patient:", error);
+				res.status(500).json({
+					error: "Failed to stop service for patient"
+				});
+			}
+		}
+	}
+
+	// New method: Completely remove service
 	async removeServiceFromPatient(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
@@ -392,12 +417,41 @@ export class PatientController {
 		} catch (error: any) {
 			if (error.message === "Patient not found") {
 				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(400).json({ error: error.message });
 			} else if (error.message === "Active service not found") {
 				res.status(404).json({ error: error.message });
 			} else {
 				console.error("Error removing service from patient:", error);
 				res.status(500).json({
 					error: "Failed to remove service from patient"
+				});
+			}
+		}
+	}
+
+	// New method: Completely remove drug
+	async removeDrugFromPatient(req: Request, res: Response) {
+		try {
+			const patientId = parseInt(req.params.id);
+			const drugUsageId = parseInt(req.params.drugUsageId);
+
+			const result = await PatientModel.removeDrugFromPatient(
+				patientId,
+				drugUsageId
+			);
+			res.status(200).json(result);
+		} catch (error: any) {
+			if (error.message === "Patient not found") {
+				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(400).json({ error: error.message });
+			} else if (error.message === "Drug usage not found") {
+				res.status(404).json({ error: error.message });
+			} else {
+				console.error("Error removing drug from patient:", error);
+				res.status(500).json({
+					error: "Failed to remove drug from patient"
 				});
 			}
 		}
