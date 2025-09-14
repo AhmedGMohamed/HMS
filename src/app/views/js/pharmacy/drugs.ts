@@ -63,6 +63,9 @@ interface Warehouse {
 	warehouse_id: number;
 	name: string;
 	location: string;
+	total_shipments?: number;
+	total_drugs?: number;
+	total_stock_value?: number;
 }
 
 class DrugManager {
@@ -70,6 +73,11 @@ class DrugManager {
 	private drugModal: Modal;
 	//@ts-ignore
 	private sellModal: Modal;
+	//@ts-ignore
+	private warehouseModal: Modal;
+	//@ts-ignore
+	private addWarehouseModal: Modal;
+
 	private drugForm: HTMLFormElement;
 	private sellForm: HTMLFormElement;
 	private saveDrugButton: HTMLButtonElement;
@@ -85,8 +93,10 @@ class DrugManager {
 	private shipmentModal: Modal;
 	private shipmentForm: HTMLFormElement;
 	private saveShipmentButton: HTMLButtonElement;
-	private warehouses: Warehouse[] = [];
 	private currentDrug: DrugCard | null = null;
+	private warehouses: Warehouse[] = [];
+	private saveWarehouseButton: HTMLButtonElement;
+	private warehouseForm: HTMLFormElement;
 
 	constructor() {
 		// Initialize sidebar
@@ -95,10 +105,19 @@ class DrugManager {
 		// Initialize modals
 		const drugModalElement = document.getElementById("drugModal")!;
 		const sellModalElement = document.getElementById("sellDrugModal")!;
+		const warehouseModalElement =
+			document.getElementById("warehouseModal")!;
+		const addWarehouseModalElement =
+			document.getElementById("addWarehouseModal")!;
+
 		//@ts-ignore
 		this.drugModal = new bootstrap.Modal(drugModalElement);
 		//@ts-ignore
 		this.sellModal = new bootstrap.Modal(sellModalElement);
+		//@ts-ignore
+		this.warehouseModal = new bootstrap.Modal(warehouseModalElement);
+		//@ts-ignore
+		this.addWarehouseModal = new bootstrap.Modal(addWarehouseModalElement);
 
 		// Initialize form elements
 		this.drugForm = document.getElementById("drugForm") as HTMLFormElement;
@@ -125,6 +144,15 @@ class DrugManager {
 			"saveShipmentBtn"
 		) as HTMLButtonElement;
 
+		this.warehouseForm = document.getElementById(
+			"warehouseForm"
+		) as HTMLFormElement;
+
+		// Add after existing button initializations
+		this.saveWarehouseButton = document.getElementById(
+			"saveWarehouseBtn"
+		) as HTMLButtonElement;
+
 		// Add to initializeEventListeners
 		this.saveShipmentButton.addEventListener("click", () => {
 			this.handleSaveShipment();
@@ -137,7 +165,11 @@ class DrugManager {
 
 	private async loadInitialData(): Promise<void> {
 		try {
-			await Promise.all([this.loadDrugs(), this.loadPriceLists()]);
+			await Promise.all([
+				this.loadDrugs(),
+				this.loadPriceLists(),
+				this.loadWarehouses()
+			]);
 		} catch (error) {
 			console.error("Error loading initial data:", error);
 			this.showError("Failed to load initial data");
@@ -164,6 +196,28 @@ class DrugManager {
 				this.filterDrugs();
 			}, 300)
 		);
+
+		document
+			.getElementById("manageWarehousesBtn")
+			?.addEventListener("click", () => {
+				this.showWarehouseModal();
+			});
+
+		document
+			.getElementById("addWarehouseBtn")
+			?.addEventListener("click", () => {
+				this.showAddWarehouseModal();
+			});
+
+		this.saveWarehouseButton.addEventListener("click", () => {
+			this.handleSaveWarehouse();
+		});
+
+		const addWarehouseModalElement =
+			document.getElementById("addWarehouseModal")!;
+		addWarehouseModalElement.addEventListener("hidden.bs.modal", () => {
+			this.resetWarehouseForm();
+		});
 
 		// Drug modal events
 		const drugModalElement = document.getElementById("drugModal")!;
@@ -984,9 +1038,9 @@ class DrugManager {
 			return;
 		}
 
-		const price = parseFloat((
-			document.getElementById("totalPrice") as HTMLInputElement
-		).value);
+		const price = parseFloat(
+			(document.getElementById("totalPrice") as HTMLInputElement).value
+		);
 
 		if (!price) {
 			this.showError("Invalid price");
@@ -1057,7 +1111,7 @@ class DrugManager {
 
 	private async loadWarehouses(): Promise<void> {
 		try {
-			const response = await fetch("/api/pharmacy/warehouses", {
+			const response = await fetch("/api/warehouse", {
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("token")}`
 				}
@@ -1740,7 +1794,7 @@ class DrugManager {
 		if (price && quantity > 0) {
 			const total =
 				(quantity * Number(price.price)) / drug.unit_conversion.ratio;
-			totalPriceInput.value = total.toFixed(2);
+			totalPriceInput.value = Number(total).toFixed(2);
 		} else {
 			totalPriceInput.value = "0.00";
 		}
@@ -1781,6 +1835,244 @@ class DrugManager {
 		this.confirmSellButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
 		buttonText.textContent = loading ? "Processing..." : "Confirm Sale";
+	}
+
+	private async showWarehouseModal(): Promise<void> {
+		try {
+			await this.loadWarehouses();
+			this.renderWarehousesTable();
+			this.warehouseModal.show();
+		} catch (error) {
+			console.error("Error showing warehouse modal:", error);
+			this.showError("Failed to load warehouses");
+		}
+	}
+
+	public showAddWarehouseModal(warehouse?: Warehouse): void {
+		const title = document.getElementById("addWarehouseModalLabel")!;
+
+		this.resetWarehouseForm();
+
+		if (warehouse) {
+			title.textContent = "Edit Warehouse";
+			(document.getElementById("warehouseId") as HTMLInputElement).value =
+				warehouse.warehouse_id.toString();
+			(
+				document.getElementById("warehouseName") as HTMLInputElement
+			).value = warehouse.name;
+			(
+				document.getElementById(
+					"warehouseLocation"
+				) as HTMLTextAreaElement
+			).value = warehouse.location;
+		} else {
+			title.textContent = "Add New Warehouse";
+			(document.getElementById("warehouseId") as HTMLInputElement).value =
+				"";
+		}
+
+		this.addWarehouseModal.show();
+	}
+
+	private renderWarehousesTable(): void {
+		const tbody = document.getElementById("warehousesTableBody")!;
+
+		if (this.warehouses.length === 0) {
+			tbody.innerHTML = `
+			<tr>
+				<td colspan="4" class="text-center py-4">
+					<div class="text-muted mb-3">
+						<i class="bi bi-building" style="font-size: 3rem; color: var(--bs-gray-400);"></i>
+						<p class="mt-2 mb-3">No warehouses found</p>
+						<button type="button" class="btn btn-primary btn-sm" onclick="drugManager.showAddWarehouseModal()">
+							Add First Warehouse
+						</button>
+					</div>
+				</td>
+			</tr>
+		`;
+			return;
+		}
+
+		tbody.innerHTML = this.warehouses
+			.map(
+				(warehouse) => `
+		<tr class="warehouse-row">
+			<td>
+				<div class="warehouse-info">
+					<div class="warehouse-name">${this.escapeHtml(warehouse.name)}</div>
+				</div>
+			</td>
+			<td>
+				<div class="warehouse-location">${this.escapeHtml(warehouse.location)}</div>
+			</td>
+			<td>
+				<span class="shipment-count">${warehouse.total_shipments || 0}</span>
+			</td>
+			<td>
+				<div class="warehouse-actions">
+					<button type="button" class="btn btn-outline-primary btn-sm" 
+							onclick="drugManager.editWarehouse(${warehouse.warehouse_id})"
+							title="Edit Warehouse">
+						<i class="bi bi-pencil"></i>
+					</button>
+					<button type="button" class="btn btn-outline-info btn-sm" 
+							onclick="drugManager.viewWarehouseInventory(${warehouse.warehouse_id})"
+							title="View Inventory">
+						<i class="bi bi-box-seam"></i>
+					</button>
+					<button type="button" class="btn btn-outline-danger btn-sm" 
+							onclick="drugManager.deleteWarehouse(${warehouse.warehouse_id})"
+							title="Delete Warehouse"
+							${(warehouse.total_shipments || 0) > 0 ? "disabled" : ""}>
+						<i class="bi bi-trash"></i>
+					</button>
+				</div>
+			</td>
+		</tr>
+	`
+			)
+			.join("");
+	}
+
+	public editWarehouse(warehouseId: number): void {
+		const warehouse = this.warehouses.find(
+			(w) => w.warehouse_id === warehouseId
+		);
+		if (warehouse) {
+			this.showAddWarehouseModal(warehouse);
+		}
+	}
+
+	public async deleteWarehouse(warehouseId: number): Promise<void> {
+		const warehouse = this.warehouses.find(
+			(w) => w.warehouse_id === warehouseId
+		);
+		if (!warehouse) return;
+
+		const result = await Swal.fire({
+			title: "Delete Warehouse?",
+			text: `Are you sure you want to delete "${warehouse.name}"? This action cannot be undone.`,
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonColor: "#d33",
+			cancelButtonColor: "#3085d6",
+			confirmButtonText: "Yes, delete it!"
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const response = await fetch(`/api/warehouse/${warehouseId}`, {
+					method: "DELETE",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				});
+
+				const data = await response.json();
+
+				if (response.ok) {
+					Swal.fire("Deleted!", data.message, "success");
+					await this.loadWarehouses();
+					this.renderWarehousesTable();
+				} else {
+					Swal.fire("Error", data.error, "error");
+				}
+			} catch (error) {
+				console.error("Error deleting warehouse:", error);
+				Swal.fire("Error", "Failed to delete warehouse", "error");
+			}
+		}
+	}
+
+	public async viewWarehouseInventory(warehouseId: number): Promise<void> {
+		const warehouse = this.warehouses.find(
+			(w) => w.warehouse_id === warehouseId
+		);
+		if (warehouse) {
+			Swal.fire({
+				title: `${warehouse.name} Inventory`,
+				html: `
+				<div class="text-start">
+					<p><strong>Total Shipments:</strong> ${warehouse.total_shipments || 0}</p>
+					<p><strong>Total Drugs:</strong> ${warehouse.total_drugs || 0}</p>
+					<p><strong>Total Stock Value:</strong> $${Number(
+						warehouse.total_stock_value || 0
+					).toFixed(2)}</p>
+				</div>
+			`,
+				icon: "info"
+			});
+		}
+	}
+
+	private async handleSaveWarehouse(): Promise<void> {
+		if (!this.validateWarehouseForm()) return;
+
+		const warehouseId = (
+			document.getElementById("warehouseId") as HTMLInputElement
+		).value;
+		const name = (
+			document.getElementById("warehouseName") as HTMLInputElement
+		).value.trim();
+		const location = (
+			document.getElementById("warehouseLocation") as HTMLTextAreaElement
+		).value.trim();
+
+		const isEdit = warehouseId !== "";
+		const url = isEdit ? `/api/warehouse/${warehouseId}` : "/api/warehouse";
+		const method = isEdit ? "PUT" : "POST";
+
+		try {
+			this.setWarehouseLoading(true);
+
+			const response = await fetch(url, {
+				method,
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				},
+				body: JSON.stringify({ name, location })
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				this.addWarehouseModal.hide();
+
+				Swal.fire("Success", data.message, "success");
+
+				await this.loadWarehouses();
+				this.renderWarehousesTable();
+			} else {
+				Swal.fire("Error", data.error, "error");
+			}
+		} catch (error) {
+			console.error("Error saving warehouse:", error);
+			Swal.fire("Error", "Failed to save warehouse", "error");
+		} finally {
+			this.setWarehouseLoading(false);
+		}
+	}
+	private validateWarehouseForm(): boolean {
+		this.warehouseForm.classList.add("was-validated");
+		return this.warehouseForm.checkValidity();
+	}
+
+	private resetWarehouseForm(): void {
+		this.warehouseForm.reset();
+		this.warehouseForm.classList.remove("was-validated");
+		(document.getElementById("warehouseId") as HTMLInputElement).value = "";
+	}
+
+	private setWarehouseLoading(loading: boolean): void {
+		const spinner =
+			this.saveWarehouseButton.querySelector(".spinner-border")!;
+		const btnText = this.saveWarehouseButton.querySelector(".btn-text")!;
+		this.saveWarehouseButton.disabled = loading;
+		spinner.classList.toggle("d-none", !loading);
+		btnText.textContent = loading ? "Saving..." : "Save Warehouse";
 	}
 
 	private showError(message: string): void {

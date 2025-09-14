@@ -148,6 +148,76 @@
     animation: slideDown 0.3s ease-out;
 }
 
+/* Warehouse Management Styles */
+.warehouse-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.warehouse-row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.warehouse-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.warehouse-name {
+    font-weight: 500;
+    color: var(--bs-dark);
+}
+
+.warehouse-location {
+    font-size: 0.875rem;
+    color: var(--bs-gray-600);
+    margin-bottom: 0;
+}
+
+.shipment-count {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--bs-primary);
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.warehouse-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.warehouse-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Modal Improvements */
+.modal-xl .modal-body {
+    padding: 1.5rem;
+}
+
+#warehouseModal .table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* Empty state */
+.empty-warehouses {
+    text-align: center;
+    padding: 2rem;
+    color: var(--bs-gray-600);
+}
+
+.empty-warehouses i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--bs-gray-400);
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .action-buttons {
