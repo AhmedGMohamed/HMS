@@ -1,6 +1,6 @@
 - Make sure database initiation works.
 
-- Make sure voiding payments work in every tab, as well as showing all payment types under each employee. also make sure page refreshes on any action
+- Make sure voiding payments work in every tab, as well as showing all payment types under each employee. also make sure page refreshes on any action - DONE
 
 - list doctors in services page, fixed and percentage of each service:
 	Every doctor gets paid differently per service. In the services page (or doctors page) we'll need to list all the doctors to choose from and set their price per service per price list. Price could be a percentage of the service cost or a fixed amount
@@ -15,18 +15,82 @@
 	
 	# ServicePrice Edits:
 		#- Add service_price_id column to the table
-	
 
 
-- Admin dashboard has statistics, while regular user dashboards have links to other pages and quick clock-in/out
+- Admin dashboard has statistics, while regular user dashboards have links to other pages and quick clock-in/out - DONE
 
-- user dashboard has clock in and clock out, alongside other links:
-	1. quick clock in requires to select the employee and automatically set the clock-in time to the current time.
-	2. clock-in and shifts are different each day, let the shift time be set from the clock-in page
+- user dashboard has clock in and clock out, alongside other links: - REMOVED
+	1. quick clock in requires to select the employee and automatically set the clock-in time to the current time. - REMOVED
+	2. clock-in and shifts are different each day, let the shift time be set from the clock-in page - DONE
 	3. Using timestamps to calculate deductions might be better
 
 - show employee-patient history, filtered by date and name with details > place in reports page
 	When creating the reports, we need detailed reports with who each employee had supervised, which is filtered by name and details
 
 - supervising doctor needs monthly payment
-	supervising doctors get a montly payment, and a fixed amount per patient admitted. leave in the percentage in case things change
+	supervising doctors get a montly payment, and a fixed amount per patient admitted. leave in the percentage in case things 
+	
+
+- add claims form input ( a number specific to each patient) to payment information (related to insurance companies) - DONE
+- national ID for patient - DONE
+- calculate VAT after administrative expenses - DONE
+- Save discount, VAT & administrative expenses after confirming payments - DONE
+
+patient receipt:
+- all services and their payments - DONE
+- admission start and end date by time - DONE
+- discount appears by choice - DONE
+
+
+Add automatic patient services after admittance following a quick check - DONE
+
+When adding insurance page, make sure to add a button for resetting money owed by insurance, if any money is missing, add it to the discounts in the vault, reset amount by date - DONE
+
+in insurance report summary add every individual patient total pending payments - DONE
+
+Implement quick check admissions - DONE
+ 
+Required reports:
+patient reports during time period (cash/insurance), including:
+1- patient name
+2- admission and discharge times
+3- referring doctor
+4- payment type (insurance - cash)
+5- assigned doctors each day of admission
+6- assigned nurses each day of admission
+7- total bill
+8- diagnosis
+
+# of patients referred by doctor
+
+# of patients attended by doctor
+
+# of patients supervised by supervising doctor
+
+# of patients attended by nurses
+
+# of total patients (per month & per day for year & month respectively)
+
+# of total patients per time period filtered by sex
+
+# of total patients filtered by attending doctors
+
+# of total patients for specific doctor (with details)
+
+# of total patients filtered by referring doctors
+
+# of total patients for specific referring doctor
+
+NOTE: patient reports should be filtered by payment type (cash / insurance, with insurance company payment type reports split by individual company i.e. select the insurnce company before generating the report)
+
+Employee pay and wages filtered by date
+
+total patients reports:
+sevices used, patient data, referring doctor, total billed, admittance & discharge time, payment type
+
+3 types of patient reports:
+cash, insurance and both
+insurance has to be by individual company - DONE
+
+search patients by date
+serach doctors by date

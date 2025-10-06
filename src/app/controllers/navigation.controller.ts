@@ -67,12 +67,6 @@ export class NavigationController {
 						label: "Roles",
 						icon: "bi-shield",
 						url: "/admin/roles"
-					},
-					{
-						id: "permissions",
-						label: "Permissions",
-						icon: "bi-key",
-						url: "/admin/permissions"
 					}
 				]
 			},
@@ -118,15 +112,8 @@ export class NavigationController {
 				id: "pharmacy",
 				label: "Pharmacy",
 				icon: "bi-capsule",
-				permission: "manage_pharmacy",
-				children: [
-					{
-						id: "drugs",
-						label: "Drugs",
-						icon: "bi-capsule-pill",
-						url: "/drugs"
-					}
-				]
+				url: "/drugs",
+				permission: "manage_pharmacy"
 			},
 
 			// Services

@@ -2,7 +2,8 @@
 import { query } from "./database/connection.js";
 import {
 	EmployeePayment,
-	CreateEmployeePaymentDTO
+	CreateEmployeePaymentDTO,
+	PaymentPatientAssociation
 } from "../utils/types/employees.js";
 
 export default class EmployeePaymentModel {
@@ -30,7 +31,8 @@ export default class EmployeePaymentModel {
 	static async getPaymentsByEmployeeId(
 		employee_id: number
 	): Promise<EmployeePayment[]> {
-		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 ORDER BY issued_timestamp DESC";
+		const sql =
+			"SELECT * FROM EmployeePayment WHERE employee_id = $1 ORDER BY issued_timestamp DESC";
 		const { rows } = await query(sql, [employee_id]);
 		return rows;
 	}
@@ -38,11 +40,11 @@ export default class EmployeePaymentModel {
 	static async getPaidPaymentsByEmployeeId(
 		employee_id: number
 	): Promise<EmployeePayment[]> {
-		const sql = "SELECT * FROM EmployeePayment WHERE employee_id = $1 AND is_paid = true ORDER BY issued_timestamp DESC";
+		const sql =
+			"SELECT * FROM EmployeePayment WHERE employee_id = $1 AND is_paid = true ORDER BY issued_timestamp DESC";
 		const { rows } = await query(sql, [employee_id]);
 		return rows;
 	}
-	
 
 	static async createPayment(
 		dto: CreateEmployeePaymentDTO
@@ -120,5 +122,73 @@ export default class EmployeePaymentModel {
     `;
 		const { rows } = await query(sql, [payment_id]);
 		return rows[0] || null;
+	}
+
+	static async createPaymentWithPatients(
+		paymentData: CreateEmployeePaymentDTO,
+		patientAssociations: PaymentPatientAssociation[]
+	): Promise<any> {
+		await query("BEGIN");
+		try {
+			// Create the payment record
+			const paymentResult = await this.createPayment(paymentData);
+			const paymentId = paymentResult.payment_id;
+
+			// Create patient associations
+			for (const association of patientAssociations) {
+				await query(
+					`INSERT INTO EmployeePaymentPatient (
+                		    payment_id, patient_id, patient_history_id, work_date,
+                		    hours_worked, payment_amount, payment_type
+                		) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+					[
+						paymentId,
+						association.patient_id,
+						association.patient_history_id,
+						association.work_date,
+						association.hours_worked,
+						association.payment_amount,
+						association.payment_type
+					]
+				);
+			}
+
+			await query("COMMIT");
+			return paymentResult;
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	async getPaymentWithPatients(paymentId: number): Promise<any> {
+		const paymentResult = await query(
+			`SELECT ep.*, u.username as paid_by_username
+         	FROM EmployeePayment ep
+         	LEFT JOIN "User" u ON ep.paid_by_user_id = u.user_id
+         	WHERE ep.payment_id = $1`,
+			[paymentId]
+		);
+
+		if (paymentResult.rows.length === 0) {
+			return null;
+		}
+
+		const payment = paymentResult.rows[0];
+
+		// Get associated patients
+		const patientsResult = await query(
+			`SELECT epp.*, p.name as patient_name, ph.diagnosis,
+        	        ph.admission_time, ph.discharge_time
+        	 FROM EmployeePaymentPatient epp
+        	 JOIN Patient p ON epp.patient_id = p.patient_id
+        	 LEFT JOIN PatientHistory ph ON epp.patient_history_id = ph.patient_history_id
+        	 WHERE epp.payment_id = $1
+        	 ORDER BY epp.work_date DESC`,
+			[paymentId]
+		);
+
+		payment.patient_associations = patientsResult.rows;
+		return payment;
 	}
 }

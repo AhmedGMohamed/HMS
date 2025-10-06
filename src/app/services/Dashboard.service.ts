@@ -223,6 +223,17 @@ export class DashboardService {
 				WHERE ip.issued_timestamp >= CURRENT_DATE - INTERVAL '29 days'
 				GROUP BY DATE(ip.issued_timestamp)
 			),
+			daily_vault_additions AS (
+			    SELECT 
+			        DATE(vmp.payment_time) as date,
+			        SUM(CASE 
+			            WHEN vmp.payment_type = 'addition' THEN vmp.payment_amount
+			            ELSE 0
+			        END) as revenue
+			    FROM VaultManualPayment vmp
+			    WHERE vmp.payment_time >= CURRENT_DATE - INTERVAL '29 days'
+			    GROUP BY DATE(vmp.payment_time)
+			),
 			daily_pharmacy_profit AS (
 				SELECT 
 					DATE(dt.timestamp) as date,
@@ -274,7 +285,8 @@ export class DashboardService {
 				COALESCE(dpr.revenue, 0) as patient_revenue,
 				COALESCE(dphr.revenue, 0) as pharmacy_revenue,
 				COALESCE(dir.revenue, 0) as insurance_revenue,
-				COALESCE(dpr.revenue, 0) + COALESCE(dphr.revenue, 0) + COALESCE(dir.revenue, 0) as revenue,
+				COALESCE(dva.revenue, 0) as vault_additions,
+				COALESCE(dpr.revenue, 0) + COALESCE(dphr.revenue, 0) + COALESCE(dir.revenue, 0) + COALESCE(dva.revenue, 0) as revenue,
 				COALESCE(dpr.revenue, 0) as patient_profit,
 				COALESCE(dphp.profit, 0) as pharmacy_profit,
 				COALESCE(dir.revenue, 0) as insurance_profit,
@@ -283,6 +295,7 @@ export class DashboardService {
 			LEFT JOIN daily_patient_revenue dpr ON ds.date = dpr.date
 			LEFT JOIN daily_pharmacy_revenue dphr ON ds.date = dphr.date
 			LEFT JOIN daily_insurance_revenue dir ON ds.date = dir.date
+			LEFT JOIN daily_vault_additions dva ON ds.date = dva.date
 			LEFT JOIN daily_pharmacy_profit dphp ON ds.date = dphp.date
 			LEFT JOIN aggregated_expenses ae ON ds.date = ae.date
 			ORDER BY ds.date;

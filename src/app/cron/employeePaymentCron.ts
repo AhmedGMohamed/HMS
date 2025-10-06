@@ -3,7 +3,8 @@ import EmployeeModel from "../models/Employee.model.js";
 import EmployeePaymentModel from "../models/EmployeePayment.model.js";
 import {
 	CreateEmployeePaymentDTO,
-	Employee
+	Employee,
+	PaymentPatientAssociation
 } from "../utils/types/employees.js";
 import { query } from "../models/database/connection.js";
 
@@ -83,6 +84,7 @@ class EmployeePaymentCron {
 		let extraAmount = 0;
 		let totalDeductions = 0;
 		let extraPaymentType = employee.extra_payment_type || "none";
+		let patientAssociations: PaymentPatientAssociation[] = [];
 
 		// Calculate clock-in/out deductions if required
 		if (employee.need_clock_in) {
@@ -100,9 +102,11 @@ class EmployeePaymentCron {
 				break;
 			case "per_patient":
 				if (employee.per_patient_payment_type === "fixed") {
-					extraAmount = await this.calculateFixedPerPatientPayment(
+					const result = await this.calculateFixedPerPatientPayment(
 						employee
 					);
+					extraAmount = result.amount;
+					patientAssociations = result.associations;
 				}
 				// Percentage per patient is handled on dismissal
 				break;
@@ -121,7 +125,15 @@ class EmployeePaymentCron {
 				paid_by_user_id: null // System-generated
 			};
 
-			await EmployeePaymentModel.createPayment(payment);
+			// Create payment with patient associations
+			if (patientAssociations.length > 0) {
+				await EmployeePaymentModel.createPaymentWithPatients(
+					payment,
+					patientAssociations
+				);
+			} else {
+				await EmployeePaymentModel.createPayment(payment);
+			}
 
 			// Log the deductions in clock-in records if applicable
 			if (totalDeductions > 0 && employee.need_clock_in) {
@@ -429,30 +441,57 @@ class EmployeePaymentCron {
 
 	private async calculateFixedPerPatientPayment(
 		employee: Employee
-	): Promise<number> {
+	): Promise<{ amount: number; associations: PaymentPatientAssociation[] }> {
 		if (!employee.extra_amount || employee.extra_amount <= 0) {
-			return 0;
+			return { amount: 0, associations: [] };
 		}
 
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
 		const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-		// Count unique patients worked on yesterday that haven't been paid yet
+		// Get specific patient assignments that haven't been paid yet
 		const assignmentResult = await query(
-			`SELECT COUNT(*) as patient_count
+			`SELECT dsa.*, p.name as patient_name, ph.patient_history_id, ph.diagnosis
         	 FROM DailyStaffAssignment dsa
-        	 WHERE dsa.employee_id = $1 
-        	 AND dsa.work_date = $2
+        	 JOIN Patient p ON dsa.patient_id = p.patient_id
+        	 LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+        	     AND ph.discharge_time IS NULL OR (
+        	         ph.admission_time <= $1::date + INTERVAL '1 day' 
+        	         AND (ph.discharge_time IS NULL OR ph.discharge_time >= $1::date)
+        	     )
+        	 WHERE dsa.employee_id = $2 
+        	 AND dsa.work_date = $1
         	 AND dsa.payment_processed = FALSE
-        	 AND dsa.hours_worked > 0`,
-			[employee.employee_id, yesterdayStr]
+        	 AND dsa.hours_worked > 0
+        	 ORDER BY dsa.patient_id`,
+			[yesterdayStr, employee.employee_id]
 		);
 
-		const patientCount = parseInt(assignmentResult.rows[0].patient_count);
+		const assignments = assignmentResult.rows;
+		const patientCount = assignments.length;
 
-		if (patientCount > 0) {
-			// Mark assignments as payment processed
+		if (patientCount === 0) {
+			return { amount: 0, associations: [] };
+		}
+
+		const totalPayment = patientCount * employee.extra_amount;
+		const paymentPerPatient = employee.extra_amount;
+
+		// Create patient associations
+		const associations: PaymentPatientAssociation[] = assignments.map(
+			(assignment) => ({
+				patient_id: assignment.patient_id,
+				patient_history_id: assignment.patient_history_id || null,
+				work_date: assignment.work_date,
+				hours_worked: assignment.hours_worked,
+				payment_amount: paymentPerPatient,
+				payment_type: "fixed_per_patient"
+			})
+		);
+
+		// Mark assignments as payment processed
+		if (totalPayment > 0) {
 			await query(
 				`UPDATE DailyStaffAssignment 
         	     SET payment_processed = TRUE 
@@ -461,7 +500,7 @@ class EmployeePaymentCron {
 			);
 		}
 
-		return patientCount * employee.extra_amount;
+		return { amount: totalPayment, associations };
 	}
 
 	private async processPerPatientDismissalPayments() {
@@ -499,14 +538,33 @@ class EmployeePaymentCron {
 	private async processPerPatientDismissalPayment(
 		dismissedPatient: any
 	): Promise<void> {
-		const { patient_history_id, patient_id, bill_id, paid_amount } =
-			dismissedPatient;
+		const {
+			patient_history_id,
+			patient_id,
+			bill_id,
+			paid_amount,
+			discharge_time
+		} = dismissedPatient;
+
+		// Get patient info for associations
+		const patientInfoResult = await query(
+			`SELECT p.patient_id, p.name, ph.patient_history_id, ph.diagnosis,
+        	        ph.admission_time, ph.discharge_time
+        	 FROM Patient p
+        	 JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+        	 WHERE ph.patient_history_id = $1`,
+			[patient_history_id]
+		);
+
+		if (patientInfoResult.rows.length === 0) return;
+
+		const patientInfo = patientInfoResult.rows[0];
 
 		// Get all staff assignments for this patient that haven't been paid percentage
 		const staffResult = await query(
 			`SELECT DISTINCT dsa.employee_id, e.extra_amount, e.percentage_scope,
-                e.per_patient_payment_type, e.extra_payment_type, d.per_patient_pay,
-                d.payment_calculation, dsa.work_date, dsa.hours_worked
+        	        e.per_patient_payment_type, e.extra_payment_type, d.per_patient_pay,
+        	        d.payment_calculation, dsa.work_date, dsa.hours_worked
         	 FROM DailyStaffAssignment dsa
         	 JOIN Employee e ON dsa.employee_id = e.employee_id
         	 LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
@@ -527,29 +585,28 @@ class EmployeePaymentCron {
 				`SELECT payment_id FROM EmployeePayment 
             	 WHERE employee_id = $1 
             	 AND extra_payment_type = 'per_patient'
-            	 AND issued_timestamp >= (
-            	    SELECT discharge_time - INTERVAL '1 hour' 
-            	    FROM PatientHistory 
-            	    WHERE patient_history_id = $2
-            	 )`,
-				[staff.employee_id, patient_history_id]
+            	 AND issued_timestamp >= $2::timestamp - INTERVAL '1 hour'`,
+				[staff.employee_id, discharge_time]
 			);
 
 			if (existingPayment.rows.length === 0) {
-				let paymentAmount = 0;
 				const percentageRate =
 					staff.extra_amount || staff.per_patient_pay || 0;
 
 				let baseAmount = parseFloat(paid_amount);
 
+				// Apply work time proportionally if worked less than full day
+				const workRatio = Math.min(staff.hours_worked / 24.0, 1.0);
+				baseAmount = baseAmount * workRatio;
+
 				// Calculate deductions if percentage_scope is 'after_deductions'
 				if (staff.percentage_scope === "after_deductions") {
 					const deductionsResult = await query(
 						`SELECT 
-                	        COALESCE(b.administrative_expenses, 0) as admin_expenses,
-                	        COALESCE(b.discount, 0) as discount
-                	     FROM Bill b 
-                	     WHERE b.bill_id = $1`,
+                    	    COALESCE(b.administrative_expenses, 0) as admin_expenses,
+                    	    COALESCE(b.discount, 0) as discount
+                    	 FROM Bill b 
+                    	 WHERE b.bill_id = $1`,
 						[bill_id]
 					);
 
@@ -563,7 +620,7 @@ class EmployeePaymentCron {
 					);
 				}
 
-				paymentAmount = (baseAmount * percentageRate) / 100;
+				const paymentAmount = (baseAmount * percentageRate) / 100;
 
 				if (paymentAmount > 0) {
 					const payment: CreateEmployeePaymentDTO = {
@@ -576,7 +633,22 @@ class EmployeePaymentCron {
 						paid_by_user_id: null
 					};
 
-					await EmployeePaymentModel.createPayment(payment);
+					// Create patient association
+					const associations: PaymentPatientAssociation[] = [
+						{
+							patient_id: patient_id,
+							patient_history_id: patient_history_id,
+							work_date: staff.work_date,
+							hours_worked: staff.hours_worked,
+							payment_amount: paymentAmount,
+							payment_type: "percentage_per_patient"
+						}
+					];
+
+					await EmployeePaymentModel.createPaymentWithPatients(
+						payment,
+						associations
+					);
 
 					// Mark this staff assignment as payment processed
 					await query(
@@ -595,7 +667,7 @@ class EmployeePaymentCron {
 
 		// Create assignments for all currently active doctor-patient relationships
 		await query(
-			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked) 
         	 SELECT pd.doctor_id, pd.patient_id, $1, 
         	        CASE 
         	            WHEN pd.assigned_at::date = $1 THEN 
