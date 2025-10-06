@@ -324,7 +324,7 @@ export class VaultModel {
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
             JOIN DrugCard dc ON ds.drug_id = dc.drug_id
             WHERE dt.timestamp >= $1 AND dt.timestamp <= $2
-                AND dt.transaction_type = 'outside' OR dt.transaction_type = 'check'
+                AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check')
             GROUP BY dc.drug_id, dc.name, dc.manufacturer
             ORDER BY total_profit DESC;
         `;
@@ -523,7 +523,7 @@ export class VaultModel {
             SELECT COALESCE(SUM(quantity * price), 0) as total
             FROM DrugTransaction
             WHERE timestamp >= $1 AND timestamp <= $2
-                AND transaction_type = 'outside' OR transaction_type = 'check';
+                AND (transaction_type = 'outside' OR transaction_type = 'check');
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -539,7 +539,7 @@ export class VaultModel {
             FROM DrugTransaction dt
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
             WHERE dt.timestamp >= $1 AND dt.timestamp <= $2
-                AND dt.transaction_type = 'outside' OR dt.transaction_type = 'check';
+                AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check');
         `;
 
 		const result = await query(sql, [startDate, endDate]);
