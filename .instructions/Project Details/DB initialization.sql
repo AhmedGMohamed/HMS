@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS Employee (
 	employee_type employee_type NOT NULL,
 	base_pay DECIMAL(15, 2) DEFAULT 0,
 	extra_amount DECIMAL(15, 2) DEFAULT 0,
-	extra_payment_type VARCHAR(50),
-	per_patient_payment_type VARCHAR(50),
+	extra_payment_type VARCHAR(50), --"per_patient" | "income" | "both" | "none"
+	per_patient_payment_type VARCHAR(50), --"fixed" | "percentage"
 	percentage_scope percentage_scope,
 	need_clock_in BOOLEAN DEFAULT false,
 	shift_type shift_type,
@@ -316,8 +316,8 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
 	patient_id INTEGER REFERENCES Patient(patient_id) ON DELETE CASCADE DEFAULT NULL,
 	payment_amount DECIMAL(15, 2) NOT NULL,
-	extra_payment_type VARCHAR(50),
-	payment_type VARCHAR(50) NOT NULL,
+	extra_payment_type VARCHAR(50), -- 'none' | 'per_patient' | 'income'
+	payment_type VARCHAR(50) NOT NULL, -- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' 
 	percentage_scope percentage_scope,
 	extra_amount DECIMAL(15, 2),
 	is_paid BOOLEAN DEFAULT false,
@@ -700,4 +700,5 @@ VALUES
 		'manage_clocking',
 		'Can manage employee clock-in/out'
 	),
+	('view_reports', 'Can view facility reports'),
 	('view_only', 'Can only view records');

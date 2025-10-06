@@ -118,7 +118,7 @@ class EmployeePaymentCron {
 			const payment: CreateEmployeePaymentDTO = {
 				employee_id: employee.employee_id,
 				payment_amount: Math.max(0, totalPayment),
-				payment_type: "cash",
+				payment_type: "salary",
 				extra_payment_type: extraPaymentType,
 				extra_amount: extraAmount,
 				percentage_scope: employee.percentage_scope,
@@ -626,7 +626,7 @@ class EmployeePaymentCron {
 					const payment: CreateEmployeePaymentDTO = {
 						employee_id: staff.employee_id,
 						payment_amount: paymentAmount,
-						payment_type: "cash",
+						payment_type: "commission",
 						extra_payment_type: "per_patient",
 						extra_amount: paymentAmount,
 						percentage_scope: staff.percentage_scope,
