@@ -327,6 +327,20 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 	paid_by_user_id INTEGER REFERENCES "User"(user_id)
 );
 
+CREATE TABLE IF NOT EXISTS EmployeePaymentPatient (
+	payment_patient_id SERIAL PRIMARY KEY,
+	payment_id INTEGER REFERENCES EmployeePayment(payment_id) ON DELETE CASCADE,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	work_date DATE NOT NULL,
+	hours_worked DECIMAL(4, 2) NOT NULL,
+	payment_amount DECIMAL(15, 2) NOT NULL,
+	-- Portion of total payment from this patient
+	payment_type VARCHAR(50) NOT NULL,
+	-- 'fixed_per_patient', 'percentage_per_patient'
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 	clock_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
@@ -431,6 +445,14 @@ CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_doctor ON DoctorPatientHis
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_date ON DailyStaffAssignment(work_date, payment_processed);
 
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_employee ON DailyStaffAssignment(employee_id, work_date);
+
+
+-- Add indexes for employee patient payments
+CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_payment ON EmployeePaymentPatient(payment_id);
+
+CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_employee_date ON EmployeePaymentPatient(payment_id, work_date);
+
+CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_patient ON EmployeePaymentPatient(patient_id);
 
 -- Add a view for currently admitted patients with their details
 CREATE

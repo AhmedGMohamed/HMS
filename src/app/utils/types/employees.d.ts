@@ -116,3 +116,12 @@ export interface CreateEmployeeClockInDTO {
 	clock_out?: string;
 	pay_deduction?: number;
 }
+
+interface PaymentPatientAssociation {
+	patient_id: number;
+	patient_history_id: number;
+	work_date: string;
+	hours_worked: number;
+	payment_amount: number;
+	payment_type: string;
+}
