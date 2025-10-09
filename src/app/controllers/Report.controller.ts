@@ -518,6 +518,272 @@ export default class ReportController {
 		}
 	}
 
+	static async getAverageStayByTime(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+			const data = await ReportModel.getAverageStayByTime(
+				dateRange,
+				timeGrouping
+			);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching average stay data:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch average stay data"
+			});
+		}
+	}
+
+	/**
+	 * Get revenue trends
+	 */
+	static async getRevenueTrends(req: Request, res: Response): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+			const data = await ReportModel.getRevenueTrends(
+				dateRange,
+				timeGrouping
+			);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching revenue trends:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch revenue trends"
+			});
+		}
+	}
+
+	/**
+	 * Get admission vs discharge trends
+	 */
+	static async getAdmissionDischargeTrends(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+			const data = await ReportModel.getAdmissionDischargeTrends(
+				dateRange,
+				timeGrouping
+			);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching admission/discharge trends:", error);
+			res.status(500).json({
+				error:
+					error.message ||
+					"Failed to fetch admission/discharge trends"
+			});
+		}
+	}
+
+	/**
+	 * Get top services
+	 */
+	static async getTopServices(req: Request, res: Response): Promise<void> {
+		try {
+			const { start_date, end_date, limit } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const limitNum = limit ? parseInt(limit as string) : 10;
+			const data = await ReportModel.getTopServices(dateRange, limitNum);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching top services:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch top services"
+			});
+		}
+	}
+
+	/**
+	 * Get top drugs
+	 */
+	static async getTopDrugs(req: Request, res: Response): Promise<void> {
+		try {
+			const { start_date, end_date, limit } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const limitNum = limit ? parseInt(limit as string) : 10;
+			const data = await ReportModel.getTopDrugs(dateRange, limitNum);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching top drugs:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch top drugs"
+			});
+		}
+	}
+
+	/**
+	 * Get staff utilization
+	 */
+	static async getStaffUtilization(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const data = await ReportModel.getStaffUtilization(dateRange);
+
+			res.status(200).json(data);
+		} catch (error: any) {
+			console.error("Error fetching staff utilization:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch staff utilization"
+			});
+		}
+	}
+
+	/**
+	 * Get comprehensive statistics dashboard
+	 */
+	static async getComprehensiveStatistics(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+
+			// Fetch all statistics in parallel
+			const [
+				patientStats,
+				avgStay,
+				revenue,
+				admissionDischarge,
+				topServices,
+				topDrugs,
+				staffUtil
+			] = await Promise.all([
+				ReportModel.getPatientStatistics(dateRange, timeGrouping),
+				ReportModel.getAverageStayByTime(dateRange, timeGrouping),
+				ReportModel.getRevenueTrends(dateRange, timeGrouping),
+				ReportModel.getAdmissionDischargeTrends(
+					dateRange,
+					timeGrouping
+				),
+				ReportModel.getTopServices(dateRange, 10),
+				ReportModel.getTopDrugs(dateRange, 10),
+				ReportModel.getStaffUtilization(dateRange)
+			]);
+
+			res.status(200).json({
+				patient_statistics: patientStats,
+				average_stay: avgStay,
+				revenue_trends: revenue,
+				admission_discharge: admissionDischarge,
+				top_services: topServices,
+				top_drugs: topDrugs,
+				staff_utilization: staffUtil
+			});
+		} catch (error: any) {
+			console.error("Error fetching comprehensive statistics:", error);
+			res.status(500).json({
+				error:
+					error.message || "Failed to fetch comprehensive statistics"
+			});
+		}
+	}
+
 	/**
 	 * Get patient statistics by gender with chart
 	 */
