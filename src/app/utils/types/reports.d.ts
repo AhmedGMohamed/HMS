@@ -96,12 +96,18 @@ export interface DoctorPatientReport {
 export interface DoctorPatientDetail {
 	patient_id: number;
 	patient_name: string;
+	national_id?: string;
+	gender?: string;
+	age: number;
 	last_admission_time?: string;
 	last_discharge_time?: string;
 	payment_type: string;
 	insurance_company?: string;
-	diagnosis?: string;
-	total_bill_amount: number;
+	insurance_card_id?: string;
+	insurance_form_id?: string;
+	last_diagnosis?: string;
+	total_billed: number;
+	total_paid: number;
 	admission_count: number;
 }
 
