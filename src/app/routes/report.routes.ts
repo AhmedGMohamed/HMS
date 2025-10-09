@@ -118,6 +118,69 @@ router.get(
 	(req, res) => ReportController.getPatientStatisticsByPaymentType(req, res)
 );
 
+// Average stay by time
+router.get(
+    "/statistics/average-stay",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getAverageStayByTime(req, res)
+);
+
+// Revenue trends
+router.get(
+    "/statistics/revenue-trends",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getRevenueTrends(req, res)
+);
+
+// Admission vs Discharge trends
+router.get(
+    "/statistics/admission-discharge",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getAdmissionDischargeTrends(req, res)
+);
+
+// Top services
+router.get(
+    "/statistics/top-services",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getTopServices(req, res)
+);
+
+// Top drugs
+router.get(
+    "/statistics/top-drugs",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getTopDrugs(req, res)
+);
+
+// Staff utilization
+router.get(
+    "/statistics/staff-utilization",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getStaffUtilization(req, res)
+);
+
+// Comprehensive statistics (all at once)
+router.get(
+    "/statistics/comprehensive",
+    verifyToken,
+    checkPermission("view_reports"),
+    auditLogger,
+    (req, res) => ReportController.getComprehensiveStatistics(req, res)
+);
+
 router.get(
 	"/statistics/patients/gender",
 	verifyToken,

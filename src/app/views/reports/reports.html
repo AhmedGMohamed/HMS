@@ -393,8 +393,8 @@
                           <i class="bi bi-hospital"></i>
                         </div>
                         <div class="stat-info">
-                          <h6>Active Doctors</h6>
-                          <h3 id="statActiveDoctors">-</h3>
+                          <h6>Occupancy Rate</h6>
+                          <h3 id="statOccupancyRate">-%</h3>
                         </div>
                       </div>
                     </div>
@@ -415,11 +415,11 @@
                 </div>
               </div>
 
-              <!-- Charts Row -->
+              <!-- Charts Row 1: Patient Trends and Distribution -->
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Patient Trends</h5>
+                    <h5 class="mb-0">Patient Admission Trends</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="patientTrendsChart" height="300"></canvas>
@@ -444,13 +444,72 @@
                 </div>
               </div>
 
+              <!-- Charts Row 2: Average Stay and Occupancy -->
+              <div class="col-md-6 mb-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Average Stay Duration</h5>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="avgStayChart" height="300"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Row 3: Revenue and Admission/Discharge -->
+              <div class="col-md-6 mb-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Revenue Trends</h5>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="revenueChart" height="300"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Admissions vs Discharges</h5>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="admissionDischargeChart" height="300"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Row 4: Top Services and Drugs -->
+              <div class="col-md-6 mb-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Top 10 Services by Revenue</h5>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="topServicesChart" height="300"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Top 10 Drugs by Revenue</h5>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="topDrugsChart" height="300"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Row 5: Staff Utilization -->
               <div class="col-md-12 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Doctor Performance</h5>
+                    <h5 class="mb-0">Staff Utilization</h5>
                   </div>
                   <div class="card-body">
-                    <canvas id="doctorPerformanceChart" height="200"></canvas>
+                    <canvas id="staffUtilizationChart" height="200"></canvas>
                   </div>
                 </div>
               </div>

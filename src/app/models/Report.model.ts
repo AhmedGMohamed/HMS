@@ -1169,60 +1169,453 @@ export default class ReportModel {
 	}
 
 	/**
-	 * Get time-grouped patient data
+	 * Get time-grouped patient data counting patients who were admitted during each period
 	 */
 	private static async getTimeGroupedPatientData(
 		dateRange: ReportDateRange,
 		timeGrouping: TimeGrouping
 	): Promise<TimeGroupedData[]> {
-		let groupByClause: string;
-		let selectClause: string;
-		let orderByClause: string;
+		let periodFormat: string;
+		let dateSeriesInterval: string;
 
 		switch (timeGrouping) {
 			case "year":
-				selectClause = `
-                    EXTRACT(YEAR FROM ph.admission_time) as year,
-                    EXTRACT(YEAR FROM ph.admission_time)::text as period
-                `;
-				groupByClause = "EXTRACT(YEAR FROM ph.admission_time)";
-				orderByClause = "year";
+				periodFormat = "YYYY";
+				dateSeriesInterval = "1 year";
 				break;
 			case "month":
-				selectClause = `
-                    EXTRACT(YEAR FROM ph.admission_time) as year,
-                    EXTRACT(MONTH FROM ph.admission_time) as month,
-                    TO_CHAR(ph.admission_time, 'YYYY-MM') as period
-                `;
-				groupByClause =
-					"EXTRACT(YEAR FROM ph.admission_time), EXTRACT(MONTH FROM ph.admission_time), TO_CHAR(ph.admission_time, 'YYYY-MM')";
-				orderByClause = "year, month";
+				periodFormat = "YYYY-MM";
+				dateSeriesInterval = "1 month";
 				break;
 			case "day":
-				selectClause = `
-                    EXTRACT(YEAR FROM ph.admission_time) as year,
-                    EXTRACT(MONTH FROM ph.admission_time) as month,
-                    EXTRACT(DAY FROM ph.admission_time) as day,
-                    TO_CHAR(ph.admission_time, 'YYYY-MM-DD') as period
-                `;
-				groupByClause =
-					"EXTRACT(YEAR FROM ph.admission_time), EXTRACT(MONTH FROM ph.admission_time), EXTRACT(DAY FROM ph.admission_time), TO_CHAR(ph.admission_time, 'YYYY-MM-DD')";
-				orderByClause = "year, month, day";
+				periodFormat = "YYYY-MM-DD";
+				dateSeriesInterval = "1 day";
+				break;
+		}
+
+		// Generate complete date series and count patients who were in the hospital during each period
+		const sql = `
+        WITH date_series AS (
+            SELECT generate_series(
+                $1::date,
+                $2::date,
+                $3::interval
+            )::date as period_date
+        ),
+        period_series AS (
+            SELECT 
+                period_date,
+                TO_CHAR(period_date, $4) as period
+            FROM date_series
+        )
+        SELECT 
+            ps.period,
+            COUNT(DISTINCT ph.patient_id) as patient_count,
+            COALESCE(SUM(b.total_amount), 0) as total_amount
+        FROM period_series ps
+        LEFT JOIN PatientHistory ph ON (
+            ph.admission_time::date <= ps.period_date
+            AND (
+                ph.discharge_time IS NULL 
+                OR ph.discharge_time::date >= ps.period_date
+            )
+        )
+        LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+        GROUP BY ps.period, ps.period_date
+        ORDER BY ps.period_date
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			dateSeriesInterval,
+			periodFormat
+		]);
+
+		return result.rows.map((row) => {
+			const parsed = this.parsePeriodFromString(row.period, timeGrouping);
+			return {
+				period: row.period,
+				year: parsed.year,
+				month: parsed.month,
+				day: parsed.day,
+				count: parseInt(row.patient_count) || 0,
+				total_amount: parseFloat(row.total_amount) || 0
+			};
+		});
+	}
+
+	/**
+	 * Parse period string to extract components
+	 */
+	private static parsePeriodFromString(
+		period: string,
+		grouping: TimeGrouping
+	): any {
+		const result: any = {};
+
+		switch (grouping) {
+			case "year":
+				result.year = parseInt(period);
+				break;
+			case "month":
+				const [year, month] = period.split("-");
+				result.year = parseInt(year);
+				result.month = parseInt(month);
+				break;
+			case "day":
+				const [y, m, d] = period.split("-");
+				result.year = parseInt(y);
+				result.month = parseInt(m);
+				result.day = parseInt(d);
+				break;
+		}
+
+		return result;
+	}
+
+	/**
+	 * Get average stay duration grouped by time
+	 */
+	static async getAverageStayByTime(
+		dateRange: ReportDateRange,
+		timeGrouping: TimeGrouping
+	): Promise<TimeGroupedData[]> {
+		let periodFormat: string;
+		let dateSeriesInterval: string;
+
+		switch (timeGrouping) {
+			case "year":
+				periodFormat = "YYYY";
+				dateSeriesInterval = "1 year";
+				break;
+			case "month":
+				periodFormat = "YYYY-MM";
+				dateSeriesInterval = "1 month";
+				break;
+			case "day":
+				periodFormat = "YYYY-MM-DD";
+				dateSeriesInterval = "1 day";
 				break;
 		}
 
 		const sql = `
+        WITH date_series AS (
+            SELECT generate_series(
+                $1::date,
+                $2::date,
+                $3::interval
+            )::date as period_date
+        ),
+        period_series AS (
             SELECT 
-                ${selectClause},
-                COUNT(DISTINCT p.patient_id) as count,
-                COALESCE(SUM(b.total_amount), 0) as total_amount
-            FROM Patient p
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+                period_date,
+                TO_CHAR(period_date, $4) as period
+            FROM date_series
+        )
+        SELECT 
+            ps.period,
+            AVG(
+                CASE 
+                    WHEN ph.discharge_time IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (ph.discharge_time - ph.admission_time)) / 86400.0
+                    ELSE NULL
+                END
+            ) as avg_stay_days,
+            COUNT(CASE WHEN ph.discharge_time IS NOT NULL THEN 1 END) as discharge_count
+        FROM period_series ps
+        LEFT JOIN PatientHistory ph ON (
+            TO_CHAR(ph.admission_time, $4) = ps.period
+            OR (
+                ph.admission_time::date <= ps.period_date
+                AND ph.discharge_time::date >= ps.period_date
+            )
+        )
+        WHERE ph.discharge_time IS NOT NULL OR ph.patient_history_id IS NULL
+        GROUP BY ps.period, ps.period_date
+        ORDER BY ps.period_date
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			dateSeriesInterval,
+			periodFormat
+		]);
+
+		return result.rows.map((row) => {
+			const parsed = this.parsePeriodFromString(row.period, timeGrouping);
+			return {
+				period: row.period,
+				year: parsed.year,
+				month: parsed.month,
+				day: parsed.day,
+				count: parseInt(row.discharge_count) || 0,
+				avg_stay_days: parseFloat(row.avg_stay_days) || 0
+			};
+		});
+	}
+
+	/**
+	 * Get revenue trends
+	 */
+	static async getRevenueTrends(
+		dateRange: ReportDateRange,
+		timeGrouping: TimeGrouping
+	): Promise<any[]> {
+		let periodFormat: string;
+		let dateSeriesInterval: string;
+
+		switch (timeGrouping) {
+			case "year":
+				periodFormat = "YYYY";
+				dateSeriesInterval = "1 year";
+				break;
+			case "month":
+				periodFormat = "YYYY-MM";
+				dateSeriesInterval = "1 month";
+				break;
+			case "day":
+				periodFormat = "YYYY-MM-DD";
+				dateSeriesInterval = "1 day";
+				break;
+		}
+
+		const sql = `
+        WITH date_series AS (
+            SELECT generate_series(
+                $1::date,
+                $2::date,
+                $3::interval
+            )::date as period_date
+        ),
+        period_series AS (
+            SELECT 
+                period_date,
+                TO_CHAR(period_date, $4) as period
+            FROM date_series
+        ),
+        revenue_data AS (
+            SELECT 
+                TO_CHAR(b.generated_at, $4) as period,
+                SUM(b.total_amount) as total_revenue,
+                SUM(b.paid_amount) as collected_revenue,
+                SUM(b.total_amount - b.paid_amount) as outstanding_revenue,
+                COUNT(DISTINCT b.bill_id) as bill_count,
+                AVG(b.total_amount) as avg_bill_amount
+            FROM Bill b
+            WHERE b.generated_at BETWEEN $1 AND $2
+            GROUP BY TO_CHAR(b.generated_at, $4)
+        )
+        SELECT 
+            ps.period,
+            COALESCE(rd.total_revenue, 0) as total_revenue,
+            COALESCE(rd.collected_revenue, 0) as collected_revenue,
+            COALESCE(rd.outstanding_revenue, 0) as outstanding_revenue,
+            COALESCE(rd.bill_count, 0) as bill_count,
+            COALESCE(rd.avg_bill_amount, 0) as avg_bill_amount
+        FROM period_series ps
+        LEFT JOIN revenue_data rd ON ps.period = rd.period
+        ORDER BY ps.period_date
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			dateSeriesInterval,
+			periodFormat
+		]);
+
+		return result.rows.map((row) => ({
+			period: row.period,
+			total_revenue: parseFloat(row.total_revenue) || 0,
+			collected_revenue: parseFloat(row.collected_revenue) || 0,
+			outstanding_revenue: parseFloat(row.outstanding_revenue) || 0,
+			bill_count: parseInt(row.bill_count),
+			avg_bill_amount: parseFloat(row.avg_bill_amount) || 0
+		}));
+	}
+
+	/**
+	 * Get admission vs discharge trends
+	 */
+	static async getAdmissionDischargeTrends(
+		dateRange: ReportDateRange,
+		timeGrouping: TimeGrouping
+	): Promise<any[]> {
+		let periodFormat: string;
+		let dateSeriesInterval: string;
+
+		switch (timeGrouping) {
+			case "year":
+				periodFormat = "YYYY";
+				dateSeriesInterval = "1 year";
+				break;
+			case "month":
+				periodFormat = "YYYY-MM";
+				dateSeriesInterval = "1 month";
+				break;
+			case "day":
+				periodFormat = "YYYY-MM-DD";
+				dateSeriesInterval = "1 day";
+				break;
+		}
+
+		const sql = `
+        WITH date_series AS (
+            SELECT generate_series(
+                $1::date,
+                $2::date,
+                $3::interval
+            )::date as period_date
+        ),
+        period_series AS (
+            SELECT 
+                period_date,
+                TO_CHAR(period_date, $4) as period
+            FROM date_series
+        ),
+        admissions AS (
+            SELECT 
+                TO_CHAR(ph.admission_time, $4) as period,
+                COUNT(*) as admission_count
+            FROM PatientHistory ph
             WHERE ph.admission_time BETWEEN $1 AND $2
-            GROUP BY ${groupByClause}
-            ORDER BY ${orderByClause}
-        `;
+            GROUP BY TO_CHAR(ph.admission_time, $4)
+        ),
+        discharges AS (
+            SELECT 
+                TO_CHAR(ph.discharge_time, $4) as period,
+                COUNT(*) as discharge_count
+            FROM PatientHistory ph
+            WHERE ph.discharge_time BETWEEN $1 AND $2
+            GROUP BY TO_CHAR(ph.discharge_time, $4)
+        )
+        SELECT 
+            ps.period,
+            COALESCE(a.admission_count, 0) as admissions,
+            COALESCE(d.discharge_count, 0) as discharges,
+            COALESCE(a.admission_count, 0) - COALESCE(d.discharge_count, 0) as net_change
+        FROM period_series ps
+        LEFT JOIN admissions a ON ps.period = a.period
+        LEFT JOIN discharges d ON ps.period = d.period
+        ORDER BY ps.period_date
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			dateSeriesInterval,
+			periodFormat
+		]);
+
+		return result.rows.map((row) => ({
+			period: row.period,
+			admissions: parseInt(row.admissions),
+			discharges: parseInt(row.discharges),
+			net_change: parseInt(row.net_change)
+		}));
+	}
+
+	/**
+	 * Get top services used
+	 */
+	static async getTopServices(
+		dateRange: ReportDateRange,
+		limit: number = 10
+	): Promise<any[]> {
+		const sql = `
+        SELECT 
+            s.service_id,
+            s.name as service_name,
+            s.service_type,
+            COUNT(bd.bill_detail_id) as usage_count,
+            SUM(bd.quantity) as total_quantity,
+            SUM(bd.quantity * bd.unit_price) as total_revenue
+        FROM BillDetail bd
+        JOIN Service s ON bd.service_id = s.service_id
+        JOIN Bill b ON bd.bill_id = b.bill_id
+        WHERE b.generated_at BETWEEN $1 AND $2
+        GROUP BY s.service_id, s.name, s.service_type
+        ORDER BY total_revenue DESC
+        LIMIT $3
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			limit
+		]);
+
+		return result.rows.map((row) => ({
+			service_id: row.service_id,
+			service_name: row.service_name,
+			service_type: row.service_type,
+			usage_count: parseInt(row.usage_count),
+			total_quantity: parseInt(row.total_quantity),
+			total_revenue: parseFloat(row.total_revenue)
+		}));
+	}
+
+	/**
+	 * Get top drugs dispensed
+	 */
+	static async getTopDrugs(
+		dateRange: ReportDateRange,
+		limit: number = 10
+	): Promise<any[]> {
+		const sql = `
+        SELECT 
+            dc.drug_id,
+            dc.name as drug_name,
+            dc.manufacturer,
+            COUNT(bd.bill_detail_id) as usage_count,
+            SUM(bd.quantity) as total_quantity,
+            SUM(bd.quantity * bd.unit_price) as total_revenue
+        FROM BillDetail bd
+        JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
+        JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+        JOIN Bill b ON bd.bill_id = b.bill_id
+        WHERE b.generated_at BETWEEN $1 AND $2
+        GROUP BY dc.drug_id, dc.name, dc.manufacturer
+        ORDER BY total_revenue DESC
+        LIMIT $3
+    `;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			limit
+		]);
+
+		return result.rows.map((row) => ({
+			drug_id: row.drug_id,
+			drug_name: row.drug_name,
+			manufacturer: row.manufacturer,
+			usage_count: parseInt(row.usage_count),
+			total_quantity: parseInt(row.total_quantity),
+			total_revenue: parseFloat(row.total_revenue)
+		}));
+	}
+
+	/**
+	 * Get staff utilization statistics
+	 */
+	static async getStaffUtilization(dateRange: ReportDateRange): Promise<any> {
+		const sql = `
+        SELECT 
+            e.employee_type,
+            COUNT(DISTINCT e.employee_id) as staff_count,
+            COUNT(DISTINCT dsa.patient_id) as patients_served,
+            AVG(dsa.hours_worked) as avg_hours_per_assignment,
+            SUM(dsa.hours_worked) as total_hours_worked
+        FROM Employee e
+        LEFT JOIN DailyStaffAssignment dsa ON e.employee_id = dsa.employee_id
+            AND dsa.work_date BETWEEN $1 AND $2
+        WHERE e.is_active = true
+        GROUP BY e.employee_type
+        ORDER BY e.employee_type
+    `;
 
 		const result = await query(sql, [
 			dateRange.start_date,
@@ -1230,12 +1623,17 @@ export default class ReportModel {
 		]);
 
 		return result.rows.map((row) => ({
-			period: row.period,
-			year: row.year ? parseInt(row.year) : undefined,
-			month: row.month ? parseInt(row.month) : undefined,
-			day: row.day ? parseInt(row.day) : undefined,
-			count: parseInt(row.count),
-			total_amount: parseFloat(row.total_amount)
+			employee_type: row.employee_type,
+			staff_count: parseInt(row.staff_count),
+			patients_served: parseInt(row.patients_served) || 0,
+			avg_hours_per_assignment:
+				parseFloat(row.avg_hours_per_assignment) || 0,
+			total_hours_worked: parseFloat(row.total_hours_worked) || 0,
+			avg_patients_per_staff:
+				row.staff_count > 0
+					? (parseInt(row.patients_served) || 0) /
+					  parseInt(row.staff_count)
+					: 0
 		}));
 	}
 

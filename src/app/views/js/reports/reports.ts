@@ -38,6 +38,12 @@ class ReportsManager {
 	private doctorPerformanceChart: any = null;
 	private paymentTimelineChart: any = null;
 	private paymentTypeChart: any = null;
+	private avgStayChart: any = null;
+	private revenueChart: any = null;
+	private admissionDischargeChart: any = null;
+	private topServicesChart: any = null;
+	private topDrugsChart: any = null;
+	private staffUtilizationChart: any = null;
 
 	// Data caches
 	private insuranceCompanies: InsuranceCompany[] = [];
@@ -4237,7 +4243,12 @@ class ReportsManager {
 				},
 
 				// Patient summary table
-				...this.generateNurseSinglePatientDetails(nurse.patients)
+				...this.generateNurseSinglePatientDetails(nurse.patients),
+
+				// Daily assignments
+				...this.generateNurseDailyAssignmentsForPDF(
+					nurse.daily_assignments
+				)
 			],
 			styles: {
 				header: {
@@ -4526,38 +4537,11 @@ class ReportsManager {
 		try {
 			await this.showLoading();
 
-			// Load all statistics data in parallel
-			const [
-				patientStats,
-				patientStatsChart,
-				paymentTypeStats,
-				genderStats,
-				doctorStats
-			] = await Promise.all([
-				this.fetchStatistics(
-					`/api/reports/statistics/patients?start_date=${filters.start_date}&end_date=${filters.end_date}&grouping=${filters.grouping}`
-				),
-				this.fetchStatistics(
-					`/api/reports/statistics/patients/chart?start_date=${filters.start_date}&end_date=${filters.end_date}&grouping=${filters.grouping}`
-				),
-				this.fetchStatistics(
-					`/api/reports/statistics/patients/payment-type?start_date=${filters.start_date}&end_date=${filters.end_date}&grouping=${filters.grouping}`
-				),
-				this.fetchStatistics(
-					`/api/reports/statistics/patients/gender?start_date=${filters.start_date}&end_date=${filters.end_date}&grouping=${filters.grouping}`
-				),
-				this.fetchStatistics(
-					`/api/reports/statistics/doctors?start_date=${filters.start_date}&end_date=${filters.end_date}`
-				)
-			]);
+			const url = `/api/reports/statistics/comprehensive?start_date=${filters.start_date}&end_date=${filters.end_date}&grouping=${filters.grouping}`;
 
-			this.currentStatistics = {
-				patients: patientStats,
-				patientsChart: patientStatsChart,
-				paymentType: paymentTypeStats,
-				gender: genderStats,
-				doctors: doctorStats
-			};
+			const data = await this.fetchStatistics(url);
+
+			this.currentStatistics = data;
 
 			this.displayStatistics();
 			this.showSuccess("Statistics loaded successfully");
@@ -4583,28 +4567,32 @@ class ReportsManager {
 	private displayStatistics(): void {
 		if (!this.currentStatistics) return;
 
-		const stats = this.currentStatistics.patients;
-		const doctorStats = this.currentStatistics.doctors;
+		const stats = this.currentStatistics.patient_statistics;
+		const revenue = this.currentStatistics.revenue_trends;
 
 		// Update summary cards
 		document.getElementById("statTotalPatients")!.textContent =
 			stats.total_patients.toString();
 		document.getElementById("statAvgStay")!.textContent =
 			stats.avg_stay_duration.toFixed(1);
-		document.getElementById("statActiveDoctors")!.textContent =
-			doctorStats.data.length.toString();
-		document.getElementById("statTotalRevenue")!.textContent =
-			this.formatCurrency(
-				doctorStats.data.reduce(
-					(sum: number, d: any) => sum + d.total_revenue_generated,
-					0
-				)
-			);
 
-		// Render charts
+		// Calculate total revenue
+		const totalRevenue = revenue.reduce(
+			(sum: number, r: any) => sum + r.total_revenue,
+			0
+		);
+		document.getElementById("statTotalRevenue")!.textContent =
+			this.formatCurrency(totalRevenue);
+
+		// Render all charts
 		this.renderPatientTrendsChart();
 		this.renderDistributionChart("payment");
-		this.renderDoctorPerformanceChart();
+		this.renderAverageStayChart();
+		this.renderRevenueChart();
+		this.renderAdmissionDischargeChart();
+		this.renderTopServicesChart();
+		this.renderTopDrugsChart();
+		this.renderStaffUtilizationChart();
 	}
 
 	private renderPatientTrendsChart(): void {
@@ -4613,17 +4601,34 @@ class ReportsManager {
 		) as HTMLCanvasElement;
 		if (!canvas) return;
 
-		// Destroy existing chart
 		if (this.patientTrendsChart) {
 			this.patientTrendsChart.destroy();
 		}
 
-		const chartData = this.currentStatistics.patientsChart.chartData;
+		const data = this.currentStatistics.patient_statistics.time_grouped;
 
 		//@ts-ignore
 		this.patientTrendsChart = new Chart(canvas, {
 			type: "line",
-			data: chartData,
+			data: {
+				labels: data.map((d: any) => d.period),
+				datasets: [
+					{
+						label: "Patients in Hospital",
+						data: data.map((d: any) => d.count),
+						backgroundColor: "rgba(13, 110, 253, 0.2)",
+						borderColor: "rgba(13, 110, 253, 1)",
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4,
+						pointRadius: 4,
+						pointHoverRadius: 6,
+						pointBackgroundColor: "rgba(13, 110, 253, 1)",
+						pointBorderColor: "#fff",
+						pointBorderWidth: 2
+					}
+				]
+			},
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
@@ -4632,15 +4637,54 @@ class ReportsManager {
 						display: true,
 						position: "top"
 					},
-					title: {
-						display: false
+					tooltip: {
+						mode: "index",
+						intersect: false,
+						callbacks: {
+							title: function (context: any) {
+								return `Period: ${context[0].label}`;
+							},
+							label: function (context: any) {
+								return `Patients in hospital: ${context.parsed.y}`;
+							},
+							afterLabel: function (context: any) {
+								const dataPoint = data[context.dataIndex];
+								if (dataPoint.total_amount > 0) {
+									return `Revenue: ${new Intl.NumberFormat(
+										"en-US",
+										{
+											style: "currency",
+											currency: "USD"
+										}
+									).format(dataPoint.total_amount)}`;
+								}
+								return "";
+							}
+						}
 					}
 				},
 				scales: {
 					y: {
 						beginAtZero: true,
 						ticks: {
-							precision: 0
+							precision: 0,
+							callback: function (value: any) {
+								return value + " patients";
+							}
+						},
+						title: {
+							display: true,
+							text: "Number of Patients"
+						}
+					},
+					x: {
+						ticks: {
+							maxRotation: 45,
+							minRotation: 45
+						},
+						title: {
+							display: true,
+							text: "Time Period"
 						}
 					}
 				}
@@ -4659,23 +4703,701 @@ class ReportsManager {
 			this.distributionChart.destroy();
 		}
 
-		const chartData =
-			type === "payment"
-				? this.currentStatistics.paymentType.chartData
-				: this.currentStatistics.gender.chartData;
+		let labels: string[];
+		let data: number[];
+		let colors: string[];
+		let borderColors: string[];
+		let title: string;
+
+		if (type === "payment") {
+			const paymentData =
+				this.currentStatistics.patient_statistics.by_payment_type;
+			labels = ["Cash", "Credit", "Insurance"];
+			data = [
+				paymentData.cash || 0,
+				paymentData.credit || 0,
+				paymentData.insurance || 0
+			];
+			colors = [
+				"rgba(40, 167, 69, 0.7)", // Green for cash
+				"rgba(255, 193, 7, 0.7)", // Yellow for credit
+				"rgba(13, 110, 253, 0.7)" // Blue for insurance
+			];
+			borderColors = [
+				"rgba(40, 167, 69, 1)",
+				"rgba(255, 193, 7, 1)",
+				"rgba(13, 110, 253, 1)"
+			];
+			title = "Patients by Payment Type";
+		} else {
+			const genderData =
+				this.currentStatistics.patient_statistics.by_gender;
+			labels = ["Male", "Female", "Other"];
+			data = [
+				genderData.male || 0,
+				genderData.female || 0,
+				genderData.other || 0
+			];
+			colors = [
+				"rgba(13, 110, 253, 0.7)", // Blue for male
+				"rgba(220, 53, 69, 0.7)", // Pink/Red for female
+				"rgba(108, 117, 125, 0.7)" // Gray for other
+			];
+			borderColors = [
+				"rgba(13, 110, 253, 1)",
+				"rgba(220, 53, 69, 1)",
+				"rgba(108, 117, 125, 1)"
+			];
+			title = "Patients by Gender";
+		}
+
+		// Calculate total for percentages
+		const total = data.reduce((sum, value) => sum + value, 0);
 
 		//@ts-ignore
 		this.distributionChart = new Chart(canvas, {
 			type: "pie",
-			data: chartData,
+			data: {
+				labels: labels,
+				datasets: [
+					{
+						data: data,
+						backgroundColor: colors,
+						borderColor: borderColors,
+						borderWidth: 2,
+						hoverOffset: 10,
+						hoverBorderWidth: 3
+					}
+				]
+			},
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
 				plugins: {
 					legend: {
 						display: true,
-						position: "bottom"
+						position: "bottom",
+						labels: {
+							padding: 15,
+							font: {
+								size: 12,
+								weight: "500"
+							},
+							generateLabels: function (chart: any) {
+								const data = chart.data;
+								if (
+									data.labels.length &&
+									data.datasets.length
+								) {
+									return data.labels.map(
+										(label: string, i: number) => {
+											const value =
+												data.datasets[0].data[i];
+											const percentage =
+												total > 0
+													? (
+															(value / total) *
+															100
+													  ).toFixed(1)
+													: "0.0";
+											return {
+												text: `${label}: ${value} (${percentage}%)`,
+												fillStyle:
+													data.datasets[0]
+														.backgroundColor[i],
+												strokeStyle:
+													data.datasets[0]
+														.borderColor[i],
+												lineWidth: 2,
+												hidden: false,
+												index: i
+											};
+										}
+									);
+								}
+								return [];
+							}
+						}
+					},
+					title: {
+						display: true,
+						text: title,
+						font: {
+							size: 14,
+							weight: "bold"
+						},
+						padding: {
+							top: 10,
+							bottom: 20
+						}
+					},
+					tooltip: {
+						backgroundColor: "rgba(0, 0, 0, 0.8)",
+						padding: 12,
+						titleFont: {
+							size: 14,
+							weight: "bold"
+						},
+						bodyFont: {
+							size: 13
+						},
+						callbacks: {
+							title: function (context: any) {
+								return context[0].label;
+							},
+							label: function (context: any) {
+								const value = context.parsed;
+								const percentage =
+									total > 0
+										? ((value / total) * 100).toFixed(1)
+										: "0.0";
+								return [
+									`Count: ${value} patients`,
+									`Percentage: ${percentage}%`
+								];
+							},
+							afterLabel: function (context: any) {
+								// Add additional context
+								if (total > 0) {
+									const value = context.parsed;
+									const remaining = total - value;
+									return `Remaining: ${remaining} patients`;
+								}
+								return "";
+							}
+						}
 					}
+				},
+				animation: {
+					animateRotate: true,
+					animateScale: true
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render average stay chart
+	 */
+	private renderAverageStayChart(): void {
+		const canvas = document.getElementById(
+			"avgStayChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.avgStayChart) {
+			this.avgStayChart.destroy();
+		}
+
+		const data = this.currentStatistics.average_stay;
+
+		//@ts-ignore
+		this.avgStayChart = new Chart(canvas, {
+			type: "line",
+			data: {
+				labels: data.map((d: any) => d.period),
+				datasets: [
+					{
+						label: "Average Stay (Days)",
+						data: data.map((d: any) => d.avg_stay_days),
+						backgroundColor: "rgba(40, 167, 69, 0.2)",
+						borderColor: "rgba(40, 167, 69, 1)",
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "top"
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								return `Avg Stay: ${context.parsed.y.toFixed(
+									2
+								)} days`;
+							}
+						}
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return value.toFixed(1) + " days";
+							}
+						}
+					},
+					x: {
+						ticks: {
+							maxRotation: 45,
+							minRotation: 45
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render revenue chart
+	 */
+	private renderRevenueChart(): void {
+		const canvas = document.getElementById(
+			"revenueChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.revenueChart) {
+			this.revenueChart.destroy();
+		}
+
+		const data = this.currentStatistics.revenue_trends;
+
+		//@ts-ignore
+		this.revenueChart = new Chart(canvas, {
+			type: "bar",
+			data: {
+				labels: data.map((d: any) => d.period),
+				datasets: [
+					{
+						label: "Total Revenue",
+						data: data.map((d: any) => d.total_revenue),
+						backgroundColor: "rgba(40, 167, 69, 0.7)",
+						borderColor: "rgba(40, 167, 69, 1)",
+						borderWidth: 1
+					},
+					{
+						label: "Collected",
+						data: data.map((d: any) => d.collected_revenue),
+						backgroundColor: "rgba(13, 110, 253, 0.7)",
+						borderColor: "rgba(13, 110, 253, 1)",
+						borderWidth: 1
+					},
+					{
+						label: "Outstanding",
+						data: data.map((d: any) => d.outstanding_revenue),
+						backgroundColor: "rgba(255, 193, 7, 0.7)",
+						borderColor: "rgba(255, 193, 7, 1)",
+						borderWidth: 1
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "top"
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								return (
+									context.dataset.label +
+									": " +
+									new Intl.NumberFormat("en-US", {
+										style: "currency",
+										currency: "USD"
+									}).format(context.parsed.y)
+								);
+							}
+						}
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return "$" + value.toLocaleString();
+							}
+						}
+					},
+					x: {
+						ticks: {
+							maxRotation: 45,
+							minRotation: 45
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render admission vs discharge chart
+	 */
+	private renderAdmissionDischargeChart(): void {
+		const canvas = document.getElementById(
+			"admissionDischargeChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.admissionDischargeChart) {
+			this.admissionDischargeChart.destroy();
+		}
+
+		const data = this.currentStatistics.admission_discharge;
+
+		//@ts-ignore
+		this.admissionDischargeChart = new Chart(canvas, {
+			type: "line",
+			data: {
+				labels: data.map((d: any) => d.period),
+				datasets: [
+					{
+						label: "Admissions",
+						data: data.map((d: any) => d.admissions),
+						backgroundColor: "rgba(13, 110, 253, 0.2)",
+						borderColor: "rgba(13, 110, 253, 1)",
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4
+					},
+					{
+						label: "Discharges",
+						data: data.map((d: any) => d.discharges),
+						backgroundColor: "rgba(40, 167, 69, 0.2)",
+						borderColor: "rgba(40, 167, 69, 1)",
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4
+					},
+					{
+						label: "Net Change",
+						data: data.map((d: any) => d.net_change),
+						backgroundColor: "rgba(255, 193, 7, 0.2)",
+						borderColor: "rgba(255, 193, 7, 1)",
+						borderWidth: 2,
+						fill: false,
+						tension: 0.4,
+						borderDash: [5, 5]
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "top"
+					},
+					tooltip: {
+						mode: "index",
+						intersect: false
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							precision: 0
+						}
+					},
+					x: {
+						ticks: {
+							maxRotation: 45,
+							minRotation: 45
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render top services chart
+	 */
+	private renderTopServicesChart(): void {
+		const canvas = document.getElementById(
+			"topServicesChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.topServicesChart) {
+			this.topServicesChart.destroy();
+		}
+
+		const data = this.currentStatistics.top_services;
+
+		//@ts-ignore
+		this.topServicesChart = new Chart(canvas, {
+			type: "bar",
+			data: {
+				labels: data.map((d: any) => d.service_name),
+				datasets: [
+					{
+						label: "Revenue",
+						data: data.map((d: any) => d.total_revenue),
+						backgroundColor: "rgba(111, 66, 193, 0.7)",
+						borderColor: "rgba(111, 66, 193, 1)",
+						borderWidth: 1
+					}
+				]
+			},
+			options: {
+				indexAxis: "y",
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: false
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								return (
+									"Revenue: " +
+									new Intl.NumberFormat("en-US", {
+										style: "currency",
+										currency: "USD"
+									}).format(context.parsed.x)
+								);
+							},
+							afterLabel: function (context: any) {
+								const service = data[context.dataIndex];
+								return [
+									`Usage Count: ${service.usage_count}`,
+									`Quantity: ${service.total_quantity}`,
+									`Type: ${service.service_type}`
+								];
+							}
+						}
+					}
+				},
+				scales: {
+					x: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return "$" + value.toLocaleString();
+							}
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render top drugs chart
+	 */
+	private renderTopDrugsChart(): void {
+		const canvas = document.getElementById(
+			"topDrugsChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.topDrugsChart) {
+			this.topDrugsChart.destroy();
+		}
+
+		const data = this.currentStatistics.top_drugs;
+
+		//@ts-ignore
+		this.topDrugsChart = new Chart(canvas, {
+			type: "bar",
+			data: {
+				labels: data.map((d: any) => d.drug_name),
+				datasets: [
+					{
+						label: "Revenue",
+						data: data.map((d: any) => d.total_revenue),
+						backgroundColor: "rgba(253, 126, 20, 0.7)",
+						borderColor: "rgba(253, 126, 20, 1)",
+						borderWidth: 1
+					}
+				]
+			},
+			options: {
+				indexAxis: "y",
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: false
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								return (
+									"Revenue: " +
+									new Intl.NumberFormat("en-US", {
+										style: "currency",
+										currency: "USD"
+									}).format(context.parsed.x)
+								);
+							},
+							afterLabel: function (context: any) {
+								const drug = data[context.dataIndex];
+								return [
+									`Usage Count: ${drug.usage_count}`,
+									`Quantity: ${drug.total_quantity}`,
+									`Manufacturer: ${
+										drug.manufacturer || "N/A"
+									}`
+								];
+							}
+						}
+					}
+				},
+				scales: {
+					x: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return "$" + value.toLocaleString();
+							}
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render staff utilization chart
+	 */
+	private renderStaffUtilizationChart(): void {
+		const canvas = document.getElementById(
+			"staffUtilizationChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		if (this.staffUtilizationChart) {
+			this.staffUtilizationChart.destroy();
+		}
+
+		const data = this.currentStatistics.staff_utilization;
+
+		//@ts-ignore
+		this.staffUtilizationChart = new Chart(canvas, {
+			type: "bar",
+			data: {
+				labels: data.map((d: any) => d.employee_type.toUpperCase()),
+				datasets: [
+					{
+						label: "Staff Count",
+						data: data.map((d: any) => d.staff_count),
+						backgroundColor: "rgba(13, 110, 253, 0.7)",
+						borderColor: "rgba(13, 110, 253, 1)",
+						borderWidth: 1,
+						yAxisID: "y"
+					},
+					{
+						label: "Patients Served",
+						data: data.map((d: any) => d.patients_served),
+						backgroundColor: "rgba(40, 167, 69, 0.7)",
+						borderColor: "rgba(40, 167, 69, 1)",
+						borderWidth: 1,
+						yAxisID: "y"
+					},
+					{
+						label: "Total Hours Worked",
+						data: data.map((d: any) => d.total_hours_worked),
+						backgroundColor: "rgba(255, 193, 7, 0.7)",
+						borderColor: "rgba(255, 193, 7, 1)",
+						borderWidth: 1,
+						yAxisID: "y1"
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "top"
+					},
+					tooltip: {
+						callbacks: {
+							afterLabel: function (context: any) {
+								const staff = data[context.datasetIndex];
+								if (context.datasetIndex === 0) {
+									return `Avg Patients/Staff: ${
+										staff.avg_patients_per_staff?.toFixed(
+											2
+										) || "N/A"
+									}`;
+								} else if (context.datasetIndex === 2) {
+									return `Avg Hours/Assignment: ${
+										staff.avg_hours_per_assignment?.toFixed(
+											2
+										) || "N/A"
+									}`;
+								}
+								return "";
+							}
+						}
+					}
+				},
+				scales: {
+					y: {
+						type: "linear",
+						display: true,
+						position: "left",
+						beginAtZero: true,
+						ticks: {
+							precision: 0
+						},
+						title: {
+							display: true,
+							text: "Count"
+						}
+					},
+					y1: {
+						type: "linear",
+						display: true,
+						position: "right",
+						beginAtZero: true,
+						grid: {
+							drawOnChartArea: false
+						},
+						title: {
+							display: true,
+							text: "Hours"
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Destroy all charts on cleanup
+	 */
+	private destroyAllCharts(): void {
+		const charts = [
+			this.patientTrendsChart,
+			this.distributionChart,
+			this.doctorPerformanceChart,
+			this.avgStayChart,
+			this.revenueChart,
+			this.admissionDischargeChart,
+			this.topServicesChart,
+			this.topDrugsChart,
+			this.staffUtilizationChart,
+			this.paymentTimelineChart,
+			this.paymentTypeChart
+		];
+
+		charts.forEach((chart) => {
+			if (chart) {
+				try {
+					chart.destroy();
+				} catch (error) {
+					console.error("Error destroying chart:", error);
 				}
 			}
 		});
@@ -4687,7 +5409,7 @@ class ReportsManager {
 		}
 	}
 
-	private renderDoctorPerformanceChart(): void {
+	/**private renderDoctorPerformanceChart(): void {
 		const canvas = document.getElementById(
 			"doctorPerformanceChart"
 		) as HTMLCanvasElement;
@@ -4720,7 +5442,7 @@ class ReportsManager {
 				}
 			}
 		});
-	}
+	}*/
 
 	// ==================== EMPLOYEE PAYMENT REPORTS ====================
 
@@ -5170,7 +5892,6 @@ class ReportsManager {
 			// Listen for the shown.bs.modal event to confirm the modal is visible
 			const onShown = () => {
 				modalElement.removeEventListener("shown.bs.modal", onShown);
-				console.log("Loading modal fully shown");
 				resolve();
 			};
 
