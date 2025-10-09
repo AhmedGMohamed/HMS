@@ -6,7 +6,7 @@ import {
 	verifyToken
 } from "../middleware/auth.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
-import navigationController from "../controllers/navigation.controller.js";
+import navigationController from "../controllers/Navigation.controller.js";
 
 const router = Router();
 
@@ -134,6 +134,15 @@ router.get(
 	checkPermission("manage_insurance"),
 	(_req, res) => {
 		res.sendFile("./views/insurance/insurance.html", { root: __dirname });
+	}
+);
+
+router.get(
+	"/reports",
+	verifyToken,
+	checkPermission("view_reports"),
+	(_req, res) => {
+		res.sendFile("./views/reports/reports.html", { root: __dirname });
 	}
 );
 

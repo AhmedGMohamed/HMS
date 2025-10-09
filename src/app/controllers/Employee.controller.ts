@@ -4,9 +4,13 @@ import EmployeeModel from "../models/Employee.model.js";
 import { CreateEmployeeDTO } from "../utils/types/employees.js";
 
 export default class EmployeeController {
-	static async getAllEmployees(_req: Request, res: Response): Promise<void> {
+	static async getAllEmployees(req: Request, res: Response): Promise<void> {
 		try {
-			const employees = await EmployeeModel.getAllEmployees();
+			let type = "all"
+			if (req.query.type) {
+				type = req.query.type as string;
+			}
+			const employees = await EmployeeModel.getAllEmployees(type);
 			res.status(200).json(employees);
 		} catch (error) {
 			res.status(500).json({ error: "Failed to fetch employees" });
