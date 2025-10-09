@@ -1,11 +1,17 @@
 // src/app/models/Employee.model.ts
-import {query} from "./database/connection.js";
+import { query } from "./database/connection.js";
 import { Employee, CreateEmployeeDTO } from "../utils/types/employees.js";
 
 export default class EmployeeModel {
-	static async getAllEmployees(): Promise<Employee[]> {
-		const sql = "SELECT * FROM Employee";
-		const { rows } = await query(sql);
+	static async getAllEmployees(type: string = "all"): Promise<Employee[]> {
+		let sql: string;
+		if (type === "all") {
+			sql = "SELECT * FROM Employee";
+			const { rows } = await query(sql);
+			return rows;
+		}
+		sql = "SELECT * FROM Employee WHERE employee_type = $1";
+		const { rows } = await query(sql, [type]);
 		return rows;
 	}
 

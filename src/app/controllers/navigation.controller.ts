@@ -143,13 +143,13 @@ export class NavigationController {
 				permission: "view_vault"
 			},
 
-			// Reports Header
+			// Insurance Companies
 			{
-				id: "reports_header",
-				label: "Reports",
-				icon: "",
-				isHeader: true,
-				permission: "view_reports"
+				id: "insurance",
+				label: "Insurance Companies",
+				icon: "bi bi-shield-check",
+				url: "/insurance",
+				permission: "view_patients"
 			},
 
 			// Reports
@@ -160,15 +160,6 @@ export class NavigationController {
 				url: "/reports",
 				permission: "view_reports"
 			},
-
-			// Insurance Companies
-			{
-				id: "insurance",
-				label: "Insurance Companies",
-				icon: "bi bi-shield-check",
-				url: "/insurance",
-				permission: "view_patients"
-			}
 		];
 
 		return this.filterNavigationByPermissions(allNavigation, user);
