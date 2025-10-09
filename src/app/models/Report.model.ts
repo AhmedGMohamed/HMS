@@ -461,7 +461,7 @@ export default class ReportModel {
 	 */
 	private static async getDailyStaffAssignments(
 		patientId: number,
-		patientHistoryId: number,
+		_patientHistoryId: number,
 		admissionTime: string,
 		dischargeTime?: string
 	): Promise<DailyStaffAssignment[]> {
@@ -611,7 +611,7 @@ export default class ReportModel {
 	 */
 	private static async getAdmissionDrugs(
 		billId: number,
-		patientId: number
+		_patientId: number
 	): Promise<any[]> {
 		const sql = `
             SELECT 
@@ -698,6 +698,79 @@ export default class ReportModel {
 
 	// ==================== DOCTOR REPORTS ====================
 
+	private static async getDoctorPatientDetails(
+		doctorId: number,
+		dateRange: ReportDateRange,
+		relationshipType: "referred" | "attended" | "supervised"
+	): Promise<any[]> {
+		let joinClause = "";
+		let whereClause = "";
+
+		switch (relationshipType) {
+			case "referred":
+				whereClause = "p.referring_doctor_id = $1";
+				break;
+			case "attended":
+			case "supervised":
+				joinClause =
+					"JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id";
+				whereClause = "dph.doctor_id = $1";
+				break;
+		}
+
+		const sql = `
+    	    SELECT 
+    	        p.patient_id,
+    	        p.name as patient_name,
+    	        p.national_id,
+    	        p.gender,
+    	        p.payment_type,
+    	        ic.name as insurance_company,
+    	        p.insurance_card_id,
+    	        p.insurance_form_id,
+    	        COUNT(DISTINCT ph.patient_history_id) as admission_count,
+    	        COALESCE(SUM(b.total_amount), 0) as total_billed,
+    	        COALESCE(SUM(b.paid_amount), 0) as total_paid,
+    	        MAX(ph.admission_time) as last_admission_time,
+    	        MAX(ph.discharge_time) as last_discharge_time,
+    	        MAX(ph.diagnosis) as last_diagnosis
+    	    FROM Patient p
+    	    LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+    	    JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+    	    ${joinClause}
+    	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+    	    WHERE ${whereClause}
+    	    AND ph.admission_time BETWEEN $2 AND $3
+    	    GROUP BY p.patient_id, p.name, p.national_id, p.gender, p.payment_type, 
+    	             ic.name, p.insurance_card_id, p.insurance_form_id
+    	    ORDER BY p.name
+    	`;
+
+		const result = await query(sql, [
+			doctorId,
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		return result.rows.map((row) => ({
+			patient_id: row.patient_id,
+			patient_name: row.patient_name,
+			national_id: row.national_id,
+			gender: row.gender,
+			age: this.calculateAgeFromNationalId(row.national_id),
+			payment_type: row.payment_type,
+			insurance_company: row.insurance_company,
+			insurance_card_id: row.insurance_card_id,
+			insurance_form_id: row.insurance_form_id,
+			admission_count: parseInt(row.admission_count),
+			total_billed: parseFloat(row.total_billed),
+			total_paid: parseFloat(row.total_paid),
+			last_admission_time: row.last_admission_time,
+			last_discharge_time: row.last_discharge_time,
+			last_diagnosis: row.last_diagnosis
+		}));
+	}
+
 	/**
 	 * Get patients referred by specific doctor
 	 */
@@ -706,11 +779,11 @@ export default class ReportModel {
 		dateRange: ReportDateRange
 	): Promise<DoctorPatientReport> {
 		const doctorSql = `
-            SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
-            FROM Doctor d
-            JOIN Employee e ON d.doctor_id = e.employee_id
-            WHERE d.doctor_id = $1
-        `;
+	        SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
+	        FROM Doctor d
+	        JOIN Employee e ON d.doctor_id = e.employee_id
+	        WHERE d.doctor_id = $1
+	    `;
 		const doctorResult = await query(doctorSql, [doctorId]);
 
 		if (doctorResult.rows.length === 0) {
@@ -718,45 +791,11 @@ export default class ReportModel {
 		}
 
 		const doctor = doctorResult.rows[0];
-
-		const patientsSql = `
-            SELECT DISTINCT
-                p.patient_id,
-                p.name as patient_name,
-                p.payment_type,
-                ic.name as insurance_company,
-                MAX(ph.admission_time) as last_admission_time,
-                MAX(ph.discharge_time) as last_discharge_time,
-                MAX(ph.diagnosis) as diagnosis,
-                COUNT(DISTINCT ph.patient_history_id) as admission_count,
-                COALESCE(SUM(b.total_amount), 0) as total_bill_amount
-            FROM Patient p
-            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE p.referring_doctor_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
-            GROUP BY p.patient_id, p.name, p.payment_type, ic.name
-            ORDER BY last_admission_time DESC
-        `;
-
-		const patientsResult = await query(patientsSql, [
+		const patients = await this.getDoctorPatientDetails(
 			doctorId,
-			dateRange.start_date,
-			dateRange.end_date
-		]);
-
-		const patients = patientsResult.rows.map((row) => ({
-			patient_id: row.patient_id,
-			patient_name: row.patient_name,
-			last_admission_time: row.last_admission_time,
-			last_discharge_time: row.last_discharge_time,
-			payment_type: row.payment_type,
-			insurance_company: row.insurance_company,
-			diagnosis: row.diagnosis,
-			total_bill_amount: parseFloat(row.total_bill_amount),
-			admission_count: parseInt(row.admission_count)
-		}));
+			dateRange,
+			"referred"
+		);
 
 		return {
 			doctor_id: doctor.doctor_id,
@@ -811,11 +850,11 @@ export default class ReportModel {
 		dateRange: ReportDateRange
 	): Promise<DoctorPatientReport> {
 		const doctorSql = `
-            SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
-            FROM Doctor d
-            JOIN Employee e ON d.doctor_id = e.employee_id
-            WHERE d.doctor_id = $1
-        `;
+    	    SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
+    	    FROM Doctor d
+    	    JOIN Employee e ON d.doctor_id = e.employee_id
+    	    WHERE d.doctor_id = $1
+    	`;
 		const doctorResult = await query(doctorSql, [doctorId]);
 
 		if (doctorResult.rows.length === 0) {
@@ -823,46 +862,11 @@ export default class ReportModel {
 		}
 
 		const doctor = doctorResult.rows[0];
-
-		const patientsSql = `
-            SELECT DISTINCT
-                p.patient_id,
-                p.name as patient_name,
-                p.payment_type,
-                ic.name as insurance_company,
-                MAX(ph.admission_time) as last_admission_time,
-                MAX(ph.discharge_time) as last_discharge_time,
-                MAX(ph.diagnosis) as diagnosis,
-                COUNT(DISTINCT ph.patient_history_id) as admission_count,
-                COALESCE(SUM(b.total_amount), 0) as total_bill_amount
-            FROM Patient p
-            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE dph.doctor_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
-            GROUP BY p.patient_id, p.name, p.payment_type, ic.name
-            ORDER BY last_admission_time DESC
-        `;
-
-		const patientsResult = await query(patientsSql, [
+		const patients = await this.getDoctorPatientDetails(
 			doctorId,
-			dateRange.start_date,
-			dateRange.end_date
-		]);
-
-		const patients = patientsResult.rows.map((row) => ({
-			patient_id: row.patient_id,
-			patient_name: row.patient_name,
-			last_admission_time: row.last_admission_time,
-			last_discharge_time: row.last_discharge_time,
-			payment_type: row.payment_type,
-			insurance_company: row.insurance_company,
-			diagnosis: row.diagnosis,
-			total_bill_amount: parseFloat(row.total_bill_amount),
-			admission_count: parseInt(row.admission_count)
-		}));
+			dateRange,
+			"attended"
+		);
 
 		return {
 			doctor_id: doctor.doctor_id,
@@ -917,11 +921,11 @@ export default class ReportModel {
 		dateRange: ReportDateRange
 	): Promise<DoctorPatientReport> {
 		const doctorSql = `
-            SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
-            FROM Doctor d
-            JOIN Employee e ON d.doctor_id = e.employee_id
-            WHERE d.doctor_id = $1 AND d.doctor_type = 'supervising'
-        `;
+	        SELECT e.employee_id as doctor_id, e.name as doctor_name, d.doctor_type
+	        FROM Doctor d
+	        JOIN Employee e ON d.doctor_id = e.employee_id
+	        WHERE d.doctor_id = $1 AND d.doctor_type = 'supervising'
+	    `;
 		const doctorResult = await query(doctorSql, [doctorId]);
 
 		if (doctorResult.rows.length === 0) {
@@ -929,47 +933,11 @@ export default class ReportModel {
 		}
 
 		const doctor = doctorResult.rows[0];
-
-		// For supervising doctors, we get patients they supervised
-		const patientsSql = `
-            SELECT DISTINCT
-                p.patient_id,
-                p.name as patient_name,
-                p.payment_type,
-                ic.name as insurance_company,
-                MAX(ph.admission_time) as last_admission_time,
-                MAX(ph.discharge_time) as last_discharge_time,
-                MAX(ph.diagnosis) as diagnosis,
-                COUNT(DISTINCT ph.patient_history_id) as admission_count,
-                COALESCE(SUM(b.total_amount), 0) as total_bill_amount
-            FROM Patient p
-            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
-            LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE dph.doctor_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
-            GROUP BY p.patient_id, p.name, p.payment_type, ic.name
-            ORDER BY last_admission_time DESC
-        `;
-
-		const patientsResult = await query(patientsSql, [
+		const patients = await this.getDoctorPatientDetails(
 			doctorId,
-			dateRange.start_date,
-			dateRange.end_date
-		]);
-
-		const patients = patientsResult.rows.map((row) => ({
-			patient_id: row.patient_id,
-			patient_name: row.patient_name,
-			last_admission_time: row.last_admission_time,
-			last_discharge_time: row.last_discharge_time,
-			payment_type: row.payment_type,
-			insurance_company: row.insurance_company,
-			diagnosis: row.diagnosis,
-			total_bill_amount: parseFloat(row.total_bill_amount),
-			admission_count: parseInt(row.admission_count)
-		}));
+			dateRange,
+			"supervised"
+		);
 
 		return {
 			doctor_id: doctor.doctor_id,

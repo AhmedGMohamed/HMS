@@ -1156,7 +1156,10 @@ class ReportsManager {
 
 			const patientInfoRow: any[] = [
 				{ text: patient.national_id || "N/A", alignment: "left" },
-				{ text: this.capitalizeFirst(patient.gender), alignment: "left" },
+				{
+					text: this.capitalizeFirst(patient.gender),
+					alignment: "left"
+				},
 				{ text: `${patient.age} years`, alignment: "left" },
 				{
 					text: this.capitalizeFirst(patient.payment_type),
@@ -2209,12 +2212,12 @@ class ReportsManager {
 
 		if (doctors.length === 0) {
 			container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
-                    <h5 class="mt-3 text-muted">No Data Found</h5>
-                    <p class="text-muted">No doctors match the selected criteria</p>
-                </div>
-            `;
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+                <h5 class="mt-3 text-muted">No Data Found</h5>
+                <p class="text-muted">No doctors match the selected criteria</p>
+            </div>
+        `;
 			return;
 		}
 
@@ -2224,161 +2227,1188 @@ class ReportsManager {
 		);
 
 		container.innerHTML = `
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <div class="summary-card border-start-primary">
-                        <h6>Total Doctors</h6>
-                        <div class="value">${doctors.length}</div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="summary-card border-start-info">
-                        <h6>Total Patients</h6>
-                        <div class="value">${totalPatients}</div>
-                    </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="summary-card border-start-primary">
+                    <h6>Total Doctors</h6>
+                    <div class="value">${doctors.length}</div>
                 </div>
             </div>
-            ${doctors
-				.map((doctor: any) => this.renderDoctorCard(doctor))
-				.join("")}
-        `;
+            <div class="col-md-6">
+                <div class="summary-card border-start-info">
+                    <h6>Total Patients</h6>
+                    <div class="value">${totalPatients}</div>
+                </div>
+            </div>
+        </div>
+        ${doctors.map((doctor: any) => this.renderDoctorCard(doctor)).join("")}
+    `;
+
+		// Add pie chart for multiple doctors
+		if (isMultipleDoctors && doctors.length > 1) {
+			setTimeout(() => this.renderDoctorReportPieChart(doctors), 100);
+		}
 	}
 
 	private renderDoctorCard(doctor: any): string {
 		return `
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0">${this.escapeHtml(
-								doctor.doctor_name
-							)}</h5>
-                            <small class="text-muted">${doctor.doctor_type.toUpperCase()}</small>
-                        </div>
-                        <div class="text-end">
-                            <h4 class="mb-0">${
-								doctor.total_patients
-							} Patients</h4>
-                        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">${this.escapeHtml(
+							doctor.doctor_name
+						)}</h5>
+                        <small class="text-muted">${doctor.doctor_type.toUpperCase()}</small>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0">${doctor.total_patients} Patients</h4>
                     </div>
                 </div>
-                <div class="card-body">
-                    ${
-						doctor.patients && doctor.patients.length > 0
-							? `
-                        <div class="table-responsive">
-                            <table class="table table-hover report-table">
-                                <thead>
-                                    <tr>
-                                        <th>Patient Name</th>
-                                        <th>Last Admission</th>
-                                        <th>Last Discharge</th>
-                                        <th>Payment Type</th>
-                                        <th>Diagnosis</th>
-                                        <th>Total Bill</th>
-                                        <th>Admissions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${doctor.patients
-										.map(
-											(patient: any) => `
-                                        <tr>
-                                            <td>${this.escapeHtml(
-												patient.patient_name
-											)}</td>
-                                            <td>${
-												patient.last_admission_time
-													? this.formatDateTime(
-															patient.last_admission_time
-													  )
-													: "N/A"
-											}</td>
-                                            <td>${
-												patient.last_discharge_time
-													? this.formatDateTime(
-															patient.last_discharge_time
-													  )
-													: '<span class="badge bg-success">Active</span>'
-											}</td>
-                                            <td><span class="payment-type-badge badge-${
-												patient.payment_type
-											}">${patient.payment_type.toUpperCase()}</span></td>
-                                            <td>${
-												patient.diagnosis
-													? this.escapeHtml(
-															patient.diagnosis
-													  )
-													: "N/A"
-											}</td>
-                                            <td>${this.formatCurrency(
-												patient.total_bill_amount
-											)}</td>
-                                            <td>${patient.admission_count}</td>
-                                        </tr>
-                                    `
-										)
-										.join("")}
-                                </tbody>
-                            </table>
-                        </div>
-                    `
-							: '<p class="text-muted">No patients found for this doctor</p>'
-					}
-                </div>
             </div>
-        `;
+            <div class="card-body">
+                ${
+					doctor.patients && doctor.patients.length > 0
+						? `
+                    <div class="table-responsive">
+                        <table class="table table-hover report-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>National ID</th>
+                                    <th>Gender</th>
+                                    <th>Age</th>
+                                    <th>Payment Type</th>
+                                    <th># Admissions</th>
+                                    <th>Total Billed</th>
+                                    <th>Total Paid</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${doctor.patients
+									.map(
+										(patient: any) => `
+                                    <tr>
+                                        <td>${this.escapeHtml(
+											patient.patient_name
+										)}</td>
+                                        <td>${
+											patient.national_id || "N/A"
+										}</td>                                       <td><span class="gender-badge badge-${
+											patient.gender || "other"
+										}">${this.capitalizeFirst(
+											patient.gender || "N/A"
+										)}</span></td>
+                                        <td>${patient.age || "N/A"}</td>
+                                        <td><span class="payment-type-badge badge-${
+											patient.payment_type
+										}">${patient.payment_type.toUpperCase()}</span></td>
+                                        <td class="text-center">${
+											patient.admission_count
+										}</td>
+                                        <td>${this.formatCurrency(
+											patient.total_billed
+										)}</td>
+                                        <td class="text-success fw-bold">${this.formatCurrency(
+											patient.total_paid
+										)}</td>
+                                    </tr>
+                                `
+									)
+									.join("")}
+                            </tbody>
+                            <tfoot>
+                                <tr class="totals-row">
+                                    <td colspan="5" class="text-end"><strong>TOTALS:</strong></td>
+                                    <td class="text-center"><strong>${doctor.patients.reduce(
+										(sum: number, p: any) =>
+											sum + p.admission_count,
+										0
+									)}</strong></td>
+                                    <td><strong>${this.formatCurrency(
+										doctor.patients.reduce(
+											(sum: number, p: any) =>
+												sum + p.total_billed,
+											0
+										)
+									)}</strong></td>
+                                    <td><strong class="text-success">${this.formatCurrency(
+										doctor.patients.reduce(
+											(sum: number, p: any) =>
+												sum + p.total_paid,
+											0
+										)
+									)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `
+						: '<p class="text-muted">No patients found for this doctor</p>'
+				}
+            </div>
+        </div>
+    `;
 	}
 
+	/**
+	 * Generate doctor report PDF based on report type
+	 */
 	private async printDoctorReport(): Promise<void> {
 		if (!this.currentReportData) {
 			this.showError("No report data to print");
 			return;
 		}
 
+		const reportType = (
+			document.getElementById("doctorReportType") as HTMLSelectElement
+		).value;
+		const isMultipleDoctors = Array.isArray(this.currentReportData);
+
 		try {
-			const filters = this.getReportFilters();
-			const reportTitle = `Doctor Report (${this.formatDate(
-				filters.start_date
-			)} - ${this.formatDate(filters.end_date)})`;
-
-			const doctors = Array.isArray(this.currentReportData)
-				? this.currentReportData
-				: [this.currentReportData];
-
-			const pdf = createCustomReport(
-				reportTitle,
-				[
-					{
-						type: "header",
-						title: `Total Doctors: ${doctors.length}`
-					},
-					{
-						type: "table",
-						fields: [
-							{
-								key: "doctor_name",
-								label: "Doctor Name",
-								type: "text"
-							},
-							{ key: "doctor_type", label: "Type", type: "text" },
-							{
-								key: "total_patients",
-								label: "Total Patients",
-								type: "number"
-							}
-						]
-					}
-				],
-				{ data: doctors }
-			);
-
-			pdf.open();
-			this.showSuccess("Report generated successfully");
+			if (isMultipleDoctors) {
+				// Reports #1, #2, #3: Multiple doctors with pie chart
+				await this.generateMultipleDoctorsReportPDF(
+					this.currentReportData,
+					reportType
+				);
+			} else {
+				// Reports #4, #5: Single doctor with admission details
+				await this.generateSingleDoctorReportPDF(
+					this.currentReportData,
+					reportType
+				);
+			}
 		} catch (error) {
 			console.error("Error printing doctor report:", error);
 			this.showError("Failed to generate report");
 		}
+	}
+
+	private async generateMultipleDoctorsReportPDF(
+		doctors: any[],
+		reportType: string
+	): Promise<void> {
+		const filters = this.getReportFilters();
+
+		// Determine report title based on type
+		let reportTitle = "";
+		let relationshipType = "";
+
+		if (reportType === "all-referred") {
+			reportTitle = "Referring Doctors Report";
+			relationshipType = "referred";
+		} else if (reportType === "all-attending") {
+			reportTitle = "Attending Doctors Report";
+			relationshipType = "attended";
+		} else {
+			reportTitle = "Supervising Doctors Report";
+			relationshipType = "supervised";
+		}
+
+		// Calculate totals
+		const totalPatients = doctors.reduce(
+			(sum, d) => sum + d.total_patients,
+			0
+		);
+
+		// Generate pie chart as base64 image
+		const pieChartImage = await this.generateDoctorPieChart(doctors);
+
+		// Create summary table
+		const summaryTableBody = [];
+		summaryTableBody.push([
+			{ text: "Doctor Name", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Doctor Type", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: `Patients ${this.capitalizeFirst(relationshipType)}`,
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			},
+			{
+				text: "Percentage",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			}
+		]);
+
+		doctors.forEach((doctor) => {
+			const percentage = (
+				(doctor.total_patients / totalPatients) *
+				100
+			).toFixed(1);
+			summaryTableBody.push([
+				doctor.doctor_name,
+				this.capitalizeFirst(doctor.doctor_type),
+				{ text: doctor.total_patients.toString(), alignment: "center" },
+				{ text: `${percentage}%`, alignment: "center" }
+			]);
+		});
+
+		// Add total row
+		summaryTableBody.push([
+			{ text: "TOTAL", colSpan: 2, bold: true, fillColor: "#f0f0f0" },
+			{ text: "", fillColor: "#f0f0f0" },
+			{
+				text: totalPatients.toString(),
+				bold: true,
+				alignment: "center",
+				fillColor: "#f0f0f0"
+			},
+			{
+				text: "100%",
+				bold: true,
+				alignment: "center",
+				fillColor: "#f0f0f0"
+			}
+		]);
+
+		const docDefinition = {
+			content: [
+				// Title
+				{
+					text: reportTitle,
+					style: "header",
+					alignment: "center"
+				},
+				{
+					text: `Report Period: ${this.formatDate(
+						filters.start_date
+					)} - ${this.formatDate(filters.end_date)}`,
+					style: "subheader",
+					alignment: "center",
+					margin: [0, 0, 0, 20]
+				},
+
+				// Pie Chart
+				{
+					image: pieChartImage,
+					width: 400,
+					alignment: "center",
+					margin: [0, 0, 0, 20]
+				},
+
+				// Summary Table
+				{
+					text: "Doctor Summary",
+					style: "sectionHeader",
+					margin: [0, 10, 0, 10]
+				},
+				{
+					table: {
+						headerRows: 1,
+						widths: ["*", "auto", "auto", "auto"],
+						body: summaryTableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number) {
+							if (
+								rowIndex === 0 ||
+								rowIndex === summaryTableBody.length - 1
+							) {
+								return "#f0f0f0";
+							}
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						}
+					},
+					margin: [0, 0, 0, 20]
+				},
+
+				// Detailed patient data for each doctor
+				...this.generateDoctorDetailedPages(doctors, relationshipType)
+			],
+			styles: {
+				header: {
+					fontSize: 18,
+					bold: true,
+					margin: [0, 0, 0, 10]
+				},
+				subheader: {
+					fontSize: 14,
+					bold: true,
+					margin: [0, 5, 0, 5]
+				},
+				sectionHeader: {
+					fontSize: 14,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 15, 0, 10]
+				},
+				doctorHeader: {
+					fontSize: 12,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 10, 0, 5]
+				}
+			},
+			pageMargins: [40, 60, 40, 60],
+			footer: function (currentPage: number, pageCount: number) {
+				return {
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					alignment: "center",
+					fontSize: 8,
+					margin: [0, 10, 0, 0]
+				};
+			},
+			defaultStyle: {
+				font: "Segoe UI"
+			},
+			pageSize: "A4",
+			pageOrientation: "portrait"
+		};
+
+		//@ts-ignore
+		const pdf = pdfMake.createPdf(docDefinition);
+		pdf.open();
+		this.showSuccess("Report generated successfully");
+	}
+
+	/**
+	 * Generate pie chart for doctor distribution
+	 */
+	private async generateDoctorPieChart(doctors: any[]): Promise<string> {
+		return new Promise((resolve) => {
+			// Create a temporary canvas
+			const canvas = document.createElement("canvas");
+			canvas.width = 600;
+			canvas.height = 400;
+
+			const labels = doctors.map((d) => d.doctor_name);
+			const data = doctors.map((d) => d.total_patients);
+
+			// Generate colors
+			const colors = this.generateChartColors(doctors.length);
+
+			//@ts-ignore
+			const chart = new Chart(canvas, {
+				type: "pie",
+				data: {
+					labels: labels,
+					datasets: [
+						{
+							data: data,
+							backgroundColor: colors,
+							borderColor: "#ffffff",
+							borderWidth: 2
+						}
+					]
+				},
+				options: {
+					responsive: false,
+					plugins: {
+						legend: {
+							display: true,
+							position: "bottom"
+						},
+						title: {
+							display: true,
+							text: "Patient Distribution by Doctor",
+							font: {
+								size: 16,
+								weight: "bold"
+							}
+						}
+					}
+				}
+			});
+
+			// Wait for chart to render, then convert to base64
+			setTimeout(() => {
+				const base64Image = canvas.toDataURL("image/png");
+				chart.destroy();
+				resolve(base64Image);
+			}, 1000);
+		});
+	}
+
+	/**
+	 * Generate detailed pages for each doctor
+	 */
+	private generateDoctorDetailedPages(
+		doctors: any[],
+		relationshipType: string
+	): any[] {
+		const content: any[] = [];
+
+		doctors.forEach((doctor, _index) => {
+			content.push({ text: "", pageBreak: "before" });
+
+			// Doctor header
+			content.push({
+				text: `Dr. ${doctor.doctor_name} (${this.capitalizeFirst(
+					doctor.doctor_type
+				)})`,
+				style: "sectionHeader"
+			});
+
+			content.push({
+				text: `Total Patients ${this.capitalizeFirst(
+					relationshipType
+				)}: ${doctor.total_patients}`,
+				bold: true,
+				margin: [0, 5, 0, 10]
+			});
+
+			if (doctor.patients && doctor.patients.length > 0) {
+				// Patient details table
+				const patientTableBody = [];
+
+				// Header
+				const headers = [
+					{ text: "Patient Name", bold: true, fillColor: "#f0f0f0" },
+					{ text: "National ID", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Gender", bold: true, fillColor: "#f0f0f0" },
+					{
+						text: "Age",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" }
+				];
+
+				// Check if any patient has insurance
+				const hasInsurance = doctor.patients.some(
+					(p: any) => p.payment_type === "insurance"
+				);
+				if (hasInsurance) {
+					headers.push(
+						{ text: "Insurance", bold: true, fillColor: "#f0f0f0" },
+						{ text: "Card ID", bold: true, fillColor: "#f0f0f0" },
+						{ text: "Form ID", bold: true, fillColor: "#f0f0f0" }
+					);
+				}
+
+				headers.push(
+					{
+						text: "# Admissions",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{
+						text: "Total Billed",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					},
+					{
+						text: "Total Paid",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					}
+				);
+
+				patientTableBody.push(headers);
+
+				// Data rows
+				doctor.patients.forEach((patient: any) => {
+					const row = [
+						patient.patient_name,
+						patient.national_id || "N/A",
+						this.capitalizeFirst(patient.gender || "N/A"),
+						{
+							text: patient.age ? patient.age.toString() : "N/A",
+							alignment: "center"
+						},
+						this.capitalizeFirst(patient.payment_type)
+					];
+
+					if (hasInsurance) {
+						if (patient.payment_type === "insurance") {
+							row.push(
+								patient.insurance_company || "N/A",
+								patient.insurance_card_id || "N/A",
+								patient.insurance_form_id || "N/A"
+							);
+						} else {
+							row.push("N/A", "N/A", "N/A");
+						}
+					}
+
+					row.push(
+						{
+							text: patient.admission_count.toString(),
+							alignment: "center"
+						},
+						{
+							text: this.formatCurrency(patient.total_billed),
+							alignment: "right"
+						},
+						{
+							text: this.formatCurrency(patient.total_paid),
+							alignment: "right",
+							color: "#28a745"
+						}
+					);
+
+					patientTableBody.push(row);
+				});
+
+				// Calculate totals
+				const totalBilled = doctor.patients.reduce(
+					(sum: number, p: any) => sum + p.total_billed,
+					0
+				);
+				const totalPaid = doctor.patients.reduce(
+					(sum: number, p: any) => sum + p.total_paid,
+					0
+				);
+				const totalAdmissions = doctor.patients.reduce(
+					(sum: number, p: any) => sum + p.admission_count,
+					0
+				);
+
+				const totalRow: Array<{}> = [
+					{
+						text: "TOTAL",
+						colSpan: 8,
+						bold: true,
+						fillColor: "#f0f0f0"
+					},
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" }
+				];
+
+				if (hasInsurance) {
+					totalRow.push(
+						{ text: "", fillColor: "#f0f0f0" },
+						{ text: "", fillColor: "#f0f0f0" },
+						{ text: "", fillColor: "#f0f0f0" }
+					);
+				}
+
+				totalRow.push(
+					{
+						text: totalAdmissions.toString(),
+						bold: true,
+						alignment: "center",
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: this.formatCurrency(totalBilled),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: this.formatCurrency(totalPaid),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f0f0f0",
+						color: "#28a745"
+					}
+				);
+
+				patientTableBody.push(totalRow);
+
+				// Determine column widths
+				const widths = hasInsurance
+					? [
+							"*",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto"
+					  ]
+					: [
+							"*",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto",
+							"auto"
+					  ];
+
+				content.push({
+					table: {
+						headerRows: 1,
+						widths: widths,
+						body: patientTableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number, node: any) {
+							if (
+								rowIndex === 0 ||
+								rowIndex === node.table.body.length - 1
+							) {
+								return "#f0f0f0";
+							}
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						},
+						hLineWidth: function (i: number, node: any) {
+							if (i === node.table.body.length - 1) return 2;
+							return 1;
+						}
+					},
+					margin: [0, 0, 0, 20],
+					fontSize: hasInsurance ? 7 : 9
+				});
+			} else {
+				content.push({
+					text: "No patients found",
+					color: "#6c757d",
+					margin: [0, 10, 0, 10]
+				});
+			}
+		});
+
+		return content;
+	}
+
+	private async generateSingleDoctorReportPDF(
+		doctor: any,
+		reportType: string
+	): Promise<void> {
+		const filters = this.getReportFilters();
+
+		// Determine report title and relationship type
+		let reportTitle = "";
+		let relationshipType = "";
+
+		if (reportType === "specific-referred") {
+			reportTitle = "Referring Doctor Report";
+			relationshipType = "Referred";
+		} else if (reportType === "specific-attending") {
+			reportTitle = "Attending Doctor Report";
+			relationshipType = "Attended";
+		} else {
+			reportTitle = "Supervising Doctor Report";
+			relationshipType = "Supervised";
+		}
+
+		const docDefinition = {
+			content: [
+				// Title
+				{
+					text: reportTitle,
+					style: "header",
+					alignment: "center"
+				},
+				{
+					text: `Dr. ${doctor.doctor_name} (${this.capitalizeFirst(
+						doctor.doctor_type
+					)})`,
+					style: "subheader",
+					alignment: "center"
+				},
+				{
+					text: `Report Period: ${this.formatDate(
+						filters.start_date
+					)} - ${this.formatDate(filters.end_date)}`,
+					alignment: "center",
+					margin: [0, 5, 0, 15]
+				},
+				{
+					text: `Total Patients ${relationshipType}: ${doctor.total_patients}`,
+					bold: true,
+					fontSize: 14,
+					margin: [0, 0, 0, 20]
+				},
+
+				// Patient details with admission information
+				[
+					...(await this.generateSingleDoctorPatientPages(
+						doctor.patients
+					))
+				]
+			],
+			styles: {
+				header: {
+					fontSize: 18,
+					bold: true,
+					margin: [0, 0, 0, 10]
+				},
+				subheader: {
+					fontSize: 14,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 5, 0, 5]
+				},
+				patientHeader: {
+					fontSize: 12,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 10, 0, 5]
+				},
+				sectionHeader: {
+					fontSize: 11,
+					bold: true,
+					margin: [0, 10, 0, 5]
+				}
+			},
+			pageMargins: [40, 60, 40, 60],
+			footer: function (currentPage: number, pageCount: number) {
+				return {
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					alignment: "center",
+					fontSize: 8,
+					margin: [0, 10, 0, 0]
+				};
+			},
+			defaultStyle: {
+				font: "Segoe UI"
+			},
+			pageSize: "A4"
+		};
+
+		//@ts-ignore
+		const pdf = pdfMake.createPdf(docDefinition);
+		pdf.open();
+		this.showSuccess("Report generated successfully");
+	}
+
+	private async generateSingleDoctorPatientPages(
+		patients: any[]
+	): Promise<any[]> {
+		const content: any[] = [];
+
+		// Summary table first
+		const summaryTableBody = [];
+
+		summaryTableBody.push([
+			{ text: "Patient Name", bold: true, fillColor: "#f0f0f0" },
+			{ text: "National ID", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Gender", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: "Age",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			},
+			{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: "# Admissions",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			},
+			{
+				text: "Total Billed",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "right"
+			},
+			{
+				text: "Total Paid",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "right"
+			}
+		]);
+
+		patients.forEach((patient: any) => {
+			summaryTableBody.push([
+				patient.patient_name,
+				patient.national_id || "N/A",
+				this.capitalizeFirst(patient.gender || "N/A"),
+				{
+					text: patient.age ? patient.age.toString() : "N/A",
+					alignment: "center"
+				},
+				this.capitalizeFirst(patient.payment_type),
+				{
+					text: patient.admission_count.toString(),
+					alignment: "center"
+				},
+				{
+					text: this.formatCurrency(patient.total_billed),
+					alignment: "right"
+				},
+				{
+					text: this.formatCurrency(patient.total_paid),
+					alignment: "right",
+					color: "#28a745"
+				}
+			]);
+		});
+
+		// Add totals
+		const totalAdmissions = patients.reduce(
+			(sum, p) => sum + p.admission_count,
+			0
+		);
+		const totalBilled = patients.reduce(
+			(sum, p) => sum + p.total_billed,
+			0
+		);
+		const totalPaid = patients.reduce((sum, p) => sum + p.total_paid, 0);
+
+		summaryTableBody.push([
+			{ text: "TOTAL", colSpan: 6, bold: true, fillColor: "#f0f0f0" },
+			{ text: "", fillColor: "#f0f0f0" },
+			{ text: "", fillColor: "#f0f0f0" },
+			{ text: "", fillColor: "#f0f0f0" },
+			{ text: "", fillColor: "#f0f0f0" },
+			{
+				text: totalAdmissions.toString(),
+				bold: true,
+				alignment: "center",
+				fillColor: "#f0f0f0"
+			},
+			{
+				text: this.formatCurrency(totalBilled),
+				bold: true,
+				alignment: "right",
+				fillColor: "#f0f0f0"
+			},
+			{
+				text: this.formatCurrency(totalPaid),
+				bold: true,
+				alignment: "right",
+				fillColor: "#f0f0f0",
+				color: "#28a745"
+			}
+		]);
+
+		content.push({
+			text: "Patient Summary",
+			style: "sectionHeader"
+		});
+
+		content.push({
+			table: {
+				headerRows: 1,
+				widths: [
+					"*",
+					"auto",
+					"auto",
+					"auto",
+					"auto",
+					"auto",
+					"auto",
+					"auto"
+				],
+				body: summaryTableBody
+			},
+			layout: {
+				fillColor: function (rowIndex: number, node: any) {
+					if (
+						rowIndex === 0 ||
+						rowIndex === node.table.body.length - 1
+					) {
+						return "#f0f0f0";
+					}
+					return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+				},
+				hLineWidth: function (i: number, node: any) {
+					if (i === node.table.body.length - 1) return 2;
+					return 1;
+				}
+			},
+			margin: [0, 0, 0, 20]
+		});
+
+		// Now fetch and display detailed admission data for each patient
+		for (let i = 0; i < patients.length; i++) {
+			const patient = patients[i];
+
+			try {
+				// Fetch detailed admission data from the API
+				const admissionData = await this.fetchPatientAdmissions(
+					patient.patient_id,
+					this.getReportFilters()
+				);
+
+				// Page break before each patient
+				if (i > 0) {
+					content.push({ text: "", pageBreak: "before" });
+				}
+
+				content.push({
+					text: `Patient: ${patient.patient_name}`,
+					style: "patientHeader"
+				});
+
+				// Patient info table
+				const patientInfoHeaders: any[] = [
+					{ text: "National ID", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Gender", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Age", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" }
+				];
+
+				const patientInfoRow: any[] = [
+					patient.national_id || "N/A",
+					this.capitalizeFirst(patient.gender || "N/A"),
+					patient.age ? `${patient.age} years` : "N/A",
+					this.capitalizeFirst(patient.payment_type)
+				];
+
+				if (patient.payment_type === "insurance") {
+					if (patient.insurance_company) {
+						patientInfoHeaders.push({
+							text: "Insurance",
+							bold: true,
+							fillColor: "#f0f0f0"
+						});
+						patientInfoRow.push(patient.insurance_company);
+					}
+					if (patient.insurance_card_id) {
+						patientInfoHeaders.push({
+							text: "Card ID",
+							bold: true,
+							fillColor: "#f0f0f0"
+						});
+						patientInfoRow.push(patient.insurance_card_id);
+					}
+					if (patient.insurance_form_id) {
+						patientInfoHeaders.push({
+							text: "Form ID",
+							bold: true,
+							fillColor: "#f0f0f0"
+						});
+						patientInfoRow.push(patient.insurance_form_id);
+					}
+				}
+
+				content.push({
+					table: {
+						headerRows: 1,
+						widths: patientInfoHeaders.map(() => "*"),
+						body: [patientInfoHeaders, patientInfoRow]
+					},
+					layout: "lightHorizontalLines",
+					margin: [0, 5, 0, 15]
+				});
+
+				// Display admissions if available
+				if (admissionData && admissionData.length > 0) {
+					content.push({
+						text: `Admissions (${admissionData.length})`,
+						style: "sectionHeader"
+					});
+
+					admissionData.forEach(
+						(admission: any, admIndex: number) => {
+							if (admIndex > 0) {
+								content.push({
+									text: "",
+									margin: [0, 10, 0, 0]
+								});
+							}
+
+							content.push({
+								text: `Admission ${admIndex + 1}`,
+								bold: true,
+								margin: [0, 5, 0, 5]
+							});
+
+							content.push({
+								columns: [
+									{
+										text: `Admission: ${this.formatDateTime(
+											admission.admission_time
+										)}`,
+										width: "*"
+									},
+									{
+										text: `Discharge: ${
+											admission.discharge_time
+												? this.formatDateTime(
+														admission.discharge_time
+												  )
+												: "Active"
+										}`,
+										width: "*"
+									}
+								],
+								margin: [0, 0, 0, 5]
+							});
+
+							if (admission.diagnosis) {
+								content.push({
+									text: `Diagnosis: ${admission.diagnosis}`,
+									margin: [0, 0, 0, 10]
+								});
+							}
+
+							// Services and Drugs table
+							content.push(
+								...this.generateAdmissionItemsTable(admission)
+							);
+
+							// Daily Staff table
+							if (
+								admission.daily_staff &&
+								admission.daily_staff.length > 0
+							) {
+								content.push(
+									...this.generateDailyStaffTable(
+										admission.daily_staff
+									)
+								);
+							}
+						}
+					);
+				} else {
+					content.push({
+						text: "No admission details available",
+						color: "#6c757d",
+						margin: [0, 10, 0, 10]
+					});
+				}
+			} catch (error) {
+				console.error(
+					`Error fetching admission data for patient ${patient.patient_id}:`,
+					error
+				);
+				content.push({
+					text: "Error loading admission details",
+					color: "#dc3545",
+					margin: [0, 10, 0, 10]
+				});
+			}
+		}
+
+		return content;
+	}
+
+	/**
+	 * Fetch patient admissions for detailed report
+	 */
+	private async fetchPatientAdmissions(
+		patientId: number,
+		filters: ReportFilters
+	): Promise<any[]> {
+		try {
+			const response = await fetch(
+				`/api/reports/patients/formatted?start_date=${filters.start_date}&end_date=${filters.end_date}&patient_id=${patientId}`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch patient admissions");
+			}
+
+			const data = await response.json();
+
+			if (data && data.length > 0 && data[0].admissions) {
+				return data[0].admissions;
+			}
+
+			return [];
+		} catch (error) {
+			console.error("Error fetching patient admissions:", error);
+			return [];
+		}
+	}
+
+	/**
+	 * Generate color palette for charts
+	 */
+	private generateChartColors(count: number): string[] {
+		const baseColors = [
+			"rgba(13, 110, 253, 0.7)", // Primary blue
+			"rgba(40, 167, 69, 0.7)", // Success green
+			"rgba(220, 53, 69, 0.7)", // Danger red
+			"rgba(255, 193, 7, 0.7)", // Warning yellow
+			"rgba(13, 202, 240, 0.7)", // Info cyan
+			"rgba(111, 66, 193, 0.7)", // Purple
+			"rgba(253, 126, 20, 0.7)", // Orange
+			"rgba(214, 51, 132, 0.7)", // Pink
+			"rgba(32, 201, 151, 0.7)", // Teal
+			"rgba(102, 16, 242, 0.7)" // Indigo
+		];
+
+		// If we need more colors than in the base palette, generate them
+		if (count <= baseColors.length) {
+			return baseColors.slice(0, count);
+		}
+
+		const colors = [...baseColors];
+		const hueStep = 360 / (count - baseColors.length);
+
+		for (let i = baseColors.length; i < count; i++) {
+			const hue = (i - baseColors.length) * hueStep;
+			colors.push(`hsla(${hue}, 70%, 60%, 0.7)`);
+		}
+
+		return colors;
+	}
+
+	/**
+	 * Render pie chart in the reports page for doctor reports
+	 */
+	private renderDoctorReportPieChart(doctors: any[]): void {
+		const canvas = document.createElement("canvas");
+		canvas.id = "doctorReportPieChart";
+		canvas.style.maxHeight = "400px";
+
+		// Find or create container
+		const container = document.getElementById("doctorReportContent");
+		if (!container) return;
+
+		// Check if we should add a chart
+		const existingChart = container.querySelector("#doctorReportPieChart");
+		if (!existingChart) {
+			const chartContainer = document.createElement("div");
+			chartContainer.className = "card mb-3";
+			chartContainer.innerHTML = `
+            <div class="card-header">
+                <h5 class="mb-0">Patient Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="doctorReportPieChart" height="300"></canvas>
+            </div>
+        `;
+			container.insertBefore(chartContainer, container.firstChild);
+		}
+
+		const chartCanvas = document.getElementById(
+			"doctorReportPieChart"
+		) as HTMLCanvasElement;
+		if (!chartCanvas) return;
+
+		const labels = doctors.map((d) => d.doctor_name);
+		const data = doctors.map((d) => d.total_patients);
+		const colors = this.generateChartColors(doctors.length);
+
+		//@ts-ignore
+		new Chart(chartCanvas, {
+			type: "pie",
+			data: {
+				labels: labels,
+				datasets: [
+					{
+						data: data,
+						backgroundColor: colors,
+						borderColor: "#ffffff",
+						borderWidth: 2
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "bottom"
+					},
+					title: {
+						display: false
+					}
+				}
+			}
+		});
 	}
 
 	// ==================== NURSE REPORTS ====================
