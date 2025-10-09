@@ -9,6 +9,7 @@ import {
 	DailyStaffAssignment,
 	DoctorPatientReport,
 	NursePatientReport,
+	NurseDailyAssignment,
 	PatientStatistics,
 	DoctorStatistics,
 	EmployeePaymentReport,
@@ -951,17 +952,75 @@ export default class ReportModel {
 	// ==================== NURSE REPORTS ====================
 
 	/**
-	 * Get patients attended by specific nurse
+	 * Get daily staff assignments for a nurse
+	 */
+	private static async getNurseDailyAssignments(
+		nurseId: number,
+		dateRange: ReportDateRange
+	): Promise<NurseDailyAssignment[]> {
+		const sql = `
+        SELECT 
+            dsa.work_date,
+            p.patient_id,
+            p.name as patient_name,
+            dsa.hours_worked,
+            p.payment_type,
+            ph.diagnosis
+        FROM DailyStaffAssignment dsa
+        JOIN Patient p ON dsa.patient_id = p.patient_id
+        LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            AND dsa.work_date BETWEEN ph.admission_time::date AND COALESCE(ph.discharge_time::date, CURRENT_DATE)
+        WHERE dsa.employee_id = $1
+        AND dsa.work_date BETWEEN $2 AND $3
+        AND dsa.hours_worked > 0
+        ORDER BY dsa.work_date DESC, p.name
+    `;
+
+		const result = await query(sql, [
+			nurseId,
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		// Group by date
+		const groupedByDate = new Map<string, any[]>();
+
+		result.rows.forEach((row) => {
+			const dateKey = row.work_date;
+			if (!groupedByDate.has(dateKey)) {
+				groupedByDate.set(dateKey, []);
+			}
+
+			groupedByDate.get(dateKey)!.push({
+				patient_id: row.patient_id,
+				patient_name: row.patient_name,
+				hours_worked: parseFloat(row.hours_worked),
+				payment_type: row.payment_type,
+				diagnosis: row.diagnosis
+			});
+		});
+
+		// Convert to array format
+		return Array.from(groupedByDate.entries()).map(([date, patients]) => ({
+			work_date: date,
+			patients: patients,
+			total_hours: patients.reduce((sum, p) => sum + p.hours_worked, 0),
+			patient_count: patients.length
+		}));
+	}
+
+	/**
+	 * Update getPatientsAttendedByNurse to include daily assignments
 	 */
 	static async getPatientsAttendedByNurse(
 		nurseId: number,
 		dateRange: ReportDateRange
 	): Promise<NursePatientReport> {
 		const nurseSql = `
-            SELECT employee_id as nurse_id, name as nurse_name
-            FROM Employee
-            WHERE employee_id = $1 AND employee_type = 'nurse'
-        `;
+	        SELECT employee_id as nurse_id, name as nurse_name
+	        FROM Employee
+	        WHERE employee_id = $1 AND employee_type = 'nurse'
+	    `;
 		const nurseResult = await query(nurseSql, [nurseId]);
 
 		if (nurseResult.rows.length === 0) {
@@ -971,22 +1030,22 @@ export default class ReportModel {
 		const nurse = nurseResult.rows[0];
 
 		const patientsSql = `
-            SELECT DISTINCT
-                p.patient_id,
-                p.name as patient_name,
-                p.payment_type,
-                MAX(ph.admission_time) as last_admission_time,
-                MAX(ph.discharge_time) as last_discharge_time,
-                MAX(ph.diagnosis) as diagnosis,
-                COUNT(DISTINCT dsa.work_date) as total_days_assigned
-            FROM Patient p
-            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            JOIN DailyStaffAssignment dsa ON p.patient_id = dsa.patient_id
-            WHERE dsa.employee_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
-            GROUP BY p.patient_id, p.name, p.payment_type
-            ORDER BY last_admission_time DESC
-        `;
+	        SELECT DISTINCT
+	            p.patient_id,
+	            p.name as patient_name,
+	            p.payment_type,
+	            MAX(ph.admission_time) as last_admission_time,
+	            MAX(ph.discharge_time) as last_discharge_time,
+	            MAX(ph.diagnosis) as diagnosis,
+	            COUNT(DISTINCT dsa.work_date) as total_days_assigned
+	        FROM Patient p
+	        JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	        JOIN DailyStaffAssignment dsa ON p.patient_id = dsa.patient_id
+	        WHERE dsa.employee_id = $1
+	        AND ph.admission_time BETWEEN $2 AND $3
+	        GROUP BY p.patient_id, p.name, p.payment_type
+	        ORDER BY last_admission_time DESC
+	    `;
 
 		const patientsResult = await query(patientsSql, [
 			nurseId,
@@ -1004,32 +1063,39 @@ export default class ReportModel {
 			total_days_assigned: parseInt(row.total_days_assigned)
 		}));
 
+		// Get daily assignments
+		const dailyAssignments = await this.getNurseDailyAssignments(
+			nurseId,
+			dateRange
+		);
+
 		return {
 			nurse_id: nurse.nurse_id,
 			nurse_name: nurse.nurse_name,
 			total_patients: patients.length,
-			patients: patients
+			patients: patients,
+			daily_assignments: dailyAssignments
 		};
 	}
 
 	/**
-	 * Get all patients attended by all nurses
+	 * Update getAllPatientsAttendedByNurses to include daily assignments
 	 */
 	static async getAllPatientsAttendedByNurses(
 		dateRange: ReportDateRange
 	): Promise<NursePatientReport[]> {
 		const nursesSql = `
-            SELECT DISTINCT e.employee_id as nurse_id, e.name as nurse_name
-            FROM Employee e
-            WHERE e.employee_type = 'nurse'
-            AND EXISTS (
-                SELECT 1 FROM DailyStaffAssignment dsa
-                JOIN PatientHistory ph ON dsa.patient_id = ph.patient_id
-                WHERE dsa.employee_id = e.employee_id
-                AND ph.admission_time BETWEEN $1 AND $2
-            )
-            ORDER BY e.name
-        `;
+	        SELECT DISTINCT e.employee_id as nurse_id, e.name as nurse_name
+	        FROM Employee e
+	        WHERE e.employee_type = 'nurse'
+	        AND EXISTS (
+	            SELECT 1 FROM DailyStaffAssignment dsa
+	            JOIN PatientHistory ph ON dsa.patient_id = ph.patient_id
+	            WHERE dsa.employee_id = e.employee_id
+	            AND ph.admission_time BETWEEN $1 AND $2
+	        )
+	        ORDER BY e.name
+	    `;
 
 		const nursesResult = await query(nursesSql, [
 			dateRange.start_date,

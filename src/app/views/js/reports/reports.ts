@@ -3474,12 +3474,12 @@ class ReportsManager {
 
 		if (nurses.length === 0) {
 			container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
-                    <h5 class="mt-3 text-muted">No Data Found</h5>
-                    <p class="text-muted">No nurses match the selected criteria</p>
-                </div>
-            `;
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+                <h5 class="mt-3 text-muted">No Data Found</h5>
+                <p class="text-muted">No nurses match the selected criteria</p>
+            </div>
+        `;
 			return;
 		}
 
@@ -3489,106 +3489,238 @@ class ReportsManager {
 		);
 
 		container.innerHTML = `
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <div class="summary-card border-start-primary">
-                        <h6>Total Nurses</h6>
-                        <div class="value">${nurses.length}</div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="summary-card border-start-info">
-                        <h6>Total Patients</h6>
-                        <div class="value">${totalPatients}</div>
-                    </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="summary-card border-start-primary">
+                    <h6>Total Nurses</h6>
+                    <div class="value">${nurses.length}</div>
                 </div>
             </div>
-            ${nurses.map((nurse: any) => this.renderNurseCard(nurse)).join("")}
-        `;
+            <div class="col-md-6">
+                <div class="summary-card border-start-info">
+                    <h6>Total Patients</h6>
+                    <div class="value">${totalPatients}</div>
+                </div>
+            </div>
+        </div>
+        ${nurses.map((nurse: any) => this.renderNurseCard(nurse)).join("")}
+    `;
+
+		// Add pie chart for multiple nurses
+		if (isMultipleNurses && nurses.length > 1) {
+			setTimeout(() => this.renderNurseReportPieChart(nurses), 100);
+		}
 	}
 
 	private renderNurseCard(nurse: any): string {
+		const totalDays =
+			nurse.patients?.reduce(
+				(sum: number, p: any) => sum + p.total_days_assigned,
+				0
+			) || 0;
+		const dailyAssignments = nurse.daily_assignments || [];
+
 		return `
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0">${this.escapeHtml(
+    	    <div class="card mb-3">
+    	        <div class="card-header">
+    	            <div class="d-flex justify-content-between align-items-center">
+    	                <div>
+    	                    <h5 class="mb-0">${this.escapeHtml(
 								nurse.nurse_name
 							)}</h5>
-                            <small class="text-muted">NURSE</small>
-                        </div>
-                        <div class="text-end">
-                            <h4 class="mb-0">${
-								nurse.total_patients
-							} Patients</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    ${
+    	                    <small class="text-muted">NURSE</small>
+    	                </div>
+    	                <div class="text-end">
+    	                    <h4 class="mb-0">${nurse.total_patients} Patients</h4>
+    	                    <small class="text-muted">${totalDays} total days | ${
+			dailyAssignments.length
+		} work days</small>
+    	                </div>
+    	            </div>
+    	        </div>
+    	        <div class="card-body">
+    	            ${
 						nurse.patients && nurse.patients.length > 0
 							? `
-                        <div class="table-responsive">
-                            <table class="table table-hover report-table">
-                                <thead>
-                                    <tr>
-                                        <th>Patient Name</th>
-                                        <th>Last Admission</th>
-                                        <th>Last Discharge</th>
-                                        <th>Payment Type</th>
-                                        <th>Diagnosis</th>
-                                        <th>Days Assigned</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${nurse.patients
+    	                <div class="mb-4">
+    	                    <h6 class="mb-3"><i class="bi bi-people me-2"></i>Patient Summary</h6>
+    	                    <div class="table-responsive">
+    	                        <table class="table table-hover report-table">
+    	                            <thead>
+    	                                <tr>
+    	                                    <th>Patient Name</th>
+    	                                    <th>Last Admission</th>
+    	                                    <th>Last Discharge</th>
+    	                                    <th>Payment Type</th>
+    	                                    <th>Diagnosis</th>
+    	                                    <th class="text-center">Days Assigned</th>
+    	                                </tr>
+    	                            </thead>
+    	                            <tbody>
+    	                                ${nurse.patients
+											.map(
+												(patient: any) => `
+    	                                    <tr>
+    	                                        <td>${this.escapeHtml(
+													patient.patient_name
+												)}</td>
+    	                                        <td>${
+													patient.last_admission_time
+														? this.formatDateTime(
+																patient.last_admission_time
+														  )
+														: "N/A"
+												}</td>
+    	                                        <td>${
+													patient.last_discharge_time
+														? this.formatDateTime(
+																patient.last_discharge_time
+														  )
+														: '<span class="badge bg-success">Active</span>'
+												}</td>
+    	                                        <td><span class="payment-type-badge badge-${
+													patient.payment_type
+												}">${patient.payment_type.toUpperCase()}</span></td>
+    	                                        <td>${
+													patient.diagnosis
+														? this.escapeHtml(
+																patient.diagnosis
+														  )
+														: "N/A"
+												}</td>
+    	                                        <td class="text-center">${
+													patient.total_days_assigned
+												}</td>
+    	                                    </tr>
+    	                                `
+											)
+											.join("")}
+    	                            </tbody>
+    	                            <tfoot>
+    	                                <tr class="totals-row">
+    	                                    <td colspan="5" class="text-end"><strong>TOTAL DAYS:</strong></td>
+    	                                    <td class="text-center"><strong>${totalDays}</strong></td>
+    	                                </tr>
+    	                            </tfoot>
+    	                        </table>
+    	                    </div>
+    	                </div>
+    	            `
+							: '<p class="text-muted">No patients found for this nurse</p>'
+					}
+										
+    	            ${
+						dailyAssignments.length > 0
+							? `
+    	                <div class="mt-4">
+    	                    <h6 class="mb-3"><i class="bi bi-calendar-week me-2"></i>Daily Work Assignments (${
+								dailyAssignments.length
+							} days)</h6>
+    	                    <div class="accordion" id="dailyAssignmentsAccordion${
+								nurse.nurse_id
+							}">
+    	                        ${dailyAssignments
+									.map((day: any, index: number) =>
+										this.renderDailyAssignmentCard(
+											day,
+											index,
+											nurse.nurse_id
+										)
+									)
+									.join("")}
+    	                    </div>
+    	                </div>
+    	            `
+							: ""
+					}
+	   	        </div>
+	   	    </div>
+		`;
+	}
+
+	private renderDailyAssignmentCard(
+		day: any,
+		index: number,
+		nurseId: number
+	): string {
+		return `
+	        <div class="accordion-item">
+	            <h2 class="accordion-header" id="heading${nurseId}_${index}">
+	                <button class="accordion-button ${
+						index === 0 ? "" : "collapsed"
+					}" type="button" 
+	                        data-bs-toggle="collapse" data-bs-target="#collapse${nurseId}_${index}" 
+	                        aria-expanded="${
+								index === 0 ? "true" : "false"
+							}" aria-controls="collapse${nurseId}_${index}">
+	                    <div class="d-flex justify-content-between w-100 me-3">
+	                        <span><strong>${this.formatDate(
+								day.work_date
+							)}</strong></span>
+	                        <span class="text-muted">
+	                            ${day.patient_count} patient${
+			day.patient_count !== 1 ? "s" : ""
+		} | 
+	                            ${day.total_hours.toFixed(1)} hours
+	                        </span>
+	                    </div>
+	                </button>
+	            </h2>
+	            <div id="collapse${nurseId}_${index}" class="accordion-collapse collapse ${
+			index === 0 ? "show" : ""
+		}" 
+	                 aria-labelledby="heading${nurseId}_${index}" data-bs-parent="#dailyAssignmentsAccordion${nurseId}">
+	                <div class="accordion-body">
+	                    <div class="table-responsive">
+	                        <table class="table table-sm table-hover mb-0">
+	                            <thead>
+	                                <tr>
+	                                    <th>Patient Name</th>
+	                                    <th>Payment Type</th>
+	                                    <th>Diagnosis</th>
+	                                    <th class="text-center">Hours Worked</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>
+	                                ${day.patients
 										.map(
 											(patient: any) => `
-                                        <tr>
-                                            <td>${this.escapeHtml(
+	                                    <tr>
+	                                        <td>${this.escapeHtml(
 												patient.patient_name
 											)}</td>
-                                            <td>${
-												patient.last_admission_time
-													? this.formatDateTime(
-															patient.last_admission_time
-													  )
-													: "N/A"
-											}</td>
-                                            <td>${
-												patient.last_discharge_time
-													? this.formatDateTime(
-															patient.last_discharge_time
-													  )
-													: '<span class="badge bg-success">Active</span>'
-											}</td>
-                                            <td><span class="payment-type-badge badge-${
+	                                        <td><span class="payment-type-badge badge-${
 												patient.payment_type
 											}">${patient.payment_type.toUpperCase()}</span></td>
-                                            <td>${
+	                                        <td>${
 												patient.diagnosis
 													? this.escapeHtml(
 															patient.diagnosis
 													  )
 													: "N/A"
 											}</td>
-                                            <td>${
-												patient.total_days_assigned
-											}</td>
-                                        </tr>
-                                    `
+	                                        <td class="text-center">${patient.hours_worked.toFixed(
+												1
+											)}h</td>
+	                                    </tr>
+	                                `
 										)
 										.join("")}
-                                </tbody>
-                            </table>
-                        </div>
-                    `
-							: '<p class="text-muted">No patients found for this nurse</p>'
-					}
-                </div>
-            </div>
-        `;
+	                            </tbody>
+	                            <tfoot>
+	                                <tr class="table-light">
+	                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+	                                    <td class="text-center"><strong>${day.total_hours.toFixed(
+											1
+										)}h</strong></td>
+	                                </tr>
+	                            </tfoot>
+	                        </table>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    `;
 	}
 
 	private async printNurseReport(): Promise<void> {
@@ -3596,49 +3728,789 @@ class ReportsManager {
 			this.showError("No report data to print");
 			return;
 		}
+		const isMultipleNurses = Array.isArray(this.currentReportData);
 
 		try {
-			const filters = this.getReportFilters();
-			const reportTitle = `Nurse Report (${this.formatDate(
-				filters.start_date
-			)} - ${this.formatDate(filters.end_date)})`;
-
-			const nurses = Array.isArray(this.currentReportData)
-				? this.currentReportData
-				: [this.currentReportData];
-
-			const pdf = createCustomReport(
-				reportTitle,
-				[
-					{
-						type: "header",
-						title: `Total Nurses: ${nurses.length}`
-					},
-					{
-						type: "table",
-						fields: [
-							{
-								key: "nurse_name",
-								label: "Nurse Name",
-								type: "text"
-							},
-							{
-								key: "total_patients",
-								label: "Total Patients",
-								type: "number"
-							}
-						]
-					}
-				],
-				{ data: nurses }
-			);
-
-			pdf.open();
-			this.showSuccess("Report generated successfully");
+			if (isMultipleNurses) {
+				// Multiple nurses with pie chart
+				await this.generateMultipleNursesReportPDF(
+					this.currentReportData
+				);
+			} else {
+				// Single nurse with patient details
+				await this.generateSingleNurseReportPDF(this.currentReportData);
+			}
 		} catch (error) {
 			console.error("Error printing nurse report:", error);
 			this.showError("Failed to generate report");
 		}
+	}
+
+	/**
+	 * Generate PDF for multiple nurses with pie chart
+	 */
+	private async generateMultipleNursesReportPDF(
+		nurses: any[]
+	): Promise<void> {
+		const filters = this.getReportFilters();
+
+		// Calculate totals
+		const totalPatients = nurses.reduce(
+			(sum, n) => sum + n.total_patients,
+			0
+		);
+
+		// Generate pie chart as base64 image
+		const pieChartImage = await this.generateNursePieChart(nurses);
+
+		// Create summary table
+		const summaryTableBody = [];
+		summaryTableBody.push([
+			{ text: "Nurse Name", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: "Patients Attended",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			},
+			{
+				text: "Percentage",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			}
+		]);
+
+		nurses.forEach((nurse) => {
+			const percentage = (
+				(nurse.total_patients / totalPatients) *
+				100
+			).toFixed(1);
+			summaryTableBody.push([
+				nurse.nurse_name,
+				{ text: nurse.total_patients.toString(), alignment: "center" },
+				{ text: `${percentage}%`, alignment: "center" }
+			]);
+		});
+
+		// Add total row
+		summaryTableBody.push([
+			{ text: "TOTAL", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: totalPatients.toString(),
+				bold: true,
+				alignment: "center",
+				fillColor: "#f0f0f0"
+			},
+			{
+				text: "100%",
+				bold: true,
+				alignment: "center",
+				fillColor: "#f0f0f0"
+			}
+		]);
+
+		const docDefinition = {
+			content: [
+				// Title
+				{
+					text: "Nursing Staff Report",
+					style: "header",
+					alignment: "center"
+				},
+				{
+					text: `Report Period: ${this.formatDate(
+						filters.start_date
+					)} - ${this.formatDate(filters.end_date)}`,
+					style: "subheader",
+					alignment: "center",
+					margin: [0, 0, 0, 20]
+				},
+
+				// Pie Chart
+				{
+					image: pieChartImage,
+					width: 400,
+					alignment: "center",
+					margin: [0, 0, 0, 20]
+				},
+
+				// Summary Table
+				{
+					text: "Nurse Summary",
+					style: "sectionHeader",
+					margin: [0, 10, 0, 10]
+				},
+				{
+					table: {
+						headerRows: 1,
+						widths: ["*", "auto", "auto"],
+						body: summaryTableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number, node: any) {
+							if (
+								rowIndex === 0 ||
+								rowIndex === node.table.body.length - 1
+							) {
+								return "#f0f0f0";
+							}
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						}
+					},
+					margin: [0, 0, 0, 20]
+				},
+
+				// Detailed patient data for each nurse
+				...this.generateNurseDetailedPages(nurses)
+			],
+			styles: {
+				header: {
+					fontSize: 18,
+					bold: true,
+					margin: [0, 0, 0, 10]
+				},
+				subheader: {
+					fontSize: 14,
+					bold: true,
+					margin: [0, 5, 0, 5]
+				},
+				sectionHeader: {
+					fontSize: 14,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 15, 0, 10]
+				}
+			},
+			pageMargins: [40, 60, 40, 60],
+			footer: function (currentPage: number, pageCount: number) {
+				return {
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					alignment: "center",
+					fontSize: 8,
+					margin: [0, 10, 0, 0]
+				};
+			},
+			defaultStyle: {
+				font: "Segoe UI"
+			},
+			pageSize: "A4"
+		};
+
+		//@ts-ignore
+		const pdf = pdfMake.createPdf(docDefinition);
+		pdf.open();
+		this.showSuccess("Report generated successfully");
+	}
+
+	/**
+	 * Generate pie chart for nurse distribution
+	 */
+	private async generateNursePieChart(nurses: any[]): Promise<string> {
+		return new Promise((resolve) => {
+			const canvas = document.createElement("canvas");
+			canvas.width = 600;
+			canvas.height = 400;
+
+			const labels = nurses.map((n) => n.nurse_name);
+			const data = nurses.map((n) => n.total_patients);
+
+			const colors = this.generateChartColors(nurses.length);
+
+			//@ts-ignore
+			const chart = new Chart(canvas, {
+				type: "pie",
+				data: {
+					labels: labels,
+					datasets: [
+						{
+							data: data,
+							backgroundColor: colors,
+							borderColor: "#ffffff",
+							borderWidth: 2
+						}
+					]
+				},
+				options: {
+					responsive: false,
+					plugins: {
+						legend: {
+							display: true,
+							position: "bottom"
+						},
+						title: {
+							display: true,
+							text: "Patient Distribution by Nurse",
+							font: {
+								size: 16,
+								weight: "bold"
+							}
+						}
+					}
+				}
+			});
+
+			setTimeout(() => {
+				const base64Image = canvas.toDataURL("image/png");
+				chart.destroy();
+				resolve(base64Image);
+			}, 1000);
+		});
+	}
+
+	/**
+	 * Generate detailed pages for each nurse
+	 */
+	private generateNurseDetailedPages(nurses: any[]): any[] {
+		const content: any[] = [];
+
+		nurses.forEach((nurse, index) => {
+			// Page break before each nurse except the first
+			if (index > 0) {
+				content.push({ text: "", pageBreak: "before" });
+			}
+
+			// Nurse header
+			content.push({
+				text: `Nurse ${nurse.nurse_name}`,
+				style: "sectionHeader"
+			});
+
+			content.push({
+				text: `Total Patients Attended: ${nurse.total_patients}`,
+				bold: true,
+				margin: [0, 5, 0, 10]
+			});
+
+			if (nurse.patients && nurse.patients.length > 0) {
+				// Patient details table
+				const patientTableBody = [];
+
+				// Header
+				patientTableBody.push([
+					{ text: "Patient Name", bold: true, fillColor: "#f0f0f0" },
+					{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" },
+					{
+						text: "Last Admission",
+						bold: true,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Last Discharge",
+						bold: true,
+						fillColor: "#f0f0f0"
+					},
+					{ text: "Diagnosis", bold: true, fillColor: "#f0f0f0" },
+					{
+						text: "Days Assigned",
+						bold: true,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					}
+				]);
+
+				// Data rows
+				nurse.patients.forEach((patient: any) => {
+					patientTableBody.push([
+						patient.patient_name,
+						this.capitalizeFirst(patient.payment_type),
+						patient.last_admission_time
+							? this.formatDateTime(patient.last_admission_time)
+							: "N/A",
+						patient.last_discharge_time
+							? this.formatDateTime(patient.last_discharge_time)
+							: "Active",
+						patient.diagnosis || "N/A",
+						{
+							text: patient.total_days_assigned.toString(),
+							alignment: "center"
+						}
+					]);
+				});
+
+				// Calculate totals
+				const totalDays = nurse.patients.reduce(
+					(sum: number, p: any) => sum + p.total_days_assigned,
+					0
+				);
+
+				patientTableBody.push([
+					{ text: "TOTAL", bold: true, fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{ text: "", fillColor: "#f0f0f0" },
+					{
+						text: totalDays.toString(),
+						bold: true,
+						alignment: "center",
+						fillColor: "#f0f0f0"
+					}
+				]);
+
+				content.push({
+					text: "Patient Summary",
+					bold: true,
+					fontSize: 11,
+					margin: [0, 5, 0, 5]
+				});
+
+				content.push({
+					table: {
+						headerRows: 1,
+						widths: ["*", "auto", "auto", "auto", "*", "auto"],
+						body: patientTableBody
+					},
+					layout: {
+						fillColor: function (rowIndex: number, node: any) {
+							if (
+								rowIndex === 0 ||
+								rowIndex === node.table.body.length - 1
+							) {
+								return "#f0f0f0";
+							}
+							return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+						},
+						hLineWidth: function (i: number, node: any) {
+							if (i === node.table.body.length - 1) return 2;
+							return 1;
+						}
+					},
+					margin: [0, 0, 0, 20],
+					fontSize: 9
+				});
+			}
+
+			// Add daily assignments table
+			if (nurse.daily_assignments && nurse.daily_assignments.length > 0) {
+				content.push({
+					text: `Daily Work Assignments (${nurse.daily_assignments.length} days)`,
+					bold: true,
+					fontSize: 11,
+					margin: [0, 15, 0, 10]
+				});
+
+				nurse.daily_assignments.forEach(
+					(day: any, dayIndex: number) => {
+						// Add page break if needed (every 3 days to prevent overflow)
+						if (dayIndex > 0 && dayIndex % 3 === 0) {
+							content.push({ text: "", pageBreak: "before" });
+							content.push({
+								text: `Nurse ${nurse.nurse_name} - Daily Assignments (continued)`,
+								style: "sectionHeader"
+							});
+						}
+
+						content.push({
+							text: `${this.formatDate(day.work_date)} - ${
+								day.patient_count
+							} patient${
+								day.patient_count !== 1 ? "s" : ""
+							} (${day.total_hours.toFixed(1)} hours)`,
+							bold: true,
+							fontSize: 10,
+							margin: [0, 10, 0, 5]
+						});
+
+						const dailyTableBody = [];
+
+						// Header
+						dailyTableBody.push([
+							{
+								text: "Patient Name",
+								bold: true,
+								fillColor: "#e9ecef"
+							},
+							{
+								text: "Payment Type",
+								bold: true,
+								fillColor: "#e9ecef"
+							},
+							{
+								text: "Diagnosis",
+								bold: true,
+								fillColor: "#e9ecef"
+							},
+							{
+								text: "Hours",
+								bold: true,
+								fillColor: "#e9ecef",
+								alignment: "center"
+							}
+						]);
+
+						// Patients for this day
+						day.patients.forEach((patient: any) => {
+							dailyTableBody.push([
+								patient.patient_name,
+								this.capitalizeFirst(patient.payment_type),
+								patient.diagnosis || "N/A",
+								{
+									text: `${patient.hours_worked.toFixed(1)}h`,
+									alignment: "center"
+								}
+							]);
+						});
+
+						// Total for the day
+						dailyTableBody.push([
+							{
+								text: "TOTAL",
+								bold: true,
+								fillColor: "#e9ecef",
+								colSpan: 3
+							},
+							{},
+							{},
+							{
+								text: `${day.total_hours.toFixed(1)}h`,
+								bold: true,
+								alignment: "center",
+								fillColor: "#e9ecef"
+							}
+						]);
+
+						content.push({
+							table: {
+								headerRows: 1,
+								widths: ["*", "auto", "*", "auto"],
+								body: dailyTableBody
+							},
+							layout: {
+								fillColor: function (
+									rowIndex: number,
+									node: any
+								) {
+									if (
+										rowIndex === 0 ||
+										rowIndex === node.table.body.length - 1
+									) {
+										return "#e9ecef";
+									}
+									return rowIndex % 2 === 0
+										? "#f8f9fa"
+										: null;
+								}
+							},
+							margin: [0, 0, 0, 10],
+							fontSize: 8
+						});
+					}
+				);
+			}
+		});
+
+		return content;
+	}
+
+	/**
+	 * Generate PDF for single nurse with detailed patient information
+	 */
+	private async generateSingleNurseReportPDF(nurse: any): Promise<void> {
+		const filters = this.getReportFilters();
+
+		const docDefinition = {
+			content: [
+				// Title
+				{
+					text: "Nurse Report",
+					style: "header",
+					alignment: "center"
+				},
+				{
+					text: `Nurse ${nurse.nurse_name}`,
+					style: "subheader",
+					alignment: "center"
+				},
+				{
+					text: `Report Period: ${this.formatDate(
+						filters.start_date
+					)} - ${this.formatDate(filters.end_date)}`,
+					alignment: "center",
+					margin: [0, 5, 0, 15]
+				},
+				{
+					text: `Total Patients Attended: ${nurse.total_patients}`,
+					bold: true,
+					fontSize: 14,
+					margin: [0, 0, 0, 20]
+				},
+
+				// Patient summary table
+				...this.generateNurseSinglePatientDetails(nurse.patients)
+			],
+			styles: {
+				header: {
+					fontSize: 18,
+					bold: true,
+					margin: [0, 0, 0, 10]
+				},
+				subheader: {
+					fontSize: 14,
+					bold: true,
+					color: "#0d6efd",
+					margin: [0, 5, 0, 5]
+				},
+				sectionHeader: {
+					fontSize: 12,
+					bold: true,
+					margin: [0, 10, 0, 5]
+				}
+			},
+			pageMargins: [40, 60, 40, 60],
+			footer: function (currentPage: number, pageCount: number) {
+				return {
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					alignment: "center",
+					fontSize: 8,
+					margin: [0, 10, 0, 0]
+				};
+			},
+			defaultStyle: {
+				font: "Segoe UI"
+			},
+			pageSize: "A4"
+		};
+
+		//@ts-ignore
+		const pdf = pdfMake.createPdf(docDefinition);
+		pdf.open();
+		this.showSuccess("Report generated successfully");
+	}
+
+	/**
+	 * Generate daily assignments section for PDF
+	 */
+	private generateNurseDailyAssignmentsForPDF(
+		dailyAssignments: any[]
+	): any[] {
+		if (!dailyAssignments || dailyAssignments.length === 0) {
+			return [];
+		}
+
+		const content: any[] = [];
+
+		content.push({
+			text: "",
+			pageBreak: "before"
+		});
+
+		content.push({
+			text: `Daily Work Assignments (${dailyAssignments.length} days)`,
+			style: "sectionHeader"
+		});
+
+		dailyAssignments.forEach((day: any, index: number) => {
+			// Add page break every 3 days for readability
+			if (index > 0 && index % 3 === 0) {
+				content.push({ text: "", pageBreak: "before" });
+				content.push({
+					text: "Daily Work Assignments (continued)",
+					style: "sectionHeader"
+				});
+			}
+
+			content.push({
+				text: `${this.formatDate(day.work_date)} - ${
+					day.patient_count
+				} patient${
+					day.patient_count !== 1 ? "s" : ""
+				} (${day.total_hours.toFixed(1)} hours)`,
+				bold: true,
+				fontSize: 10,
+				margin: [0, 10, 0, 5]
+			});
+
+			const dailyTableBody = [];
+
+			// Header
+			dailyTableBody.push([
+				{ text: "Patient Name", bold: true, fillColor: "#e9ecef" },
+				{ text: "Payment Type", bold: true, fillColor: "#e9ecef" },
+				{ text: "Diagnosis", bold: true, fillColor: "#e9ecef" },
+				{
+					text: "Hours Worked",
+					bold: true,
+					fillColor: "#e9ecef",
+					alignment: "center"
+				}
+			]);
+
+			// Patients for this day
+			day.patients.forEach((patient: any) => {
+				dailyTableBody.push([
+					patient.patient_name,
+					this.capitalizeFirst(patient.payment_type),
+					patient.diagnosis || "N/A",
+					{
+						text: `${patient.hours_worked.toFixed(1)}h`,
+						alignment: "center"
+					}
+				]);
+			});
+
+			// Total for the day
+			dailyTableBody.push([
+				{ text: "TOTAL", bold: true, fillColor: "#e9ecef", colSpan: 3 },
+				{},
+				{},
+				{
+					text: `${day.total_hours.toFixed(1)}h`,
+					bold: true,
+					alignment: "center",
+					fillColor: "#e9ecef"
+				}
+			]);
+
+			content.push({
+				table: {
+					headerRows: 1,
+					widths: ["*", "auto", "*", "auto"],
+					body: dailyTableBody
+				},
+				layout: {
+					fillColor: function (rowIndex: number, node: any) {
+						if (
+							rowIndex === 0 ||
+							rowIndex === node.table.body.length - 1
+						) {
+							return "#e9ecef";
+						}
+						return rowIndex % 2 === 0 ? "#f8f9fa" : null;
+					}
+				},
+				margin: [0, 0, 0, 10],
+				fontSize: 9
+			});
+		});
+
+		return content;
+	}
+
+	/**
+	 * Generate patient details for single nurse report
+	 */
+	private generateNurseSinglePatientDetails(patients: any[]): any[] {
+		const content: any[] = [];
+
+		const tableBody = [];
+
+		tableBody.push([
+			{ text: "Patient Name", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Last Admission", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Last Discharge", bold: true, fillColor: "#f0f0f0" },
+			{ text: "Diagnosis", bold: true, fillColor: "#f0f0f0" },
+			{
+				text: "Days Assigned",
+				bold: true,
+				fillColor: "#f0f0f0",
+				alignment: "center"
+			}
+		]);
+
+		patients.forEach((patient: any) => {
+			tableBody.push([
+				patient.patient_name,
+				this.capitalizeFirst(patient.payment_type),
+				patient.last_admission_time
+					? this.formatDateTime(patient.last_admission_time)
+					: "N/A",
+				patient.last_discharge_time
+					? this.formatDateTime(patient.last_discharge_time)
+					: "Active",
+				patient.diagnosis || "N/A",
+				{
+					text: patient.total_days_assigned.toString(),
+					alignment: "center"
+				}
+			]);
+		});
+
+		content.push({
+			table: {
+				headerRows: 1,
+				widths: ["*", "auto", "auto", "auto", "*", "auto"],
+				body: tableBody
+			},
+			layout: {
+				fillColor: function (rowIndex: number, node: any) {
+					if (rowIndex === 0) {
+						return "#f0f0f0";
+					}
+					return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+				},
+				hLineWidth: function (i: number, node: any) {
+					if (i === node.table.body.length - 1) return 2;
+					return 1;
+				}
+			},
+			margin: [0, 0, 0, 20]
+		});
+
+		return content;
+	}
+
+	/**
+	 * Render pie chart in the reports page for nurse reports
+	 */
+	private renderNurseReportPieChart(nurses: any[]): void {
+		const container = document.getElementById("nurseReportContent");
+		if (!container) return;
+
+		// Check if we should add a chart
+		const existingChart = container.querySelector("#nurseReportPieChart");
+		if (!existingChart) {
+			const chartContainer = document.createElement("div");
+			chartContainer.className = "card mb-3";
+			chartContainer.innerHTML = `
+            <div class="card-header">
+                <h5 class="mb-0">Patient Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="nurseReportPieChart" height="300"></canvas>
+            </div>
+        `;
+			container.insertBefore(chartContainer, container.firstChild);
+		}
+
+		const chartCanvas = document.getElementById(
+			"nurseReportPieChart"
+		) as HTMLCanvasElement;
+		if (!chartCanvas) return;
+
+		const labels = nurses.map((n) => n.nurse_name);
+		const data = nurses.map((n) => n.total_patients);
+		const colors = this.generateChartColors(nurses.length);
+
+		//@ts-ignore
+		new Chart(chartCanvas, {
+			type: "pie",
+			data: {
+				labels: labels,
+				datasets: [
+					{
+						data: data,
+						backgroundColor: colors,
+						borderColor: "#ffffff",
+						borderWidth: 2
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: "bottom"
+					},
+					title: {
+						display: false
+					}
+				}
+			}
+		});
 	}
 
 	// ==================== STATISTICS ====================
