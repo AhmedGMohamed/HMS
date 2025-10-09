@@ -117,6 +117,21 @@ export interface NursePatientReport {
 	nurse_name: string;
 	total_patients: number;
 	patients: NursePatientDetail[];
+	daily_assignments?: NurseDailyAssignment[];
+}
+export interface NurseDailyAssignment {
+	work_date: string;
+	patients: NurseAssignmentPatient[];
+	total_hours: number;
+	patient_count: number;
+}
+
+export interface NurseAssignmentPatient {
+	patient_id: number;
+	patient_name: string;
+	hours_worked: number;
+	payment_type: string;
+	diagnosis?: string;
 }
 
 export interface NursePatientDetail {

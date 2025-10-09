@@ -798,3 +798,94 @@ canvas {
 .report-table-container::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+.report-table tfoot .totals-row {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    font-weight: 700;
+    border-top: 2px solid var(--bs-primary);
+    font-size: 1.05rem;
+}
+
+.report-table tfoot .totals-row td {
+    padding: 1rem !important;
+    vertical-align: middle;
+}
+
+/* Pie chart container styling */
+.chart-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.chart-card .card-body {
+    padding: 2rem;
+}
+
+/* Doctor/Nurse report card enhancements */
+.report-card-header {
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    border-bottom: 2px solid var(--bs-primary);
+    padding: 1.5rem;
+}
+
+.report-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--bs-dark);
+    margin: 0;
+}
+
+.report-card-subtitle {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Patient count badge */
+.patient-count-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+    color: white;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+/* Percentage indicator */
+.percentage-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(13, 110, 253, 0.1);
+    border-radius: 12px;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+/* Chart legend customization */
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.chart-legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.chart-legend-label {
+    font-size: 0.875rem;
+    color: var(--bs-dark);
+}
+
+.chart-legend-value {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
