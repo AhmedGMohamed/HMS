@@ -1,7 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
-import { createCustomReport } from "../../utils/pdfGenerator.js";
+import { createCustomReport } from "../utils/pdfGenerator.js";
 
 interface VaultSummary {
 	// Patient Revenue

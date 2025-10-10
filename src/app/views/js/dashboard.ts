@@ -3,6 +3,7 @@ import "./chart.js/chart.js";
 //@ts-ignore
 import Swal from "./sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "./shared/sidebar.js";
+import { i18n } from "./utils/i18n.js";
 
 interface User {
 	userId: number;
@@ -29,11 +30,26 @@ class DashboardManager {
 	private isDashboardAdmin: boolean = false;
 
 	constructor() {
-		// Initialize sidebar manager
-		new SidebarManager();
+		// Wait for i18n to initialize
+		this.waitForI18n().then(() => {
+			// Initialize sidebar manager
+			new SidebarManager();
 
-		// Initialize dashboard
-		this.initializeDashboard();
+			// Initialize dashboard
+			this.initializeDashboard();
+
+			// Listen for locale changes
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		// Wait for i18n to be initialized
+		if (i18n) {
+			await i18n.init();
+		}
 	}
 
 	private async initializeDashboard(): Promise<void> {
@@ -88,22 +104,14 @@ class DashboardManager {
 
 		this.user = JSON.parse(userString);
 
-		// Update welcome message
+		// Update welcome message with i18n
 		const welcomeName = document.getElementById("welcomeName");
 		if (welcomeName && this.user) {
 			welcomeName.textContent = this.user.username;
 		}
 
-		// Update welcome subtitle based on dashboard type
-		const welcomeSubtitle = document.getElementById("welcomeSubtitle");
-		if (welcomeSubtitle) {
-			if (this.isDashboardAdmin) {
-				welcomeSubtitle.textContent =
-					"Hospital overview and financial metrics";
-			} else {
-				welcomeSubtitle.textContent = "Time tracking and system access";
-			}
-		}
+		// Update document title
+		document.title = i18n.t("dashboard.title");
 	}
 
 	private async loadAdminDashboard(): Promise<void> {
@@ -122,7 +130,7 @@ class DashboardManager {
 			this.setupEventListeners();
 		} catch (error) {
 			console.error("Error loading admin dashboard:", error);
-			this.showErrorToast("Failed to load admin dashboard");
+			this.showErrorToast(i18n.t("errors.loadDashboardError"));
 		}
 	}
 
@@ -138,7 +146,7 @@ class DashboardManager {
 			await this.loadAvailableLinks();
 		} catch (error) {
 			console.error("Error loading user dashboard:", error);
-			this.showErrorToast("Failed to load user dashboard");
+			this.showErrorToast(i18n.t("errors.loadDashboardError"));
 		}
 	}
 
@@ -166,7 +174,9 @@ class DashboardManager {
 				container.innerHTML = `
                 <div class="text-center py-5">
                     <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                    <p class="mt-3 text-muted">Failed to load available features</p>
+                    <p class="mt-3 text-muted">${i18n.t(
+						"errors.loadFeaturesError"
+					)}</p>
                 </div>
             `;
 			}
@@ -184,7 +194,9 @@ class DashboardManager {
 			container.innerHTML = `
             <div class="text-center py-5">
                 <i class="bi bi-info-circle text-info" style="font-size: 3rem;"></i>
-                <p class="mt-3 text-muted">No additional features available</p>
+                <p class="mt-3 text-muted">${i18n.t(
+					"dashboard.userDashboard.noFeatures"
+				)}</p>
             </div>
         `;
 			return;
@@ -198,9 +210,13 @@ class DashboardManager {
 		for (const [category, links] of Object.entries(groupedLinks)) {
 			if (links.length === 0) continue;
 
+			// Translate category name
+			const categoryKey = this.getCategoryTranslationKey(category);
+			const translatedCategory = i18n.t(categoryKey);
+
 			html += `
             <div class="mb-4">
-                <h6 class="text-uppercase text-muted mb-3">${category}</h6>
+                <h6 class="text-uppercase text-muted mb-3">${translatedCategory}</h6>
                 <div class="row">
         `;
 
@@ -216,10 +232,12 @@ class DashboardManager {
 									}" style="font-size: 2.5rem; color: #0d6efd;"></i>
                                 </div>
                                 <h6 class="card-title mb-2">${this.escapeHtml(
-									link.label
+									this.translateNavLabel(link.id)
 								)}</h6>
                                 <p class="card-text text-muted small">
-                                    ${this.getFeatureDescription(link.id)}
+                                    ${i18n.t(
+										`dashboard.featureDescriptions.${link.id}`
+									)}
                                 </p>
                             </div>
                         </div>
@@ -237,6 +255,28 @@ class DashboardManager {
 		container.innerHTML = html;
 	}
 
+	private getCategoryTranslationKey(category: string): string {
+		const keyMap: { [key: string]: string } = {
+			"Patient Care": "dashboard.userDashboard.categories.patientCare",
+			"Employee Management":
+				"dashboard.userDashboard.categories.employeeManagement",
+			Pharmacy: "dashboard.userDashboard.categories.pharmacy",
+			Administration: "dashboard.userDashboard.categories.administration",
+			System: "dashboard.userDashboard.categories.system",
+			Other: "dashboard.userDashboard.categories.other"
+		};
+		return keyMap[category] || "dashboard.userDashboard.categories.other";
+	}
+
+	private translateNavLabel(id: string): string {
+		// Try to get translation from sidebar translations
+		const sidebarKey = `sidebar.${id}`;
+		const translation = i18n.t(sidebarKey);
+
+		// If translation returns the key itself, it means it wasn't found
+		return translation === sidebarKey ? id : translation;
+	}
+
 	private async loadAdminStatistics(): Promise<void> {
 		try {
 			const token = localStorage.getItem("token");
@@ -252,26 +292,26 @@ class DashboardManager {
 
 			const stats = await response.json();
 
-			// Safely update statistics
+			// Safely update statistics with formatted values
 			this.updateStatElement(
 				"activePatients",
-				stats.activePatientsCount?.toString() || "0"
+				i18n.formatNumber(stats.activePatientsCount || 0, 0)
 			);
 			this.updateStatElement(
 				"todayRevenue",
-				`$${parseFloat(stats.todayRevenue || 0).toFixed(2)}`
+				i18n.formatCurrency(parseFloat(stats.todayRevenue || 0))
 			);
 			this.updateStatElement(
 				"lowStockItemsCount",
-				stats.lowStockItemsCount?.toString() || "0"
+				i18n.formatNumber(stats.lowStockItemsCount || 0, 0)
 			);
 			this.updateStatElement(
 				"todayProfit",
-				`$${parseFloat(stats.todayProfit || 0).toFixed(2)}`
+				i18n.formatCurrency(parseFloat(stats.todayProfit || 0))
 			);
 		} catch (error) {
 			console.error("Error loading admin statistics:", error);
-			this.showErrorToast("Failed to load dashboard statistics");
+			this.showErrorToast(i18n.t("errors.loadStatisticsError"));
 		}
 	}
 
@@ -289,7 +329,7 @@ class DashboardManager {
 			this.createDistributionChart(chartData);
 		} catch (error) {
 			console.error("Error initializing charts:", error);
-			this.showErrorToast("Failed to load chart data");
+			this.showErrorToast(i18n.t("errors.loadChartError"));
 		}
 	}
 
@@ -314,7 +354,7 @@ class DashboardManager {
 		) as HTMLCanvasElement;
 		if (!ctx) return;
 
-		const labels = data.map((d) => new Date(d.date).toLocaleDateString());
+		const labels = data.map((d) => i18n.formatDate(new Date(d.date)));
 		const revenueData = data.map((d) => parseFloat(d.revenue.toString()));
 		const profitData = data.map((d) => parseFloat(d.profit.toString()));
 
@@ -325,7 +365,7 @@ class DashboardManager {
 				labels: labels,
 				datasets: [
 					{
-						label: "Revenue",
+						label: i18n.t("dashboard.charts.revenue"),
 						data: revenueData,
 						borderColor: "rgb(75, 192, 192)",
 						backgroundColor: "rgba(75, 192, 192, 0.1)",
@@ -333,7 +373,7 @@ class DashboardManager {
 						tension: 0.4
 					},
 					{
-						label: "Profit",
+						label: i18n.t("dashboard.charts.profit"),
 						data: profitData,
 						borderColor: "rgb(255, 99, 132)",
 						backgroundColor: "rgba(255, 99, 132, 0.1)",
@@ -350,22 +390,24 @@ class DashboardManager {
 						beginAtZero: true,
 						ticks: {
 							callback: function (value: any) {
-								return "$" + value.toLocaleString();
+								return i18n.formatCurrency(value);
 							}
 						}
 					}
 				},
 				plugins: {
 					legend: {
-						position: "top" as const
+						position: "top" as const,
+						rtl: i18n.isRTL()
 					},
 					tooltip: {
+						rtl: i18n.isRTL(),
 						callbacks: {
 							label: function (context: any) {
 								return (
 									context.dataset.label +
-									": $" +
-									context.parsed.y.toLocaleString()
+									": " +
+									i18n.formatCurrency(context.parsed.y)
 								);
 							}
 						}
@@ -412,7 +454,10 @@ class DashboardManager {
 		this.distributionChart = new Chart(ctx, {
 			type: "doughnut",
 			data: {
-				labels: ["Patient Services", "Pharmacy Sales"],
+				labels: [
+					i18n.t("dashboard.charts.patientServices"),
+					i18n.t("dashboard.charts.pharmacySales")
+				],
 				datasets: [
 					{
 						data: [totals.patientRevenue, totals.pharmacyRevenue],
@@ -429,9 +474,11 @@ class DashboardManager {
 				maintainAspectRatio: false,
 				plugins: {
 					legend: {
-						position: "bottom" as const
+						position: "bottom" as const,
+						rtl: i18n.isRTL()
 					},
 					tooltip: {
+						rtl: i18n.isRTL(),
 						callbacks: {
 							label: function (context: any) {
 								const total = context.dataset.data.reduce(
@@ -444,8 +491,8 @@ class DashboardManager {
 								).toFixed(1);
 								return (
 									context.label +
-									": $" +
-									context.raw.toLocaleString() +
+									": " +
+									i18n.formatCurrency(context.raw) +
 									" (" +
 									percentage +
 									"%)"
@@ -545,7 +592,7 @@ class DashboardManager {
 			this.distributionChart.update();
 		} catch (error) {
 			console.error("Error switching distribution view:", error);
-			this.showErrorToast("Failed to update chart data");
+			this.showErrorToast(i18n.t("errors.loadChartError"));
 		}
 	}
 
@@ -570,7 +617,7 @@ class DashboardManager {
 				tableBody.innerHTML = `
 					<tr>
 						<td colspan="4" class="text-center text-muted">
-							No recent activity found
+							${i18n.t("common.noData")}
 						</td>
 					</tr>
 				`;
@@ -599,14 +646,17 @@ class DashboardManager {
 
 					return `
 						<tr>
-							<td>${new Date(activity.timestamp).toLocaleString()}</td>
+							<td>${i18n.formatDateTime(new Date(activity.timestamp))}</td>
 							<td>${this.escapeHtml(activity.username || "Unknown")}</td>
 							<td>
 								<span class="badge bg-${badgeType}">
 									${this.escapeHtml(activity.action_type)}
 								</span>
 							</td>
-							<td>${this.escapeHtml(activity.details?.description || "No description")}</td>
+							<td>${this.escapeHtml(
+								activity.details?.description ||
+									i18n.t("common.noData")
+							)}</td>
 						</tr>
 					`;
 				})
@@ -618,11 +668,39 @@ class DashboardManager {
 				tableBody.innerHTML = `
 					<tr>
 						<td colspan="4" class="text-center text-danger">
-							Failed to load recent activity
+							${i18n.t("errors.loadActivityError")}
 						</td>
 					</tr>
 				`;
 			}
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Reload statistics with new formatting
+		if (this.isDashboardAdmin) {
+			this.loadAdminStatistics();
+		}
+
+		// Recreate charts with new labels
+		if (this.revenueChart && this.distributionChart) {
+			this.fetchChartData().then((data) => {
+				// Destroy old charts
+				this.revenueChart.destroy();
+				this.distributionChart.destroy();
+
+				// Create new charts with translated labels
+				this.createRevenueChart(data);
+				this.createDistributionChart(data);
+			});
+		}
+
+		// Reload recent activity with new date formatting
+		this.loadRecentActivity();
+
+		// Update user dashboard if applicable
+		if (!this.isDashboardAdmin) {
+			this.loadAvailableLinks();
 		}
 	}
 
@@ -640,7 +718,7 @@ class DashboardManager {
 	private showErrorToast(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			toast: true,
 			position: "top-end",
@@ -713,7 +791,9 @@ class DashboardManager {
 			) {
 				groups["Administration"].push(link);
 			} else if (
-				["services", "price_lists", "reports"].includes(link.id)
+				["services", "price_lists", "reports", "insurance"].includes(
+					link.id
+				)
 			) {
 				groups["System"].push(link);
 			} else {
@@ -724,36 +804,14 @@ class DashboardManager {
 		return groups;
 	}
 
-	private getFeatureDescription(id: string): string {
-		const descriptions: { [key: string]: string } = {
-			patients: "Manage patient records and medical information",
-			admissions: "Handle patient admissions and discharges",
-			employees: "Manage hospital staff and employee records",
-			doctors: "Doctor profiles and medical staff management",
-			nurses: "Nursing staff management and assignments",
-			clocking: "Employee time tracking and attendance",
-			drugs: "Medication inventory and prescription management",
-			inventory: "Stock management and drug supplies",
-			services: "Hospital services and treatment options",
-			price_lists: "Service pricing and insurance management",
-			vault: "Financial overview and revenue tracking",
-			reports: "System reports and analytics",
-			users: "System user accounts and access control",
-			roles: "User roles and permission management",
-			permissions: "System security and access permissions"
-		};
-
-		return descriptions[id] || "Access this system feature";
-	}
-
 	private handleAuthError(): void {
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 
 		Swal.fire({
 			icon: "error",
-			title: "Authentication Error",
-			text: "Please log in again to continue.",
+			title: i18n.t("errors.authError"),
+			text: i18n.t("auth.sessionExpired"),
 			confirmButtonColor: "#0d6efd"
 		}).then(() => {
 			window.location.href = "/login";

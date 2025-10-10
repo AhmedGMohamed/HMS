@@ -1,5 +1,5 @@
-import { Patient } from "../../utils/types/patients.js";
-import { Bill, BillDetail } from "../../utils/types/billing.js";
+import { Patient } from "../../../utils/types/patients.js";
+import { Bill, BillDetail } from "../../../utils/types/billing.js";
 
 // Declare global pdfMake and pdfFonts (set by <script> tags)
 declare global {

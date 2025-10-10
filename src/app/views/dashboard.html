@@ -4,56 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Dashboard</title>
-  <style>
-    /* Hide the Google Translate widget */
-    #google_translate_element {
-      display: none;
-    }
-
-    .goog-te-gadget img {
-      display: none !important;
-    }
-
-    body>.skiptranslate {
-      display: none;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    #goog-gt-tt,
-    .goog-te-balloon-frame {
-      display: none !important;
-    }
-
-    .goog-text-highlight {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-		  ::selection {
-		  background: transparent;
-		  }
-
-    /* Optional: Adjust for right-to-left Arabic text */
-    body[lang="ar"] {
-      direction: rtl;
-      text-align: right;
-    }
-  </style>
+  <title data-i18n="dashboard.title">HMS - Dashboard</title>
   <!-- Bootstrap CSS -->
   <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="css/dashboard.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link id="rtl-css" href="css/dashboard-rtl.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="css/sweetalert2/sweetalert2.css" rel="stylesheet">
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -80,7 +42,7 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -94,24 +56,21 @@
             <i class="bi bi-list"></i>
           </button>
           <div class="ms-auto d-flex align-items-center">
-            <div class="notifications dropdown">
-              <button class="btn btn-link position-relative dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                  <span class="visually-hidden">unread notifications</span>
-                </span>
+            <!-- Language Switcher -->
+            <div class="dropdown me-3">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                <li>
-                  <h6 class="dropdown-header">Notifications</h6>
-                </li>
-                <li>
-                  <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="#">Low stock alert: Paracetamol</a></li>
-                <li><a class="dropdown-item" href="#">New patient admission</a></li>
-                <li><a class="dropdown-item" href="#">System update available</a></li>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
               </ul>
             </div>
           </div>
@@ -121,8 +80,8 @@
       <!-- Main Content -->
       <div class="container-fluid">
         <div class="welcome-section mb-4">
-          <h1>Welcome back, <span id="welcomeName">User</span>!</h1>
-          <p class="text-muted">Here's what's happening today</p>
+          <h1><span data-i18n="dashboard.welcome" data-i18n-params='{"name":""}'>Welcome back</span>, <span id="welcomeName">User</span>!</h1>
+          <p class="text-muted" id="welcomeSubtitle" data-i18n="dashboard.subtitle">Here's what's happening today</p>
         </div>
 
         <div id="adminDashboard" style="display: none">
@@ -136,7 +95,7 @@
                       <i class="bi bi-people"></i>
                     </div>
                     <div class="ms-3">
-                      <h6 class="card-subtitle mb-1">Active Patients</h6>
+                      <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.activePatients">Active Patients</h6>
                       <h3 class="card-title mb-0" id="activePatients">0</h3>
                     </div>
                   </div>
@@ -152,7 +111,7 @@
                       <i class="bi bi-currency-dollar"></i>
                     </div>
                     <div class="ms-3">
-                      <h6 class="card-subtitle mb-1">Today's Revenue</h6>
+                      <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.todayRevenue">Today's Revenue</h6>
                       <h3 class="card-title mb-0" id="todayRevenue">$0</h3>
                     </div>
                   </div>
@@ -169,7 +128,7 @@
                         <i class="bi bi-capsule"></i>
                       </div>
                       <div class="ms-3">
-                        <h6 class="card-subtitle mb-1">Low Stock Items</h6>
+                        <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.lowStockAlerts">Low Stock Items</h6>
                         <h3 class="card-title mb-0" id="lowStockItemsCount">0</h3>
                       </div>
                     </div>
@@ -186,7 +145,7 @@
                       <i class="bi bi-calendar-check"></i>
                     </div>
                     <div class="ms-3">
-                      <h6 class="card-subtitle mb-1">Today's Profit</h6>
+                      <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.todayProfit">Today's Profit</h6>
                       <h3 class="card-title mb-0" id="todayProfit">$0</h3>
                     </div>
                   </div>
@@ -200,7 +159,7 @@
             <div class="col-md-8 mb-4">
               <div class="card">
                 <div class="card-body">
-                  <h5 class="card-title">Revenue & Profit Overview (Last 30 Days)</h5>
+                  <h5 class="card-title" data-i18n="dashboard.charts.revenueOverTime">Revenue & Profit Overview (Last 30 Days)</h5>
                   <div class="chart-container" style="position: relative; height: 400px;">
                     <canvas id="revenueChart"></canvas>
                   </div>
@@ -211,13 +170,13 @@
               <div class="card">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">Revenue Distribution</h5>
+                    <h5 class="card-title mb-0" data-i18n="dashboard.charts.distribution">Revenue Distribution</h5>
                     <div class="btn-group" role="group" aria-label="Chart toggle">
                       <input type="radio" class="btn-check" name="chartToggle" id="revenueToggle" checked>
-                      <label class="btn btn-outline-primary btn-sm" for="revenueToggle">Revenue</label>
+                      <label class="btn btn-outline-primary btn-sm" for="revenueToggle" data-i18n="dashboard.charts.revenue">Revenue</label>
 
                       <input type="radio" class="btn-check" name="chartToggle" id="profitToggle">
-                      <label class="btn btn-outline-primary btn-sm" for="profitToggle">Profit</label>
+                      <label class="btn btn-outline-primary btn-sm" for="profitToggle" data-i18n="dashboard.charts.profit">Profit</label>
                     </div>
                   </div>
                   <div class="chart-container" style="position: relative; height: 300px;">
@@ -233,20 +192,20 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
-                  <h5 class="card-title">Recent Activity</h5>
+                  <h5 class="card-title" data-i18n="dashboard.recentActivity">Recent Activity</h5>
                   <div class="table-responsive">
                     <table class="table table-hover">
                       <thead>
                         <tr>
-                          <th>Time</th>
-                          <th>User</th>
-                          <th>Action</th>
-                          <th>Details</th>
+                          <th data-i18n="common.time">Time</th>
+                          <th data-i18n="dashboard.table.user">User</th>
+                          <th data-i18n="dashboard.table.action">Action</th>
+                          <th data-i18n="dashboard.table.details">Details</th>
                         </tr>
                       </thead>
                       <tbody id="recentActivityTable">
                         <tr>
-                          <td colspan="4" class="text-center">Loading...</td>
+                          <td colspan="4" class="text-center" data-i18n="common.loading">Loading...</td>
                         </tr>
                       </tbody>
                     </table>
@@ -264,16 +223,16 @@
               <div class="card">
                 <div class="card-body">
                   <h5 class="card-title">
-                    <i class="bi bi-grid"></i> Available Features
+                    <i class="bi bi-grid"></i> <span data-i18n="dashboard.userDashboard.availableFeatures">Available Features</span>
                   </h5>
-                  <p class="text-muted mb-4">Access your available system features below:</p>
+                  <p class="text-muted mb-4" data-i18n="dashboard.userDashboard.description">Access your available system features below:</p>
 
                   <div id="availableLinksContainer">
                     <div class="text-center py-5">
                       <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
                       </div>
-                      <p class="mt-3 text-muted">Loading available features...</p>
+                      <p class="mt-3 text-muted" data-i18n="dashboard.userDashboard.loadingFeatures">Loading available features...</p>
                     </div>
                   </div>
                 </div>
@@ -285,41 +244,14 @@
     </div>
   </div>
 
-  <!-- Google Translate -->
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-  <script>
-    function googleTranslateElementInit() {
-      // Initialize only if not already initialized
-      if (!window.googleTranslateInitialized) {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en', // Source language (English)
-          includedLanguages: 'ar', // Target language (Arabic)
-          autoDisplay: false // Prevent automatic popup
-        }, 'google_translate_element');
-        window.googleTranslateInitialized = true;
-      }
-
-      // Automatically select Arabic
-      setTimeout(() => {
-        const select = document.querySelector('#google_translate_element select');
-        if (select && select.value !== 'ar') {
-          select.value = 'ar';
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 500); // Delay to ensure widget is loaded
-    }
-
-    // Initialize on page load and when navigating back
-    window.onload = googleTranslateElementInit;
-    window.onpageshow = googleTranslateElementInit;
-  </script>
-
   <!-- Chart.js -->
   <script src="js/chart.js/chart.js" type="module"></script>
   <!-- Bootstrap Bundle with Popper -->
   <script src="js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- SweetAlert2 -->
   <script src="js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- i18n Utility -->
+  <script src="js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="js/dashboard.js" type="module"></script>
 </body>

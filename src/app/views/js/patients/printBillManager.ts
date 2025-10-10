@@ -1,6 +1,6 @@
 //@ts-ignore
 import Swal from "../../sweetalert2/src/sweetalert2.js";
-import { generatePatientBill } from "../../utils/pdfGenerator.js";
+import { generatePatientBill } from "../utils/pdfGenerator.js";
 
 interface PrintBillItem {
 	id: string;
