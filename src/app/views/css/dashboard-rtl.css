@@ -1,0 +1,151 @@
+/* RTL Overrides for Dashboard */
+body.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Sidebar RTL */
+body.rtl #sidebar {
+  left: auto;
+  right: 0;
+}
+
+body.rtl #content {
+  margin-right: var(--sidebar-width);
+  margin-left: 0;
+}
+
+body.rtl #sidebar.active ~ #content {
+  margin-right: var(--sidebar-collapsed-width);
+  margin-left: 0;
+}
+
+body.rtl #sidebar ul li a {
+  text-align: right;
+}
+
+body.rtl #sidebar ul li a i {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+body.rtl .sidebar-footer {
+  text-align: right;
+}
+
+body.rtl .sidebar-footer button i {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+/* Navbar RTL */
+body.rtl .navbar .ms-auto {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+body.rtl .navbar .me-3 {
+  margin-left: 1rem !important;
+  margin-right: 0 !important;
+}
+
+body.rtl .dropdown-menu-end {
+  left: 0 !important;
+  right: auto !important;
+}
+
+/* Stats Cards RTL */
+body.rtl .stat-card .ms-3 {
+  margin-left: 0 !important;
+  margin-right: 1rem !important;
+}
+
+body.rtl .stat-icon {
+  margin-left: 1rem;
+  margin-right: 0;
+}
+
+/* Tables RTL */
+body.rtl .table {
+  text-align: right;
+}
+
+body.rtl .table thead th {
+  text-align: right;
+}
+
+/* Badges and Pills RTL */
+body.rtl .badge {
+  text-align: center;
+}
+
+/* Dropdown RTL */
+body.rtl .dropdown-toggle::after {
+  margin-right: 0.255em;
+  margin-left: 0;
+}
+
+/* Button Groups RTL */
+body.rtl .btn-group {
+  direction: ltr;
+}
+
+/* Chart Legends RTL */
+body.rtl .chart-container canvas {
+  direction: ltr;
+}
+
+/* Feature Cards RTL */
+body.rtl .feature-card {
+  text-align: center;
+}
+
+/* Collapsible Menu RTL */
+
+body.rtl #sidebar ul.collapse {
+	padding-right: 0;
+}
+
+body.rtl #sidebar ul.collapsing {
+	padding-right: 0;
+}
+
+/* Profile Info RTL */
+body.rtl .profile-info {
+  text-align: center;
+}
+
+/* Notifications Badge RTL */
+body.rtl .translate-middle {
+  transform: translate(50%, -50%) !important;
+}
+
+/* Welcome Section RTL */
+body.rtl .welcome-section {
+  text-align: right;
+}
+
+/* Card Titles RTL */
+body.rtl .card-title {
+  text-align: right;
+}
+
+body.rtl .card-subtitle {
+  text-align: right;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  body.rtl #sidebar {
+    margin-right: -250px;
+    margin-left: 0;
+  }
+
+  body.rtl #sidebar.active {
+    margin-right: 0;
+  }
+
+  body.rtl #content {
+    margin-right: 0;
+  }
+}
