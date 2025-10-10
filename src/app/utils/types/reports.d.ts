@@ -180,16 +180,7 @@ export interface EmployeePaymentReport {
 	hire_date: string;
 	payment_summary: PaymentSummary;
 	payment_details: EmployeePaymentDetail[];
-}
-
-export interface PaymentSummary {
-	total_payments: number;
-	total_base_pay: number;
-	total_extra_pay: number;
-	total_paid: number;
-	total_unpaid: number;
-	total_voided: number;
-	avg_payment: number;
+	payment_breakdown?: any;
 }
 
 export interface EmployeePaymentDetail {
@@ -199,20 +190,50 @@ export interface EmployeePaymentDetail {
 	extra_amount: number;
 	extra_payment_type: string;
 	payment_type: string;
+	percentage_scope?: string;
 	is_paid: boolean;
+	is_void?: boolean;
 	paid_timestamp?: string;
 	paid_by?: string;
+	main_patient_id?: number;
+	main_patient_name?: string;
 	patient_associations?: PaymentPatientAssociation[];
+	clock_in_deductions?: ClockInDeduction[];
 }
 
 export interface PaymentPatientAssociation {
+	payment_patient_id: number;
 	patient_id: number;
 	patient_name: string;
 	patient_history_id?: number;
+	admission_time?: string;
+	discharge_time?: string;
+	diagnosis?: string;
 	work_date: string;
 	hours_worked: number;
 	payment_amount: number;
 	payment_type: string;
+}
+
+export interface ClockInDeduction {
+	clock_id: number;
+	clock_in: string;
+	clock_out?: string;
+	pay_deduction: number;
+	hours_worked: number;
+	status: string;
+}
+
+export interface PaymentSummary {
+	total_payments: number;
+	total_base_pay: number;
+	total_extra_pay: number;
+	total_paid: number;
+	total_unpaid: number;
+	total_voided: number;
+	total_deductions: number;
+	net_payment: number;
+	avg_payment: number;
 }
 
 // Chart Data Types

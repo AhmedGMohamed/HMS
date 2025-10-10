@@ -1667,10 +1667,6 @@ class ReportsManager {
 					alignment: "left"
 				},
 				{
-					text: this.capitalizeFirst(data.gender || "N/A"),
-					alignment: "left"
-				},
-				{
 					text: this.capitalizeFirst(data.payment_type),
 					alignment: "left"
 				}
@@ -1728,6 +1724,8 @@ class ReportsManager {
 				}
 			);
 
+			const tableWidths = patientInfoHeaders.map((_, index) => (index === 0 ? "auto" : "*"));
+
 			// Generate PDF with single admission
 			const docDefinition = {
 				content: [
@@ -1745,9 +1743,7 @@ class ReportsManager {
 					{
 						table: {
 							headerRows: 1,
-							widths: patientInfoHeaders.map((_, ind) =>
-								ind === 0 ? "auto" : "*"
-							),
+							widths: tableWidths,
 							body: [patientInfoHeaders, patientInfoRow],
 							dontBreakRows: false
 						},
@@ -5573,88 +5569,212 @@ class ReportsManager {
 
 	private renderEmployeePaymentCard(employee: any): string {
 		const summary = employee.payment_summary;
+		const breakdown = employee.payment_breakdown;
 
 		return `
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0">${this.escapeHtml(
-								employee.employee_name
-							)}</h5>
-                            <small class="text-muted">${employee.employee_type.toUpperCase()} | Hired: ${this.formatDate(
-			employee.hire_date
-		)}</small>
-                        </div>
-                        <div class="text-end">
-                            <h6 class="mb-0">Total: ${this.formatCurrency(
-								summary.total_base_pay + summary.total_extra_pay
-							)}</h6>
-                            <small class="text-muted">${
-								summary.total_payments
-							} payments</small>
-                        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">${this.escapeHtml(
+							employee.employee_name
+						)}</h5>
+                        <small class="text-muted">
+                            ${employee.employee_type.toUpperCase()} | 
+                            Hired: ${this.formatDate(employee.hire_date)}
+                            ${
+								breakdown
+									? `| Work Days: ${breakdown.total_work_days} | Patients: ${breakdown.total_patients_served}`
+									: ""
+							}
+                        </small>
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-3">
-                            <small class="text-muted">Base Pay</small>
-                            <div class="fw-bold">${this.formatCurrency(
-								summary.total_base_pay
-							)}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Extra Pay</small>
-                            <div class="fw-bold">${this.formatCurrency(
-								summary.total_extra_pay
-							)}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Paid</small>
-                            <div class="fw-bold text-success">${this.formatCurrency(
-								summary.total_paid
-							)}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Unpaid</small>
-                            <div class="fw-bold text-warning">${this.formatCurrency(
-								summary.total_unpaid
-							)}</div>
-                        </div>
+                    <div class="text-end">
+                        <h6 class="mb-0">Net Payment: ${this.formatCurrency(
+							summary.net_payment
+						)}</h6>
+                        <small class="text-muted">${
+							summary.total_payments
+						} payment records</small>
                     </div>
-                    ${
-						employee.payment_details &&
-						employee.payment_details.length > 0
-							? `
-                        <div class="mt-3">
-                            <h6 class="mb-3">Payment Details</h6>
-                            ${employee.payment_details
-								.map((payment: any) =>
-									this.renderPaymentDetail(payment)
-								)
-								.join("")}
-                        </div>
-                    `
-							: '<p class="text-muted">No payment details available</p>'
-					}
                 </div>
             </div>
-        `;
+            <div class="card-body">
+                ${breakdown ? this.renderPaymentBreakdown(breakdown) : ""}
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-2">
+                        <small class="text-muted">Base Pay</small>
+                        <div class="fw-bold">${this.formatCurrency(
+							summary.total_base_pay
+						)}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Extra Pay</small>
+                        <div class="fw-bold">${this.formatCurrency(
+							summary.total_extra_pay
+						)}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Deductions</small>
+                        <div class="fw-bold text-danger">-${this.formatCurrency(
+							summary.total_deductions
+						)}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Paid</small>
+                        <div class="fw-bold text-success">${this.formatCurrency(
+							summary.total_paid
+						)}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Unpaid</small>
+                        <div class="fw-bold text-warning">${this.formatCurrency(
+							summary.total_unpaid
+						)}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Avg Payment</small>
+                        <div class="fw-bold">${this.formatCurrency(
+							summary.avg_payment
+						)}</div>
+                    </div>
+                </div>
+                
+                ${
+					employee.payment_details &&
+					employee.payment_details.length > 0
+						? `
+                    <div class="mt-3">
+                        <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>Payment Details</h6>
+                        ${employee.payment_details
+							.map((payment: any) =>
+								this.renderPaymentDetail(payment)
+							)
+							.join("")}
+                    </div>
+                `
+						: '<p class="text-muted">No payment details available</p>'
+				}
+            </div>
+        </div>
+    `;
+	}
+
+	private renderPaymentBreakdown(breakdown: any): string {
+		return `
+        <div class="alert alert-info mb-3">
+            <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Employee Payment Configuration</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <small class="text-muted">Base Pay:</small>
+                    <div class="fw-bold">${this.formatCurrency(
+						breakdown.base_pay
+					)}</div>
+                </div>
+                ${
+					breakdown.base_extra_amount > 0
+						? `
+                <div class="col-md-3">
+                    <small class="text-muted">Base Extra Amount:</small>
+                    <div class="fw-bold">${this.formatCurrency(
+						breakdown.base_extra_amount
+					)}</div>
+                </div>
+				               <div class="col-md-3">
+                    <small class="text-muted">Extra Payment Type:</small>
+                    <div class="fw-bold">${this.capitalizeFirst(
+						breakdown.base_extra_payment_type
+					)}</div>
+                </div>
+                `
+						: ""
+				}
+                ${
+					breakdown.per_patient_payment_type
+						? `
+                <div class="col-md-3">
+                    <small class="text-muted">Per Patient Type:</small>
+                    <div class="fw-bold">${this.capitalizeFirst(
+						breakdown.per_patient_payment_type
+					)}</div>
+                </div>
+                `
+						: ""
+				}
+                ${
+					breakdown.percentage_scope
+						? `
+                <div class="col-md-3">
+                    <small class="text-muted">Percentage Scope:</small>
+                    <div class="fw-bold">${this.capitalizeFirst(
+						breakdown.percentage_scope.replace("_", " ")
+					)}</div>
+                </div>
+                `
+						: ""
+				}
+                ${
+					breakdown.need_clock_in
+						? `
+                <div class="col-md-3">
+                    <small class="text-muted">Shift:</small>
+                    <div class="fw-bold">
+                        ${this.capitalizeFirst(breakdown.shift_type)} 
+                        (${breakdown.shift_start_time} - ${
+								breakdown.shift_end_time
+						  })
+                    </div>
+                </div>
+                `
+						: ""
+				}
+            </div>
+        </div>
+    `;
 	}
 
 	private renderPaymentDetail(payment: any): string {
+		const hasPatientAssociations =
+			payment.patient_associations &&
+			payment.patient_associations.length > 0;
+		const hasDeductions =
+			payment.clock_in_deductions &&
+			payment.clock_in_deductions.length > 0;
+		const netAmount =
+			payment.payment_amount +
+			payment.extra_amount -
+			(payment.clock_in_deductions?.reduce(
+				(sum: number, d: any) => sum + d.pay_deduction,
+				0
+			) || 0);
+
 		return `
-            <div class="payment-detail-card">
-                <div class="payment-header">
-                    <div class="payment-date">
-                        <i class="bi bi-calendar3 me-2"></i>
-                        ${this.formatDateTime(payment.payment_date)}
-                    </div>
+        <div class="payment-detail-card mb-3">
+            <div class="payment-header">
+                <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="payment-amount">${this.formatCurrency(
-							payment.payment_amount + payment.extra_amount
-						)}</span>
+                        <div class="payment-date">
+                            <i class="bi bi-calendar3 me-2"></i>
+                            ${this.formatDateTime(payment.payment_date)}
+                        </div>
+                        <div class="payment-type-info mt-1">
+                            <span class="badge bg-primary me-2">${this.capitalizeFirst(
+								payment.payment_type
+							)}</span>
+                            ${
+								payment.extra_payment_type !== "none"
+									? `<span class="badge bg-info">${this.capitalizeFirst(
+											payment.extra_payment_type
+									  )}</span>`
+									: ""
+							}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="payment-amount">${this.formatCurrency(
+							netAmount
+						)}</div>
                         <span class="status-badge badge-${
 							payment.is_paid ? "paid" : "unpaid"
 						} ms-2">
@@ -5662,64 +5782,310 @@ class ReportsManager {
                         </span>
                     </div>
                 </div>
-                <div class="payment-meta">
-                    <div><strong>Type:</strong> ${payment.payment_type}</div>
-                    ${
-						payment.extra_payment_type !== "none"
-							? `<div><strong>Extra Type:</strong> ${payment.extra_payment_type}</div>`
-							: ""
-					}
-                    <div><strong>Base:</strong> ${this.formatCurrency(
-						payment.payment_amount
-					)}</div>
+            </div>
+
+            <!-- Payment Breakdown -->
+            <div class="payment-breakdown mt-3">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <div class="payment-item">
+                            <small class="text-muted">Base Pay:</small>
+                            <div class="fw-bold text-primary">${this.formatCurrency(
+								payment.payment_amount
+							)}</div>
+                        </div>
+                    </div>
                     ${
 						payment.extra_amount > 0
-							? `<div><strong>Extra:</strong> ${this.formatCurrency(
-									payment.extra_amount
-							  )}</div>`
-							: ""
-					}
-                    ${
-						payment.is_paid && payment.paid_timestamp
-							? `<div><strong>Paid:</strong> ${this.formatDateTime(
-									payment.paid_timestamp
-							  )}</div>`
-							: ""
-					}
-                    ${
-						payment.is_paid && payment.paid_by
-							? `<div><strong>Paid By:</strong> ${this.escapeHtml(
-									payment.paid_by
-							  )}</div>`
-							: ""
-					}
-                </div>
-                ${
-					payment.patient_associations &&
-					payment.patient_associations.length > 0
-						? `
-                    <div class="mt-2">
-                        <small class="text-muted">Patient Associations:</small>
-                        ${payment.patient_associations
-							.map(
-								(assoc: any) => `
-                            <div class="patient-association">
-                                <strong>${this.escapeHtml(
-									assoc.patient_name
-								)}</strong> - 
-                                ${this.formatDate(assoc.work_date)} - 
-                                ${assoc.hours_worked}h - 
-                                ${this.formatCurrency(assoc.payment_amount)}
-                            </div>
-                        `
-							)
-							.join("")}
+							? `
+                    <div class="col-md-3">
+                        <div class="payment-item">
+                            <small class="text-muted">Extra Pay:</small>
+                            <div class="fw-bold text-success">+${this.formatCurrency(
+								payment.extra_amount
+							)}</div>
+                        </div>
                     </div>
-                `
-						: ""
-				}
+                    `
+							: ""
+					}
+                    ${
+						hasDeductions
+							? `
+                    <div class="col-md-3">
+                        <div class="payment-item">
+                            <small class="text-muted">Deductions:</small>
+                            <div class="fw-bold text-danger">
+                                -${this.formatCurrency(
+									payment.clock_in_deductions.reduce(
+										(sum: number, d: any) =>
+											sum + d.pay_deduction,
+										0
+									)
+								)}
+                            </div>
+                        </div>
+                    </div>
+                    `
+							: ""
+					}
+                    <div class="col-md-3">
+                        <div class="payment-item">
+                            <small class="text-muted">Net Amount:</small>
+                            <div class="fw-bold text-dark">${this.formatCurrency(
+								netAmount
+							)}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        `;
+
+            ${
+				payment.is_paid
+					? `
+            <div class="payment-meta mt-2">
+                <small class="text-muted">
+                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                    Paid on ${this.formatDateTime(payment.paid_timestamp)}
+                    ${
+						payment.paid_by
+							? ` by ${this.escapeHtml(payment.paid_by)}`
+							: ""
+					}
+                </small>
+            </div>
+            `
+					: ""
+			}
+
+            ${
+				payment.main_patient_id
+					? `
+            <div class="alert alert-light mt-3 mb-2">
+                <i class="bi bi-person-badge me-2"></i>
+                <strong>Main Patient:</strong> ${this.escapeHtml(
+					payment.main_patient_name
+				)}
+            </div>
+            `
+					: ""
+			}
+
+            ${
+				hasPatientAssociations
+					? `
+            <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">
+                        <i class="bi bi-people me-2"></i>
+                        Patient Work Details (${
+							payment.patient_associations.length
+						})
+                    </h6>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#patientDetails${
+								payment.payment_id
+							}">
+                        <i class="bi bi-chevron-down"></i> Toggle Details
+                    </button>
+                </div>
+                <div class="collapse" id="patientDetails${payment.payment_id}">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Work Date</th>
+                                    <th>Patient Name</th>
+                                    <th>Diagnosis</th>
+                                    <th>Hours</th>
+                                    <th>Payment Type</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payment.patient_associations
+									.map(
+										(assoc: any) => `
+                                    <tr>
+                                        <td>${this.formatDate(
+											assoc.work_date
+										)}</td>
+                                        <td>
+                                            ${this.escapeHtml(
+												assoc.patient_name
+											)}
+                                            ${
+												assoc.admission_time
+													? `
+                                                <br><small class="text-muted">
+                                                    Admitted: ${this.formatDate(
+														assoc.admission_time
+													)}
+                                                    ${
+														assoc.discharge_time
+															? ` - Discharged: ${this.formatDate(
+																	assoc.discharge_time
+															  )}`
+															: ' <span class="badge bg-success">Active</span>'
+													}
+                                                </small>
+                                            `
+													: ""
+											}
+                                        </td>
+                                        <td>
+                                            ${
+												assoc.diagnosis
+													? `<small>${this.escapeHtml(
+															assoc.diagnosis
+													  )}</small>`
+													: '<span class="text-muted">N/A</span>'
+											}
+                                        </td>
+                                        <td>${assoc.hours_worked.toFixed(
+											1
+										)}h</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                ${this.capitalizeFirst(
+													assoc.payment_type.replace(
+														"_",
+														" "
+													)
+												)}
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold">${this.formatCurrency(
+											assoc.payment_amount
+										)}</td>
+                                    </tr>
+                                `
+									)
+									.join("")}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td><strong>${payment.patient_associations
+										.reduce(
+											(sum: number, a: any) =>
+												sum + a.hours_worked,
+											0
+										)
+										.toFixed(1)}h</strong></td>
+                                    <td></td>
+                                    <td class="text-end"><strong>${this.formatCurrency(
+										payment.patient_associations.reduce(
+											(sum: number, a: any) =>
+												sum + a.payment_amount,
+											0
+										)
+									)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            `
+					: ""
+			}
+
+            ${
+				hasDeductions
+					? `
+            <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Clock-In Deductions (${
+							payment.clock_in_deductions.length
+						})
+                    </h6>
+                    <button class="btn btn-sm btn-outline-danger" type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#deductionDetails${
+								payment.payment_id
+							}">
+                        <i class="bi bi-chevron-down"></i> Toggle Details
+                    </button>
+                </div>
+                <div class="collapse" id="deductionDetails${
+					payment.payment_id
+				}">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Hours Worked</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Deduction</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payment.clock_in_deductions
+									.map(
+										(deduction: any) => `
+                                    <tr>
+                                        <td>${this.formatDateTime(
+											deduction.clock_in
+										)}</td>
+                                        <td>${
+											deduction.clock_out
+												? this.formatDateTime(
+														deduction.clock_out
+												  )
+												: '<span class="badge bg-warning">Incomplete</span>'
+										}</td>
+                                        <td>${deduction.hours_worked.toFixed(
+											2
+										)}h</td>
+                                        <td>
+                                            <span class="badge ${
+												deduction.status === "On Time"
+													? "bg-success"
+													: deduction.status ===
+													  "Incomplete"
+													? "bg-warning"
+													: "bg-danger"
+											}">
+                                                ${deduction.status}
+                                            </span>
+                                        </td>
+                                        <td class="text-end text-danger fw-bold">
+                                            -${this.formatCurrency(
+												deduction.pay_deduction
+											)}
+                                        </td>
+                                    </tr>
+                                `
+									)
+									.join("")}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Total Deductions:</strong></td>
+                                    <td class="text-end text-danger"><strong>-${this.formatCurrency(
+										payment.clock_in_deductions.reduce(
+											(sum: number, d: any) =>
+												sum + d.pay_deduction,
+											0
+										)
+									)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            `
+					: ""
+			}
+        </div>
+    `;
 	}
 
 	private renderEmployeePaymentCharts(
@@ -5795,6 +6161,8 @@ class ReportsManager {
 		}
 
 		try {
+			await this.showLoading();
+
 			const filters = this.getReportFilters();
 			const reportTitle = `Employee Payment Report (${this.formatDate(
 				filters.start_date
@@ -5802,53 +6170,749 @@ class ReportsManager {
 
 			const employees = this.currentReportData.data;
 
-			const pdf = createCustomReport(
-				reportTitle,
-				[
+			const docDefinition = {
+				content: [
+					// Title
 					{
-						type: "header",
-						title: `Total Employees: ${employees.length}`
+						text: reportTitle,
+						style: "header",
+						alignment: "center",
+						margin: [0, 0, 0, 20]
 					},
-					{
-						type: "table",
-						fields: [
-							{
-								key: "employee_name",
-								label: "Employee Name",
-								type: "text"
-							},
-							{
-								key: "employee_type",
-								label: "Type",
-								type: "text"
-							},
-							{
-								key: "payment_summary.total_payments",
-								label: "Total Payments",
-								type: "number"
-							},
-							{
-								key: "payment_summary.total_paid",
-								label: "Total Paid",
-								type: "currency"
-							},
-							{
-								key: "payment_summary.total_unpaid",
-								label: "Total Unpaid",
-								type: "currency"
-							}
-						]
-					}
-				],
-				{ data: employees }
-			);
 
+					// Summary
+					{
+						text: `Total Employees: ${employees.length}`,
+						style: "subheader",
+						margin: [0, 0, 0, 10]
+					},
+
+					// Overall statistics
+					...this.generatePaymentSummarySection(employees),
+
+					// Individual employee details
+					...this.generateEmployeePaymentPages(employees)
+				],
+				styles: {
+					header: {
+						fontSize: 18,
+						bold: true
+					},
+					subheader: {
+						fontSize: 14,
+						bold: true,
+						color: "#0d6efd"
+					},
+					sectionHeader: {
+						fontSize: 12,
+						bold: true,
+						margin: [0, 10, 0, 5]
+					},
+					employeeHeader: {
+						fontSize: 14,
+						bold: true,
+						color: "#0d6efd",
+						margin: [0, 15, 0, 10]
+					}
+				},
+				pageMargins: [40, 60, 40, 60],
+				footer: function (currentPage: number, pageCount: number) {
+					return {
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						alignment: "center",
+						fontSize: 8,
+						margin: [0, 10, 0, 0]
+					};
+				},
+				defaultStyle: {
+					font: "Segoe UI"
+				},
+				pageSize: "A4"
+			};
+
+			//@ts-ignore
+			const pdf = pdfMake.createPdf(docDefinition);
 			pdf.open();
 			this.showSuccess("Report generated successfully");
-		} catch (error) {
-			console.error("Error printing employee payment report:", error);
-			this.showError("Failed to generate report");
+		} catch (error: any) {
+			console.error("Error generating employee payment report:", error);
+			this.showError(error.message || "Failed to generate report");
+		} finally {
+			this.hideLoading();
 		}
+	}
+
+	/**
+	 * Generate payment summary section for PDF
+	 */
+	private generatePaymentSummarySection(employees: any[]): any[] {
+		const totalBasePay = employees.reduce(
+			(sum, e) => sum + e.payment_summary.total_base_pay,
+			0
+		);
+		const totalExtraPay = employees.reduce(
+			(sum, e) => sum + e.payment_summary.total_extra_pay,
+			0
+		);
+		const totalDeductions = employees.reduce(
+			(sum, e) => sum + e.payment_summary.total_deductions,
+			0
+		);
+		const totalPaid = employees.reduce(
+			(sum, e) => sum + e.payment_summary.total_paid,
+			0
+		);
+		const totalUnpaid = employees.reduce(
+			(sum, e) => sum + e.payment_summary.total_unpaid,
+			0
+		);
+		const netPayment = totalBasePay + totalExtraPay - totalDeductions;
+
+		return [
+			{
+				table: {
+					widths: ["*", "*", "*", "*", "*", "*"],
+					body: [
+						[
+							{
+								text: "Base Pay",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Extra Pay",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Deductions",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Total Paid",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Total Unpaid",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Net Payment",
+								bold: true,
+								fillColor: "#f0f0f0"
+							}
+						],
+						[
+							{
+								text: this.formatCurrency(totalBasePay),
+								alignment: "right"
+							},
+							{
+								text: this.formatCurrency(totalExtraPay),
+								alignment: "right",
+								color: "#28a745"
+							},
+							{
+								text: this.formatCurrency(totalDeductions),
+								alignment: "right",
+								color: "#dc3545"
+							},
+							{
+								text: this.formatCurrency(totalPaid),
+								alignment: "right",
+								color: "#28a745"
+							},
+							{
+								text: this.formatCurrency(totalUnpaid),
+								alignment: "right",
+								color: "#ffc107"
+							},
+							{
+								text: this.formatCurrency(netPayment),
+								alignment: "right",
+								bold: true
+							}
+						]
+					]
+				},
+				margin: [0, 0, 0, 20]
+			}
+		];
+	}
+
+	/**
+	 * Generate individual employee payment pages for PDF
+	 */
+	private generateEmployeePaymentPages(employees: any[]): any[] {
+		const content: any[] = [];
+
+		employees.forEach((employee, index) => {
+			// Page break before each employee except the first
+			if (index > 0) {
+				content.push({ text: "", pageBreak: "before" });
+			}
+
+			// Employee header
+			content.push({
+				text: employee.employee_name,
+				style: "employeeHeader"
+			});
+
+			content.push({
+				text: `${employee.employee_type.toUpperCase()} | Hired: ${this.formatDate(
+					employee.hire_date
+				)}`,
+				fontSize: 10,
+				margin: [0, 0, 0, 10]
+			});
+
+			// Employee configuration (if available)
+			if (employee.payment_breakdown) {
+				content.push(
+					...this.generateEmployeeConfigSection(
+						employee.payment_breakdown
+					)
+				);
+			}
+
+			// Payment summary
+			content.push({
+				text: "Payment Summary",
+				style: "sectionHeader"
+			});
+
+			const summary = employee.payment_summary;
+			content.push({
+				table: {
+					widths: ["*", "*", "*", "*", "*"],
+					body: [
+						[
+							{
+								text: "Base Pay",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Extra Pay",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{
+								text: "Deductions",
+								bold: true,
+								fillColor: "#f0f0f0"
+							},
+							{ text: "Paid", bold: true, fillColor: "#f0f0f0" },
+							{ text: "Unpaid", bold: true, fillColor: "#f0f0f0" }
+						],
+						[
+							{
+								text: this.formatCurrency(
+									summary.total_base_pay
+								),
+								alignment: "right"
+							},
+							{
+								text: this.formatCurrency(
+									summary.total_extra_pay
+								),
+								alignment: "left",
+								color: "#28a745"
+							},
+							{
+								text: this.formatCurrency(
+									summary.total_deductions
+								),
+								alignment: "left",
+								color: "#dc3545"
+							},
+							{
+								text: this.formatCurrency(summary.total_paid),
+								alignment: "left",
+								color: "#28a745"
+							},
+							{
+								text: this.formatCurrency(summary.total_unpaid),
+								alignment: "left",
+								color: "#ffc107"
+							}
+						]
+					]
+				},
+				margin: [0, 0, 0, 15]
+			});
+
+			// Individual payment details
+			if (
+				employee.payment_details &&
+				employee.payment_details.length > 0
+			) {
+				content.push({
+					text: `Payment Details (${employee.payment_details.length} records)`,
+					style: "sectionHeader"
+				});
+
+				employee.payment_details.forEach((payment: any) => {
+					content.push(...this.generatePaymentDetailForPDF(payment));
+				});
+			}
+		});
+
+		return content;
+	}
+
+	private generateEmployeeConfigSection(breakdown: any): any[] {
+		const configRows = [
+			["Base Pay", this.formatCurrency(breakdown.base_pay)]
+		];
+
+		if (breakdown.base_extra_amount > 0) {
+			configRows.push([
+				"Base Extra Amount",
+				this.formatCurrency(breakdown.base_extra_amount)
+			]);
+			configRows.push([
+				"Extra Payment Type",
+				this.capitalizeFirst(breakdown.base_extra_payment_type)
+			]);
+		}
+
+		if (breakdown.per_patient_payment_type) {
+			configRows.push([
+				"Per Patient Payment Type",
+				this.capitalizeFirst(breakdown.per_patient_payment_type)
+			]);
+		}
+
+		if (breakdown.percentage_scope) {
+			configRows.push([
+				"Percentage Scope",
+				this.capitalizeFirst(
+					breakdown.percentage_scope.replace("_", " ")
+				)
+			]);
+		}
+
+		if (breakdown.need_clock_in) {
+			configRows.push([
+				"Shift",
+				`${this.capitalizeFirst(breakdown.shift_type)} (${
+					breakdown.shift_start_time
+				} - ${breakdown.shift_end_time})`
+			]);
+		}
+
+		configRows.push(["Work Days", breakdown.total_work_days.toString()]);
+
+		configRows.push([
+			"Patients Served",
+			breakdown.total_patients_served.toString()
+		]);
+
+		return [
+			{
+				text: "Employee Configuration",
+				style: "sectionHeader"
+			},
+			{
+				table: {
+					widths: ["*", "*"],
+					body: configRows.map((row, index) => [
+						{
+							text: row[0],
+							bold: true,
+							fillColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff"
+						},
+						{
+							text: row[1],
+							fillColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff"
+						}
+					])
+				},
+				margin: [0, 0, 0, 15]
+			}
+		];
+	}
+
+	/**
+	 * Generate payment detail section for PDF
+	 */
+	private generatePaymentDetailForPDF(payment: any): any[] {
+		const content: any[] = [];
+
+		const netAmount =
+			payment.payment_amount +
+			payment.extra_amount -
+			(payment.clock_in_deductions?.reduce(
+				(sum: number, d: any) => sum + d.pay_deduction,
+				0
+			) || 0);
+
+		// Payment header
+		content.push({
+			table: {
+				widths: ["*", "auto", "auto"],
+				body: [
+					[
+						{
+							text: this.formatDateTime(payment.payment_date),
+							bold: true,
+							fillColor: "#e9ecef"
+						},
+						{
+							text: this.capitalizeFirst(payment.payment_type),
+							fillColor: "#e9ecef"
+						},
+						{
+							text: payment.is_paid ? "PAID" : "UNPAID",
+							bold: true,
+							color: payment.is_paid ? "#28a745" : "#ffc107",
+							fillColor: "#e9ecef"
+						}
+					]
+				]
+			},
+			margin: [0, 5, 0, 5]
+		});
+
+		// Payment breakdown
+		const breakdownBody = [
+			[
+				{ text: "Base Pay", bold: true, fillColor: "#f8f9fa" },
+				{ text: "Extra Pay", bold: true, fillColor: "#f8f9fa" },
+				{ text: "Deductions", bold: true, fillColor: "#f8f9fa" },
+				{ text: "Net Amount", bold: true, fillColor: "#f8f9fa" }
+			],
+			[
+				{
+					text: this.formatCurrency(payment.payment_amount),
+					alignment: "left"
+				},
+				{
+					text: this.formatCurrency(payment.extra_amount),
+					alignment: "left",
+					color: "#28a745"
+				},
+				{
+					text: this.formatCurrency(
+						payment.clock_in_deductions?.reduce(
+							(sum: number, d: any) => sum + d.pay_deduction,
+							0
+						) || 0
+					),
+					alignment: "left",
+					color: "#dc3545"
+				},
+				{
+					text: this.formatCurrency(netAmount),
+					alignment: "left",
+					bold: true
+				}
+			]
+		];
+
+		content.push({
+			table: {
+				widths: ["*", "*", "*", "*"],
+				body: breakdownBody
+			},
+			margin: [0, 0, 0, 5]
+		});
+
+		// Main patient info
+		if (payment.main_patient_name) {
+			content.push({
+				text: `Main Patient: ${payment.main_patient_name}`,
+				fontSize: 9,
+				bold: true,
+				margin: [0, 5, 0, 5]
+			});
+		}
+
+		// Patient associations
+		if (
+			payment.patient_associations &&
+			payment.patient_associations.length > 0
+		) {
+			content.push({
+				text: `Patient Work Details (${payment.patient_associations.length})`,
+				bold: true,
+				fontSize: 10,
+				margin: [0, 10, 0, 5]
+			});
+
+			const patientTableBody: any[] = [
+				[
+					{
+						text: "Date",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Patient",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Diagnosis",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Hours",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{
+						text: "Type",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Amount",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					}
+				]
+			];
+
+			payment.patient_associations.forEach((assoc: any) => {
+				patientTableBody.push([
+					{ text: this.formatDate(assoc.work_date), fontSize: 8 },
+					{
+						text: [
+							assoc.patient_name,
+							assoc.admission_time
+								? `\n(Admitted: ${this.formatDate(
+										assoc.admission_time
+								  )})`
+								: ""
+						],
+						fontSize: 8
+					},
+					{ text: assoc.diagnosis || "N/A", fontSize: 8 },
+					{
+						text: `${assoc.hours_worked.toFixed(1)}h`,
+						fontSize: 8,
+						alignment: "center"
+					},
+					{
+						text: this.capitalizeFirst(
+							assoc.payment_type.replace("_", " ")
+						),
+						fontSize: 8
+					},
+					{
+						text: this.formatCurrency(assoc.payment_amount),
+						fontSize: 8,
+						alignment: "right"
+					}
+				]);
+			});
+
+			// Add total row
+			patientTableBody.push([
+				{
+					text: "TOTAL",
+					bold: true,
+					fontSize: 8,
+					colSpan: 3,
+					fillColor: "#f0f0f0"
+				},
+				{},
+				{},
+				{
+					text: `${payment.patient_associations
+						.reduce(
+							(sum: number, a: any) => sum + a.hours_worked,
+							0
+						)
+						.toFixed(1)}h`,
+					bold: true,
+					fontSize: 8,
+					alignment: "center",
+					fillColor: "#f0f0f0"
+				},
+				{ text: "", fillColor: "#f0f0f0" },
+				{
+					text: this.formatCurrency(
+						payment.patient_associations.reduce(
+							(sum: number, a: any) => sum + a.payment_amount,
+							0
+						)
+					),
+					bold: true,
+					fontSize: 8,
+					alignment: "right",
+					fillColor: "#f0f0f0"
+				}
+			]);
+
+			content.push({
+				table: {
+					widths: ["auto", "*", "*", "auto", "auto", "auto"],
+					body: patientTableBody
+				},
+				margin: [0, 0, 0, 5],
+				fontSize: 8
+			});
+		}
+
+		// Clock-in deductions
+		if (
+			payment.clock_in_deductions &&
+			payment.clock_in_deductions.length > 0
+		) {
+			content.push({
+				text: `Clock-In Deductions (${payment.clock_in_deductions.length})`,
+				bold: true,
+				fontSize: 10,
+				color: "#dc3545",
+				margin: [0, 10, 0, 5]
+			});
+
+			const deductionTableBody: any[] = [
+				[
+					{
+						text: "Clock In",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Clock Out",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Hours",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0",
+						alignment: "center"
+					},
+					{
+						text: "Status",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0"
+					},
+					{
+						text: "Deduction",
+						bold: true,
+						fontSize: 8,
+						fillColor: "#f0f0f0",
+						alignment: "right"
+					}
+				]
+			];
+
+			payment.clock_in_deductions.forEach((deduction: any) => {
+				deductionTableBody.push([
+					{
+						text: this.formatDateTime(deduction.clock_in),
+						fontSize: 8
+					},
+					{
+						text: deduction.clock_out
+							? this.formatDateTime(deduction.clock_out)
+							: "Incomplete",
+						fontSize: 8
+					},
+					{
+						text: `${deduction.hours_worked.toFixed(2)}h`,
+						fontSize: 8,
+						alignment: "center"
+					},
+					{ text: deduction.status, fontSize: 8 },
+					{
+						text: this.formatCurrency(deduction.pay_deduction),
+						fontSize: 8,
+						alignment: "right",
+						color: "#dc3545"
+					}
+				]);
+			});
+
+			// Add total row
+			deductionTableBody.push([
+				{
+					text: "TOTAL",
+					bold: true,
+					fontSize: 8,
+					colSpan: 4,
+					fillColor: "#f0f0f0"
+				},
+				{},
+				{},
+				{},
+				{
+					text: this.formatCurrency(
+						payment.clock_in_deductions.reduce(
+							(sum: number, d: any) => sum + d.pay_deduction,
+							0
+						)
+					),
+					bold: true,
+					fontSize: 8,
+					alignment: "right",
+					fillColor: "#f0f0f0",
+					color: "#dc3545"
+				}
+			]);
+
+			content.push({
+				table: {
+					widths: ["*", "*", "auto", "auto", "auto"],
+					body: deductionTableBody
+				},
+				margin: [0, 0, 0, 5],
+				fontSize: 8
+			});
+		}
+
+		// Payment status info
+		if (payment.is_paid && payment.paid_timestamp) {
+			content.push({
+				text: `Paid on ${this.formatDateTime(payment.paid_timestamp)}${
+					payment.paid_by ? ` by ${payment.paid_by}` : ""
+				}`,
+				fontSize: 8,
+				bold: true,
+				color: "#28a745",
+				margin: [0, 5, 0, 0]
+			});
+		}
+
+		// Separator
+		content.push({
+			canvas: [
+				{
+					type: "line",
+					x1: 0,
+					y1: 5,
+					x2: 515,
+					y2: 5,
+					lineWidth: 1,
+					lineColor: "#dee2e6"
+				}
+			],
+			margin: [0, 10, 0, 10]
+		});
+
+		return content;
 	}
 
 	// ==================== HELPER METHODS ====================
