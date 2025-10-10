@@ -314,7 +314,6 @@ CREATE TABLE IF NOT EXISTS ShipmentPrice (
 CREATE TABLE IF NOT EXISTS EmployeePayment (
 	payment_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
-	patient_id INTEGER REFERENCES Patient(patient_id) ON DELETE CASCADE DEFAULT NULL,
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	extra_payment_type VARCHAR(50), -- 'none' | 'per_patient' | 'income'
 	payment_type VARCHAR(50) NOT NULL, -- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' 

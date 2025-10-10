@@ -1195,35 +1195,35 @@ export default class ReportModel {
 
 		// Generate complete date series and count patients who were in the hospital during each period
 		const sql = `
-        WITH date_series AS (
-            SELECT generate_series(
-                $1::date,
-                $2::date,
-                $3::interval
-            )::date as period_date
-        ),
-        period_series AS (
-            SELECT 
-                period_date,
-                TO_CHAR(period_date, $4) as period
-            FROM date_series
-        )
-        SELECT 
-            ps.period,
-            COUNT(DISTINCT ph.patient_id) as patient_count,
-            COALESCE(SUM(b.total_amount), 0) as total_amount
-        FROM period_series ps
-        LEFT JOIN PatientHistory ph ON (
-            ph.admission_time::date <= ps.period_date
-            AND (
-                ph.discharge_time IS NULL 
-                OR ph.discharge_time::date >= ps.period_date
-            )
-        )
-        LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-        GROUP BY ps.period, ps.period_date
-        ORDER BY ps.period_date
-    `;
+ 	       WITH date_series AS (
+ 	           SELECT generate_series(
+ 	               $1::date,
+ 	               $2::date,
+ 	               $3::interval
+ 	           )::date as period_date
+ 	       ),
+ 	       period_series AS (
+ 	           SELECT 
+ 	               period_date,
+ 	               TO_CHAR(period_date, $4) as period
+ 	           FROM date_series
+ 	       )
+ 	       SELECT 
+ 	           ps.period,
+ 	           COUNT(DISTINCT ph.patient_id) as patient_count,
+ 	           COALESCE(SUM(b.total_amount), 0) as total_amount
+ 	       FROM period_series ps
+ 	       LEFT JOIN PatientHistory ph ON (
+ 	           ph.admission_time::date <= ps.period_date
+ 	           AND (
+ 	               ph.discharge_time IS NULL 
+ 	               OR ph.discharge_time::date >= ps.period_date
+ 	           )
+ 	       )
+ 	       LEFT JOIN Bill b ON ph.bill_id = b.bill_id
+ 	       GROUP BY ps.period, ps.period_date
+ 	       ORDER BY ps.period_date
+ 	   `;
 
 		const result = await query(sql, [
 			dateRange.start_date,
@@ -1793,26 +1793,31 @@ export default class ReportModel {
 		}
 
 		const sql = `
-            SELECT DISTINCT
-                e.employee_id,
-                e.name as employee_name,
-                e.employee_type,
-                e.hire_date
-            FROM Employee e
-            WHERE EXISTS (
-                SELECT 1 FROM EmployeePayment ep
-                WHERE ep.employee_id = e.employee_id
-                AND ep.issued_timestamp BETWEEN $1 AND $2
-            )
-            ${employeeCondition}
-            ORDER BY e.name
-        `;
+        SELECT DISTINCT
+            e.employee_id,
+            e.name as employee_name,
+            e.employee_type,
+            e.hire_date
+        FROM Employee e
+        WHERE EXISTS (
+            SELECT 1 FROM EmployeePayment ep
+            WHERE ep.employee_id = e.employee_id
+            AND ep.issued_timestamp BETWEEN $1 AND $2
+        )
+        ${employeeCondition}
+        ORDER BY e.name
+    `;
 
 		const employeesResult = await query(sql, params);
 		const reports: EmployeePaymentReport[] = [];
 
 		for (const employee of employeesResult.rows) {
 			const paymentDetails = await this.getEmployeePaymentDetails(
+				employee.employee_id,
+				dateRange
+			);
+
+			const breakdown = await this.getEmployeePaymentBreakdown(
 				employee.employee_id,
 				dateRange
 			);
@@ -1825,7 +1830,8 @@ export default class ReportModel {
 				employee_type: employee.employee_type,
 				hire_date: employee.hire_date,
 				payment_summary: summary,
-				payment_details: paymentDetails
+				payment_details: paymentDetails,
+				payment_breakdown: breakdown
 			});
 		}
 
@@ -1833,31 +1839,42 @@ export default class ReportModel {
 	}
 
 	/**
-	 * Get detailed payment information for an employee
+	 * Get detailed payment information for an employee with all granular data
 	 */
 	private static async getEmployeePaymentDetails(
 		employeeId: number,
 		dateRange: ReportDateRange
 	): Promise<EmployeePaymentDetail[]> {
 		const sql = `
-            SELECT 
-                ep.payment_id,
-                ep.issued_timestamp as payment_date,
-                ep.payment_amount,
-                ep.extra_amount,
-                ep.extra_payment_type,
-                ep.payment_type,
-                ep.percentage_scope,
-                ep.is_paid,
-                ep.paid_timestamp,
-                u.username as paid_by
-            FROM EmployeePayment ep
-            LEFT JOIN "User" u ON ep.paid_by_user_id = u.user_id
-            WHERE ep.employee_id = $1
-            AND ep.issued_timestamp BETWEEN $2 AND $3
-            AND ep.is_void = false
-            ORDER BY ep.issued_timestamp DESC
-        `;
+	        SELECT 
+	            ep.payment_id,
+	            ep.issued_timestamp as payment_date,
+	            ep.payment_amount,
+	            ep.extra_amount,
+	            ep.extra_payment_type,
+	            ep.payment_type,
+	            ep.percentage_scope,
+	            ep.is_paid,
+	            ep.is_void,
+	            ep.paid_timestamp,
+	            u.username as paid_by,
+	            p.patient_id as main_patient_id,
+	            p.name as main_patient_name
+	        FROM EmployeePayment ep
+	        LEFT JOIN "User" u ON ep.paid_by_user_id = u.user_id
+	        LEFT JOIN (
+	            SELECT DISTINCT ON (payment_id) 
+	                epp.payment_id, 
+	                epp.patient_id,
+	                p.name
+	            FROM EmployeePaymentPatient epp
+	            JOIN Patient p ON epp.patient_id = p.patient_id
+	        ) p ON ep.payment_id = p.payment_id
+	        WHERE ep.employee_id = $1
+	        AND ep.issued_timestamp BETWEEN $2 AND $3
+	        AND ep.is_void = false
+	        ORDER BY ep.issued_timestamp DESC
+	    `;
 
 		const result = await query(sql, [
 			employeeId,
@@ -1868,24 +1885,14 @@ export default class ReportModel {
 
 		for (const row of result.rows) {
 			// Get patient associations for this payment
-			const associationsSql = `
-                SELECT 
-                    epp.patient_id,
-                    p.name as patient_name,
-                    epp.patient_history_id,
-                    epp.work_date,
-                    epp.hours_worked,
-                    epp.payment_amount,
-                    epp.payment_type
-                FROM EmployeePaymentPatient epp
-                JOIN Patient p ON epp.patient_id = p.patient_id
-                WHERE epp.payment_id = $1
-                ORDER BY epp.work_date DESC
-            `;
+			const patientAssociations =
+				await this.getPaymentPatientAssociations(row.payment_id);
 
-			const associationsResult = await query(associationsSql, [
-				row.payment_id
-			]);
+			// Get clock-in deductions for this payment period
+			const clockInDeductions = await this.getClockInDeductions(
+				employeeId,
+				row.payment_date
+			);
 
 			details.push({
 				payment_id: row.payment_id,
@@ -1894,23 +1901,19 @@ export default class ReportModel {
 				extra_amount: parseFloat(row.extra_amount || 0),
 				extra_payment_type: row.extra_payment_type,
 				payment_type: row.payment_type,
+				percentage_scope: row.percentage_scope,
 				is_paid: row.is_paid,
+				is_void: row.is_void,
 				paid_timestamp: row.paid_timestamp,
 				paid_by: row.paid_by,
+				main_patient_id: row.main_patient_id,
+				main_patient_name: row.main_patient_name,
 				patient_associations:
-					associationsResult.rows.length > 0
-						? associationsResult.rows.map((assoc) => ({
-								patient_id: assoc.patient_id,
-								patient_name: assoc.patient_name,
-								patient_history_id: assoc.patient_history_id,
-								work_date: assoc.work_date,
-								hours_worked: parseFloat(assoc.hours_worked),
-								payment_amount: parseFloat(
-									assoc.payment_amount
-								),
-								payment_type: assoc.payment_type
-						  }))
-						: undefined
+					patientAssociations.length > 0
+						? patientAssociations
+						: undefined,
+				clock_in_deductions:
+					clockInDeductions.length > 0 ? clockInDeductions : undefined
 			});
 		}
 
@@ -1918,7 +1921,176 @@ export default class ReportModel {
 	}
 
 	/**
-	 * Calculate payment summary for an employee
+	 * Get patient associations for a payment
+	 */
+	private static async getPaymentPatientAssociations(
+		paymentId: number
+	): Promise<any[]> {
+		const sql = `
+	        SELECT 
+	            epp.payment_patient_id,
+	            epp.patient_id,
+	            p.name as patient_name,
+	            epp.patient_history_id,
+	            ph.admission_time,
+	            ph.discharge_time,
+	            ph.diagnosis,
+	            epp.work_date,
+	            epp.hours_worked,
+	            epp.payment_amount,
+	            epp.payment_type
+	        FROM EmployeePaymentPatient epp
+	        JOIN Patient p ON epp.patient_id = p.patient_id
+	        LEFT JOIN PatientHistory ph ON epp.patient_history_id = ph.patient_history_id
+	        WHERE epp.payment_id = $1
+	        ORDER BY epp.work_date DESC, p.name
+	    `;
+
+		const result = await query(sql, [paymentId]);
+
+		return result.rows.map((row) => ({
+			payment_patient_id: row.payment_patient_id,
+			patient_id: row.patient_id,
+			patient_name: row.patient_name,
+			patient_history_id: row.patient_history_id,
+			admission_time: row.admission_time,
+			discharge_time: row.discharge_time,
+			diagnosis: row.diagnosis,
+			work_date: row.work_date,
+			hours_worked: parseFloat(row.hours_worked),
+			payment_amount: parseFloat(row.payment_amount),
+			payment_type: row.payment_type
+		}));
+	}
+
+	/**
+	 * Get clock-in deductions for an employee around a payment date
+	 */
+	private static async getClockInDeductions(
+		employeeId: number,
+		paymentDate: string
+	): Promise<any[]> {
+		// Get deductions from the previous pay period to current payment date
+		const sql = `
+	        SELECT 
+	            ec.clock_id,
+	            ec.clock_in,
+	            ec.clock_out,
+	            ec.pay_deduction,
+	            EXTRACT(EPOCH FROM (ec.clock_out - ec.clock_in)) / 3600.0 as hours_worked,
+	            CASE 
+	                WHEN ec.clock_out IS NULL THEN 'Incomplete'
+	                WHEN ec.pay_deduction > 0 THEN 'Late/Early'
+	                ELSE 'On Time'
+	            END as status
+	        FROM EmployeeClockIn ec
+	        WHERE ec.employee_id = $1
+	        AND ec.clock_in::date <= $2::date
+	        AND ec.pay_deduction > 0
+	        AND ec.clock_in >= $2::date - INTERVAL '30 days'
+	        ORDER BY ec.clock_in DESC
+	    `;
+
+		const result = await query(sql, [employeeId, paymentDate]);
+
+		return result.rows.map((row) => ({
+			clock_id: row.clock_id,
+			clock_in: row.clock_in,
+			clock_out: row.clock_out,
+			pay_deduction: parseFloat(row.pay_deduction),
+			hours_worked: parseFloat(row.hours_worked) || 0,
+			status: row.status
+		}));
+	}
+
+	/**
+	 * Get comprehensive employee payment breakdown
+	 */
+	private static async getEmployeePaymentBreakdown(
+		employeeId: number,
+		dateRange: ReportDateRange
+	): Promise<any> {
+		const sql = `
+	        SELECT 
+	            e.employee_id,
+	            e.name as employee_name,
+	            e.employee_type,
+	            e.base_pay,
+	            e.extra_amount as base_extra_amount,
+	            e.extra_payment_type as base_extra_payment_type,
+	            e.per_patient_payment_type,
+	            e.percentage_scope,
+	            e.need_clock_in,
+	            e.shift_type,
+	            e.shift_start_time,
+	            e.shift_end_time,
+	            COUNT(DISTINCT ep.payment_id) as total_payment_records,
+	            SUM(ep.payment_amount) as total_base_pay,
+	            SUM(ep.extra_amount) as total_extra_pay,
+	            SUM(CASE WHEN ep.is_paid THEN ep.payment_amount + ep.extra_amount ELSE 0 END) as total_paid,
+	            SUM(CASE WHEN NOT ep.is_paid THEN ep.payment_amount + ep.extra_amount ELSE 0 END) as total_unpaid,
+	            (
+	                SELECT COALESCE(SUM(ec.pay_deduction), 0)
+	                FROM EmployeeClockIn ec
+	                WHERE ec.employee_id = e.employee_id
+	                AND ec.clock_in BETWEEN $2 AND $3
+	            ) as total_deductions,
+	            COUNT(DISTINCT dsa.work_date) as total_work_days,
+	            COUNT(DISTINCT dsa.patient_id) as total_patients_served
+	        FROM Employee e
+	        LEFT JOIN EmployeePayment ep ON e.employee_id = ep.employee_id
+	            AND ep.issued_timestamp BETWEEN $2 AND $3
+	            AND ep.is_void = false
+	        LEFT JOIN DailyStaffAssignment dsa ON e.employee_id = dsa.employee_id
+	            AND dsa.work_date BETWEEN $2::date AND $3::date
+	        WHERE e.employee_id = $1
+	        GROUP BY e.employee_id, e.name, e.employee_type, e.base_pay, e.extra_amount, 
+	                 e.extra_payment_type, e.per_patient_payment_type, e.percentage_scope,
+	                 e.need_clock_in, e.shift_type, e.shift_start_time, e.shift_end_time
+	    `;
+
+		const result = await query(sql, [
+			employeeId,
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		if (result.rows.length === 0) {
+			return null;
+		}
+
+		const row = result.rows[0];
+
+		return {
+			employee_id: row.employee_id,
+			employee_name: row.employee_name,
+			employee_type: row.employee_type,
+			base_pay: parseFloat(row.base_pay) || 0,
+			base_extra_amount: parseFloat(row.base_extra_amount) || 0,
+			base_extra_payment_type: row.base_extra_payment_type,
+			per_patient_payment_type: row.per_patient_payment_type,
+			percentage_scope: row.percentage_scope,
+			need_clock_in: row.need_clock_in,
+			shift_type: row.shift_type,
+			shift_start_time: row.shift_start_time,
+			shift_end_time: row.shift_end_time,
+			total_payment_records: parseInt(row.total_payment_records),
+			total_base_pay: parseFloat(row.total_base_pay) || 0,
+			total_extra_pay: parseFloat(row.total_extra_pay) || 0,
+			total_paid: parseFloat(row.total_paid) || 0,
+			total_unpaid: parseFloat(row.total_unpaid) || 0,
+			total_deductions: parseFloat(row.total_deductions) || 0,
+			total_work_days: parseInt(row.total_work_days) || 0,
+			total_patients_served: parseInt(row.total_patients_served) || 0,
+			net_payment:
+				parseFloat(row.total_base_pay) +
+				parseFloat(row.total_extra_pay) -
+				parseFloat(row.total_deductions)
+		};
+	}
+
+	/**
+	 * Update calculatePaymentSummary to include deductions
 	 */
 	private static calculatePaymentSummary(
 		payments: EmployeePaymentDetail[]
@@ -1939,13 +2111,23 @@ export default class ReportModel {
 			.filter((p) => !p.is_paid)
 			.reduce((sum, p) => sum + p.payment_amount + p.extra_amount, 0);
 
+		// Calculate total deductions
+		const totalDeductions = payments.reduce((sum, p) => {
+			const deductions = p.clock_in_deductions || [];
+			return (
+				sum + deductions.reduce((dSum, d) => dSum + d.pay_deduction, 0)
+			);
+		}, 0);
+
 		return {
 			total_payments: totalPayments,
 			total_base_pay: totalBasePay,
 			total_extra_pay: totalExtraPay,
 			total_paid: totalPaid,
 			total_unpaid: totalUnpaid,
-			total_voided: 0, // Voided payments are excluded in the query
+			total_voided: 0,
+			total_deductions: totalDeductions,
+			net_payment: totalBasePay + totalExtraPay - totalDeductions,
 			avg_payment:
 				totalPayments > 0
 					? (totalBasePay + totalExtraPay) / totalPayments
