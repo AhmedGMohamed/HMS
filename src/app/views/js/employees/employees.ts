@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface Employee {
 	employee_id: number;
@@ -18,7 +19,7 @@ interface Employee {
 	need_clock_in: boolean;
 	shift_type?: string;
 	shift_start_time?: string;
-	shift_end_time?: string; 
+	shift_end_time?: string;
 }
 
 interface Payment {
@@ -56,7 +57,6 @@ class EmployeeManager {
 	private pendingPaymentEndDate: HTMLInputElement;
 
 	constructor() {
-		new SidebarManager();
 		toastr.options = { positionClass: "toast-top-right", timeOut: 3000 };
 
 		//@ts-ignore
@@ -103,12 +103,49 @@ class EmployeeManager {
 		this.pendingPaymentEndDate = document.getElementById(
 			"pendingPaymentEndDate"
 		) as HTMLInputElement;
+		this.waitForI18n().then(() => {
+			new SidebarManager();
 
-		this.initializeEventListeners();
-		this.loadUser();
-		this.loadEmployees();
-		if (this.userPermissions.includes("manage_payments"))
-			this.loadPayments();
+			this.initializeEventListeners();
+			this.loadUser();
+			this.loadEmployees();
+			if (this.userPermissions.includes("manage_payments"))
+				this.loadPayments();
+
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Update page title
+		document.title = i18n.t("employees.pageTitle");
+
+		// Re-render all employee tables with new formatting and translations
+		this.renderEmployees(
+			"other",
+			"employeesTableBody",
+			this.employeePaymentStartDate,
+			this.employeePaymentEndDate
+		);
+		this.renderEmployees(
+			"nurse",
+			"nursesTableBody",
+			this.nursePaymentStartDate,
+			this.nursePaymentEndDate
+		);
+
+		// Re-render payments if user has permission
+		if (this.userPermissions.includes("manage_payments")) {
+			this.renderPayments();
+		}
 	}
 
 	private initializeEventListeners(): void {
@@ -336,13 +373,15 @@ class EmployeeManager {
 
 	private async loadUser(): Promise<void> {
 		try {
+			document.title = i18n.t("employees.pageTitle");
+
 			const userString = localStorage.getItem("user");
 			if (!userString) return;
 
 			const user = JSON.parse(userString);
 			this.userPermissions = user.permissions;
 		} catch (error) {
-			this.showError("Failed to load user permissions");
+			this.showError(i18n.t("employees.messages.loadError"));
 		}
 	}
 
@@ -353,7 +392,8 @@ class EmployeeManager {
 					Authorization: `Bearer ${localStorage.getItem("token")}`
 				}
 			});
-			if (!response.ok) throw new Error("Failed to fetch employees");
+			if (!response.ok)
+				throw new Error(i18n.t("employees.messages.loadError"));
 			const employees: Employee[] = await response.json();
 			this.employees.clear();
 			employees.forEach((employee) =>
@@ -372,7 +412,7 @@ class EmployeeManager {
 				this.nursePaymentEndDate
 			);
 		} catch (error) {
-			this.showError("Failed to load employees");
+			this.showError(i18n.t("employees.messages.loadError"));
 		}
 	}
 
@@ -386,7 +426,8 @@ class EmployeeManager {
 					}
 				}
 			);
-			if (!response.ok) throw new Error("Failed to fetch payments");
+			if (!response.ok)
+				throw new Error(i18n.t("employees.messages.loadPaymentsError"));
 			const payments: Payment[] = await response.json();
 			this.payments.clear();
 			payments.forEach((payment) => {
@@ -394,7 +435,7 @@ class EmployeeManager {
 			});
 			this.renderPayments();
 		} catch (error) {
-			this.showError("Failed to load payments");
+			this.showError(i18n.t("employees.messages.loadPaymentsError"));
 		}
 	}
 
@@ -409,12 +450,10 @@ class EmployeeManager {
 				}
 			);
 			if (!response.ok)
-				throw new Error(
-					`Failed to fetch payments for employee ${employeeId}`
-				);
+				throw new Error(i18n.t("employees.messages.loadPaymentsError"));
 			return await response.json();
 		} catch (error) {
-			this.showError(`Failed to load payments for employee`);
+			this.showError(i18n.t("employees.messages.loadPaymentsError"));
 			return [];
 		}
 	}
@@ -439,6 +478,17 @@ class EmployeeManager {
 				employee.employee_type === employeeType &&
 				employee.name.toLowerCase().includes(filterTerm.toLowerCase())
 		);
+
+		if (filteredEmployees.length === 0) {
+			tbody.innerHTML = `
+				<tr>
+					<td colspan="9" class="text-center text-muted">
+						${i18n.t("common.noData")}
+					</td>
+				</tr>
+			`;
+			return;
+		}
 
 		const employeeData = await Promise.all(
 			filteredEmployees.map(async (employee) => {
@@ -468,6 +518,7 @@ class EmployeeManager {
 				return { employee, payments: filteredPayments };
 			})
 		);
+
 		tbody.innerHTML = employeeData
 			.map(({ employee, payments }) => {
 				const collapseId = `employeePayments${employee.employee_id}`;
@@ -478,34 +529,47 @@ class EmployeeManager {
 					this.userPermissions.includes("manage_payments") &&
 					payments.length > 0
 						? `<button class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                                 <i class="bi bi-chevron-down"></i>
-                               </button>`
+                             <i class="bi bi-chevron-down"></i>
+                           </button>`
 						: ""
 				}
             </td>
             <td>${this.escapeHtml(employee.name)}</td>
-            <td>${this.escapeHtml(employee.employee_type)}</td>
-            <td>${new Date(employee.hire_date).toLocaleDateString()}</td>
-            <td>$${
+            <td>${i18n.t(`employees.types.${employee.employee_type}`)}</td>
+            <td>${i18n.formatDate(new Date(employee.hire_date))}</td>
+            <td>${
 				this.userPermissions.includes("manage_payments")
-					? employee.base_pay || "-"
+					? i18n.formatCurrency(employee.base_pay || 0)
 					: "-"
 			}</td>
-            <td>${employee.shift_type || "-"}</td>
             <td>${
-				this.escapeHtml(employee.per_patient_payment_type || "") +
+				employee.shift_type
+					? i18n.t(`employees.shiftTypes.${employee.shift_type}`)
+					: "-"
+			}</td>
+            <td>${
+				(employee.per_patient_payment_type
+					? i18n.t(
+							`employees.perPatientPaymentTypes.${employee.per_patient_payment_type}`
+					  )
+					: "") +
 				" " +
-				this.escapeHtml(employee.extra_payment_type || "-")
+				(employee.extra_payment_type &&
+				employee.extra_payment_type !== "none"
+					? i18n.t(
+							`employees.paymentTypes.${employee.extra_payment_type}`
+					  )
+					: i18n.t("employees.paymentTypes.none"))
 			}</td>
 			<td>${
 				employee.is_active
 					? `<span class='feature-indicator enabled'>
 						<i class='bi bi-check-circle-fill text-success'></i>
-						Yes
+						${i18n.t("common.yes")}
 					</span>`
 					: `<span class="feature-indicator disabled">
                         <i class="bi bi-x-circle-fill text-danger"></i>
-                        No
+                        ${i18n.t("common.no")}
                     </span>`
 			}</td>
             <td>
@@ -513,17 +577,25 @@ class EmployeeManager {
                 <button class="btn btn-sm btn-outline-primary" onclick="employeeManager.editEmployee(${
 					employee.employee_id
 				})">
-                  <i class="bi bi-pencil"></i> Edit
+                  <i class="bi bi-pencil"></i> ${i18n.t(
+						"employees.buttons.edit"
+					)}
                 </button>
                 <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.deleteEmployee(${
 					employee.employee_id
 				})">
-                  <i class="bi bi-trash"></i> Delete
+                  <i class="bi bi-trash"></i> ${i18n.t(
+						"employees.buttons.delete"
+					)}
                 </button>
 			    ${
 					this.userPermissions.includes("manage_payments")
-						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${employee.employee_id})">
-                 <i class="bi bi-plus-circle"></i> Create Payment
+						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${
+								employee.employee_id
+						  })">
+                 <i class="bi bi-plus-circle"></i> ${i18n.t(
+						"employees.buttons.createPayment"
+					)}
                </button>`
 						: ""
 				}
@@ -540,14 +612,14 @@ class EmployeeManager {
                     <table class="table table-hover">
                       <thead>
                         <tr>
-                          <th>Payment ID</th>
-                          <th>Amount</th>
-                          <th>Type</th>
-                          <th>Issued</th>
-                          <th>Status</th>
-                          <th>Paid By</th>
-                          <th>Paid On</th>
-                          <th>Actions</th>
+                          <th>${i18n.t("employees.table.paymentId")}</th>
+                          <th>${i18n.t("employees.table.amount")}</th>
+                          <th>${i18n.t("employees.table.type")}</th>
+                          <th>${i18n.t("employees.table.issued")}</th>
+                          <th>${i18n.t("employees.table.status")}</th>
+                          <th>${i18n.t("employees.table.paidBy")}</th>
+                          <th>${i18n.t("employees.table.paidOn")}</th>
+                          <th>${i18n.t("common.actions")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -556,35 +628,42 @@ class EmployeeManager {
 								(payment) => `
                           <tr>
                             <td>${payment.payment_id}</td>
-                            <td>$${
+                            <td>${i18n.formatCurrency(
 								Number(payment.payment_amount) +
-								Number(payment.extra_amount || 0)
-							}<small class="d-block text-muted">($${
+									Number(payment.extra_amount || 0)
+							)}<small class="d-block text-muted">(${i18n.formatCurrency(
 									payment.payment_amount
-								} + $${payment.extra_amount || 0})</small></td>
-                            <td>${this.escapeHtml(
-								payment.extra_payment_type || "None"
+								)} + ${i18n.formatCurrency(
+									payment.extra_amount || 0
+								)})</small></td>
+                            <td>${
+								payment.extra_payment_type &&
+								payment.extra_payment_type !== "none"
+									? i18n.t(
+											`employees.paymentTypes.${payment.extra_payment_type}`
+									  )
+									: i18n.t("employees.paymentTypes.none")
+							}</td>
+                            <td>${i18n.formatDateTime(
+								new Date(payment.issued_timestamp)
 							)}</td>
-                            <td>${new Date(
-								payment.issued_timestamp
-							).toLocaleString()}</td>
                             <td>${
 								payment.is_void
-									? "Void"
+									? i18n.t("employees.paymentStatus.void")
 									: payment.is_paid
-									? "Paid"
-									: "Pending"
+									? i18n.t("employees.paymentStatus.paid")
+									: i18n.t("employees.paymentStatus.pending")
 							}</td>
                             <td>${
 								payment.is_paid && payment.paid_by
-									? this.escapeHtml(payment.paid_by || "-")
+									? this.escapeHtml(payment.paid_by)
 									: "-"
 							}</td>
                             <td>${
 								payment.is_paid && payment.paid_timestamp
-									? new Date(
-											payment.paid_timestamp
-									  ).toLocaleString()
+									? i18n.formatDateTime(
+											new Date(payment.paid_timestamp)
+									  )
 									: "-"
 							}</td>
                             <td>
@@ -592,17 +671,29 @@ class EmployeeManager {
                                 ${
 									!payment.is_paid && !payment.is_void
 										? `
-                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${payment.payment_id})">
-                                    <i class="bi bi-check-circle"></i> Mark Paid
+                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-check-circle"></i> ${i18n.t(
+										"employees.buttons.markPaid"
+									)}
                                   </button>
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
-                                    <i class="bi bi-x-circle"></i> Void
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-x-circle"></i> ${i18n.t(
+										"employees.buttons.void"
+									)}
                                   </button>
                                 `
 										: payment.is_paid && !payment.is_void
 										? `
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
-                                    <i class="bi bi-x-circle"></i> Void
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-x-circle"></i> ${i18n.t(
+										"employees.buttons.void"
+									)}
                                   </button>
                                 `
 										: ""
@@ -636,11 +727,11 @@ class EmployeeManager {
 				}
 			});
 			if (!response.ok) {
-				throw new Error("Failed to load user name");
+				throw new Error(i18n.t("employees.messages.loadUserNameError"));
 			}
 			return await response.json();
 		} catch (error) {
-			this.showError("Failed to load user name");
+			this.showError(i18n.t("employees.messages.loadUserNameError"));
 			return "";
 		}
 	}
@@ -662,28 +753,51 @@ class EmployeeManager {
 				return acc;
 			}, {} as Record<number, Payment[]>);
 
+		if (Object.keys(paymentsByEmployee).length === 0) {
+			tbody.innerHTML = `
+				<tr>
+					<td colspan="6" class="text-center text-muted">
+						${i18n.t("common.noData")}
+					</td>
+				</tr>
+			`;
+			return;
+		}
+
 		tbody.innerHTML = Object.entries(paymentsByEmployee)
 			.map(([employeeId, payments]) => {
 				const totalAmount = payments.reduce(
 					(sum, p) => sum + Number(p.payment_amount),
 					0
 				);
-				const paymentType = payments[0]?.extra_payment_type || "None";
+				const paymentType = payments[0]?.extra_payment_type
+					? i18n.t(
+							`employees.paymentTypes.${payments[0].extra_payment_type}`
+					  )
+					: i18n.t("employees.paymentTypes.none");
 				const dateRange =
 					payments.length > 0
-						? `${new Date(
-								Math.min(
-									...payments.map((p) =>
-										new Date(p.issued_timestamp).getTime()
+						? `${i18n.formatDate(
+								new Date(
+									Math.min(
+										...payments.map((p) =>
+											new Date(
+												p.issued_timestamp
+											).getTime()
+										)
 									)
 								)
-						  ).toLocaleDateString()} - ${new Date(
-								Math.max(
-									...payments.map((p) =>
-										new Date(p.issued_timestamp).getTime()
+						  )} - ${i18n.formatDate(
+								new Date(
+									Math.max(
+										...payments.map((p) =>
+											new Date(
+												p.issued_timestamp
+											).getTime()
+										)
 									)
 								)
-						  ).toLocaleDateString()}`
+						  )}`
 						: "-";
 				const collapseId = `paymentDetails${employeeId}`;
 				return `
@@ -696,16 +810,20 @@ class EmployeeManager {
             <td>${this.escapeHtml(
 				employeeNames.get(Number(employeeId)) || "Unknown"
 			)}</td>
-            <td>$${totalAmount}</td>
-            <td>${this.escapeHtml(paymentType)}</td>
+            <td>${i18n.formatCurrency(totalAmount)}</td>
+            <td>${paymentType}</td>
             <td>${dateRange}</td>
             <td>
               <div class="action-buttons">
                 <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markAllPaymentsPaid(${employeeId})">
-                  <i class="bi bi-check-circle"></i> Mark All Paid
+                  <i class="bi bi-check-circle"></i> ${i18n.t(
+						"employees.buttons.markAllPaid"
+					)}
                 </button>
                 <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidAllPayments(${employeeId})">
-                  <i class="bi bi-x-circle"></i> Void All
+                  <i class="bi bi-x-circle"></i> ${i18n.t(
+						"employees.buttons.voidAll"
+					)}
                 </button>
               </div>
             </td>
@@ -716,11 +834,11 @@ class EmployeeManager {
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>Payment ID</th>
-                      <th>Amount</th>
-                      <th>Type</th>
-                      <th>Issued</th>
-                      <th>Actions</th>
+                      <th>${i18n.t("employees.table.paymentId")}</th>
+                      <th>${i18n.t("employees.table.amount")}</th>
+                      <th>${i18n.t("employees.table.type")}</th>
+                      <th>${i18n.t("employees.table.issued")}</th>
+                      <th>${i18n.t("common.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -729,24 +847,35 @@ class EmployeeManager {
 							(payment) => `
                         <tr>
                           <td>${payment.payment_id}</td>
-                          <td>$${payment.payment_amount}</td>
-                          <td>${this.escapeHtml(
-								payment.extra_payment_type || "None"
+                          <td>${i18n.formatCurrency(
+								payment.payment_amount
 							)}</td>
-                          <td>${new Date(
-								payment.issued_timestamp
-							).toLocaleString()}</td>
+                          <td>${
+								payment.extra_payment_type &&
+								payment.extra_payment_type !== "none"
+									? i18n.t(
+											`employees.paymentTypes.${payment.extra_payment_type}`
+									  )
+									: i18n.t("employees.paymentTypes.none")
+							}</td>
+                          <td>${i18n.formatDateTime(
+								new Date(payment.issued_timestamp)
+							)}</td>
                           <td>
                             <div class="action-buttons">
                               <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
 									payment.payment_id
 								})">
-                                <i class="bi bi-check-circle"></i> Mark Paid
+                                <i class="bi bi-check-circle"></i> ${i18n.t(
+									"employees.buttons.markPaid"
+								)}
                               </button>
                               <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
 									payment.payment_id
 								})">
-                                <i class="bi bi-x-circle"></i> Void
+                                <i class="bi bi-x-circle"></i> ${i18n.t(
+									"employees.buttons.void"
+								)}
                               </button>
                             </div>
                           </td>
@@ -768,11 +897,11 @@ class EmployeeManager {
 		this.resetEmployeeForm();
 		const modalTitle = document.getElementById("employeeModalLabel")!;
 		if (employeeId) {
-			modalTitle.textContent = "Edit Employee";
+			modalTitle.textContent = i18n.t("employees.editEmployee");
 			const employee = this.employees.get(employeeId);
 			if (employee) this.populateEmployeeForm(employee);
 		} else {
-			modalTitle.textContent = "Create New Employee";
+			modalTitle.textContent = i18n.t("employees.createNew");
 		}
 		this.employeeModal.show();
 	}
@@ -784,9 +913,12 @@ class EmployeeManager {
 		).value = employeeId.toString();
 		const modalTitle = document.getElementById("paymentModalLabel")!;
 		const employee = this.employees.get(employeeId);
-		modalTitle.textContent = `Create Manual Payment for ${
-			employee ? this.escapeHtml(employee.name) : "Employee"
-		}`;
+		const employeeName = employee
+			? this.escapeHtml(employee.name)
+			: i18n.t("common.loading");
+		modalTitle.textContent = i18n.t("employees.createManualPaymentFor", {
+			name: employeeName
+		});
 		this.paymentModal.show();
 	}
 
@@ -878,6 +1010,12 @@ class EmployeeManager {
 			need_clock_in: (
 				document.getElementById("needClockIn") as HTMLInputElement
 			).checked,
+			shift_start_time:
+				(document.getElementById("shiftStartTime") as HTMLInputElement)
+					.value || undefined,
+			shift_end_time:
+				(document.getElementById("shiftEndTime") as HTMLInputElement)
+					.value || undefined,
 			is_active: (document.getElementById("isActive") as HTMLInputElement)
 				.checked,
 			is_facility_employee: true
@@ -897,14 +1035,17 @@ class EmployeeManager {
 				}
 			);
 
-			if (!response.ok) throw new Error("Failed to save employee");
+			if (!response.ok)
+				throw new Error(i18n.t("employees.messages.saveError"));
 			await this.loadEmployees();
 			this.employeeModal.hide();
 			toastr.success(
-				`Employee successfully ${employeeId ? "updated" : "created"}`
+				employeeId
+					? i18n.t("employees.messages.updateSuccess")
+					: i18n.t("employees.messages.createSuccess")
 			);
 		} catch (error) {
-			this.showError("Failed to save employee");
+			this.showError(i18n.t("employees.messages.saveError"));
 		} finally {
 			this.setEmployeeLoading(false);
 		}
@@ -958,14 +1099,17 @@ class EmployeeManager {
 				body: JSON.stringify(paymentData)
 			});
 
-			if (!response.ok) throw new Error("Failed to create payment");
+			if (!response.ok)
+				throw new Error(
+					i18n.t("employees.messages.paymentCreateError")
+				);
 			const data = await response.json();
 			await this.markPaymentPaid(Number(data.payment_id), true);
-			await this.loadEmployees(); // Reload to update payment tables
+			await this.loadEmployees();
 			this.paymentModal.hide();
-			toastr.success("Payment created successfully");
+			toastr.success(i18n.t("employees.messages.paymentCreateSuccess"));
 		} catch (error) {
-			this.showError("Failed to create payment");
+			this.showError(i18n.t("employees.messages.paymentCreateError"));
 		} finally {
 			this.setPaymentLoading(false);
 		}
@@ -973,13 +1117,14 @@ class EmployeeManager {
 
 	public async deleteEmployee(employeeId: number): Promise<void> {
 		const result = await Swal.fire({
-			title: "Are you sure?",
-			text: "This action cannot be undone!",
+			title: i18n.t("employees.messages.deleteConfirmTitle"),
+			text: i18n.t("employees.messages.deleteConfirmText"),
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#dc3545",
 			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, delete it!"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -990,11 +1135,12 @@ class EmployeeManager {
 						Authorization: `Bearer ${localStorage.getItem("token")}`
 					}
 				});
-				if (!response.ok) throw new Error("Failed to delete employee");
+				if (!response.ok)
+					throw new Error(i18n.t("employees.messages.deleteError"));
 				await this.loadEmployees();
-				toastr.success("Employee deleted successfully");
+				toastr.success(i18n.t("employees.messages.deleteSuccess"));
 			} catch (error) {
-				this.showError("Failed to delete employee");
+				this.showError(i18n.t("employees.messages.deleteError"));
 			}
 		}
 	}
@@ -1010,13 +1156,14 @@ class EmployeeManager {
 		let result = null;
 		if (!noConfirm) {
 			result = await Swal.fire({
-				title: "Confirm Payment",
-				text: "Mark this payment as paid?",
+				title: i18n.t("employees.messages.markPaidConfirmTitle"),
+				text: i18n.t("employees.messages.markPaidConfirmText"),
 				icon: "question",
 				showCancelButton: true,
 				confirmButtonColor: "#0d6efd",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, mark as paid"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 		}
 
@@ -1034,25 +1181,26 @@ class EmployeeManager {
 					}
 				);
 				if (!response.ok)
-					throw new Error("Failed to mark payment as paid");
+					throw new Error(i18n.t("employees.messages.markPaidError"));
 				await this.loadPayments();
 				await this.loadEmployees();
-				toastr.success("Payment marked as paid");
+				toastr.success(i18n.t("employees.messages.markPaidSuccess"));
 			} catch (error) {
-				this.showError("Failed to mark payment as paid");
+				this.showError(i18n.t("employees.messages.markPaidError"));
 			}
 		}
 	}
 
 	public async markAllPaymentsPaid(employeeId: number): Promise<void> {
 		const result = await Swal.fire({
-			title: "Confirm All Payments",
-			text: "Mark all pending payments for this employee as paid?",
+			title: i18n.t("employees.messages.markAllPaidConfirmTitle"),
+			text: i18n.t("employees.messages.markAllPaidConfirmText"),
 			icon: "question",
 			showCancelButton: true,
 			confirmButtonColor: "#0d6efd",
 			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, mark all as paid"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -1074,26 +1222,29 @@ class EmployeeManager {
 						}
 					);
 					if (!response.ok)
-						throw new Error("Failed to mark payment as paid");
+						throw new Error(
+							i18n.t("employees.messages.markAllPaidError")
+						);
 				}
 				await this.loadPayments();
 				await this.loadEmployees();
-				toastr.success("All payments marked as paid");
+				toastr.success(i18n.t("employees.messages.markAllPaidSuccess"));
 			} catch (error) {
-				this.showError("Failed to mark all payments as paid");
+				this.showError(i18n.t("employees.messages.markAllPaidError"));
 			}
 		}
 	}
 
 	public async voidPayment(paymentId: number): Promise<void> {
 		const result = await Swal.fire({
-			title: "Void Payment",
-			text: "Void this payment? This action cannot be undone!",
+			title: i18n.t("employees.messages.voidConfirmTitle"),
+			text: i18n.t("employees.messages.voidConfirmText"),
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#dc3545",
 			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, void it"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -1109,27 +1260,29 @@ class EmployeeManager {
 						}
 					}
 				);
-				if (!response.ok) throw new Error("Failed to void payment");
+				if (!response.ok)
+					throw new Error(i18n.t("employees.messages.voidError"));
 				await this.loadPayments();
 				await this.loadEmployees();
 				//@ts-ignore
 				await doctorManager.refreshDoctors();
-				toastr.success("Payment voided successfully");
+				toastr.success(i18n.t("employees.messages.voidSuccess"));
 			} catch (error) {
-				this.showError("Failed to void payment");
+				this.showError(i18n.t("employees.messages.voidError"));
 			}
 		}
 	}
 
 	public async voidAllPayments(employeeId: number): Promise<void> {
 		const result = await Swal.fire({
-			title: "Void All Payments",
-			text: "Void all pending payments for this employee? This action cannot be undone!",
+			title: i18n.t("employees.messages.voidAllConfirmTitle"),
+			text: i18n.t("employees.messages.voidAllConfirmText"),
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#dc3545",
 			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, void all"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -1150,13 +1303,16 @@ class EmployeeManager {
 							}
 						}
 					);
-					if (!response.ok) throw new Error("Failed to void payment");
+					if (!response.ok)
+						throw new Error(
+							i18n.t("employees.messages.voidAllError")
+						);
 				}
 				await this.loadPayments();
 				await this.loadEmployees();
-				toastr.success("All payments voided successfully");
+				toastr.success(i18n.t("employees.messages.voidAllSuccess"));
 			} catch (error) {
-				this.showError("Failed to void all payments");
+				this.showError(i18n.t("employees.messages.voidAllError"));
 			}
 		}
 	}
@@ -1212,7 +1368,9 @@ class EmployeeManager {
 		const buttonText = this.saveEmployeeButton.querySelector(".btn-text")!;
 		this.saveEmployeeButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("employees.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private setPaymentLoading(loading: boolean): void {
@@ -1221,13 +1379,15 @@ class EmployeeManager {
 		const buttonText = this.savePaymentButton.querySelector(".btn-text")!;
 		this.savePaymentButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save Payment";
+		buttonText.textContent = loading
+			? i18n.t("employees.buttons.savingPayment")
+			: i18n.t("employees.savePayment");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});

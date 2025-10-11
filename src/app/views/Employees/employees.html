@@ -4,53 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Employees</title>
-
-  <style>
-    /* Hide the Google Translate widget */
-    #google_translate_element {
-      display: none;
-    }
-
-    .goog-te-gadget img {
-      display: none !important;
-    }
-
-    body>.skiptranslate {
-      display: none;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    #goog-gt-tt,
-    .goog-te-balloon-frame {
-      display: none !important;
-    }
-
-    .goog-text-highlight {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-	    ::selection {
-	    background: transparent;
-	    }
-
-    /* Optional: Adjust for right-to-left Arabic text */
-    body[lang="ar"] {
-      direction: rtl;
-      text-align: right;
-    }
-  </style>
-
+  <title data-i18n="employees.pageTitle">HMS - Employees</title>
 
   <!-- Bootstrap CSS -->
   <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/employees.css" rel="stylesheet">
+  <!-- RTL CSS -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/employees-rtl.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
   <!-- Toastr CSS -->
@@ -58,8 +21,6 @@
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -80,10 +41,11 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
+
     <!-- Page Content -->
     <div id="content">
       <!-- Top Navigation -->
@@ -93,69 +55,79 @@
             <i class="bi bi-list"></i>
           </button>
           <div class="ms-auto d-flex align-items-center">
-            <div class="notifications dropdown">
-              <button class="btn btn-link position-relative dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                  <span class="visually-hidden">unread notifications</span>
-                </span>
+            <!-- Language Switcher -->
+            <div class="dropdown me-3">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                <li>
-                  <h6 class="dropdown-header">Notifications</h6>
-                </li>
-                <li>
-                  <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="#">Low stock alert: Paracetamol</a></li>
-                <li><a class="dropdown-item" href="#">New patient admission</a></li>
-                <li><a class="dropdown-item" href="#">System update available</a></li>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
               </ul>
             </div>
           </div>
         </div>
       </nav>
+
       <!-- Main Content -->
       <div class="container-fluid">
         <div class="welcome-section mb-4">
-          <h1>Employees</h1>
-          <p class="text-muted">Manage employee records</p>
+          <h1 data-i18n="employees.title">Employees</h1>
+          <p class="text-muted" data-i18n="employees.subtitle">Manage employee records</p>
         </div>
+
         <ul class="nav nav-tabs mb-4">
           <li class="nav-item">
-            <a class="nav-link active" id="employees-tab" data-bs-toggle="tab" href="#employees" role="tab">Employees</a>
+            <a class="nav-link active" id="employees-tab" data-bs-toggle="tab" href="#employees" role="tab">
+              <span data-i18n="employees.tabs.employees">Employees</span>
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="doctors-tab" data-bs-toggle="tab" href="#doctors" role="tab">Doctors</a>
+            <a class="nav-link" id="doctors-tab" data-bs-toggle="tab" href="#doctors" role="tab">
+              <span data-i18n="employees.tabs.doctors">Doctors</span>
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="nurses-tab" data-bs-toggle="tab" href="#nurses" role="tab">Nurses</a>
+            <a class="nav-link" id="nurses-tab" data-bs-toggle="tab" href="#nurses" role="tab">
+              <span data-i18n="employees.tabs.nurses">Nurses</span>
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-requires-permission="manage_payments" id="payments-tab" data-bs-toggle="tab" href="#payments" role="tab">Pending Payments</a>
+            <a class="nav-link" data-requires-permission="manage_payments" id="payments-tab" data-bs-toggle="tab" href="#payments" role="tab">
+              <span data-i18n="employees.tabs.payments">Pending Payments</span>
+            </a>
           </li>
         </ul>
+
         <div class="tab-content">
+          <!-- Employees Tab -->
           <div class="tab-pane fade show active" id="employees" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <input type="text" class="form-control w-25" id="searchEmployee" placeholder="Search Employees...">
+              <input type="text" class="form-control w-25" id="searchEmployee" data-i18n-placeholder="employees.searchPlaceholder" placeholder="Search Employees...">
             </div>
             <div class="card mb-4">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="card-title mb-0">Employee List</h5>
+                  <h5 class="card-title mb-0" data-i18n="employees.employeeList">Employee List</h5>
                   <button class="btn btn-primary" id="createEmployeeBtnEmployeesTab">
-                    <i class="bi bi-plus-circle"></i> Create New Employee
+                    <i class="bi bi-plus-circle"></i> <span data-i18n="employees.createNew">Create New Employee</span>
                   </button>
                 </div>
                 <div class="mb-3">
-                  <label for="paymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <label for="paymentDateRange" class="form-label" data-i18n="employees.filterPaymentsByDate">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="datetime-local" class="form-control" id="employeePaymentStartDate" placeholder="Start Date">
-                    <span class="input-group-text">to</span>
-                    <input type="datetime-local" class="form-control" id="employeePaymentEndDate" placeholder="End Date">
-                    <button class="btn btn-outline-secondary" id="clearDateFilter">Clear</button>
+                    <span class="input-group-text" data-i18n="common.from">from</span>
+                    <input type="datetime-local" class="form-control" id="employeePaymentStartDate" data-i18n-placeholder="common.startDate" placeholder="Start Date">
+                    <span class="input-group-text" data-i18n="common.to">to</span>
+                    <input type="datetime-local" class="form-control" id="employeePaymentEndDate" data-i18n-placeholder="common.endDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="clearDateFilter" data-i18n="common.clear">Clear</button>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -163,14 +135,14 @@
                     <thead>
                       <tr>
                         <th></th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Hire Date</th>
-                        <th>Base Pay</th>
-                        <th>Shift Type</th>
-                        <th>Extra Payment</th>
-                        <th>Active</th>
-                        <th>Actions</th>
+                        <th data-i18n="employees.table.name">Name</th>
+                        <th data-i18n="employees.table.type">Type</th>
+                        <th data-i18n="employees.table.hireDate">Hire Date</th>
+                        <th data-i18n="employees.table.basePay">Base Pay</th>
+                        <th data-i18n="employees.table.shiftType">Shift Type</th>
+                        <th data-i18n="employees.table.extraPayment">Extra Payment</th>
+                        <th data-i18n="employees.table.active">Active</th>
+                        <th data-i18n="common.actions">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="employeesTableBody"></tbody>
@@ -179,25 +151,28 @@
               </div>
             </div>
           </div>
+
+          <!-- Doctors Tab -->
           <div class="tab-pane fade" id="doctors" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <input type="text" class="form-control w-25" id="searchDoctor" placeholder="Search Doctors...">
+              <input type="text" class="form-control w-25" id="searchDoctor" data-i18n-placeholder="employees.searchDoctorsPlaceholder" placeholder="Search Doctors...">
             </div>
             <div class="card mb-4">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="card-title mb-0">Doctor List</h5>
+                  <h5 class="card-title mb-0" data-i18n="employees.doctorList">Doctor List</h5>
                   <button class="btn btn-primary" id="createEmployeeBtnDoctorsTab">
-                    <i class="bi bi-plus-circle"></i> Create New Doctor
+                    <i class="bi bi-plus-circle"></i> <span data-i18n="employees.createNewDoctor">Create New Doctor</span>
                   </button>
                 </div>
                 <div class="mb-3">
-                  <label for="doctorPaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <label for="doctorPaymentDateRange" class="form-label" data-i18n="employees.filterPaymentsByDate">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="datetime-local" class="form-control" id="doctorPaymentStartDate" placeholder="Start Date">
-                    <span class="input-group-text">to</span>
-                    <input type="datetime-local" class="form-control" id="doctorPaymentEndDate" placeholder="End Date">
-                    <button class="btn btn-outline-secondary" id="doctorClearDateFilter">Clear</button>
+                    <span class="input-group-text" data-i18n="common.from">from</span>
+                    <input type="datetime-local" class="form-control" id="doctorPaymentStartDate" data-i18n-placeholder="common.startDate" placeholder="Start Date">
+                    <span class="input-group-text" data-i18n="common.to">to</span>
+                    <input type="datetime-local" class="form-control" id="doctorPaymentEndDate" data-i18n-placeholder="common.endDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="doctorClearDateFilter" data-i18n="common.clear">Clear</button>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -205,14 +180,14 @@
                     <thead>
                       <tr>
                         <th></th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Hire Date</th>
-                        <th>Daily Pay</th>
-                        <th>Payment Per Patient</th>
-                        <th>Shift Type</th>
-                        <th>Active</th>
-                        <th>Actions</th>
+                        <th data-i18n="employees.table.name">Name</th>
+                        <th data-i18n="employees.table.type">Type</th>
+                        <th data-i18n="employees.table.hireDate">Hire Date</th>
+                        <th data-i18n="employees.table.dailyPay">Daily Pay</th>
+                        <th data-i18n="employees.table.perPatientPay">Payment Per Patient</th>
+                        <th data-i18n="employees.table.shiftType">Shift Type</th>
+                        <th data-i18n="employees.table.active">Active</th>
+                        <th data-i18n="common.actions">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="doctorsTableBody"></tbody>
@@ -221,25 +196,28 @@
               </div>
             </div>
           </div>
+
+          <!-- Nurses Tab -->
           <div class="tab-pane fade" id="nurses" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <input type="text" class="form-control w-25" id="searchNurse" placeholder="Search Nurses...">
+              <input type="text" class="form-control w-25" id="searchNurse" data-i18n-placeholder="employees.searchNursesPlaceholder" placeholder="Search Nurses...">
             </div>
             <div class="card mb-4">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="card-title mb-0">Nurse List</h5>
+                  <h5 class="card-title mb-0" data-i18n="employees.nurseList">Nurse List</h5>
                   <button class="btn btn-primary" id="createEmployeeBtnNursesTab">
-                    <i class="bi bi-plus-circle"></i> Create New Nurse
+                    <i class="bi bi-plus-circle"></i> <span data-i18n="employees.createNewNurse">Create New Nurse</span>
                   </button>
                 </div>
                 <div class="mb-3">
-                  <label for="nursePaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <label for="nursePaymentDateRange" class="form-label" data-i18n="employees.filterPaymentsByDate">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="date" class="form-control" id="nursePaymentStartDate" placeholder="Start Date">
-                    <span class="input-group-text">to</span>
-                    <input type="date" class="form-control" id="nursePaymentEndDate" placeholder="End Date">
-                    <button class="btn btn-outline-secondary" id="nurseClearDateFilter">Clear</button>
+                    <span class="input-group-text" data-i18n="common.from">from</span>
+                    <input type="date" class="form-control" id="nursePaymentStartDate" data-i18n-placeholder="common.startDate" placeholder="Start Date">
+                    <span class="input-group-text" data-i18n="common.to">to</span>
+                    <input type="date" class="form-control" id="nursePaymentEndDate" data-i18n-placeholder="common.endDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="nurseClearDateFilter" data-i18n="common.clear">Clear</button>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -247,14 +225,14 @@
                     <thead>
                       <tr>
                         <th></th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Hire Date</th>
-                        <th>Base Pay</th>
-                        <th>Shift Type</th>
-                        <th>Extra Payment</th>
-                        <th>Active</th>
-                        <th>Actions</th>
+                        <th data-i18n="employees.table.name">Name</th>
+                        <th data-i18n="employees.table.type">Type</th>
+                        <th data-i18n="employees.table.hireDate">Hire Date</th>
+                        <th data-i18n="employees.table.basePay">Base Pay</th>
+                        <th data-i18n="employees.table.shiftType">Shift Type</th>
+                        <th data-i18n="employees.table.extraPayment">Extra Payment</th>
+                        <th data-i18n="employees.table.active">Active</th>
+                        <th data-i18n="common.actions">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="nursesTableBody"></tbody>
@@ -263,17 +241,20 @@
               </div>
             </div>
           </div>
+
+          <!-- Payments Tab -->
           <div class="tab-pane fade" id="payments" role="tabpanel">
             <div class="card">
               <div class="card-body">
-                <h5 class="card-title">Pending System-Generated Payments</h5>
+                <h5 class="card-title" data-i18n="employees.pendingPayments">Pending System-Generated Payments</h5>
                 <div class="mb-3">
-                  <label for="pendingPaymentDateRange" class="form-label">Filter Payments by Date Range</label>
+                  <label for="pendingPaymentDateRange" class="form-label" data-i18n="employees.filterPaymentsByDate">Filter Payments by Date Range</label>
                   <div class="input-group">
-                    <input type="date" class="form-control" id="pendingPaymentStartDate" placeholder="Start Date">
-                    <span class="input-group-text">to</span>
-                    <input type="date" class="form-control" id="pendingPaymentEndDate" placeholder="End Date">
-                    <button class="btn btn-outline-secondary" id="pendingClearDateFilter">Clear</button>
+                    <span class="input-group-text" data-i18n="common.from">from</span>
+                    <input type="date" class="form-control" id="pendingPaymentStartDate" data-i18n-placeholder="common.startDate" placeholder="Start Date">
+                    <span class="input-group-text" data-i18n="common.to">to</span>
+                    <input type="date" class="form-control" id="pendingPaymentEndDate" data-i18n-placeholder="common.endDate" placeholder="End Date">
+                    <button class="btn btn-outline-secondary" id="pendingClearDateFilter" data-i18n="common.clear">Clear</button>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -281,11 +262,11 @@
                     <thead>
                       <tr>
                         <th></th>
-                        <th>Employee Name</th>
-                        <th>Total Amount</th>
-                        <th>Type</th>
-                        <th>Date Range</th>
-                        <th>Actions</th>
+                        <th data-i18n="employees.table.employeeName">Employee Name</th>
+                        <th data-i18n="employees.table.totalAmount">Total Amount</th>
+                        <th data-i18n="employees.table.type">Type</th>
+                        <th data-i18n="employees.table.dateRange">Date Range</th>
+                        <th data-i18n="common.actions">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="paymentsTableBody"></tbody>
@@ -296,262 +277,265 @@
           </div>
         </div>
       </div>
+
       <!-- Employee Modal -->
       <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="employeeModalLabel">Create New Employee</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5 class="modal-title" id="employeeModalLabel" data-i18n="employees.createNew">Create New Employee</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <form id="employeeForm" novalidate>
                 <input type="hidden" id="employeeId" name="employeeId">
                 <div class="mb-3">
-                  <label for="employeeName" class="form-label">Name</label>
+                  <label for="employeeName" class="form-label" data-i18n="employees.fields.name">Name</label>
                   <input type="text" class="form-control" id="employeeName" required>
-                  <div class="invalid-feedback">Please enter a name.</div>
+                  <div class="invalid-feedback" data-i18n="employees.validation.nameRequired">Please enter a name.</div>
                 </div>
                 <div class="mb-3">
-                  <label for="employeeType" class="form-label">Type</label>
+                  <label for="employeeType" class="form-label" data-i18n="employees.fields.type">Type</label>
                   <select class="form-select" id="employeeType" required>
-                    <option value="doctor">Doctor</option>
-                    <option value="nurse">Nurse</option>
-                    <option value="other">Other</option>
+                    <option value="doctor" data-i18n="employees.types.doctor">Doctor</option>
+                    <option value="nurse" data-i18n="employees.types.nurse">Nurse</option>
+                    <option value="other" data-i18n="employees.types.other">Other</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="hireDate" class="form-label">Hire Date</label>
+                  <label for="hireDate" class="form-label" data-i18n="employees.fields.hireDate">Hire Date</label>
                   <input type="date" class="form-control" id="hireDate" required>
                 </div>
                 <div class="mb-3">
-                  <label for="basePay" class="form-label">Base Pay</label>
+                  <label for="basePay" class="form-label" data-i18n="employees.fields.basePay">Base Pay</label>
                   <input type="number" class="form-control" id="basePay" step="0.01">
                 </div>
                 <div class="mb-3">
-                  <label for="extraPaymentType" class="form-label">Extra Payment Type</label>
+                  <label for="extraPaymentType" class="form-label" data-i18n="employees.fields.extraPaymentType">Extra Payment Type</label>
                   <select class="form-select" id="extraPaymentType">
-                    <option value="none">None</option>
-                    <option value="per_patient">Per Patient</option>
-                    <option value="income">Income</option>
+                    <option value="none" data-i18n="employees.paymentTypes.none">None</option>
+                    <option value="per_patient" data-i18n="employees.paymentTypes.per_patient">Per Patient</option>
+                    <option value="income" data-i18n="employees.paymentTypes.income">Income</option>
                   </select>
                 </div>
                 <div class="mb-3" id="extraAmountContainer" style="display: none;">
-                  <label for="extraAmount" class="form-label">Extra Amount</label>
+                  <label for="extraAmount" class="form-label" data-i18n="employees.fields.extraAmount">Extra Amount</label>
                   <input type="number" class="form-control" id="extraAmount" step="0.01">
                 </div>
                 <div class="mb-3" id="perPatientPaymentTypeContainer" style="display: none;">
-                  <label for="perPatientPaymentType" class="form-label">Per Patient Payment Type</label>
+                  <label for="perPatientPaymentType" class="form-label" data-i18n="employees.fields.perPatientPaymentType">Per Patient Payment Type</label>
                   <select class="form-select" id="perPatientPaymentType">
-                    <option value="">Select Type</option>
-                    <option value="fixed">Fixed</option>
-                    <option value="percentage">Percentage</option>
+                    <option value="" data-i18n="employees.perPatientPaymentTypes.select">Select Type</option>
+                    <option value="fixed" data-i18n="employees.perPatientPaymentTypes.fixed">Fixed</option>
+                    <option value="percentage" data-i18n="employees.perPatientPaymentTypes.percentage">Percentage</option>
                   </select>
                 </div>
                 <div class="mb-3" id="percentageScopeContainer" style="display: none;">
-                  <label for="percentageScope" class="form-label">Percentage Scope</label>
+                  <label for="percentageScope" class="form-label" data-i18n="employees.fields.percentageScope">Percentage Scope</label>
                   <select class="form-select" id="percentageScope">
-                    <option value="">Select Scope</option>
-                    <option value="before_deductions">Before Deductions</option>
-                    <option value="after_deductions">After Deductions</option>
+                    <option value="" data-i18n="employees.percentageScopes.select">Select Scope</option>
+                    <option value="before_deductions" data-i18n="employees.percentageScopes.before_deductions">Before Deductions</option>
+                    <option value="after_deductions" data-i18n="employees.percentageScopes.after_deductions">After Deductions</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftType" class="form-label">Shift Type</label>
+                  <label for="shiftType" class="form-label" data-i18n="employees.fields.shiftType">Shift Type</label>
                   <select class="form-select" id="shiftType">
-                    <option value="">Select Shift</option>
-                    <option value="morning">Morning</option>
-                    <option value="night">Night</option>
+                    <option value="" data-i18n="employees.shiftTypes.select">Select Shift</option>
+                    <option value="morning" data-i18n="employees.shiftTypes.morning">Morning</option>
+                    <option value="night" data-i18n="employees.shiftTypes.night">Night</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftStartTime" class="form-label">Shift Start Time</label>
+                  <label for="shiftStartTime" class="form-label" data-i18n="employees.fields.shiftStartTime">Shift Start Time</label>
                   <input type="time" class="form-control" id="shiftStartTime" required>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftEndTime" class="form-label">Shift End time</label>
+                  <label for="shiftEndTime" class="form-label" data-i18n="employees.fields.shiftEndTime">Shift End time</label>
                   <input type="time" class="form-control" id="shiftEndTime" required>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="needClockIn">
-                  <label class="form-check-label" for="needClockIn">Requires Clock-In</label>
+                  <label class="form-check-label" for="needClockIn" data-i18n="employees.fields.needClockIn">Requires Clock-In</label>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="isActive" checked>
-                  <label class="form-check-label" for="isActive">Is Active</label>
+                  <label class="form-check-label" for="isActive" data-i18n="employees.fields.isActive">Is Active</label>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
               <button type="button" class="btn btn-primary" id="saveEmployeeBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                <span class="btn-text">Save</span>
+                <span class="btn-text" data-i18n="common.save">Save</span>
               </button>
             </div>
           </div>
         </div>
       </div>
-      <!-- Doctor Modal	-->
+
+      <!-- Doctor Modal -->
       <div class="modal fade" id="doctorModal" tabindex="-1" aria-labelledby="doctorModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="doctorModalLabel">Create New Doctor</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5 class="modal-title" id="doctorModalLabel" data-i18n="employees.createNewDoctor">Create New Doctor</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <form id="doctorForm" novalidate>
                 <input type="hidden" id="doctorId" name="doctorId">
                 <input type="hidden" id="employeeId" name="employeeId">
                 <div class="mb-3">
-                  <label for="doctorName" class="form-label">Name</label>
+                  <label for="doctorName" class="form-label" data-i18n="employees.fields.name">Name</label>
                   <input type="text" class="form-control" id="doctorName" required>
-                  <div class="invalid-feedback">Please enter a name.</div>
+                  <div class="invalid-feedback" data-i18n="employees.validation.nameRequired">Please enter a name.</div>
                 </div>
                 <div class="mb-3">
-                  <label for="phone" class="form-label">Phone</label>
+                  <label for="phone" class="form-label" data-i18n="employees.fields.phone">Phone</label>
                   <input type="tel" class="form-control" id="phone">
                 </div>
                 <div class="mb-3">
-                  <label for="doctorType" class="form-label">Doctor Type</label>
+                  <label for="doctorType" class="form-label" data-i18n="employees.fields.doctorType">Doctor Type</label>
                   <select class="form-select" id="doctorType" required>
-                    <option value="attending">Attending</option>
-                    <option value="supervising">Supervising</option>
-                    <option value="referring">Referring</option>
-                    <option value="outside">Outside</option>
+                    <option value="attending" data-i18n="employees.doctorTypes.attending">Attending</option>
+                    <option value="supervising" data-i18n="employees.doctorTypes.supervising">Supervising</option>
+                    <option value="referring" data-i18n="employees.doctorTypes.referring">Referring</option>
+                    <option value="outside" data-i18n="employees.doctorTypes.outside">Outside</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="hireDateDoctor" class="form-label">Hire Date</label>
+                  <label for="hireDateDoctor" class="form-label" data-i18n="employees.fields.hireDate">Hire Date</label>
                   <input type="date" class="form-control" id="hireDateDoctor" required>
                 </div>
                 <div class="mb-3">
-                  <label for="dailyPayDoctor" class="form-label">Daily Pay</label>
+                  <label for="dailyPayDoctor" class="form-label" data-i18n="employees.fields.dailyPay">Daily Pay</label>
                   <input type="number" class="form-control" id="dailyPayDoctor" step="0.01">
                 </div>
                 <div class="mb-3">
-                  <label for="perPatientPayDoctor" class="form-label">Per Patient Pay</label>
+                  <label for="perPatientPayDoctor" class="form-label" data-i18n="employees.fields.perPatientPay">Per Patient Pay</label>
                   <input type="number" class="form-control" id="perPatientPayDoctor" step="0.01">
                 </div>
                 <div class="mb-3">
-                  <label for="referralBonus" class="form-label">Referral Bonus</label>
+                  <label for="referralBonus" class="form-label" data-i18n="employees.fields.referralBonus">Referral Bonus</label>
                   <input type="number" class="form-control" id="referralBonus" step="0.01">
                 </div>
                 <div class="mb-3">
-                  <label for="paymentCalculationDoctor" class="form-label">Payment Calculation</label>
+                  <label for="paymentCalculation" class="form-label" data-i18n="employees.fields.paymentCalculation">Payment Calculation</label>
                   <select class="form-select" id="paymentCalculation">
-                    <option value="fixed">Fixed</option>
-                    <option value="per_patient">Per Patient</option>
-                    <option value="both">Both</option>
+                    <option value="fixed" data-i18n="employees.paymentCalculation.fixed">Fixed</option>
+                    <option value="per_patient" data-i18n="employees.paymentCalculation.per_patient">Per Patient</option>
+                    <option value="both" data-i18n="employees.paymentCalculation.both">Both</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="perPatientPaymentTypeDoctor" class="form-label">Per Patient Payment Type</label>
+                  <label for="perPatientPaymentTypeDoctor" class="form-label" data-i18n="employees.fields.perPatientPaymentType">Per Patient Payment Type</label>
                   <select class="form-select" id="perPatientPaymentTypeDoctor">
-                    <option value="">Select Type</option>
-                    <option value="fixed">Fixed</option>
-                    <option value="percentage">Percentage</option>
+                    <option value="" data-i18n="employees.perPatientPaymentTypes.select">Select Type</option>
+                    <option value="fixed" data-i18n="employees.perPatientPaymentTypes.fixed">Fixed</option>
+                    <option value="percentage" data-i18n="employees.perPatientPaymentTypes.percentage">Percentage</option>
                   </select>
                 </div>
-                <div class="mb-3" id="percentageScopeContainer" style="display: none;">
-                  <label for="percentageScopeDoctor" class="form-label">Percentage Scope</label>
+                <div class="mb-3" id="percentageScopeContainerDoctor" style="display: none;">
+                  <label for="percentageScopeDoctor" class="form-label" data-i18n="employees.fields.percentageScope">Percentage Scope</label>
                   <select class="form-select" id="percentageScopeDoctor">
-                    <option value="">Select Scope</option>
-                    <option value="before_deductions">Before Deductions</option>
-                    <option value="after_deductions">After Deductions</option>
+                    <option value="" data-i18n="employees.percentageScopes.select">Select Scope</option>
+                    <option value="before_deductions" data-i18n="employees.percentageScopes.before_deductions">Before Deductions</option>
+                    <option value="after_deductions" data-i18n="employees.percentageScopes.after_deductions">After Deductions</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftTypeDoctor" class="form-label">Shift Type</label>
+                  <label for="shiftTypeDoctor" class="form-label" data-i18n="employees.fields.shiftType">Shift Type</label>
                   <select class="form-select" id="shiftTypeDoctor">
-                    <option value="morning">Morning</option>
-                    <option value="night">Night</option>
+                    <option value="morning" data-i18n="employees.shiftTypes.morning">Morning</option>
+                    <option value="night" data-i18n="employees.shiftTypes.night">Night</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftStartTimeDoctor" class="form-label">Shift Start Time</label>
+                  <label for="shiftStartTimeDoctor" class="form-label" data-i18n="employees.fields.shiftStartTime">Shift Start Time</label>
                   <input type="time" class="form-control" id="shiftStartTimeDoctor" required>
                 </div>
                 <div class="mb-3">
-                  <label for="shiftEndTimeDoctor" class="form-label">Shift End time</label>
+                  <label for="shiftEndTimeDoctor" class="form-label" data-i18n="employees.fields.shiftEndTime">Shift End time</label>
                   <input type="time" class="form-control" id="shiftEndTimeDoctor" required>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="needClockInDoctor">
-                  <label class="form-check-label" for="needClockIn">Requires Clock-In</label>
+                  <label class="form-check-label" for="needClockInDoctor" data-i18n="employees.fields.needClockIn">Requires Clock-In</label>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="isActiveDoctor" checked>
-                  <label class="form-check-label" for="isActive">Is Active</label>
+                  <label class="form-check-label" for="isActiveDoctor" data-i18n="employees.fields.isActive">Is Active</label>
                 </div>
                 <div class="mb-3 form-check">
                   <input type="checkbox" class="form-check-input" id="isFacilityEmployee" checked>
-                  <label class="form-check-label" for="isFacilityEmployee">Is Facility Employee</label>
+                  <label class="form-check-label" for="isFacilityEmployee" data-i18n="employees.fields.isFacilityEmployee">Is Facility Employee</label>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
               <button type="button" class="btn btn-primary" id="saveDoctorBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                <span class="btn-text">Save</span>
+                <span class="btn-text" data-i18n="common.save">Save</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+
       <!-- Payment Modal -->
       <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="paymentModalLabel">Create Manual Payment</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5 class="modal-title" id="paymentModalLabel" data-i18n="employees.createManualPayment">Create Manual Payment</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <form id="paymentForm" novalidate>
                 <input type="hidden" id="paymentEmployeeId" name="paymentEmployeeId">
                 <div class="mb-3">
-                  <label for="paymentAmount" class="form-label">Payment Amount</label>
+                  <label for="paymentAmount" class="form-label" data-i18n="employees.fields.paymentAmount">Payment Amount</label>
                   <input type="number" class="form-control" id="paymentAmount" step="0.01" required>
-                  <div class="invalid-feedback">Please enter a payment amount.</div>
+                  <div class="invalid-feedback" data-i18n="employees.validation.paymentAmountRequired">Please enter a payment amount.</div>
                 </div>
                 <div class="mb-3">
-                  <label for="paymentType" class="form-label">Payment Type</label>
+                  <label for="paymentType" class="form-label" data-i18n="employees.fields.paymentType">Payment Type</label>
                   <select class="form-select" id="paymentType" required>
-                    <option value="manual">Manual</option>
-                    <option value="bonus">Bonus</option>
-                    <option value="overtime">Overtime</option>
+                    <option value="manual" data-i18n="employees.paymentTypes.manual">Manual</option>
+                    <option value="bonus" data-i18n="employees.paymentTypes.bonus">Bonus</option>
+                    <option value="overtime" data-i18n="employees.paymentTypes.overtime">Overtime</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="paymentExtraPaymentType" class="form-label">Extra Payment Type</label>
+                  <label for="paymentExtraPaymentType" class="form-label" data-i18n="employees.fields.extraPaymentType">Extra Payment Type</label>
                   <select class="form-select" id="paymentExtraPaymentType">
-                    <option value="none">None</option>
-                    <option value="per_patient">Per Patient</option>
-                    <option value="income">Income</option>
+                    <option value="none" data-i18n="employees.paymentTypes.none">None</option>
+                    <option value="per_patient" data-i18n="employees.paymentTypes.per_patient">Per Patient</option>
+                    <option value="income" data-i18n="employees.paymentTypes.income">Income</option>
                   </select>
                 </div>
                 <div class="mb-3" id="paymentExtraAmountContainer" style="display: none;">
-                  <label for="paymentExtraAmount" class="form-label">Extra Amount</label>
+                  <label for="paymentExtraAmount" class="form-label" data-i18n="employees.fields.extraAmount">Extra Amount</label>
                   <input type="number" class="form-control" id="paymentExtraAmount" step="0.01">
                 </div>
                 <div class="mb-3" id="paymentPercentageScopeContainer" style="display: none;">
-                  <label for="paymentPercentageScope" class="form-label">Percentage Scope</label>
+                  <label for="paymentPercentageScope" class="form-label" data-i18n="employees.fields.percentageScope">Percentage Scope</label>
                   <select class="form-select" id="paymentPercentageScope">
-                    <option value="">Select Scope</option>
-                    <option value="before_deductions">Before Deductions</option>
-                    <option value="after_deductions">After Deductions</option>
+                    <option value="" data-i18n="employees.percentageScopes.select">Select Scope</option>
+                    <option value="before_deductions" data-i18n="employees.percentageScopes.before_deductions">Before Deductions</option>
+                    <option value="after_deductions" data-i18n="employees.percentageScopes.after_deductions">After Deductions</option>
                   </select>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
               <button type="button" class="btn btn-primary" id="savePaymentBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                <span class="btn-text">Save Payment</span>
+                <span class="btn-text" data-i18n="employees.savePayment">Save Payment</span>
               </button>
             </div>
           </div>
@@ -559,35 +543,6 @@
       </div>
     </div>
   </div>
-
-    <!-- Google Translate -->
-    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <script>
-      function googleTranslateElementInit() {
-        // Initialize only if not already initialized
-        if (!window.googleTranslateInitialized) {
-          new google.translate.TranslateElement({
-            pageLanguage: 'en', // Source language (English)
-            includedLanguages: 'ar', // Target language (Arabic)
-            autoDisplay: false // Prevent automatic popup
-          }, 'google_translate_element');
-          window.googleTranslateInitialized = true;
-        }
-
-        // Automatically select Arabic
-        setTimeout(() => {
-          const select = document.querySelector('#google_translate_element select');
-          if (select && select.value !== 'ar') {
-            select.value = 'ar';
-            select.dispatchEvent(new Event('change'));
-          }
-        }, 500); // Delay to ensure widget is loaded
-      }
-
-      // Initialize on page load and when navigating back
-      window.onload = googleTranslateElementInit;
-      window.onpageshow = googleTranslateElementInit;
-    </script>
 
   <!-- JQuery -->
   <script src="../js/jquery/jquery-3.7.1.min.js"></script>
@@ -597,6 +552,8 @@
   <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
   <!-- toastr -->
   <script src="../js/toastr/toastr.min.js" type="module"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../js/employees/employees.js" type="module"></script>
