@@ -1,9 +1,9 @@
 interface TranslationObject {
-  [key: string]: string | TranslationObject;
+	[key: string]: string | TranslationObject;
 }
 
 interface Translations {
-  [locale: string]: TranslationObject;
+	[locale: string]: TranslationObject;
 }
 
 class I18n {
@@ -98,14 +98,18 @@ class I18n {
 	}
 
 	private loadRTLStyles(): void {
-		const rtlLink = document.getElementById("rtl-css") as HTMLLinkElement;
-		if (!rtlLink) return;
+		const rtlLinks = document.getElementsByClassName(
+			"rtl-css"
+		) as HTMLCollectionOf<HTMLLinkElement>;
+		if (!rtlLinks) return;
 
-		if (this.currentLocale === "ar") {
-			rtlLink.disabled = false;
-		} else {
-			rtlLink.disabled = true;
-		}
+		Array.from(rtlLinks).forEach((rtlLink) => {
+			if (this.currentLocale === "ar") {
+				rtlLink.disabled = false;
+			} else {
+				rtlLink.disabled = true;
+			}
+		});
 	}
 
 	private updateLanguageIndicator(): void {

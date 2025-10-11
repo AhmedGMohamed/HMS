@@ -1,0 +1,102 @@
+/* RTL Overrides for Admin Pages */
+body.rtl .page-title {
+    margin-right: 1rem;
+    margin-left: 0;
+}
+
+/* Table RTL */
+body.rtl .table {
+    text-align: right;
+}
+
+body.rtl .table thead th {
+    text-align: right;
+}
+
+body.rtl .table td {
+    text-align: right;
+}
+
+/* Action buttons RTL */
+body.rtl .action-buttons {
+    justify-content: flex-start;
+    flex-direction: row-reverse;
+}
+
+/* Input group RTL */
+body.rtl .input-group-text {
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+
+body.rtl .input-group .form-control {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* Form labels RTL */
+body.rtl .form-label {
+    text-align: right;
+}
+
+/* Modal RTL */
+body.rtl .modal-header .btn-close {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+/* Dropdown menu RTL */
+body.rtl .dropdown-menu {
+    text-align: right;
+}
+
+/* Pagination RTL */
+body.rtl .pagination {
+    direction: ltr;
+}
+
+/* Buttons with icons RTL */
+body.rtl .btn i {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+body.rtl .btn i:first-child {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+/* Search input RTL */
+body.rtl .input-group > .form-control:not(:first-child) {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+body.rtl .input-group-text:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+
+/* Invalid feedback RTL */
+body.rtl .invalid-feedback {
+    text-align: right;
+}
+
+/* Form validation icons RTL */
+body.rtl .form-control.is-invalid,
+body.rtl .form-select.is-invalid {
+    padding-left: calc(1.5em + 0.75rem);
+    padding-right: 0.75rem;
+    background-position: left calc(0.375em + 0.1875rem) center;
+}
+
+/* Password toggle button RTL */
+body.rtl .input-group .btn {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+body.rtl .input-group .form-control:not(:last-child) {
+    border-radius: 0 0.375rem 0.375rem 0;
+}

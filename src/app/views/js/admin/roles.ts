@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface Permission {
 	permission_id: number;
@@ -23,8 +24,6 @@ class RoleManager {
 	private permissions: Permission[] = [];
 
 	constructor() {
-		new SidebarManager();
-
 		// Initialize modal
 		const modalElement = document.getElementById("roleModal")!;
 		//@ts-ignore
@@ -36,8 +35,33 @@ class RoleManager {
 			"saveRoleBtn"
 		) as HTMLButtonElement;
 
-		this.initializeEventListeners();
-		this.loadInitialData();
+		this.waitForI18n().then(() => {
+			new SidebarManager();
+
+			this.initializeEventListeners();
+			this.loadInitialData();
+
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Update page title
+		document.title = i18n.t("roles.pageTitle");
+
+		// Re-render roles with translated labels
+		this.renderRoles();
+
+		// Re-render permissions grid with translated labels
+		this.renderPermissionsGrid();
 	}
 
 	private initializeEventListeners(): void {
@@ -72,13 +96,13 @@ class RoleManager {
 			this.resetForm();
 		});
 	}
-
 	private async loadInitialData(): Promise<void> {
 		try {
+			document.title = i18n.t("roles.pageTitle");
 			await Promise.all([this.loadPermissions(), this.loadRoles()]);
 		} catch (error) {
 			console.error("Error loading initial data:", error);
-			this.showError("Failed to load initial data");
+			this.showError(i18n.t("roles.messages.loadError"));
 		}
 	}
 
@@ -96,7 +120,7 @@ class RoleManager {
 			this.renderPermissionsGrid();
 		} catch (error) {
 			console.error("Error loading permissions:", error);
-			this.showError("Failed to load permissions");
+			this.showError(i18n.t("roles.messages.loadError"));
 		}
 	}
 
@@ -114,57 +138,87 @@ class RoleManager {
 			this.renderRoles();
 		} catch (error) {
 			console.error("Error loading roles:", error);
-			this.showError("Failed to load roles");
+			this.showError(i18n.t("roles.messages.loadError"));
 		}
 	}
 
 	private renderRoles(): void {
 		const container = document.getElementById("rolesContainer")!;
+
+		if (this.roles.length === 0) {
+			container.innerHTML = `
+				<div class="col-12">
+					<div class="alert alert-info text-center">
+						<i class="bi bi-info-circle"></i>
+						${i18n.t("common.noData")}
+					</div>
+				</div>
+			`;
+			return;
+		}
+
 		container.innerHTML = this.roles
 			.map(
 				(role) => `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card role-card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title">${this.escapeHtml(
-							role.name
-						)}</h5>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="roleManager.editRole(${
-								role.role_id
-							})">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            ${
-								role.name !== "Admin"
-									? `
-                                <button class="btn btn-sm btn-outline-danger" onclick="roleManager.deleteRole(${role.role_id})">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            `
-									: ""
-							}
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="card-subtitle mb-3 text-muted">Permissions</h6>
-                        <div class="permissions-list">
-                            ${role.permissions
-								.map(
-									(permission) => `
-                                <span class="permission-badge">
-                                    ${this.escapeHtml(permission.feature_name)}
-                                </span>
-                            `
-								)
-								.join("")}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `
+				<div class="col-md-6 col-lg-4 mb-4">
+					<div class="card role-card">
+						<div class="card-header d-flex justify-content-between align-items-center">
+							<h5 class="card-title">${this.escapeHtml(role.name)}</h5>
+							<div class="btn-group">
+								<button class="btn btn-sm btn-outline-primary" 
+										onclick="roleManager.editRole(${role.role_id})"
+										title="${i18n.t("roles.buttons.edit")}">
+									<i class="bi bi-pencil"></i>
+								</button>
+								${
+									role.name !== "Admin"
+										? `
+									<button class="btn btn-sm btn-outline-danger" 
+											onclick="roleManager.deleteRole(${role.role_id})"
+											title="${i18n.t("roles.buttons.delete")}">
+										<i class="bi bi-trash"></i>
+									</button>
+								`
+										: ""
+								}
+							</div>
+						</div>
+						<div class="card-body">
+							<h6 class="card-subtitle mb-3 text-muted">${i18n.t(
+								"roles.permissionsLabel"
+							)}</h6>
+							<div class="permissions-list">
+								${
+									role.permissions.length > 0
+										? role.permissions
+												.map(
+													(permission) => `
+										<span class="permission-badge">
+											${this.escapeHtml(this.translatePermission(permission.feature_name))}
+										</span>
+									`
+												)
+												.join("")
+										: `<span class="text-muted">${i18n.t(
+												"roles.noPermissions"
+										  )}</span>`
+								}
+							</div>
+						</div>
+					</div>
+				</div>
+			`
 			)
 			.join("");
+	}
+
+	private translatePermission(featureName: string): string {
+		// Try to get translation for permission
+		const key = `roles.permissions.${featureName}`;
+		const translation = i18n.t(key);
+
+		// If no translation found, return the feature name
+		return translation === key ? featureName : translation;
 	}
 
 	private renderPermissionsGrid(): void {
@@ -172,33 +226,29 @@ class RoleManager {
 		container.innerHTML = this.permissions
 			.map(
 				(permission) => `
-            <div class="col-md-6">
-                <div class="permission-check">
-                    <div class="form-check">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               value="${permission.permission_id}" 
-                               id="permission_${permission.permission_id}">
-                        <label class="form-check-label" for="permission_${
-							permission.permission_id
-						}">
-                            ${this.escapeHtml(permission.feature_name)}
-                            ${
-								permission.description
-									? `
-                                <i class="bi bi-info-circle text-muted" 
-                                   data-bs-toggle="tooltip" 
-                                   title="${this.escapeHtml(
-										permission.description
-									)}"></i>
-                            `
-									: ""
-							}
-                        </label>
-                    </div>
-                </div>
-            </div>
-        `
+				<div class="col-md-6">
+					<div class="permission-check">
+						<div class="form-check">
+							<input class="form-check-input" 
+								   type="checkbox" 
+								   value="${permission.permission_id}" 
+								   id="permission_${permission.permission_id}">
+							<label class="form-check-label" for="permission_${permission.permission_id}">
+								${this.escapeHtml(this.translatePermission(permission.feature_name))}
+								${
+									permission.description
+										? `
+									<i class="bi bi-info-circle text-muted" 
+									   data-bs-toggle="tooltip" 
+									   title="${this.escapeHtml(permission.description)}"></i>
+								`
+										: ""
+								}
+							</label>
+						</div>
+					</div>
+				</div>
+			`
 			)
 			.join("");
 
@@ -207,7 +257,7 @@ class RoleManager {
 			'[data-bs-toggle="tooltip"]'
 		);
 		tooltips.forEach((element) => {
-			// @ts-ignore
+			//@ts-ignore
 			new bootstrap.Tooltip(element);
 		});
 	}
@@ -220,7 +270,7 @@ class RoleManager {
 			const role = this.roles.find((r) => r.role_id === roleId);
 			if (!role) return;
 
-			modalTitle.textContent = "Edit Role";
+			modalTitle.textContent = i18n.t("roles.editRole");
 			(document.getElementById("roleId") as HTMLInputElement).value =
 				roleId.toString();
 			(document.getElementById("roleName") as HTMLInputElement).value =
@@ -234,7 +284,7 @@ class RoleManager {
 				if (checkbox) checkbox.checked = true;
 			});
 		} else {
-			modalTitle.textContent = "Create New Role";
+			modalTitle.textContent = i18n.t("roles.createNewRole");
 		}
 
 		this.roleModal.show();
@@ -285,7 +335,9 @@ class RoleManager {
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.error || "Failed to save role");
+				throw new Error(
+					error.error || i18n.t("roles.messages.saveError")
+				);
 			}
 
 			await this.loadRoles();
@@ -293,17 +345,22 @@ class RoleManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `Role successfully ${roleId ? "updated" : "created"}`,
+				title: i18n.t("common.success"),
+				text: roleId
+					? i18n.t("roles.messages.updateSuccess")
+					: i18n.t("roles.messages.createSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
-				timer: 3000
+				timer: 3000,
+				timerProgressBar: true
 			});
 		} catch (error) {
 			console.error("Error saving role:", error);
 			this.showError(
-				error instanceof Error ? error.message : "Failed to save role"
+				error instanceof Error
+					? error.message
+					: i18n.t("roles.messages.saveError")
 			);
 		} finally {
 			this.setLoading(false);
@@ -312,14 +369,22 @@ class RoleManager {
 
 	public async deleteRole(roleId: number): Promise<void> {
 		try {
+			// Check if trying to delete Admin role
+			const role = this.roles.find((r) => r.role_id === roleId);
+			if (role && role.name === "Admin") {
+				this.showError(i18n.t("roles.messages.cannotDeleteAdmin"));
+				return;
+			}
+
 			const result = await Swal.fire({
-				title: "Are you sure?",
-				text: "This action cannot be undone!",
+				title: i18n.t("roles.messages.deleteConfirmTitle"),
+				text: i18n.t("roles.messages.deleteConfirmText"),
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -331,24 +396,25 @@ class RoleManager {
 				});
 
 				if (!response.ok) {
-					throw new Error("Failed to delete role");
+					throw new Error(i18n.t("roles.messages.deleteError"));
 				}
 
 				await this.loadRoles();
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "Role has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("roles.messages.deleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
-					timer: 3000
+					timer: 3000,
+					timerProgressBar: true
 				});
 			}
 		} catch (error) {
 			console.error("Error deleting role:", error);
-			this.showError("Failed to delete role");
+			this.showError(i18n.t("roles.messages.deleteError"));
 		}
 	}
 
@@ -382,13 +448,15 @@ class RoleManager {
 		const buttonText = this.saveButton.querySelector(".btn-text")!;
 		this.saveButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("roles.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});
