@@ -1,7 +1,7 @@
-
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface User {
 	user_id: number;
@@ -28,15 +28,10 @@ class UserManager {
 	private roles: Role[] = [];
 
 	constructor() {
-		//Initialize sidebar
-        new SidebarManager();
-
-		// Initialize modal
-		const modalElement = document.getElementById("userModal")!;
 		//@ts-ignore
-		this.userModal = new bootstrap.Modal(modalElement);
-
-		// Initialize form elements
+		this.userModal = new bootstrap.Modal(
+			document.getElementById("userModal")!
+		);
 		this.userForm = document.getElementById("userForm") as HTMLFormElement;
 		this.saveButton = document.getElementById(
 			"saveUserBtn"
@@ -51,8 +46,29 @@ class UserManager {
 			"roleFilter"
 		) as HTMLSelectElement;
 
-		this.initializeEventListeners();
-		this.loadInitialData();
+		this.waitForI18n().then(() => {
+			new SidebarManager();
+
+			this.initializeEventListeners();
+			this.loadInitialData();
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Update page title
+		document.title = i18n.t("users.pageTitle");
+
+		// Reload roles to update dropdowns with new translations
+		this.loadRoles();
+
+		// Re-render users table with new date formatting
+		this.filterUsers();
 	}
 
 	private initializeEventListeners(): void {
@@ -90,14 +106,21 @@ class UserManager {
 		modalElement.addEventListener("hidden.bs.modal", () => {
 			this.resetForm();
 		});
+
+		// Listen for locale changes
+		window.addEventListener("localeChanged", () => {
+			this.handleLocaleChange();
+		});
 	}
 
 	private async loadInitialData(): Promise<void> {
 		try {
+			// Update page title
+			document.title = i18n.t("users.pageTitle");
 			await Promise.all([this.loadRoles(), this.loadUsers()]);
 		} catch (error) {
 			console.error("Error loading initial data:", error);
-			this.showError("Failed to load initial data");
+			this.showError(i18n.t("users.messages.loadError"));
 		}
 	}
 
@@ -113,9 +136,11 @@ class UserManager {
 
 			this.roles = await response.json();
 
-			// Populate role filter
+			// Populate role filter with translation
 			this.roleFilter.innerHTML =
-				'<option value="">All Roles</option>' +
+				`<option value="">${i18n.t(
+					"users.filters.allRoles"
+				)}</option>` +
 				this.roles
 					.map(
 						(role) =>
@@ -123,12 +148,12 @@ class UserManager {
 					)
 					.join("");
 
-			// Populate modal role select
+			// Populate modal role select with translation
 			const roleSelect = document.getElementById(
 				"roleSelect"
 			) as HTMLSelectElement;
 			roleSelect.innerHTML =
-				'<option value="">Select a role</option>' +
+				`<option value="">${i18n.t("users.selectRole")}</option>` +
 				this.roles
 					.map(
 						(role) =>
@@ -137,7 +162,7 @@ class UserManager {
 					.join("");
 		} catch (error) {
 			console.error("Error loading roles:", error);
-			this.showError("Failed to load roles");
+			this.showError(i18n.t("users.messages.loadError"));
 		}
 	}
 
@@ -155,7 +180,7 @@ class UserManager {
 			this.filterUsers();
 		} catch (error) {
 			console.error("Error loading users:", error);
-			this.showError("Failed to load users");
+			this.showError(i18n.t("users.messages.loadError"));
 		}
 	}
 
@@ -182,29 +207,39 @@ class UserManager {
 
 	private renderUsers(users: User[]): void {
 		const tbody = document.getElementById("usersTableBody")!;
+
+		if (users.length === 0) {
+			tbody.innerHTML = `
+				<tr>
+					<td colspan="4" class="text-center text-muted">
+						${i18n.t("common.noData")}
+					</td>
+				</tr>
+			`;
+			return;
+		}
+
 		tbody.innerHTML = users
 			.map(
 				(user) => `
-            <tr>
-                <td>${this.escapeHtml(user.username)}</td>
-                <td>${this.escapeHtml(user.role_name)}</td>
-                <td>${new Date(user.created_at).toLocaleDateString()}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="userManager.editUser(${user.user_id})">
-                            <i class="bi bi-pencil"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="userManager.deleteUser(${
-									user.user_id
-								})">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `
+				<tr>
+					<td>${this.escapeHtml(user.username)}</td>
+					<td>${this.escapeHtml(user.role_name)}</td>
+					<td>${i18n.formatDate(new Date(user.created_at))}</td>
+					<td>
+						<div class="action-buttons">
+							<button class="btn btn-sm btn-outline-primary" 
+									onclick="userManager.editUser(${user.user_id})">
+								<i class="bi bi-pencil"></i> ${i18n.t("users.buttons.edit")}
+							</button>
+							<button class="btn btn-sm btn-outline-danger" 
+									onclick="userManager.deleteUser(${user.user_id})">
+								<i class="bi bi-trash"></i> ${i18n.t("users.buttons.delete")}
+							</button>
+						</div>
+					</td>
+				</tr>
+			`
 			)
 			.join("");
 	}
@@ -212,26 +247,25 @@ class UserManager {
 	private showUserModal(userId?: number): void {
 		this.resetForm();
 		const modalTitle = document.getElementById("userModalLabel")!;
-		const passwordField = document.querySelector("#password")!;
+		const passwordField = document.getElementById(
+			"password"
+		) as HTMLInputElement;
 
 		if (userId) {
 			const user = this.users.find((u) => u.user_id === userId);
 			if (!user) return;
 
-			modalTitle.textContent = "Edit User";
+			modalTitle.textContent = i18n.t("users.editUser");
 			(document.getElementById("userId") as HTMLInputElement).value =
 				userId.toString();
 			(document.getElementById("username") as HTMLInputElement).value =
 				user.username;
 			(document.getElementById("roleSelect") as HTMLSelectElement).value =
 				user.role_id.toString();
-			(document.getElementById("password") as HTMLInputElement).required =
-				false;
+			passwordField.required = false;
 		} else {
-			modalTitle.textContent = "Create New User";
-			passwordField.classList.remove("d-none");
-			(document.getElementById("password") as HTMLInputElement).required =
-				true;
+			modalTitle.textContent = i18n.t("users.createNewUser");
+			passwordField.required = true;
 		}
 
 		this.userModal.show();
@@ -276,7 +310,9 @@ class UserManager {
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.error || "Failed to save user");
+				throw new Error(
+					error.error || i18n.t("users.messages.saveError")
+				);
 			}
 
 			await this.loadUsers();
@@ -284,17 +320,22 @@ class UserManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `User successfully ${userId ? "updated" : "created"}`,
+				title: i18n.t("common.success"),
+				text: userId
+					? i18n.t("users.messages.updateSuccess")
+					: i18n.t("users.messages.createSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
-				timer: 3000
+				timer: 3000,
+				timerProgressBar: true
 			});
 		} catch (error) {
 			console.error("Error saving user:", error);
 			this.showError(
-				error instanceof Error ? error.message : "Failed to save user"
+				error instanceof Error
+					? error.message
+					: i18n.t("users.messages.saveError")
 			);
 		} finally {
 			this.setLoading(false);
@@ -304,13 +345,14 @@ class UserManager {
 	public async deleteUser(userId: number): Promise<void> {
 		try {
 			const result = await Swal.fire({
-				title: "Are you sure?",
-				text: "This action cannot be undone!",
+				title: i18n.t("users.messages.deleteConfirmTitle"),
+				text: i18n.t("users.messages.deleteConfirmText"),
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -322,24 +364,25 @@ class UserManager {
 				});
 
 				if (!response.ok) {
-					throw new Error("Failed to delete user");
+					throw new Error(i18n.t("users.messages.deleteError"));
 				}
 
 				await this.loadUsers();
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "User has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("users.messages.deleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
-					timer: 3000
+					timer: 3000,
+					timerProgressBar: true
 				});
 			}
 		} catch (error) {
 			console.error("Error deleting user:", error);
-			this.showError("Failed to delete user");
+			this.showError(i18n.t("users.messages.deleteError"));
 		}
 	}
 
@@ -378,13 +421,15 @@ class UserManager {
 		const buttonText = this.saveButton.querySelector(".btn-text")!;
 		this.saveButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("users.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});

@@ -143,6 +143,103 @@
 			"insurance": "Insurance company management and claims"
 		}
 	},
+	"users": {
+		"pageTitle": "HMS - User Management",
+		"title": "User Management",
+		"createNewUser": "Create New User",
+		"editUser": "Edit User",
+		"searchPlaceholder": "Search users...",
+		"selectRole": "Select a role",
+		"filters": {
+			"allRoles": "All Roles",
+			"allStatus": "All Status"
+		},
+		"table": {
+			"username": "Username",
+			"role": "Role",
+			"createdDate": "Created Date",
+			"status": "Status"
+		},
+		"fields": {
+			"username": "Username",
+			"password": "Password",
+			"role": "Role"
+		},
+		"validation": {
+			"usernameLength": "Username must be between 3 and 50 characters",
+			"passwordLength": "Password must be at least 8 characters long",
+			"roleRequired": "Please select a role"
+		},
+		"messages": {
+			"deleteConfirmTitle": "Are you sure?",
+			"deleteConfirmText": "This action cannot be undone!",
+			"deleteSuccess": "User has been deleted",
+			"createSuccess": "User successfully created",
+			"updateSuccess": "User successfully updated",
+			"loadError": "Failed to load users",
+			"saveError": "Failed to save user",
+			"deleteError": "Failed to delete user"
+		},
+		"buttons": {
+			"edit": "Edit",
+			"delete": "Delete",
+			"saving": "Saving..."
+		}
+	},
+	"roles": {
+		"pageTitle": "HMS - Role Management",
+		"title": "Role Management",
+		"createNewRole": "Create New Role",
+		"editRole": "Edit Role",
+		"fields": {
+			"roleName": "Role Name",
+			"permissions": "Permissions"
+		},
+		"validation": {
+			"roleNameLength": "Role name must be between 3 and 50 characters"
+		},
+		"permissions": {
+			"view_dashboard": "View Dashboard",
+			"manage_patients": "Manage Patients",
+			"view_patients": "View Patients",
+			"manage_services": "Manage Services",
+			"manage_billing": "Manage Billing",
+			"manage_pharmacy": "Manage Pharmacy",
+			"manage_insurance": "Manage Insurance",
+			"manage_employees": "Manage Employees",
+			"view_vault": "View Vault",
+			"manage_vault": "Manage Vault",
+			"manage_reports": "Manage Reports",
+			"manage_settings": "Manage Settings",
+			"manage_users": "Manage Users",
+			"manage_prices": "Manage Prices",
+			"manage_payments": "Manage Payments",
+			"manage_clocking": "Manage Clocking",
+			"view_reports": "View Reports",
+			"view_only": "View Only"
+		},
+		"permissionsHelp": "Select the permissions for this role. Users assigned this role will have access to these features.",
+		"selectAll": "Select All",
+		"deselectAll": "Deselect All",
+		"permissionsLabel": "Permissions",
+		"noPermissions": "No permissions assigned",
+		"messages": {
+			"deleteConfirmTitle": "Are you sure?",
+			"deleteConfirmText": "This action cannot be undone!",
+			"deleteSuccess": "Role has been deleted",
+			"createSuccess": "Role successfully created",
+			"updateSuccess": "Role successfully updated",
+			"loadError": "Failed to load roles",
+			"saveError": "Failed to save role",
+			"deleteError": "Failed to delete role",
+			"cannotDeleteAdmin": "Admin role cannot be deleted"
+		},
+		"buttons": {
+			"edit": "Edit",
+			"delete": "Delete",
+			"saving": "Saving..."
+		}
+	},
 	"auth": {
 		"login": "Login",
 		"logout": "Logout",

@@ -28,9 +28,9 @@ function createWindow() {
 		width: 1920,
 		height: 1080,
 		webPreferences: {
-			devTools: true,
+			devTools: true
 		},
-		autoHideMenuBar: true,
+		autoHideMenuBar: true
 	});
 	mainWindow.menuBarVisible = false;
 	mainWindow.loadURL("http://localhost:3000");
