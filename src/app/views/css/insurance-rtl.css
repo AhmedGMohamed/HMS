@@ -1,0 +1,366 @@
+/* Insurance RTL Styles for Arabic */
+
+/* Reverse flexbox directions */
+.insurance-card-body {
+	direction: rtl;
+}
+
+.insurance-meta {
+	direction: rtl;
+}
+
+.insurance-stats {
+	direction: rtl;
+}
+
+/* Reverse icons positioning */
+.insurance-icon {
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.insurance-name {
+	text-align: right;
+}
+
+/* Patient cards RTL */
+.patient-card {
+	text-align: right;
+	direction: rtl;
+}
+
+.patient-details {
+	direction: rtl;
+}
+
+.patient-admission {
+	text-align: right;
+	direction: rtl;
+}
+
+.patient-admission-details {
+	direction: rtl;
+}
+
+/* Info cards RTL */
+
+.insurance-info-label {
+	text-align: right;
+}
+
+.insurance-info-value {
+	text-align: left;
+}
+
+/* Statistics RTL */
+.stat-metric {
+	text-align: center;
+}
+
+/* Button groups RTL */
+
+.insurance-card-footer .btn-group {
+	direction: rtl;
+}
+
+/* Modal RTL adjustments */
+
+.modal-header .btn-close {
+	margin-left: 0;
+	margin-right: auto;
+}
+
+/* Form RTL */
+.form-label {
+	text-align: right;
+}
+
+.form-check {
+	text-align: right;
+	padding-right: 1.5em;
+	padding-left: 0;
+}
+
+.form-check-input {
+	float: right;
+	margin-right: -1.5em;
+	margin-left: 0;
+}
+
+.input-group {
+	flex-direction: row-reverse;
+}
+
+.input-group-text {
+	border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.input-group > .form-control {
+	border-radius: 0 0.375rem 0.375rem 0;
+}
+
+/* Alert RTL */
+.alert {
+	text-align: right;
+	direction: rtl;
+}
+
+.alert i {
+	margin-left: 0.5rem;
+	margin-right: 0;
+}
+
+/* Report table RTL */
+.insurance-report-table {
+	direction: rtl;
+	text-align: right;
+}
+
+.insurance-report-table th,
+.insurance-report-table td {
+	text-align: right;
+}
+
+/* Report summary RTL */
+.report-summary {
+	direction: rtl;
+	text-align: right;
+}
+
+.report-summary-title {
+	text-align: center;
+}
+
+.report-summary-item {
+	text-align: center;
+}
+
+/* Patient group cards RTL */
+.patient-group-header {
+	text-align: right;
+	direction: rtl;
+}
+
+.patient-group-info {
+	direction: rtl;
+}
+
+.patient-group-card .table {
+	direction: rtl;
+	text-align: right;
+}
+
+.patient-group-card .table th,
+.patient-group-card .table td {
+	text-align: right;
+}
+
+/* Payment history RTL */
+.payment-history-item {
+	direction: rtl;
+	text-align: right;
+}
+
+.payment-period {
+	text-align: right;
+}
+
+/* Card header RTL */
+.card-header {
+	text-align: right;
+}
+
+/* Page title RTL */
+.page-title {
+	text-align: right;
+	margin-left: 0;
+	margin-right: 1rem;
+}
+
+/* Navigation RTL */
+
+.navbar .ms-auto {
+	margin-left: 0 !important;
+	margin-right: auto !important;
+}
+
+/* Empty state RTL */
+#emptyState {
+	text-align: center;
+	direction: rtl;
+}
+
+/* Status badges RTL */
+.patient-status {
+	direction: rtl;
+}
+
+.status-badge {
+	direction: rtl;
+}
+
+/* Icon adjustments for RTL */
+.bi {
+	margin-left: 0.25rem;
+}
+
+h5 .bi,
+h6 .bi {
+	margin-left: 0;
+	margin-right: 0.5rem;
+}
+
+/* Button icon spacing RTL */
+.btn i {
+	margin-left: 0.5rem;
+	margin-right: 0;
+}
+
+.btn i.bi-arrow-left {
+	transform: scaleX(-1);
+}
+
+/* Border adjustments for RTL */
+.border-start-primary,
+.border-start-success,
+.border-start-danger,
+.border-start-warning {
+	border-left: none !important;
+	border-right: 4px solid !important;
+}
+
+.border-start-primary {
+	border-right-color: var(--bs-primary) !important;
+}
+
+.border-start-success {
+	border-right-color: var(--bs-success) !important;
+}
+
+.border-start-danger {
+	border-right-color: var(--bs-danger) !important;
+}
+
+.border-start-warning {
+	border-right-color: var(--bs-warning) !important;
+}
+
+.patient-card.active-patient,
+.patient-card.inactive-patient {
+	border-left: none;
+	border-right: 4px solid;
+}
+
+.patient-card.active-patient {
+	border-right-color: var(--bs-success);
+}
+
+.patient-card.inactive-patient {
+	border-right-color: var(--bs-secondary);
+}
+
+/* Alert border RTL */
+.alert-info,
+.alert-warning,
+.alert-success,
+.alert-danger {
+	border-left: none;
+	border-right: 4px solid;
+}
+
+.alert-info {
+	border-right-color: var(--bs-info);
+}
+
+.alert-warning {
+	border-right-color: var(--bs-warning);
+}
+
+.alert-success {
+	border-right-color: var(--bs-success);
+}
+
+.alert-danger {
+	border-right-color: var(--bs-danger);
+}
+
+/* Insurance card gradient bar RTL */
+.insurance-card::before {
+	left: auto;
+	right: 0;
+}
+
+/* Selected insurance card RTL adjustments */
+.insurance-card.selected {
+	border-right: 2px solid var(--bs-primary);
+	border-left: 1px solid #dee2e6;
+}
+
+/* Dropdown menu RTL */
+.dropdown-menu {
+	text-align: right;
+}
+
+/* Table responsive RTL */
+.table-responsive {
+	direction: rtl;
+}
+
+/* Breadcrumb RTL if used */
+
+/* Specific adjustments for admission summary */
+.admission-summary .row > div {
+	border-right: none;
+	border-left: 1px solid #dee2e6;
+}
+
+.admission-summary .row > div:last-child {
+	border-left: none;
+}
+
+/* Loading state RTL */
+#loadingState {
+	direction: rtl;
+}
+
+/* Patient actions RTL */
+.patient-actions {
+	direction: rtl;
+	text-align: right;
+}
+
+/* Generate report button RTL */
+.generate-patient-report-btn {
+	direction: rtl;
+}
+
+/* Responsive adjustments for RTL */
+@media (max-width: 768px) {
+	.admission-summary .row > div {
+		border-left: none;
+		border-bottom: 1px solid #dee2e6;
+	}
+
+	.admission-summary .row > div:last-child {
+		border-bottom: none;
+	}
+
+	.insurance-stat {
+		text-align: right;
+	}
+}
+
+/* Print adjustments for RTL */
+@media print {
+	body {
+		direction: rtl;
+	}
+
+	.insurance-report-table {
+		direction: rtl;
+	}
+
+	.card {
+		text-align: right;
+	}
+}

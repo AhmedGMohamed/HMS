@@ -25,7 +25,15 @@ window.pdfMake.fonts = {
 	},
 	"Segoe UI": {
 		normal: "Segoe UI.ttf",
-		bold: "Segoe UI Semibold.ttf"
+		bold: "Segoe UI Semibold.ttf",
+		italics: "Segoe UI Semibold.ttf",
+		bolditalics: "Segoe UI Semibold.ttf"
+	},
+	"Nillima": {
+		normal: "Nillima.ttf",
+		bold: "Nillima.ttf",
+		italics: "Nillima.ttf",
+		bolditalics: "Nillima.ttf"
 	}
 };
 

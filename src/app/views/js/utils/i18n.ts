@@ -102,12 +102,18 @@ class I18n {
 			"rtl-css"
 		) as HTMLCollectionOf<HTMLLinkElement>;
 		if (!rtlLinks) return;
+		const bootstrapRtlLink = document.getElementById("bootstrap-rtl-css") as HTMLLinkElement;
+		const bootstrapLtrLink = document.getElementById("bootstrap-css") as HTMLLinkElement;
 
 		Array.from(rtlLinks).forEach((rtlLink) => {
 			if (this.currentLocale === "ar") {
 				rtlLink.disabled = false;
+				bootstrapRtlLink.disabled = false;
+				bootstrapLtrLink.disabled = true;
 			} else {
 				rtlLink.disabled = true;
+				bootstrapRtlLink.disabled = true;
+				bootstrapLtrLink.disabled = false;
 			}
 		});
 	}
@@ -256,8 +262,9 @@ class I18n {
 		return this.currentLocale === "ar";
 	}
 
-	public formatNumber(num: number, decimals: number = 2): string {
-		if (this.currentLocale === "ar") {
+	public formatNumber(num: number, decimals: number = 2, en: boolean = false): string {
+		console.log(num, en)
+		if (this.currentLocale === "ar" && !en) {
 			return num.toLocaleString("ar-EG", {
 				useGrouping: false,
 				minimumFractionDigits: decimals,
@@ -313,9 +320,9 @@ class I18n {
 		return `${this.formatDate(date)} ${this.formatTime(date)}`;
 	}
 
-	public formatCurrency(amount: number): string {
-		const formatted = this.formatNumber(amount, 2);
-		return this.currentLocale === "ar"
+	public formatCurrency(amount: number, en: boolean = false): string {
+		const formatted = this.formatNumber(amount, 2, en);
+		return this.currentLocale === "ar" && !en
 			? `${formatted} ${this.t("common.currency")}`
 			: `${this.t("common.currency")} ${formatted}`;
 	}
