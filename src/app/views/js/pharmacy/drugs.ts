@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface UnitConversion {
 	larger: string;
@@ -99,9 +100,6 @@ class DrugManager {
 	private warehouseForm: HTMLFormElement;
 
 	constructor() {
-		// Initialize sidebar
-		new SidebarManager();
-
 		// Initialize modals
 		const drugModalElement = document.getElementById("drugModal")!;
 		const sellModalElement = document.getElementById("sellDrugModal")!;
@@ -158,9 +156,31 @@ class DrugManager {
 			this.handleSaveShipment();
 		});
 
-		this.loadWarehouses();
-		this.initializeEventListeners();
-		this.loadInitialData();
+		this.waitForI18n().then(() => {
+			// Initialize sidebar
+			new SidebarManager();
+
+			this.loadWarehouses();
+			this.initializeEventListeners();
+			this.loadInitialData();
+
+			// Listen for locale changes
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Reload and re-render all data with new locale
+		this.renderDrugs();
+		this.renderWarehousesTable();
 	}
 
 	private async loadInitialData(): Promise<void> {
@@ -172,24 +192,21 @@ class DrugManager {
 			]);
 		} catch (error) {
 			console.error("Error loading initial data:", error);
-			this.showError("Failed to load initial data");
+			this.showError(i18n.t("pharmacy.messages.loadInitialDataError"));
 		}
 	}
 
 	private initializeEventListeners(): void {
-		// Create drug button
 		document
 			.getElementById("createDrugBtn")
 			?.addEventListener("click", () => {
 				this.showDrugModal();
 			});
 
-		// Save drug button
 		this.saveDrugButton.addEventListener("click", () => {
 			this.handleSaveDrug();
 		});
 
-		// Search input
 		this.searchInput.addEventListener(
 			"input",
 			this.debounce(() => {
@@ -219,19 +236,16 @@ class DrugManager {
 			this.resetWarehouseForm();
 		});
 
-		// Drug modal events
 		const drugModalElement = document.getElementById("drugModal")!;
 		drugModalElement.addEventListener("hidden.bs.modal", () => {
 			this.resetDrugForm();
 		});
 
-		// Sell modal events
 		const sellModalElement = document.getElementById("sellDrugModal")!;
 		sellModalElement.addEventListener("hidden.bs.modal", () => {
 			this.resetSellForm();
 		});
 
-		// Transaction type change
 		document
 			.getElementById("transactionType")
 			?.addEventListener("change", (e) => {
@@ -253,7 +267,6 @@ class DrugManager {
 				}
 			});
 
-		// Quantity input change
 		document
 			.getElementById("sellQuantityLarger")
 			?.addEventListener("input", () => {
@@ -266,17 +279,14 @@ class DrugManager {
 				this.updateTotalPrice();
 			});
 
-		// Price list change
 		document.getElementById("priceList")?.addEventListener("change", () => {
 			this.updateTotalPrice();
 		});
 
-		// Confirm sell button
 		this.confirmSellButton.addEventListener("click", () => {
 			this.handleSellDrug();
 		});
 
-		// Unit conversion preview
 		["largerUnit", "smallerUnit", "conversionRatio"].forEach((id) => {
 			document.getElementById(id)?.addEventListener("input", () => {
 				this.updateUnitConversionPreview();
@@ -302,7 +312,7 @@ class DrugManager {
 			this.renderDrugs();
 		} catch (error) {
 			console.error("Error loading drugs:", error);
-			this.showError("Failed to load drugs");
+			this.showError(i18n.t("pharmacy.messages.loadDrugsError"));
 		}
 	}
 
@@ -325,7 +335,6 @@ class DrugManager {
 
 				const shipments: DrugShipment[] = await response.json();
 
-				// Calculate total quantity and find nearest expiry
 				const totalQuantity = shipments.reduce(
 					(sum, shipment) => sum + shipment.quantity,
 					0
@@ -350,7 +359,7 @@ class DrugManager {
 			}
 		} catch (error) {
 			console.error("Error loading drug stocks:", error);
-			this.showError("Failed to load drug stocks");
+			this.showError(i18n.t("pharmacy.messages.loadStocksError"));
 		}
 	}
 
@@ -368,7 +377,7 @@ class DrugManager {
 			this.updatePriceListSelect();
 		} catch (error) {
 			console.error("Error loading price lists:", error);
-			this.showError("Failed to load price lists");
+			this.showError(i18n.t("pharmacy.messages.loadPriceListsError"));
 		}
 	}
 
@@ -387,7 +396,7 @@ class DrugManager {
 			this.updatePatientSelect();
 		} catch (error) {
 			console.error("Error loading active patients:", error);
-			this.showError("Failed to load active patients");
+			this.showError(i18n.t("pharmacy.messages.loadPatientsError"));
 		}
 	}
 
@@ -405,7 +414,6 @@ class DrugManager {
 			)
 			.join("");
 
-		// Select default price list if exists
 		const defaultPriceList = this.priceLists.find(
 			(list) => list.is_default
 		);
@@ -428,7 +436,9 @@ class DrugManager {
             `
 					)
 					.join("")
-			: '<option value="">No active patients</option>';
+			: `<option value="">${i18n.t(
+					"pharmacy.messages.noActivePatients"
+			  )}</option>`;
 	}
 
 	private renderDrugs(filterTerm: string = ""): void {
@@ -495,11 +505,19 @@ class DrugManager {
 									? "bi-check-circle-fill"
 									: "bi-x-circle-fill"
 							}"></i>
-                	        ${drug.is_obligatory_continuous ? "Yes" : "No"}
+                	        ${
+								drug.is_obligatory_continuous
+									? i18n.t("common.yes")
+									: i18n.t("common.no")
+							}
                 	    </span>
                 	    ${
 							drug.frequency
-								? `<small class="d-block text-muted">Every ${drug.frequency.hours} hour(s)</small>`
+								? `<small class="d-block text-muted">${i18n.t(
+										"pharmacy.frequency.every"
+								  )} ${drug.frequency.hours} ${i18n.t(
+										"pharmacy.frequency.hours"
+								  )}</small>`
 								: ""
 						}
                 	</td>
@@ -515,7 +533,9 @@ class DrugManager {
                             </span>
                             ${
 								totalQuantity < (drug.min_stock_alert || 0)
-									? '<span class="badge bg-danger">Low Stock</span>'
+									? `<span class="badge bg-danger">${i18n.t(
+											"pharmacy.status.lowStock"
+									  )}</span>`
 									: ""
 							}
                         </div>
@@ -526,12 +546,12 @@ class DrugManager {
 								? `
                             <div class="expiry-date ${expiryClass}">
                                 <i class="bi bi-calendar-event"></i>
-                                ${new Date(
-									stock.nearest_expiry
-								).toLocaleDateString()}
+                                ${i18n.formatDate(stock.nearest_expiry)}
                                 ${
 									expiryClass
-										? `(${daysUntilExpiry} days)`
+										? `(${i18n.t("pharmacy.daysRemaining", {
+												days: daysUntilExpiry
+										  })})`
 										: ""
 								}
                             </div>
@@ -545,13 +565,17 @@ class DrugManager {
                                     onclick="drugManager.editDrug(${
 										drug.drug_id
 									})">
-                                <i class="bi bi-pencil"></i> Edit
+                                <i class="bi bi-pencil"></i> ${i18n.t(
+									"common.edit"
+								)}
                             </button>
                             <button class="btn btn-sm btn-outline-danger" 
                                     onclick="drugManager.deleteDrug(${
 										drug.drug_id
 									})">
-                                <i class="bi bi-trash"></i> Delete
+                                <i class="bi bi-trash"></i> ${i18n.t(
+									"common.delete"
+								)}
                             </button>
                         </div>
                     </td>
@@ -574,10 +598,16 @@ class DrugManager {
 			return `
             	<tr class="shipment-rows">
             	    <td colspan="8" class="text-center py-3">
-            	        <div class="text-muted mb-3">No shipments available for this drug</div>
+            	        <div class="text-muted mb-3">${i18n.t(
+							"pharmacy.messages.noShipments"
+						)}</div>
             	        <button class="btn btn-sm btn-primary" 
-            	                onclick="drugManager.showShipmentModal(${drug.drug_id})">
-            	            <i class="bi bi-plus-circle"></i> Add New Shipment
+            	                onclick="drugManager.showShipmentModal(${
+									drug.drug_id
+								})">
+            	            <i class="bi bi-plus-circle"></i> ${i18n.t(
+								"pharmacy.buttons.addShipment"
+							)}
             	        </button>
             	    </td>
             	</tr>
@@ -597,15 +627,21 @@ class DrugManager {
                         <div class="shipment-detail">
                             <div class="row align-items-center">
                                 <div class="col-md-3">
-                                    <strong>Warehouse:</strong> ${this.escapeHtml(
-										shipment.warehouse_name
-									)}
+                                    <strong>${i18n.t(
+										"pharmacy.fields.warehouse"
+									)}:</strong> ${this.escapeHtml(
+				shipment.warehouse_name
+			)}
                                 </div>
 								<div class="col-md-3">
-									<strong>Buy Price:</strong> ${this.escapeHtml(shipment.buy_price)}$
+									<strong>${i18n.t("pharmacy.fields.buyPrice")}:</strong> ${i18n.formatCurrency(
+				parseFloat(shipment.buy_price)
+			)}
 								</div>
                                 <div class="col-md-3">
-                                    <strong>Quantity:</strong> 
+                                    <strong>${i18n.t(
+										"pharmacy.fields.quantity"
+									)}:</strong> 
                                     ${quantityInLarger} ${
 				drug.unit_conversion.larger
 			}
@@ -616,10 +652,10 @@ class DrugManager {
 									}
                                 </div>
                                 <div class="col-md-2">
-                                    <strong>Expiry:</strong> 
-                                    ${new Date(
-										shipment.expiry_date
-									).toLocaleDateString()}
+                                    <strong>${i18n.t(
+										"pharmacy.fields.expiry"
+									)}:</strong> 
+                                    ${i18n.formatDate(shipment.expiry_date)}
                                 </div>
                                 <div class="col-md-1">
                                     <button class="btn btn-sm btn-success" 
@@ -631,12 +667,16 @@ class DrugManager {
 													? "disabled"
 													: ""
 											}>
-                                        <i class="bi bi-cart"></i> Sell
+                                        <i class="bi bi-cart"></i> ${i18n.t(
+											"pharmacy.buttons.sell"
+										)}
                                     </button>
                                 </div>
                             </div>
                             <div class="mt-2">
-                                <strong>Prices:</strong>
+                                <strong>${i18n.t(
+									"pharmacy.fields.prices"
+								)}:</strong>
                                 ${shipment.prices
 									.map((price) => {
 										const priceList = this.priceLists.find(
@@ -649,19 +689,24 @@ class DrugManager {
                                     	    ${this.escapeHtml(
 												priceList?.name || ""
 											)}: 
-                                    	    $${Number(price.price).toFixed(2)}
+                                    	    ${i18n.formatCurrency(
+												parseFloat(price.price)
+											)}
                                     	    ${
 												price.requires_prepayment
 													? `
                                     	        <small class="ms-1">
-                                    	            (Prepay: ${
-														price.prepayment_type ===
-														"fixed"
-															? `$${price.prepayment_amount?.toFixed(
-																	2
-															  )}`
-															: `${price.prepayment_amount}%`
-													})
+                                    	            (${i18n.t(
+														"pharmacy.fields.prepayment"
+													)}: ${
+															price.prepayment_type ===
+															"fixed"
+																? i18n.formatCurrency(
+																		price.prepayment_amount ||
+																			0
+																  )
+																: `${price.prepayment_amount}%`
+													  })
                                     	        </small>
                                     	    `
 													: ""
@@ -681,8 +726,12 @@ class DrugManager {
         <tr class="shipment-rows">
             <td colspan="8" class="text-center py-2">
                 <button class="btn btn-sm btn-outline-primary" 
-                        onclick="drugManager.showShipmentModal(${drug.drug_id})">
-                    <i class="bi bi-plus-circle"></i> Add New Shipment
+                        onclick="drugManager.showShipmentModal(${
+							drug.drug_id
+						})">
+                    <i class="bi bi-plus-circle"></i> ${i18n.t(
+						"pharmacy.buttons.addShipment"
+					)}
                 </button>
             </td>
         </tr>
@@ -712,10 +761,10 @@ class DrugManager {
 			const drug = this.drugs.get(drugId);
 			if (!drug) return;
 
-			modalTitle.textContent = "Edit Drug";
+			modalTitle.textContent = i18n.t("pharmacy.modals.editDrug");
 			this.populateDrugForm(drug);
 		} else {
-			modalTitle.textContent = "Create New Drug";
+			modalTitle.textContent = i18n.t("pharmacy.modals.createDrug");
 		}
 
 		this.drugModal.show();
@@ -849,8 +898,10 @@ class DrugManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `Drug successfully ${drugId ? "updated" : "created"}`,
+				title: i18n.t("common.success"),
+				text: drugId
+					? i18n.t("pharmacy.messages.updateSuccess")
+					: i18n.t("pharmacy.messages.createSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -859,7 +910,9 @@ class DrugManager {
 		} catch (error) {
 			console.error("Error saving drug:", error);
 			this.showError(
-				error instanceof Error ? error.message : "Failed to save drug"
+				error instanceof Error
+					? error.message
+					: i18n.t("pharmacy.messages.saveError")
 			);
 		} finally {
 			this.setDrugLoading(false);
@@ -872,19 +925,25 @@ class DrugManager {
 			if (!drug) return;
 
 			const stock = this.drugStocks.get(drugId);
-			let warningMessage = "This action cannot be undone!";
+			let warningMessage = i18n.t("pharmacy.messages.deleteConfirmText");
 			if (stock && stock.total_quantity > 0) {
-				warningMessage = `This drug has ${stock.total_quantity} units in stock. Deleting it will remove all stock records. This action cannot be undone!`;
+				warningMessage = i18n.t(
+					"pharmacy.messages.deleteWithStockWarning",
+					{
+						quantity: stock.total_quantity
+					}
+				);
 			}
 
 			const result = await Swal.fire({
-				title: "Are you sure?",
+				title: i18n.t("pharmacy.messages.deleteConfirmTitle"),
 				text: warningMessage,
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -908,8 +967,8 @@ class DrugManager {
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "Drug has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("pharmacy.messages.deleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
@@ -918,7 +977,7 @@ class DrugManager {
 			}
 		} catch (error) {
 			console.error("Error deleting drug:", error);
-			this.showError("Failed to delete drug");
+			this.showError(i18n.t("pharmacy.messages.deleteError"));
 		}
 	}
 
@@ -947,17 +1006,22 @@ class DrugManager {
 			const drug = this.drugs.get(this.currentShipment.drug_id);
 			if (!drug) throw new Error("Drug not found");
 
-			// Update labels
+			// Update labels with translated text
 			const sellQuantityLargerLabel = document.getElementById(
 				"sellQuantityLargerLabel"
 			)!;
 			sellQuantityLargerLabel.textContent =
-				drug.unit_conversion.larger + " Quantity";
+				drug.unit_conversion.larger +
+				" " +
+				i18n.t("pharmacy.fields.quantity");
+
 			const sellQuantitySmallerLabel = document.getElementById(
 				"sellQuantitySmallerLabel"
 			)!;
 			sellQuantitySmallerLabel.textContent =
-				drug.unit_conversion.smaller + " Quantity";
+				drug.unit_conversion.smaller +
+				" " +
+				i18n.t("pharmacy.fields.quantity");
 
 			// Update available quantity display
 			const quantityInLarger = Math.floor(
@@ -965,10 +1029,12 @@ class DrugManager {
 			);
 			const quantityInSmaller =
 				this.currentShipment.quantity % drug.unit_conversion.ratio;
+
 			const availableQuantityLargerSpan = document.getElementById(
 				"availableQuantityLarger"
 			)!;
 			availableQuantityLargerSpan.textContent = `${quantityInLarger} ${drug.unit_conversion.larger}`;
+
 			const availableQuantitySmallerSpan = document.getElementById(
 				"availableQuantitySmaller"
 			)!;
@@ -977,10 +1043,11 @@ class DrugManager {
 				quantityInSmaller
 			} ${drug.unit_conversion.smaller}`;
 
-			// Update quantity unit
+			// Update quantity unit labels
 			const quantityUnitLarger =
 				document.getElementById("quantityUnitLarger")!;
 			quantityUnitLarger.textContent = drug.unit_conversion.larger;
+
 			const quantityUnitSmaller = document.getElementById(
 				"quantityUnitSmaller"
 			)!;
@@ -991,7 +1058,7 @@ class DrugManager {
 			this.sellModal.show();
 		} catch (error) {
 			console.error("Error showing sell modal:", error);
-			this.showError("Failed to load shipment details");
+			this.showError(i18n.t("pharmacy.messages.loadShipmentError"));
 		}
 	}
 
@@ -1034,7 +1101,7 @@ class DrugManager {
 		if (!drug) return;
 
 		if (quantity > this.currentShipment.quantity) {
-			this.showError("Insufficient quantity available");
+			this.showError(i18n.t("pharmacy.validation.insufficientQuantity"));
 			return;
 		}
 
@@ -1043,20 +1110,21 @@ class DrugManager {
 		);
 
 		if (!price) {
-			this.showError("Invalid price");
+			this.showError(i18n.t("pharmacy.validation.invalidPrice"));
 			return;
 		}
 
 		// Check if price is less than buy price
 		if (price / quantity < parseFloat(this.currentShipment.buy_price)) {
 			const result = await Swal.fire({
-				title: "Are you sure?",
-				text: "This price is less than the buy price. Are you sure you want to sell this drug?",
+				title: i18n.t("common.warning"),
+				text: i18n.t("pharmacy.messages.priceBelowBuyPrice"),
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, Sell it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (!result.isConfirmed) return;
@@ -1090,8 +1158,8 @@ class DrugManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: "Sale processed successfully",
+				title: i18n.t("common.success"),
+				text: i18n.t("pharmacy.messages.saleSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -1102,7 +1170,7 @@ class DrugManager {
 			this.showError(
 				error instanceof Error
 					? error.message
-					: "Failed to process sale"
+					: i18n.t("pharmacy.messages.saleError")
 			);
 		} finally {
 			this.setSellLoading(false);
@@ -1132,7 +1200,9 @@ class DrugManager {
 			"warehouseSelect"
 		) as HTMLSelectElement;
 		select.innerHTML =
-			'<option value="">Select Warehouse</option>' +
+			`<option value="">${i18n.t(
+				"pharmacy.placeholders.selectWarehouse"
+			)}</option>` +
 			this.warehouses
 				.map(
 					(warehouse) => `
@@ -1158,12 +1228,16 @@ class DrugManager {
                         ${this.escapeHtml(priceList.name)}
                         ${
 							priceList.is_default
-								? '<span class="badge bg-primary ms-1">Default</span>'
+								? `<span class="badge bg-primary ms-1">${i18n.t(
+										"pharmacy.status.default"
+								  )}</span>`
 								: ""
 						}
                     </label>
                     <div class="input-group">
-                        <span class="input-group-text">$</span>
+                        <span class="input-group-text">${i18n.t(
+							"common.currency"
+						)}</span>
                         <input type="number" 
                                class="form-control price-input" 
                                name="price_${priceList.pricelist_id}"
@@ -1180,7 +1254,7 @@ class DrugManager {
                         <label class="form-check-label" for="prepayment_${
 							priceList.pricelist_id
 						}">
-                            Requires Prepayment
+                            ${i18n.t("pharmacy.fields.requiresPrepayment")}
                         </label>
                     </div>
                 </div>
@@ -1191,8 +1265,12 @@ class DrugManager {
                                     id="prepaymentType_${
 										priceList.pricelist_id
 									}">
-                                <option value="fixed">Fixed Amount</option>
-                                <option value="percentage">Percentage</option>
+                                <option value="fixed">${i18n.t(
+									"pharmacy.prepaymentTypes.fixed"
+								)}</option>
+                                <option value="percentage">${i18n.t(
+									"pharmacy.prepaymentTypes.percentage"
+								)}</option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -1205,7 +1283,9 @@ class DrugManager {
                                        min="0"
                                        step="0.01"
                                        disabled>
-                                <span class="input-group-text prepayment-symbol">$</span>
+                                <span class="input-group-text prepayment-symbol">${i18n.t(
+									"common.currency"
+								)}</span>
                             </div>
                         </div>
                     </div>
@@ -1247,7 +1327,10 @@ class DrugManager {
 					.closest(".prepayment-controls")
 					?.querySelector(".prepayment-symbol");
 				if (symbol) {
-					symbol.textContent = target.value === "fixed" ? "$" : "%";
+					symbol.textContent =
+						target.value === "fixed"
+							? i18n.t("common.currency")
+							: "%";
 				}
 			});
 		});
@@ -1259,25 +1342,18 @@ class DrugManager {
 
 		this.resetShipmentForm();
 		const modalTitle = document.getElementById("shipmentModalLabel")!;
-		const quantityUnitLarger =
-			document.getElementById("quantityUnitLarger")!;
-		const quantityUnitSmaller = document.getElementById(
-			"quantityUnitSmaller"
-		)!;
+		const quantityUnit = document.getElementById("quantityUnit")!;
 
 		// Set drug ID and unit
 		(document.getElementById("shipmentDrugId") as HTMLInputElement).value =
 			drugId.toString();
-		quantityUnitLarger.textContent =
-			this.currentDrug.unit_conversion.larger;
-		quantityUnitSmaller.textContent =
-			this.currentDrug.unit_conversion.smaller;
+		quantityUnit.textContent = this.currentDrug.unit_conversion.smaller;
 
 		if (shipmentId) {
-			modalTitle.textContent = "Edit Shipment";
+			modalTitle.textContent = i18n.t("pharmacy.modals.editShipment");
 			this.populateShipmentForm(shipmentId);
 		} else {
-			modalTitle.textContent = "Add New Shipment";
+			modalTitle.textContent = i18n.t("pharmacy.modals.addShipment");
 			// Set minimum date for expiry date input
 			const tomorrow = new Date();
 			tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1309,7 +1385,7 @@ class DrugManager {
 				shipmentId.toString();
 			(
 				document.getElementById("warehouseSelect") as HTMLSelectElement
-			).value = shipment.warehouse_id;
+			).value = shipment.warehouse_id.toString();
 			(document.getElementById("quantity") as HTMLInputElement).value =
 				Math.floor(
 					shipment.quantity / this.currentDrug!.unit_conversion.ratio
@@ -1356,7 +1432,7 @@ class DrugManager {
 			});
 		} catch (error) {
 			console.error("Error loading shipment:", error);
-			this.showError("Failed to load shipment details");
+			this.showError(i18n.t("pharmacy.messages.loadShipmentError"));
 			this.shipmentModal.hide();
 		}
 	}
@@ -1421,7 +1497,7 @@ class DrugManager {
 			...(shipmentId ? { shipment_id: parseInt(shipmentId) } : {}),
 			drug_id: drugId,
 			warehouse_id: warehouseId,
-			quantity: quantity, // Convert to smaller units
+			quantity: quantity,
 			buy_price: buyPrice,
 			expiry_date: expiryDate,
 			prices
@@ -1454,10 +1530,10 @@ class DrugManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `Shipment successfully ${
-					shipmentId ? "updated" : "created"
-				}`,
+				title: i18n.t("common.success"),
+				text: shipmentId
+					? i18n.t("pharmacy.messages.shipmentUpdateSuccess")
+					: i18n.t("pharmacy.messages.shipmentCreateSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -1468,7 +1544,7 @@ class DrugManager {
 			this.showError(
 				error instanceof Error
 					? error.message
-					: "Failed to save shipment"
+					: i18n.t("pharmacy.messages.shipmentSaveError")
 			);
 		} finally {
 			this.setShipmentLoading(false);
@@ -1478,13 +1554,14 @@ class DrugManager {
 	public async deleteShipment(shipmentId: number): Promise<void> {
 		try {
 			const result = await Swal.fire({
-				title: "Are you sure?",
-				text: "This action cannot be undone!",
+				title: i18n.t("pharmacy.messages.deleteConfirmTitle"),
+				text: i18n.t("pharmacy.messages.deleteConfirmText"),
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -1508,8 +1585,8 @@ class DrugManager {
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "Shipment has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("pharmacy.messages.shipmentDeleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
@@ -1518,7 +1595,7 @@ class DrugManager {
 			}
 		} catch (error) {
 			console.error("Error deleting shipment:", error);
-			this.showError("Failed to delete shipment");
+			this.showError(i18n.t("pharmacy.messages.shipmentDeleteError"));
 		}
 	}
 
@@ -1546,30 +1623,27 @@ class DrugManager {
 			return false;
 		}
 
-		// Validate quantity
 		const quantity = parseInt(
 			(document.getElementById("quantity") as HTMLInputElement).value
 		);
 		if (quantity <= 0) {
-			this.showError("Quantity must be greater than 0");
+			this.showError(i18n.t("pharmacy.validation.quantityMin"));
 			return false;
 		}
 
-		// Validate buy price
 		const buyPrice = parseFloat(
 			(document.getElementById("buyPrice") as HTMLInputElement).value
 		);
 		if (buyPrice <= 0) {
-			this.showError("Buy price must be greater than 0");
+			this.showError(i18n.t("pharmacy.validation.buyPriceMin"));
 			return false;
 		}
 
-		// Validate expiry date
 		const expiryDate = new Date(
 			(document.getElementById("expiryDate") as HTMLInputElement).value
 		);
 		if (expiryDate <= new Date()) {
-			this.showError("Expiry date must be in the future");
+			this.showError(i18n.t("pharmacy.validation.expiryDateFuture"));
 			return false;
 		}
 
@@ -1584,7 +1658,9 @@ class DrugManager {
 				!defaultPriceInput.value ||
 				parseFloat(defaultPriceInput.value) <= 0
 			) {
-				this.showError("Default price list must have a valid price");
+				this.showError(
+					i18n.t("pharmacy.validation.defaultPriceRequired")
+				);
 				return false;
 			}
 		}
@@ -1604,7 +1680,7 @@ class DrugManager {
 
 			if (!amountInput.value || parseFloat(amountInput.value) <= 0) {
 				this.showError(
-					"Please enter valid prepayment amounts for all enabled prepayments"
+					i18n.t("pharmacy.validation.prepaymentAmountRequired")
 				);
 				return false;
 			}
@@ -1613,7 +1689,9 @@ class DrugManager {
 				typeSelect.value === "percentage" &&
 				parseFloat(amountInput.value) > 100
 			) {
-				this.showError("Percentage prepayment cannot exceed 100%");
+				this.showError(
+					i18n.t("pharmacy.validation.prepaymentPercentageMax")
+				);
 				return false;
 			}
 		}
@@ -1639,7 +1717,9 @@ class DrugManager {
 		const buttonText = this.saveShipmentButton.querySelector(".btn-text")!;
 		this.saveShipmentButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("pharmacy.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private validateDrugForm(): boolean {
@@ -1649,31 +1729,28 @@ class DrugManager {
 			return false;
 		}
 
-		// Additional validation for unit conversion
 		const ratio = parseInt(
 			(document.getElementById("conversionRatio") as HTMLInputElement)
 				.value
 		);
 		if (ratio <= 0) {
-			this.showError("Conversion ratio must be greater than 0");
+			this.showError(i18n.t("pharmacy.validation.conversionRatioMin"));
 			return false;
 		}
 
-		// Validate min stock alert
 		const minStock = (
 			document.getElementById("minStockAlert") as HTMLInputElement
 		).value;
 		if (minStock && parseInt(minStock) < 0) {
-			this.showError("Minimum stock alert cannot be negative");
+			this.showError(i18n.t("pharmacy.validation.minStockNegative"));
 			return false;
 		}
 
-		// Validate expiry alert days
 		const expiryDays = (
 			document.getElementById("maxDaysExpiry") as HTMLInputElement
 		).value;
 		if (expiryDays && parseInt(expiryDays) < 0) {
-			this.showError("Expiry alert days cannot be negative");
+			this.showError(i18n.t("pharmacy.validation.expiryDaysNegative"));
 			return false;
 		}
 
@@ -1716,7 +1793,7 @@ class DrugManager {
 				).value
 			);
 		if (quantity <= 0) {
-			this.showError("Quantity must be greater than 0");
+			this.showError(i18n.t("pharmacy.validation.quantityMin"));
 			return false;
 		}
 
@@ -1727,7 +1804,7 @@ class DrugManager {
 
 		const quantityInSmaller = quantity;
 		if (quantityInSmaller > this.currentShipment.quantity) {
-			this.showError("Insufficient quantity available");
+			this.showError(i18n.t("pharmacy.validation.insufficientQuantity"));
 			return false;
 		}
 
@@ -1767,7 +1844,8 @@ class DrugManager {
 		if (!this.currentShipment) return;
 
 		const drug = this.drugs.get(this.currentShipment.drug_id);
-		if (!drug) throw new Error("Drug not found");
+		if (!drug) return;
+
 		const largerQuantity =
 			parseInt(
 				(
@@ -1791,12 +1869,13 @@ class DrugManager {
 		const totalPriceInput = document.getElementById(
 			"totalPrice"
 		) as HTMLInputElement;
+
 		if (price && quantity > 0) {
 			const total =
 				(quantity * Number(price.price)) / drug.unit_conversion.ratio;
-			totalPriceInput.value = Number(total).toFixed(2);
+			totalPriceInput.value = i18n.formatNumber(total, 2, true);
 		} else {
-			totalPriceInput.value = "0.00";
+			totalPriceInput.value = i18n.formatNumber(0, 2, true);
 		}
 	}
 
@@ -1825,7 +1904,9 @@ class DrugManager {
 		const buttonText = this.saveDrugButton.querySelector(".btn-text")!;
 		this.saveDrugButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("pharmacy.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private setSellLoading(loading: boolean): void {
@@ -1834,7 +1915,9 @@ class DrugManager {
 		const buttonText = this.confirmSellButton.querySelector(".btn-text")!;
 		this.confirmSellButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Processing..." : "Confirm Sale";
+		buttonText.textContent = loading
+			? i18n.t("pharmacy.buttons.processing")
+			: i18n.t("pharmacy.buttons.confirmSale");
 	}
 
 	private async showWarehouseModal(): Promise<void> {
@@ -1854,7 +1937,7 @@ class DrugManager {
 		this.resetWarehouseForm();
 
 		if (warehouse) {
-			title.textContent = "Edit Warehouse";
+			title.textContent = i18n.t("pharmacy.modals.editWarehouse");
 			(document.getElementById("warehouseId") as HTMLInputElement).value =
 				warehouse.warehouse_id.toString();
 			(
@@ -1866,7 +1949,7 @@ class DrugManager {
 				) as HTMLTextAreaElement
 			).value = warehouse.location;
 		} else {
-			title.textContent = "Add New Warehouse";
+			title.textContent = i18n.t("pharmacy.modals.addWarehouse");
 			(document.getElementById("warehouseId") as HTMLInputElement).value =
 				"";
 		}
@@ -1883,9 +1966,9 @@ class DrugManager {
 				<td colspan="4" class="text-center py-4">
 					<div class="text-muted mb-3">
 						<i class="bi bi-building" style="font-size: 3rem; color: var(--bs-gray-400);"></i>
-						<p class="mt-2 mb-3">No warehouses found</p>
+						<p class="mt-2 mb-3">${i18n.t("pharmacy.messages.noWarehouses")}</p>
 						<button type="button" class="btn btn-primary btn-sm" onclick="drugManager.showAddWarehouseModal()">
-							Add First Warehouse
+							${i18n.t("pharmacy.buttons.addFirstWarehouse")}
 						</button>
 					</div>
 				</td>
@@ -1913,17 +1996,17 @@ class DrugManager {
 				<div class="warehouse-actions">
 					<button type="button" class="btn btn-outline-primary btn-sm" 
 							onclick="drugManager.editWarehouse(${warehouse.warehouse_id})"
-							title="Edit Warehouse">
+							title="${i18n.t("pharmacy.buttons.editWarehouse")}">
 						<i class="bi bi-pencil"></i>
 					</button>
 					<button type="button" class="btn btn-outline-info btn-sm" 
 							onclick="drugManager.viewWarehouseInventory(${warehouse.warehouse_id})"
-							title="View Inventory">
+							title="${i18n.t("pharmacy.buttons.viewInventory")}">
 						<i class="bi bi-box-seam"></i>
 					</button>
 					<button type="button" class="btn btn-outline-danger btn-sm" 
 							onclick="drugManager.deleteWarehouse(${warehouse.warehouse_id})"
-							title="Delete Warehouse"
+							title="${i18n.t("common.delete")}"
 							${(warehouse.total_shipments || 0) > 0 ? "disabled" : ""}>
 						<i class="bi bi-trash"></i>
 					</button>
@@ -1951,13 +2034,16 @@ class DrugManager {
 		if (!warehouse) return;
 
 		const result = await Swal.fire({
-			title: "Delete Warehouse?",
-			text: `Are you sure you want to delete "${warehouse.name}"? This action cannot be undone.`,
+			title: i18n.t("pharmacy.messages.deleteWarehouseTitle"),
+			text: i18n.t("pharmacy.messages.deleteWarehouseText", {
+				name: warehouse.name
+			}),
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#d33",
 			cancelButtonColor: "#3085d6",
-			confirmButtonText: "Yes, delete it!"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -1973,15 +2059,29 @@ class DrugManager {
 				const data = await response.json();
 
 				if (response.ok) {
-					Swal.fire("Deleted!", data.message, "success");
+					Swal.fire({
+						icon: "success",
+						title: i18n.t("common.success"),
+						text: i18n.t(
+							"pharmacy.messages.warehouseDeleteSuccess"
+						),
+						toast: true,
+						position: "top-end",
+						showConfirmButton: false,
+						timer: 3000
+					});
 					await this.loadWarehouses();
 					this.renderWarehousesTable();
 				} else {
-					Swal.fire("Error", data.error, "error");
+					Swal.fire(i18n.t("common.error"), data.error, "error");
 				}
 			} catch (error) {
 				console.error("Error deleting warehouse:", error);
-				Swal.fire("Error", "Failed to delete warehouse", "error");
+				Swal.fire(
+					i18n.t("common.error"),
+					i18n.t("pharmacy.messages.warehouseDeleteError"),
+					"error"
+				);
 			}
 		}
 	}
@@ -1992,17 +2092,26 @@ class DrugManager {
 		);
 		if (warehouse) {
 			Swal.fire({
-				title: `${warehouse.name} Inventory`,
+				title: i18n.t("pharmacy.warehouseInventory.title", {
+					name: warehouse.name
+				}),
 				html: `
 				<div class="text-start">
-					<p><strong>Total Shipments:</strong> ${warehouse.total_shipments || 0}</p>
-					<p><strong>Total Drugs:</strong> ${warehouse.total_drugs || 0}</p>
-					<p><strong>Total Stock Value:</strong> $${Number(
-						warehouse.total_stock_value || 0
-					).toFixed(2)}</p>
+					<p><strong>${i18n.t("pharmacy.warehouseInventory.totalShipments")}:</strong> ${
+					warehouse.total_shipments || 0
+				}</p>
+					<p><strong>${i18n.t("pharmacy.warehouseInventory.totalDrugs")}:</strong> ${
+					warehouse.total_drugs || 0
+				}</p>
+					<p><strong>${i18n.t(
+						"pharmacy.warehouseInventory.totalValue"
+					)}:</strong> ${i18n.formatCurrency(
+					warehouse.total_stock_value || 0
+				)}</p>
 				</div>
 			`,
-				icon: "info"
+				icon: "info",
+				confirmButtonText: i18n.t("common.close")
 			});
 		}
 	}
@@ -2041,20 +2150,35 @@ class DrugManager {
 			if (response.ok) {
 				this.addWarehouseModal.hide();
 
-				Swal.fire("Success", data.message, "success");
+				Swal.fire({
+					icon: "success",
+					title: i18n.t("common.success"),
+					text: isEdit
+						? i18n.t("pharmacy.messages.warehouseUpdateSuccess")
+						: i18n.t("pharmacy.messages.warehouseCreateSuccess"),
+					toast: true,
+					position: "top-end",
+					showConfirmButton: false,
+					timer: 3000
+				});
 
 				await this.loadWarehouses();
 				this.renderWarehousesTable();
 			} else {
-				Swal.fire("Error", data.error, "error");
+				Swal.fire(i18n.t("common.error"), data.error, "error");
 			}
 		} catch (error) {
 			console.error("Error saving warehouse:", error);
-			Swal.fire("Error", "Failed to save warehouse", "error");
+			Swal.fire(
+				i18n.t("common.error"),
+				i18n.t("pharmacy.messages.warehouseSaveError"),
+				"error"
+			);
 		} finally {
 			this.setWarehouseLoading(false);
 		}
 	}
+
 	private validateWarehouseForm(): boolean {
 		this.warehouseForm.classList.add("was-validated");
 		return this.warehouseForm.checkValidity();
@@ -2072,13 +2196,15 @@ class DrugManager {
 		const btnText = this.saveWarehouseButton.querySelector(".btn-text")!;
 		this.saveWarehouseButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		btnText.textContent = loading ? "Saving..." : "Save Warehouse";
+		btnText.textContent = loading
+			? i18n.t("pharmacy.buttons.saving")
+			: i18n.t("pharmacy.buttons.saveWarehouse");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});
