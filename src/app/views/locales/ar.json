@@ -719,6 +719,89 @@
 			"deleteWarehouseText": "هل أنت متأكد من رغبتك في حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء."
 		}
 	},
+	"services": {
+		"pageTitle": "نظام إدارة المستشفى - إدارة الخدمات",
+		"title": "إدارة الخدمات",
+		"searchPlaceholder": "البحث عن الخدمات...",
+		"buttons": {
+			"createService": "إضافة خدمة جديدة",
+			"saving": "جاري الحفظ..."
+		},
+		"table": {
+			"serviceName": "اسم الخدمة",
+			"type": "النوع",
+			"autoRenew": "التجديد التلقائي",
+			"autoAdd": "الإضافة التلقائية",
+			"priceLists": "قوائم الأسعار",
+			"associatedDrugs": "الأدوية المرتبطة"
+		},
+		"filters": {
+			"allTypes": "جميع الأنواع",
+			"allPriceLists": "جميع قوائم الأسعار",
+			"filterDrugs": "تصفية الأدوية..."
+		},
+		"modals": {
+			"createService": "إضافة خدمة جديدة",
+			"editService": "تعديل الخدمة"
+		},
+		"fields": {
+			"serviceName": "اسم الخدمة",
+			"serviceType": "نوع الخدمة",
+			"autoRenew": "التجديد التلقائي",
+			"autoAdd": "الإضافة التلقائية عند الإدخال",
+			"includePriceList": "تضمين قائمة الأسعار",
+			"price": "السعر",
+			"requiresPrepayment": "يتطلب دفعة مقدمة",
+			"prepaymentRequired": "دفعة مقدمة مطلوبة"
+		},
+		"sections": {
+			"priceLists": "قوائم الأسعار",
+			"associatedDrugs": "الأدوية المرتبطة",
+			"availableDrugs": "الأدوية المتاحة",
+			"selectedDrugs": "الأدوية المختارة"
+		},
+		"serviceTypes": {
+			"once": "مرة واحدة",
+			"hourly": "كل ساعة",
+			"daily": "يومياً"
+		},
+		"prepaymentTypes": {
+			"fixed": "مبلغ ثابت",
+			"percentage": "نسبة مئوية"
+		},
+		"status": {
+			"default": "افتراضي"
+		},
+		"help": {
+			"associatedDrugs": "اختر الأدوية التي سيتم ربطها تلقائياً بهذه الخدمة."
+		},
+		"placeholders": {
+			"selectType": "اختر النوع",
+			"searchDrugs": "البحث عن الأدوية..."
+		},
+		"validation": {
+			"serviceNameLength": "يجب أن يكون اسم الخدمة 3 أحرف على الأقل",
+			"serviceTypeRequired": "الرجاء اختيار نوع الخدمة",
+			"priceRequired": "الرجاء إدخال سعر صالح",
+			"prepaymentAmountRequired": "الرجاء إدخال مبلغ الدفعة المقدمة لجميع قوائم الأسعار التي تتطلبها",
+			"prepaymentPercentageRange": "يجب أن تكون نسبة الدفعة المقدمة بين 0 و 100"
+		},
+		"messages": {
+			"noDrugsAvailable": "لا توجد أدوية متاحة",
+			"noDrugsSelected": "لم يتم اختيار أدوية",
+			"loadInitialDataError": "فشل تحميل البيانات الأولية",
+			"loadPriceListsError": "فشل تحميل قوائم الأسعار",
+			"loadDrugsError": "فشل تحميل الأدوية",
+			"loadServicesError": "فشل تحميل الخدمات",
+			"createSuccess": "تم إنشاء الخدمة بنجاح",
+			"updateSuccess": "تم تحديث الخدمة بنجاح",
+			"saveError": "فشل حفظ الخدمة",
+			"deleteConfirmTitle": "هل أنت متأكد؟",
+			"deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+			"deleteSuccess": "تم حذف الخدمة",
+			"deleteError": "فشل حذف الخدمة"
+		}
+	},
 	"auth": {
 		"login": "تسجيل الدخول",
 		"logout": "تسجيل الخروج",

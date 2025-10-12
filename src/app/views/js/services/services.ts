@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface ServicePrice {
 	service_id: number;
@@ -54,9 +55,6 @@ class ServiceManager {
 	private drugSearchTimeout: NodeJS.Timeout | null = null;
 
 	constructor() {
-		// Initialize sidebar
-		new SidebarManager();
-
 		// Initialize modal
 		const modalElement = document.getElementById("serviceModal")!;
 		//@ts-ignore
@@ -82,8 +80,30 @@ class ServiceManager {
 			"drugFilter"
 		) as HTMLInputElement;
 
-		this.initializeEventListeners();
-		this.loadInitialData();
+		this.waitForI18n().then(() => {
+			// Initialize sidebar
+			new SidebarManager();
+
+			this.initializeEventListeners();
+			this.loadInitialData();
+
+			// Listen for locale changes
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Reload and re-render all data with new locale
+		this.filterServices();
+		this.updatePriceListFilter();
 	}
 
 	private initializeEventListeners(): void {
@@ -156,7 +176,7 @@ class ServiceManager {
 			]);
 		} catch (error) {
 			console.error("Error loading initial data:", error);
-			this.showError("Failed to load initial data");
+			this.showError(i18n.t("services.messages.loadInitialDataError"));
 		}
 	}
 
@@ -179,7 +199,7 @@ class ServiceManager {
 			this.updateModalPriceLists();
 		} catch (error) {
 			console.error("Error loading price lists:", error);
-			this.showError("Failed to load price lists");
+			this.showError(i18n.t("services.messages.loadPriceListsError"));
 		}
 	}
 
@@ -199,7 +219,7 @@ class ServiceManager {
 			});
 		} catch (error) {
 			console.error("Error loading drugs:", error);
-			this.showError("Failed to load drugs");
+			this.showError(i18n.t("services.messages.loadDrugsError"));
 		}
 	}
 
@@ -244,7 +264,9 @@ class ServiceManager {
         `
 					)
 					.join("")
-			: '<div class="list-group-item text-center text-muted">No drugs available</div>';
+			: `<div class="list-group-item text-center text-muted">${i18n.t(
+					"services.messages.noDrugsAvailable"
+			  )}</div>`;
 	}
 
 	private renderSelectedDrugs(): void {
@@ -265,7 +287,9 @@ class ServiceManager {
         `
 					)
 					.join("")
-			: '<div class="list-group-item text-center text-muted">No drugs selected</div>';
+			: `<div class="list-group-item text-center text-muted">${i18n.t(
+					"services.messages.noDrugsSelected"
+			  )}</div>`;
 	}
 
 	public addDrug(drugId: number): void {
@@ -282,7 +306,9 @@ class ServiceManager {
 
 	private updatePriceListFilter(): void {
 		this.priceListFilter.innerHTML =
-			'<option value="">All Price Lists</option>' +
+			`<option value="">${i18n.t(
+				"services.filters.allPriceLists"
+			)}</option>` +
 			this.priceLists
 				.map(
 					(list) =>
@@ -306,7 +332,9 @@ class ServiceManager {
 					            ${this.escapeHtml(list.name)}
 					            ${
 									list.is_default
-										? '<span class="badge bg-primary ms-2">Default</span>'
+										? `<span class="badge bg-primary ms-2">${i18n.t(
+												"services.status.default"
+										  )}</span>`
 										: ""
 								}
 					        </div>
@@ -318,8 +346,10 @@ class ServiceManager {
 					                       type="checkbox" 
 					                       id="include_${list.pricelist_id}"
 					                       data-pricelist-id="${list.pricelist_id}">
-					                <label class="form-check-label" for="include_${list.pricelist_id}">
-					                    Include Price List
+					                <label class="form-check-label" for="include_${
+										list.pricelist_id
+									}">
+					                    ${i18n.t("services.fields.includePriceList")}
 					                </label>
 					            </div>
 					        `
@@ -330,7 +360,9 @@ class ServiceManager {
 					        <div class="row g-3">
 					            <div class="col-md-6">
 					                <div class="input-group">
-					                    <span class="input-group-text">$</span>
+					                    <span class="input-group-text">${i18n.t(
+											"common.currency"
+										)}</span>
 					                    <input type="number" 
 					                           class="form-control price-input" 
 					                           name="price_${list.pricelist_id}"
@@ -339,7 +371,7 @@ class ServiceManager {
 					                           step="0.01"
 					                           ${!list.is_default ? "disabled" : ""}>
 					                    <div class="invalid-feedback">
-					                        Please enter a valid price
+					                        ${i18n.t("services.validation.priceRequired")}
 					                    </div>
 					                </div>
 					            </div>
@@ -352,7 +384,7 @@ class ServiceManager {
 					                    <label class="form-check-label" for="prepayment_${
 											list.pricelist_id
 										}">
-					                        Requires Prepayment
+					                        ${i18n.t("services.fields.requiresPrepayment")}
 					                    </label>
 					                </div>
 					            </div>
@@ -364,8 +396,12 @@ class ServiceManager {
 					                        <select class="form-select prepayment-type" 
 					                                id="prepaymentType_${list.pricelist_id}"
 					                                disabled>
-					                            <option value="fixed">Fixed Amount</option>
-					                            <option value="percentage">Percentage</option>
+					                            <option value="fixed">${i18n.t(
+													"services.prepaymentTypes.fixed"
+												)}</option>
+					                            <option value="percentage">${i18n.t(
+													"services.prepaymentTypes.percentage"
+												)}</option>
 					                        </select>
 					                    </div>
 					                    <div class="col-md-6">
@@ -376,7 +412,9 @@ class ServiceManager {
 					                                   min="0"
 					                                   step="0.01"
 					                                   disabled>
-					                            <span class="input-group-text prepayment-symbol">$</span>
+					                            <span class="input-group-text prepayment-symbol">${i18n.t(
+													"common.currency"
+												)}</span>
 					                        </div>
 					                    </div>
 					                </div>
@@ -409,7 +447,10 @@ class ServiceManager {
 					`#prepaymentControls_${priceListId} .prepayment-symbol`
 				);
 				if (symbol) {
-					symbol.textContent = target.value === "fixed" ? "$" : "%";
+					symbol.textContent =
+						target.value === "fixed"
+							? i18n.t("common.currency")
+							: "%";
 				}
 			});
 		});
@@ -445,7 +486,7 @@ class ServiceManager {
 			return servicesWithPrices;
 		} catch (error) {
 			console.error("Error loading services:", error);
-			this.showError("Failed to load services");
+			this.showError(i18n.t("services.messages.loadServicesError"));
 			return null;
 		}
 	}
@@ -472,7 +513,7 @@ class ServiceManager {
 			this.filterServices();
 		} catch (error) {
 			console.error("Error loading services:", error);
-			this.showError("Failed to load services");
+			this.showError(i18n.t("services.messages.loadServicesError"));
 		}
 	}
 
@@ -536,7 +577,11 @@ class ServiceManager {
 								? "bi-check-circle-fill text-success"
 								: "bi-x-circle-fill text-danger"
 						}"></i>
-                        ${service.auto_renew ? "Yes" : "No"}
+                        ${
+							service.auto_renew
+								? i18n.t("common.yes")
+								: i18n.t("common.no")
+						}
                     </span>
                 </td>
                 <td>
@@ -548,7 +593,11 @@ class ServiceManager {
 								? "bi-check-circle-fill text-success"
 								: "bi-x-circle-fill text-danger"
 						}"></i>
-                        ${service.auto_add_on_admission ? "Yes" : "No"}
+                        ${
+							service.auto_add_on_admission
+								? i18n.t("common.yes")
+								: i18n.t("common.no")
+						}
                     </span>
                 </td>
                 <td>
@@ -573,13 +622,17 @@ class ServiceManager {
                                 onclick="serviceManager.editService(${
 									service.service_id
 								})">
-                            <i class="bi bi-pencil"></i> Edit
+                            <i class="bi bi-pencil"></i> ${i18n.t(
+								"common.edit"
+							)}
                         </button>
                         <button class="btn btn-sm btn-outline-danger" 
                                 onclick="serviceManager.deleteService(${
 									service.service_id
 								})">
-                            <i class="bi bi-trash"></i> Delete
+                            <i class="bi bi-trash"></i> ${i18n.t(
+								"common.delete"
+							)}
                         </button>
                     </div>
                 </td>
@@ -601,9 +654,9 @@ class ServiceManager {
                 <span class="price-list-badge" title="${this.formatPriceDetails(
 					price
 				)}">
-                    ${this.escapeHtml(priceList.name)}: $${Number(
-					price.price
-				).toFixed(2)}
+                    ${this.escapeHtml(priceList.name)}: ${i18n.formatCurrency(
+					Number(price.price)
+				)}
                 </span>
             `;
 			})
@@ -611,11 +664,13 @@ class ServiceManager {
 	}
 
 	private formatPriceDetails(price: ServicePrice): string {
-		let details = `Price: $${Number(price.price).toFixed(2)}`;
+		let details = `${i18n.t(
+			"services.fields.price"
+		)}: ${i18n.formatCurrency(Number(price.price))}`;
 		if (price.requires_prepayment) {
-			details += `\nPrepayment Required: ${
+			details += `\n${i18n.t("services.fields.prepaymentRequired")}: ${
 				price.prepayment_type === "fixed"
-					? `$${price.prepayment_amount?.toFixed(2)}`
+					? i18n.formatCurrency(price.prepayment_amount || 0)
 					: `${price.prepayment_amount}%`
 			}`;
 		}
@@ -625,11 +680,11 @@ class ServiceManager {
 	private formatServiceType(type: string): string {
 		switch (type) {
 			case "once":
-				return "One Time";
+				return i18n.t("services.serviceTypes.once");
 			case "hourly":
-				return "Hourly";
+				return i18n.t("services.serviceTypes.hourly");
 			case "daily":
-				return "Daily";
+				return i18n.t("services.serviceTypes.daily");
 			default:
 				return type;
 		}
@@ -736,7 +791,7 @@ class ServiceManager {
 			);
 			if (!service) return;
 
-			modalTitle.textContent = "Edit Service";
+			modalTitle.textContent = i18n.t("services.modals.editService");
 			this.populateForm(service);
 
 			// Set selected drugs
@@ -748,7 +803,7 @@ class ServiceManager {
 				this.renderAvailableDrugs();
 			}
 		} else {
-			modalTitle.textContent = "Create New Service";
+			modalTitle.textContent = i18n.t("services.modals.createService");
 			this.renderAvailableDrugs();
 			this.renderSelectedDrugs();
 		}
@@ -941,10 +996,10 @@ class ServiceManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `Service successfully ${
-					serviceId ? "updated" : "created"
-				}`,
+				title: i18n.t("common.success"),
+				text: serviceId
+					? i18n.t("services.messages.updateSuccess")
+					: i18n.t("services.messages.createSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -955,7 +1010,7 @@ class ServiceManager {
 			this.showError(
 				error instanceof Error
 					? error.message
-					: "Failed to save service"
+					: i18n.t("services.messages.saveError")
 			);
 		} finally {
 			this.setLoading(false);
@@ -965,13 +1020,14 @@ class ServiceManager {
 	public async deleteService(serviceId: number): Promise<void> {
 		try {
 			const result = await Swal.fire({
-				title: "Are you sure?",
-				text: "This action cannot be undone!",
+				title: i18n.t("services.messages.deleteConfirmTitle"),
+				text: i18n.t("services.messages.deleteConfirmText"),
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -990,8 +1046,8 @@ class ServiceManager {
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "Service has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("services.messages.deleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
@@ -1000,7 +1056,7 @@ class ServiceManager {
 			}
 		} catch (error) {
 			console.error("Error deleting service:", error);
-			this.showError("Failed to delete service");
+			this.showError(i18n.t("services.messages.deleteError"));
 		}
 	}
 
@@ -1032,7 +1088,7 @@ class ServiceManager {
 
 			if (!amountInput.value) {
 				this.showError(
-					"Please enter prepayment amount for all price lists that require prepayment"
+					i18n.t("services.validation.prepaymentAmountRequired")
 				);
 				return false;
 			}
@@ -1043,7 +1099,7 @@ class ServiceManager {
 				(amount < 0 || amount > 100)
 			) {
 				this.showError(
-					"Percentage prepayment must be between 0 and 100"
+					i18n.t("services.validation.prepaymentPercentageRange")
 				);
 				return false;
 			}
@@ -1098,13 +1154,15 @@ class ServiceManager {
 		const buttonText = this.saveButton.querySelector(".btn-text")!;
 		this.saveButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("services.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});
