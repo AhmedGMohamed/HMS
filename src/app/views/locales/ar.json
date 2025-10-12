@@ -46,7 +46,9 @@
 		"optional": "اختياري",
 		"startDate": "تاريخ البداية",
 		"endDate": "تاريخ النهاية",
-		"clear": "مسح"
+		"clear": "مسح",
+		"page": "صفحة",
+		"of": "من"
 	},
 	"sidebar": {
 		"dashboard": "لوحة القيادة",
@@ -403,6 +405,148 @@
 			"voidAll": "إلغاء الكل",
 			"saving": "جاري الحفظ...",
 			"savingPayment": "جاري حفظ الدفعة..."
+		}
+	},
+	"insurance": {
+		"pageTitle": "نظام المستشفى - إدارة شركات التأمين",
+		"title": "إدارة شركات التأمين",
+		"insuranceCompanies": "شركات التأمين",
+		"companyDetails": "تفاصيل الشركة",
+		"statisticsActions": "الإحصائيات والإجراءات",
+		"patients": "المرضى",
+		"loadingCompanies": "جاري تحميل شركات التأمين...",
+		"emptyState": {
+			"title": "لا توجد شركات تأمين",
+			"description": "أضف أول شركة تأمين للبدء."
+		},
+		"fields": {
+			"companyName": "اسم الشركة",
+			"contactInfo": "معلومات الاتصال",
+			"contactInfoPlaceholder": "الهاتف، البريد الإلكتروني، العنوان، إلخ.",
+			"contactInfoHelp": "معلومات اتصال اختيارية لشركة التأمين.",
+			"defaultPriceList": "قائمة الأسعار الافتراضية",
+			"selectPriceList": "اختر قائمة أسعار (اختياري)",
+			"priceListHelp": "قائمة الأسعار الافتراضية المستخدمة للمرضى بهذا التأمين.",
+			"paymentAmount": "مبلغ الدفع",
+			"paymentPeriodFrom": "فترة الدفع من",
+			"paymentPeriodTo": "فترة الدفع إلى",
+			"reportOptions": "خيارات التقرير",
+			"includeDrugs": "تضمين الأدوية في التقرير",
+			"includeClearedItems": "تضمين العناصر من قبل آخر تاريخ تسوية",
+			"patient": "المريض",
+			"clearDate": "تاريخ التسوية",
+			"clearDateHelp": "سيتم وضع علامة على جميع الرسوم حتى هذا التاريخ كمسددة.",
+			"lastCleared": "آخر تسوية",
+			"priceList": "قائمة الأسعار",
+			"activePatients": "المرضى النشطون",
+			"totalPatients": "إجمالي المرضى"
+		},
+		"buttons": {
+			"addCompany": "إضافة شركة تأمين",
+			"saveCompany": "حفظ الشركة",
+			"payment": "دفعة",
+			"report": "تقرير",
+			"clearBalance": "تسوية الرصيد المستحق",
+			"viewPayments": "عرض سجل الدفعات",
+			"backToList": "العودة للقائمة",
+			"recordPayment": "تسجيل الدفعة",
+			"generateReport": "إنشاء التقرير",
+			"printReport": "طباعة التقرير",
+			"generatePatientReport": "إنشاء تقرير المريض",
+			"printPatientReport": "طباعة تقرير المريض",
+			"viewDetails": "عرض التفاصيل"
+		},
+		"modals": {
+			"addCompany": "إضافة شركة تأمين",
+			"editCompany": "تعديل شركة التأمين",
+			"recordPayment": "تسجيل دفعة التأمين",
+			"generateReport": "إنشاء تقرير التأمين",
+			"insuranceReport": "تقرير التأمين",
+			"generatePatientReport": "إنشاء تقرير المريض",
+			"patientReport": "تقرير المريض",
+			"clearBalance": "تسوية الرصيد المستحق",
+			"paymentHistory": "سجل الدفعات"
+		},
+		"validation": {
+			"companyNameRequired": "يرجى إدخال اسم شركة صحيح.",
+			"paymentAmountRequired": "يرجى إدخال مبلغ دفع صحيح.",
+			"fromDateRequired": "يرجى اختيار تاريخ البداية.",
+			"toDateRequired": "يرجى اختيار تاريخ النهاية.",
+			"startDateRequired": "يرجى اختيار تاريخ البداية.",
+			"endDateRequired": "يرجى اختيار تاريخ النهاية.",
+			"clearDateRequired": "يرجى اختيار تاريخ التسوية."
+		},
+		"messages": {
+			"paymentNote": "تغطي هذه الدفعة الفترة الزمنية المحددة وستستخدم في حسابات التقارير.",
+			"reportNote": "سيعرض التقرير جميع الخدمات والأدوية للمرضى بهذه الشركة خلال الفترة المحددة.",
+			"patientReportNote": "سيعرض هذا التقرير جميع الخدمات والأدوية لهذا المريض خلال الفترة المحددة.",
+			"clearBalanceWarning": "سيؤدي هذا الإجراء إلى تحديث تاريخ آخر تسوية لشركة التأمين هذه. لن تظهر العناصر قبل هذا التاريخ في تقارير المستحقات المستقبلية.",
+			"deleteConfirmTitle": "حذف شركة التأمين؟",
+			"deleteConfirmText": "سيؤدي هذا إلى حذف شركة التأمين وجميع البيانات المرتبطة بها نهائيًا. لا يمكن التراجع عن هذا الإجراء!",
+			"deleteSuccess": "تم حذف شركة التأمين بنجاح",
+			"createSuccess": "تم إنشاء شركة التأمين بنجاح",
+			"updateSuccess": "تم تحديث شركة التأمين بنجاح",
+			"paymentSuccess": "تم تسجيل الدفعة بنجاح",
+			"clearBalanceSuccess": "تمت تسوية الرصيد بنجاح",
+			"loadError": "فشل تحميل شركات التأمين",
+			"saveError": "فشل حفظ شركة التأمين",
+			"deleteError": "فشل حذف شركة التأمين",
+			"paymentError": "فشل تسجيل الدفعة",
+			"clearBalanceError": "فشل تسوية الرصيد",
+			"reportError": "فشل إنشاء التقرير",
+			"loadDetailsError": "فشل تحميل تفاصيل التأمين",
+			"loadPatientsError": "فشل تحميل المرضى",
+			"loadPaymentHistoryError": "فشل تحميل سجل الدفعات",
+			"noPriceListsAvailable": "لا توجد قوائم أسعار متاحة"
+		},
+		"statistics": {
+			"totalRevenue": "إجمالي الإيرادات",
+			"totalPayments": "إجمالي الدفعات",
+			"outstandingBalance": "الرصيد المستحق",
+			"activePatients": "المرضى النشطون",
+			"totalPatients": "إجمالي المرضى"
+		},
+		"patient": {
+			"status": {
+				"active": "نشط",
+				"inactive": "غير نشط"
+			},
+			"gender": "الجنس",
+			"admission": "الدخول الحالي",
+			"admissionDate": "تاريخ الدخول",
+			"diagnosis": "التشخيص",
+			"outstandingAmount": "المبلغ المستحق",
+			"nationalId": "الرقم القومي",
+			"phone": "الهاتف",
+			"insuranceFormId": "رقم نموذج التأمين",
+			"insuranceCardId": "رقم بطاقة التأمين",
+			"noActiveAdmission": "لا يوجد دخول نشط"
+		},
+		"report": {
+			"summary": "ملخص التقرير",
+			"period": "الفترة",
+			"totalServices": "إجمالي الخدمات",
+			"totalDrugs": "إجمالي الأدوية",
+			"totalAmount": "المبلغ الإجمالي",
+			"patientName": "اسم المريض",
+			"serviceType": "الخدمة/الدواء",
+			"quantity": "الكمية",
+			"unitPrice": "سعر الوحدة",
+			"totalPrice": "السعر الإجمالي",
+			"date": "التاريخ",
+			"services": "الخدمات",
+			"drugs": "الأدوية",
+			"grandTotal": "الإجمالي الكلي",
+			"noData": "لا توجد بيانات متاحة للفترة المحددة",
+			"generatedOn": "تم الإنشاء في",
+			"companyName": "اسم الشركة"
+		},
+		"paymentHistory": {
+			"paymentAmount": "مبلغ الدفع",
+			"paymentDate": "تاريخ الدفع",
+			"paymentPeriod": "فترة الدفع",
+			"recordedBy": "مسجل بواسطة",
+			"noPayments": "لا يوجد سجل دفعات متاح"
 		}
 	},
 	"auth": {

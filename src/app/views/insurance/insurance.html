@@ -4,54 +4,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Vault Management</title>
-
-  <style>
-    /* Hide the Google Translate widget */
-    #google_translate_element {
-      display: none;
-    }
-
-    .goog-te-gadget img {
-      display: none !important;
-    }
-
-    body>.skiptranslate {
-      display: none;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    #goog-gt-tt,
-    .goog-te-balloon-frame {
-      display: none !important;
-    }
-
-    .goog-text-highlight {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-    ::selection {
-      background: transparent;
-    }
-
-    /* Optional: Adjust for right-to-left Arabic text */
-    body[lang="ar"] {
-      direction: rtl;
-      text-align: right;
-    }
-  </style>
+  <title data-i18n="insurance.pageTitle">HMS - Insurance Management</title>
 
   <!-- Bootstrap CSS -->
   <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
-  <link href="../css/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link id="bootstrap-css"href="../css/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/insurance.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/insurance-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
   <!-- Toastr CSS -->
@@ -59,8 +24,6 @@
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <!--<div id="google_translate_element"></div>-->
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -74,8 +37,8 @@
           <i class="bi bi-person-circle"></i>
         </div>
         <div class="profile-info">
-          <div class="profile-name" id="userFullName">Loading...</div>
-          <div class="profile-role" id="userRole">Loading...</div>
+          <div class="profile-name" id="userFullName" data-i18n="common.loading">Loading...</div>
+          <div class="profile-role" id="userRole" data-i18n="common.loading">Loading...</div>
         </div>
       </div>
 
@@ -84,7 +47,7 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -92,13 +55,32 @@
     <!-- Page Content -->
     <div id="content">
       <!-- Top Navigation -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
           <button type="button" id="sidebarCollapse" class="btn btn-light">
             <i class="bi bi-list"></i>
           </button>
-          <div class="page-title">
-            <h4>Insurance Companies Management</h4>
+          <div class="page-title ms-3">
+            <h4 data-i18n="insurance.title">Insurance Companies Management</h4>
+          </div>
+          <div class="ms-auto d-flex align-items-center">
+            <!-- Language Switcher -->
+            <div class="dropdown me-3">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </nav>
@@ -111,10 +93,10 @@
             <div class="card">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                  <i class="bi bi-shield-check me-2"></i>Insurance Companies
+                  <i class="bi bi-shield-check me-2"></i><span data-i18n="insurance.insuranceCompanies">Insurance Companies</span>
                 </h5>
                 <button type="button" class="btn btn-primary" id="addInsuranceBtn" data-requires-permission="manage_patients">
-                  <i class="bi bi-plus-circle"></i> Add Insurance Company
+                  <i class="bi bi-plus-circle"></i> <span data-i18n="insurance.buttons.addCompany">Add Insurance Company</span>
                 </button>
               </div>
             </div>
@@ -124,9 +106,9 @@
         <!-- Loading State -->
         <div id="loadingState" class="text-center py-5" style="display: none;">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
           </div>
-          <p class="mt-3">Loading insurance companies...</p>
+          <p class="mt-3" data-i18n="insurance.loadingCompanies">Loading insurance companies...</p>
         </div>
 
         <!-- Main Content Area -->
@@ -144,7 +126,7 @@
                 <div class="card insurance-info-card">
                   <div class="card-header">
                     <h5 class="mb-0">
-                      <i class="bi bi-building me-2"></i>Company Details
+                      <i class="bi bi-building me-2"></i><span data-i18n="insurance.companyDetails">Company Details</span>
                     </h5>
                   </div>
                   <div class="card-body" id="selectedInsuranceInfo">
@@ -153,13 +135,13 @@
                   <div class="card-footer">
                     <div class="btn-group w-100" role="group">
                       <button type="button" class="btn btn-outline-primary" id="editInsuranceBtn">
-                        <i class="bi bi-pencil"></i> Edit
+                        <i class="bi bi-pencil"></i> <span data-i18n="common.edit">Edit</span>
                       </button>
                       <button type="button" class="btn btn-outline-success" id="addPaymentBtn">
-                        <i class="bi bi-cash-coin"></i> Payment
+                        <i class="bi bi-cash-coin"></i> <span data-i18n="insurance.buttons.payment">Payment</span>
                       </button>
                       <button type="button" class="btn btn-outline-info" id="generateReportBtn">
-                        <i class="bi bi-file-earmark-text"></i> Report
+                        <i class="bi bi-file-earmark-text"></i> <span data-i18n="insurance.buttons.report">Report</span>
                       </button>
                     </div>
                   </div>
@@ -171,7 +153,7 @@
                 <div class="card">
                   <div class="card-header">
                     <h5 class="mb-0">
-                      <i class="bi bi-graph-up me-2"></i>Statistics & Actions
+                      <i class="bi bi-graph-up me-2"></i><span data-i18n="insurance.statisticsActions">Statistics & Actions</span>
                     </h5>
                   </div>
                   <div class="card-body">
@@ -182,14 +164,14 @@
                       <div class="col-md-6">
                         <div class="d-grid">
                           <button type="button" class="btn btn-warning" id="clearBalanceBtn">
-                            <i class="bi bi-check-circle"></i> Clear Outstanding Balance
+                            <i class="bi bi-check-circle"></i> <span data-i18n="insurance.buttons.clearBalance">Clear Outstanding Balance</span>
                           </button>
                         </div>
                       </div>
                       <div class="col-md-6">
                         <div class="d-grid">
                           <button type="button" class="btn btn-info" id="viewPaymentsBtn">
-                            <i class="bi bi-list-ul"></i> View Payment History
+                            <i class="bi bi-list-ul"></i> <span data-i18n="insurance.buttons.viewPayments">View Payment History</span>
                           </button>
                         </div>
                       </div>
@@ -205,10 +187,10 @@
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                      <i class="bi bi-people me-2"></i>Patients (<span id="patientCount">0</span>)
+                      <i class="bi bi-people me-2"></i><span data-i18n="insurance.patients">Patients</span> (<span id="patientCount">0</span>)
                     </h5>
                     <button type="button" class="btn btn-sm btn-secondary" id="backToListBtn">
-                      <i class="bi bi-arrow-left"></i> Back to List
+                      <i class="bi bi-arrow-left"></i> <span data-i18n="insurance.buttons.backToList">Back to List</span>
                     </button>
                   </div>
                   <div class="card-body">
@@ -225,10 +207,10 @@
         <!-- Empty State -->
         <div id="emptyState" class="text-center py-5" style="display: none;">
           <i class="bi bi-shield-x" style="font-size: 4rem; color: #6c757d;"></i>
-          <h3 class="mt-3 text-muted">No Insurance Companies</h3>
-          <p class="text-muted">Add your first insurance company to get started.</p>
+          <h3 class="mt-3 text-muted" data-i18n="insurance.emptyState.title">No Insurance Companies</h3>
+          <p class="text-muted" data-i18n="insurance.emptyState.description">Add your first insurance company to get started.</p>
           <button type="button" class="btn btn-primary" id="emptyStateAddBtn">
-            <i class="bi bi-plus-circle"></i> Add Insurance Company
+            <i class="bi bi-plus-circle"></i> <span data-i18n="insurance.buttons.addCompany">Add Insurance Company</span>
           </button>
         </div>
       </div>
@@ -240,40 +222,40 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="insuranceModalLabel">Add Insurance Company</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="insuranceModalLabel" data-i18n="insurance.modals.addCompany">Add Insurance Company</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="insuranceForm" novalidate>
             <input type="hidden" id="insuranceId">
 
             <div class="mb-3">
-              <label for="companyName" class="form-label">Company Name *</label>
+              <label for="companyName" class="form-label"><span data-i18n="insurance.fields.companyName">Company Name</span> *</label>
               <input type="text" class="form-control" id="companyName" required maxlength="255">
-              <div class="invalid-feedback">Please provide a valid company name.</div>
+              <div class="invalid-feedback" data-i18n="insurance.validation.companyNameRequired">Please provide a valid company name.</div>
             </div>
 
             <div class="mb-3">
-              <label for="contactInfo" class="form-label">Contact Information</label>
-              <textarea class="form-control" id="contactInfo" rows="3" maxlength="1000" placeholder="Phone, email, address, etc."></textarea>
-              <div class="form-text">Optional contact details for the insurance company.</div>
+              <label for="contactInfo" class="form-label" data-i18n="insurance.fields.contactInfo">Contact Information</label>
+              <textarea class="form-control" id="contactInfo" rows="3" maxlength="1000" data-i18n-placeholder="insurance.fields.contactInfoPlaceholder"></textarea>
+              <div class="form-text" data-i18n="insurance.fields.contactInfoHelp">Optional contact details for the insurance company.</div>
             </div>
 
             <div class="mb-3">
-              <label for="priceListId" class="form-label">Default Price List</label>
+              <label for="priceListId" class="form-label" data-i18n="insurance.fields.defaultPriceList">Default Price List</label>
               <select class="form-select" id="priceListId">
-                <option value="">Select price list (optional)</option>
+                <option value="" data-i18n="insurance.fields.selectPriceList">Select price list (optional)</option>
                 <!-- Price list options will be loaded here -->
               </select>
-              <div class="form-text">Default price list used for patients with this insurance.</div>
+              <div class="form-text" data-i18n="insurance.fields.priceListHelp">Default price list used for patients with this insurance.</div>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="saveInsuranceBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Save Company</span>
+            <span class="btn-text" data-i18n="insurance.buttons.saveCompany">Save Company</span>
           </button>
         </div>
       </div>
@@ -285,48 +267,48 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="paymentModalLabel">Record Insurance Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="paymentModalLabel" data-i18n="insurance.modals.recordPayment">Record Insurance Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="paymentForm" novalidate>
             <div class="mb-3">
-              <label for="paymentAmount" class="form-label">Payment Amount *</label>
+              <label for="paymentAmount" class="form-label"><span data-i18n="insurance.fields.paymentAmount">Payment Amount</span> *</label>
               <div class="input-group">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text" data-i18n="common.currency">EGP</span>
                 <input type="number" class="form-control" id="paymentAmount" min="0.01" step="0.01" required>
-                <div class="invalid-feedback">Please enter a valid payment amount.</div>
+                <div class="invalid-feedback" data-i18n="insurance.validation.paymentAmountRequired">Please enter a valid payment amount.</div>
               </div>
             </div>
 
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="paymentFromDate" class="form-label">Payment Period From *</label>
+                  <label for="paymentFromDate" class="form-label"><span data-i18n="insurance.fields.paymentPeriodFrom">Payment Period From</span> *</label>
                   <input type="date" class="form-control" id="paymentFromDate" required>
-                  <div class="invalid-feedback">Please select a from date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.fromDateRequired">Please select a from date.</div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="paymentToDate" class="form-label">Payment Period To *</label>
+                  <label for="paymentToDate" class="form-label"><span data-i18n="insurance.fields.paymentPeriodTo">Payment Period To</span> *</label>
                   <input type="date" class="form-control" id="paymentToDate" required>
-                  <div class="invalid-feedback">Please select a to date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.toDateRequired">Please select a to date.</div>
                 </div>
               </div>
             </div>
 
             <div class="alert alert-info">
               <i class="bi bi-info-circle me-2"></i>
-              <strong>Note:</strong> This payment covers the specified date range and will be used in report calculations.
+              <strong data-i18n="common.info">Note:</strong> <span data-i18n="insurance.messages.paymentNote">This payment covers the specified date range and will be used in report calculations.</span>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-success" id="savePaymentBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Record Payment</span>
+            <span class="btn-text" data-i18n="insurance.buttons.recordPayment">Record Payment</span>
           </button>
         </div>
       </div>
@@ -338,24 +320,24 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="reportModalLabel">Generate Insurance Report</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="reportModalLabel" data-i18n="insurance.modals.generateReport">Generate Insurance Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="reportForm" novalidate>
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="reportStartDate" class="form-label">Start Date *</label>
+                  <label for="reportStartDate" class="form-label"><span data-i18n="common.startDate">Start Date</span> *</label>
                   <input type="date" class="form-control" id="reportStartDate" required>
-                  <div class="invalid-feedback">Please select a start date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.startDateRequired">Please select a start date.</div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="reportEndDate" class="form-label">End Date *</label>
+                  <label for="reportEndDate" class="form-label"><span data-i18n="common.endDate">End Date</span> *</label>
                   <input type="date" class="form-control" id="reportEndDate" required>
-                  <div class="invalid-feedback">Please select an end date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.endDateRequired">Please select an end date.</div>
                 </div>
               </div>
             </div>
@@ -363,16 +345,16 @@
             <div class="row">
               <div class="col-md-12">
                 <div class="mb-3">
-                  <label class="form-label">Report Options</label>
+                  <label class="form-label" data-i18n="insurance.fields.reportOptions">Report Options</label>
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="includeDrugs" checked>
-                    <label class="form-check-label" for="includeDrugs">
+                    <label class="form-check-label" for="includeDrugs" data-i18n="insurance.fields.includeDrugs">
                       Include drugs in report
                     </label>
                   </div>
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="includeClearedItems">
-                    <label class="form-check-label" for="includeClearedItems">
+                    <label class="form-check-label" for="includeClearedItems" data-i18n="insurance.fields.includeClearedItems">
                       Include items from before last cleared date
                     </label>
                   </div>
@@ -382,16 +364,16 @@
 
             <div class="alert alert-warning">
               <i class="bi bi-exclamation-triangle me-2"></i>
-              <strong>Important:</strong> The report will show all services and drugs for patients with this insurance company during the selected period.
+              <strong data-i18n="common.warning">Important:</strong> <span data-i18n="insurance.messages.reportNote">The report will show all services and drugs for patients with this insurance company during the selected period.</span>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-info" id="generateReportBtnModal">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
             <span class="btn-text">
-              <i class="bi bi-file-earmark-text"></i> Generate Report
+              <i class="bi bi-file-earmark-text"></i> <span data-i18n="insurance.buttons.generateReport">Generate Report</span>
             </span>
           </button>
         </div>
@@ -404,8 +386,8 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="reportDetailsModalLabel">Insurance Report</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="reportDetailsModalLabel" data-i18n="insurance.modals.insuranceReport">Insurance Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div id="reportDetailsContent">
@@ -413,9 +395,9 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
           <button type="button" class="btn btn-primary" id="printReportBtn">
-            <i class="bi bi-printer"></i> Print Report
+            <i class="bi bi-printer"></i> <span data-i18n="insurance.buttons.printReport">Print Report</span>
           </button>
         </div>
       </div>
@@ -427,8 +409,8 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="patientReportModalLabel">Generate Patient Report</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="patientReportModalLabel" data-i18n="insurance.modals.generatePatientReport">Generate Patient Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="patientReportForm" novalidate>
@@ -436,22 +418,22 @@
 
             <div class="alert alert-info">
               <i class="bi bi-person-check me-2"></i>
-              <strong>Patient:</strong> <span id="selectedPatientName">-</span>
+              <strong data-i18n="insurance.fields.patient">Patient:</strong> <span id="selectedPatientName">-</span>
             </div>
 
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="patientReportStartDate" class="form-label">Start Date *</label>
+                  <label for="patientReportStartDate" class="form-label"><span data-i18n="common.startDate">Start Date</span> *</label>
                   <input type="date" class="form-control" id="patientReportStartDate" required>
-                  <div class="invalid-feedback">Please select a start date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.startDateRequired">Please select a start date.</div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label for="patientReportEndDate" class="form-label">End Date *</label>
+                  <label for="patientReportEndDate" class="form-label"><span data-i18n="common.endDate">End Date</span> *</label>
                   <input type="date" class="form-control" id="patientReportEndDate" required>
-                  <div class="invalid-feedback">Please select an end date.</div>
+                  <div class="invalid-feedback" data-i18n="insurance.validation.endDateRequired">Please select an end date.</div>
                 </div>
               </div>
             </div>
@@ -459,16 +441,16 @@
             <div class="row">
               <div class="col-md-12">
                 <div class="mb-3">
-                  <label class="form-label">Report Options</label>
+                  <label class="form-label" data-i18n="insurance.fields.reportOptions">Report Options</label>
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="patientIncludeDrugs" checked>
-                    <label class="form-check-label" for="patientIncludeDrugs">
+                    <label class="form-check-label" for="patientIncludeDrugs" data-i18n="insurance.fields.includeDrugs">
                       Include drugs in report
                     </label>
                   </div>
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="patientIncludeClearedItems">
-                    <label class="form-check-label" for="patientIncludeClearedItems">
+                    <label class="form-check-label" for="patientIncludeClearedItems" data-i18n="insurance.fields.includeClearedItems">
                       Include items from before last cleared date
                     </label>
                   </div>
@@ -478,16 +460,16 @@
 
             <div class="alert alert-warning">
               <i class="bi bi-exclamation-triangle me-2"></i>
-              <strong>Important:</strong> This report will show all services and drugs for this specific patient during the selected period.
+              <strong data-i18n="common.warning">Important:</strong> <span data-i18n="insurance.messages.patientReportNote">This report will show all services and drugs for this specific patient during the selected period.</span>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-info" id="generatePatientReportBtnModal">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
             <span class="btn-text">
-              <i class="bi bi-file-earmark-text"></i> Generate Patient Report
+              <i class="bi bi-file-earmark-text"></i> <span data-i18n="insurance.buttons.generatePatientReport">Generate Patient Report</span>
             </span>
           </button>
         </div>
@@ -500,8 +482,8 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="patientReportDetailsModalLabel">Patient Report</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="patientReportDetailsModalLabel" data-i18n="insurance.modals.patientReport">Patient Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div id="patientReportDetailsContent">
@@ -509,9 +491,9 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
           <button type="button" class="btn btn-primary" id="printPatientReportBtn">
-            <i class="bi bi-printer"></i> Print Patient Report
+            <i class="bi bi-printer"></i> <span data-i18n="insurance.buttons.printPatientReport">Print Patient Report</span>
           </button>
         </div>
       </div>
@@ -523,30 +505,29 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="clearBalanceModalLabel">Clear Outstanding Balance</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="clearBalanceModalLabel" data-i18n="insurance.modals.clearBalance">Clear Outstanding Balance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="clearBalanceForm" novalidate>
             <div class="mb-3">
-              <label for="clearDate" class="form-label">Clear Date *</label>
+              <label for="clearDate" class="form-label"><span data-i18n="insurance.fields.clearDate">Clear Date</span> *</label>
               <input type="date" class="form-control" id="clearDate" required>
-              <div class="invalid-feedback">Please select a clear date.</div>
-              <div class="form-text">All charges up to this date will be marked as cleared.</div>
+              <div class="invalid-feedback" data-i18n="insurance.validation.clearDateRequired">Please select a clear date.</div>
+              <div class="form-text" data-i18n="insurance.fields.clearDateHelp">All charges up to this date will be marked as cleared.</div>
             </div>
 
             <div class="alert alert-warning">
               <i class="bi bi-exclamation-triangle me-2"></i>
-              <strong>Warning:</strong> This action will update the last cleared date for this insurance company.
-              Items before this date will not appear in future outstanding reports.
+              <strong data-i18n="common.warning">Warning:</strong> <span data-i18n="insurance.messages.clearBalanceWarning">This action will update the last cleared date for this insurance company. Items before this date will not appear in future outstanding reports.</span>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-warning" id="confirmClearBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Clear Balance</span>
+            <span class="btn-text" data-i18n="insurance.buttons.clearBalance">Clear Balance</span>
           </button>
         </div>
       </div>
@@ -558,8 +539,8 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="paymentHistoryModalLabel">Payment History</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="paymentHistoryModalLabel" data-i18n="insurance.modals.paymentHistory">Payment History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div id="paymentHistoryContent">
@@ -567,40 +548,11 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Google Translate -->
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-  <script>
-    function googleTranslateElementInit() {
-      // Initialize only if not already initialized
-      if (!window.googleTranslateInitialized) {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en', // Source language (English)
-          includedLanguages: 'ar', // Target language (Arabic)
-          autoDisplay: false // Prevent automatic popup
-        }, 'google_translate_element');
-        window.googleTranslateInitialized = true;
-      }
-
-      // Automatically select Arabic
-      setTimeout(() => {
-        const select = document.querySelector('#google_translate_element select');
-        if (select && select.value !== 'ar') {
-          select.value = 'ar';
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 500); // Delay to ensure widget is loaded
-    }
-
-    // Initialize on page load and when navigating back
-    window.onload = googleTranslateElementInit;
-    window.onpageshow = googleTranslateElementInit;
-  </script>
 
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
@@ -613,8 +565,12 @@
   <!-- PDF Make -->
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
   <script src="../js/pdfmake/build/vfs_fonts.js"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
-  <script src="../utils/pdfGenerator.js" type="module"></script>
+  <script src="../js/utils/pdfGenerator.js" type="module"></script>
   <script src="../js/insurance/insurance.js" type="module"></script>
 </body>
+
+</html>

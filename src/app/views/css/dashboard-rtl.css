@@ -87,7 +87,7 @@ body.rtl .dropdown-toggle::after {
 
 /* Button Groups RTL */
 body.rtl .btn-group {
-  direction: ltr;
+  direction: rtl;
 }
 
 /* Chart Legends RTL */

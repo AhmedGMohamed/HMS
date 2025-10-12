@@ -16,7 +16,7 @@
 		"error": "Error",
 		"success": "Success",
 		"warning": "Warning",
-		"info": "Info",
+		"info": "Information",
 		"actions": "Actions",
 		"view": "View",
 		"print": "Print",
@@ -46,7 +46,9 @@
 		"optional": "Optional",
 		"startDate": "Start Date",
 		"endDate": "End Date",
-		"clear": "Clear"
+		"clear": "Clear",
+		"page": "Page",
+		"of": "of"
 	},
 	"sidebar": {
 		"dashboard": "Dashboard",
@@ -403,6 +405,148 @@
 			"voidAll": "Void All",
 			"saving": "Saving...",
 			"savingPayment": "Saving Payment..."
+		}
+	},
+	"insurance": {
+		"pageTitle": "HMS - Insurance Management",
+		"title": "Insurance Companies Management",
+		"insuranceCompanies": "Insurance Companies",
+		"companyDetails": "Company Details",
+		"statisticsActions": "Statistics & Actions",
+		"patients": "Patients",
+		"loadingCompanies": "Loading insurance companies...",
+		"emptyState": {
+			"title": "No Insurance Companies",
+			"description": "Add your first insurance company to get started."
+		},
+		"fields": {
+			"companyName": "Company Name",
+			"contactInfo": "Contact Information",
+			"contactInfoPlaceholder": "Phone, email, address, etc.",
+			"contactInfoHelp": "Optional contact details for the insurance company.",
+			"defaultPriceList": "Default Price List",
+			"selectPriceList": "Select price list (optional)",
+			"priceListHelp": "Default price list used for patients with this insurance.",
+			"paymentAmount": "Payment Amount",
+			"paymentPeriodFrom": "Payment Period From",
+			"paymentPeriodTo": "Payment Period To",
+			"reportOptions": "Report Options",
+			"includeDrugs": "Include drugs in report",
+			"includeClearedItems": "Include items from before last cleared date",
+			"patient": "Patient",
+			"clearDate": "Clear Date",
+			"clearDateHelp": "All charges up to this date will be marked as cleared.",
+			"lastCleared": "Last Cleared",
+			"priceList": "Price List",
+			"activePatients": "Active Patients",
+			"totalPatients": "Total Patients"
+		},
+		"buttons": {
+			"addCompany": "Add Insurance Company",
+			"saveCompany": "Save Company",
+			"payment": "Payment",
+			"report": "Report",
+			"clearBalance": "Clear Outstanding Balance",
+			"viewPayments": "View Payment History",
+			"backToList": "Back to List",
+			"recordPayment": "Record Payment",
+			"generateReport": "Generate Report",
+			"printReport": "Print Report",
+			"generatePatientReport": "Generate Patient Report",
+			"printPatientReport": "Print Patient Report",
+			"viewDetails": "View Details"
+		},
+		"modals": {
+			"addCompany": "Add Insurance Company",
+			"editCompany": "Edit Insurance Company",
+			"recordPayment": "Record Insurance Payment",
+			"generateReport": "Generate Insurance Report",
+			"insuranceReport": "Insurance Report",
+			"generatePatientReport": "Generate Patient Report",
+			"patientReport": "Patient Report",
+			"clearBalance": "Clear Outstanding Balance",
+			"paymentHistory": "Payment History"
+		},
+		"validation": {
+			"companyNameRequired": "Please provide a valid company name.",
+			"paymentAmountRequired": "Please enter a valid payment amount.",
+			"fromDateRequired": "Please select a from date.",
+			"toDateRequired": "Please select a to date.",
+			"startDateRequired": "Please select a start date.",
+			"endDateRequired": "Please select an end date.",
+			"clearDateRequired": "Please select a clear date."
+		},
+		"messages": {
+			"paymentNote": "This payment covers the specified date range and will be used in report calculations.",
+			"reportNote": "The report will show all services and drugs for patients with this insurance company during the selected period.",
+			"patientReportNote": "This report will show all services and drugs for this specific patient during the selected period.",
+			"clearBalanceWarning": "This action will update the last cleared date for this insurance company. Items before this date will not appear in future outstanding reports.",
+			"deleteConfirmTitle": "Delete Insurance Company?",
+			"deleteConfirmText": "This will permanently delete this insurance company and all associated data. This action cannot be undone!",
+			"deleteSuccess": "Insurance company deleted successfully",
+			"createSuccess": "Insurance company created successfully",
+			"updateSuccess": "Insurance company updated successfully",
+			"paymentSuccess": "Payment recorded successfully",
+			"clearBalanceSuccess": "Balance cleared successfully",
+			"loadError": "Failed to load insurance companies",
+			"saveError": "Failed to save insurance company",
+			"deleteError": "Failed to delete insurance company",
+			"paymentError": "Failed to record payment",
+			"clearBalanceError": "Failed to clear balance",
+			"reportError": "Failed to generate report",
+			"loadDetailsError": "Failed to load insurance details",
+			"loadPatientsError": "Failed to load patients",
+			"loadPaymentHistoryError": "Failed to load payment history",
+			"noPriceListsAvailable": "No price lists available"
+		},
+		"statistics": {
+			"totalRevenue": "Total Revenue",
+			"totalPayments": "Total Payments",
+			"outstandingBalance": "Outstanding Balance",
+			"activePatients": "Active Patients",
+			"totalPatients": "Total Patients"
+		},
+		"patient": {
+			"status": {
+				"active": "Active",
+				"inactive": "Inactive"
+			},
+			"gender": "Gender",
+			"admission": "Current Admission",
+			"admissionDate": "Admission Date",
+			"diagnosis": "Diagnosis",
+			"outstandingAmount": "Outstanding Amount",
+			"nationalId": "National ID",
+			"phone": "Phone",
+			"insuranceFormId": "Insurance Form ID",
+			"insuranceCardId": "Insurance Card ID",
+			"noActiveAdmission": "No active admission"
+		},
+		"report": {
+			"summary": "Report Summary",
+			"period": "Period",
+			"totalServices": "Total Services",
+			"totalDrugs": "Total Drugs",
+			"totalAmount": "Total Amount",
+			"patientName": "Patient Name",
+			"serviceType": "Service/Drug",
+			"quantity": "Quantity",
+			"unitPrice": "Unit Price",
+			"totalPrice": "Total Price",
+			"date": "Date",
+			"services": "Services",
+			"drugs": "Drugs",
+			"grandTotal": "Grand Total",
+			"noData": "No data available for the selected period",
+			"generatedOn": "Generated on",
+			"companyName": "Company Name"
+		},
+		"paymentHistory": {
+			"paymentAmount": "Payment Amount",
+			"paymentDate": "Payment Date",
+			"paymentPeriod": "Payment Period",
+			"recordedBy": "Recorded By",
+			"noPayments": "No payment history available"
 		}
 	},
 	"auth": {
