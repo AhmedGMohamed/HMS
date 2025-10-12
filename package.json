@@ -16,6 +16,7 @@
 		"dist": "npm run build & electron-builder --win --x64"
 	},
 	"dependencies": {
+		"@digicole/pdfmake-rtl": "^1.2.0",
 		"@popperjs/core": "^2.11.8",
 		"bcryptjs": "^3.0.2",
 		"bootstrap": "^5.3.5",

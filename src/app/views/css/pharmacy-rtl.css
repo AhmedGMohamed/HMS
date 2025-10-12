@@ -1,0 +1,551 @@
+/* RTL Adjustments for Pharmacy/Drugs Page */
+
+/* Table Adjustments */
+.table th,
+.table td {
+    text-align: right;
+}
+
+.table th:first-child,
+.table td:first-child {
+    text-align: center;
+}
+
+/* Toggle Button */
+.toggle-shipments {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Stock Display */
+.stock-display {
+    text-align: right;
+}
+
+.stock-unit {
+    direction: rtl;
+}
+
+/* Expiry Date Display */
+.expiry-date i {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+/* Action Buttons */
+
+.action-buttons .btn {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+.action-buttons .btn:last-child {
+    margin-right: 0;
+}
+
+.action-buttons .btn i {
+    margin-left: 0.25rem;
+    margin-right: 0;
+}
+
+/* Price Badges */
+.price-badge {
+    margin-left: 0;
+    margin-right: 0.25rem;
+}
+
+/* Shipment Details */
+.shipment-detail .row {
+    text-align: right;
+}
+
+.shipment-detail strong {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Modal Forms */
+.modal-body .row {
+    direction: rtl;
+}
+
+.form-label {
+    text-align: right;
+}
+
+.input-group-text {
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.input-group > .form-control {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.input-group > .form-control:not(:first-child) {
+    border-right: 0;
+    border-left: 1px solid #ced4da;
+}
+
+/* Form Check */
+.form-check {
+    padding-right: 1.5em;
+    padding-left: 0;
+}
+
+.form-check-input {
+    float: right;
+    margin-right: -1.5em;
+    margin-left: 0;
+}
+
+.form-check-label {
+    margin-right: 0.5rem;
+    margin-left: 0;
+}
+
+/* Small Text */
+.text-muted {
+    text-align: right;
+}
+
+small.text-muted {
+    display: block;
+    text-align: right;
+}
+
+/* Card Headers */
+.card-header {
+    text-align: right;
+}
+
+/* Badges */
+.badge {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+/* Modal Header */
+
+.modal-header .btn-close {
+    margin-left: 0;
+    margin-right: auto;
+    padding: 0.5rem;
+}
+
+.modal-title {
+    margin-right: 0;
+    margin-left: auto;
+}
+
+/* Modal Footer */
+
+.modal-footer .btn {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+.modal-footer .btn:first-child {
+    margin-right: 0;
+}
+
+/* Search Input */
+.input-group .input-group-text {
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.input-group .form-control {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* Buttons with Icons */
+.btn i {
+    margin-left: 0.25rem;
+    margin-right: 0;
+}
+
+.btn i.bi-plus-circle,
+.btn i.bi-building {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Warehouse Management */
+.warehouse-info {
+    text-align: right;
+}
+
+.warehouse-actions .btn {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+.warehouse-actions .btn:last-child {
+    margin-right: 0;
+}
+
+/* Empty State */
+.empty-warehouses {
+    text-align: center;
+}
+
+/* Price List Inputs */
+.price-list-input .row {
+    direction: rtl;
+}
+
+.price-list-input .form-label {
+    text-align: right;
+}
+
+.price-list-input .badge {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+/* Prepayment Controls */
+.prepayment-controls .row {
+    direction: rtl;
+}
+
+.prepayment-controls .input-group {
+    direction: ltr;
+}
+
+/* Feature Indicator */
+.feature-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.feature-indicator i {
+    order: 2;
+}
+
+/* Unit Conversion Preview */
+.unit-conversion-preview {
+    text-align: right;
+    direction: rtl;
+}
+
+/* Spinner in Buttons */
+.btn .spinner-border {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    text-align: right;
+}
+
+/* Breadcrumb / Page Title */
+.page-title {
+    text-align: right;
+}
+
+.page-title h4 {
+    margin: 0;
+}
+
+/* Top Navigation Adjustments */
+.navbar .ms-auto {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+/* Language Switcher */
+#languageDropdown {
+    direction: rtl;
+}
+
+.dropdown-menu-end {
+    right: auto;
+    left: 0;
+}
+
+/* Table Responsive */
+.table-responsive {
+    direction: rtl;
+}
+
+/* Collapse Button */
+#sidebarCollapse {
+    margin-right: 0;
+}
+
+/* Container Fluid */
+.container-fluid .row {
+    direction: rtl;
+}
+
+.container-fluid .col,
+.container-fluid .col-auto {
+    text-align: right;
+}
+
+/* Alert Messages (SweetAlert) */
+.swal2-popup {
+    direction: rtl;
+}
+
+.swal2-title,
+.swal2-html-container {
+    text-align: right;
+}
+
+.swal2-confirm {
+    margin-left: 0;
+    margin-right: 0.5rem;
+}
+
+/* Toast Notifications */
+.swal2-toast {
+    direction: rtl;
+}
+
+/* Invalid Feedback */
+.invalid-feedback {
+    text-align: right;
+}
+
+/* Custom Spacing for RTL */
+.ms-1 {
+    margin-right: 0.25rem !important;
+    margin-left: 0 !important;
+}
+
+.ms-2 {
+    margin-right: 0.5rem !important;
+    margin-left: 0 !important;
+}
+
+.ms-3 {
+    margin-right: 1rem !important;
+    margin-left: 0 !important;
+}
+
+.me-1 {
+    margin-left: 0.25rem !important;
+    margin-right: 0 !important;
+}
+
+.me-2 {
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+}
+
+.me-3 {
+    margin-left: 1rem !important;
+    margin-right: 0 !important;
+}
+
+/* Shipment Rows Animation */
+.shipment-rows {
+    direction: rtl;
+}
+
+/* Quantity Display */
+.stock-quantity {
+    direction: rtl;
+    unicode-bidi: embed;
+}
+
+/* Numbers should remain LTR even in RTL */
+.stock-quantity,
+.price-badge,
+#availableQuantityLarger,
+#availableQuantitySmaller,
+#totalPrice,
+input[type="number"] {
+    direction: ltr;
+    text-align: right;
+}
+
+/* But labels should be RTL */
+label,
+.form-label {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Dropdown Items */
+.dropdown-item {
+    text-align: right;
+}
+
+/* Form Select */
+.form-select {
+    background-position: left 0.75rem center;
+    padding-right: 0.75rem;
+    padding-left: 2.25rem;
+}
+
+/* Checkbox and Radio Adjustments */
+input[type="checkbox"],
+input[type="radio"] {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Table Row Hover */
+.drug-row:hover,
+.warehouse-row:hover {
+    cursor: pointer;
+}
+
+/* Expanded Row Indicator */
+.drug-row.expanded {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Card Body */
+.card-body {
+    direction: rtl;
+}
+
+/* Align Text */
+.text-start {
+    text-align: right !important;
+}
+
+.text-end {
+    text-align: left !important;
+}
+
+/* Center remains center */
+.text-center {
+    text-align: center !important;
+}
+
+/* Flex Adjustments */
+.d-flex {
+    direction: rtl;
+}
+
+/* Modal Body Lists */
+.modal-body ul,
+.modal-body ol {
+    padding-right: 1.5rem;
+    padding-left: 0;
+}
+
+/* Warehouse Shipment Count */
+.shipment-count {
+    display: inline-block;
+    direction: ltr;
+}
+
+/* Preserve Number Formatting */
+[data-i18n*="currency"],
+[data-i18n*="price"],
+[data-i18n*="quantity"],
+[data-i18n*="amount"] {
+    direction: ltr;
+    display: inline-block;
+}
+
+/* Icon Spacing in Buttons */
+.btn-sm i {
+    margin-left: 0.25rem;
+    margin-right: 0;
+}
+
+/* Table Cell Alignment for Numbers */
+.table td:has(.stock-quantity),
+.table td:has(.price-badge),
+.table td:has(.shipment-count) {
+    direction: ltr;
+    text-align: right;
+}
+
+/* Preserve English Text Direction for Drug Names if needed */
+.drug-name,
+.warehouse-name {
+    direction: ltr;
+    text-align: right;
+    display: inline-block;
+}
+
+/* Bootstrap Icons RTL Flip */
+.bi-chevron-down {
+    transform: scaleX(-1);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-buttons .btn {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .action-buttons .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    .warehouse-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .warehouse-actions .btn {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .warehouse-actions .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    .stock-display {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Fix for Bootstrap RTL Modal */
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* Input Group Button Order */
+.input-group > .btn:not(:last-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
+.input-group > .btn:not(:first-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+
+/* Scrollbar for RTL */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

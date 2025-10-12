@@ -4,19 +4,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Drug Management</title>
+  <title data-i18n="pharmacy.pageTitle">HMS - Drug Management</title>
   <!-- Bootstrap CSS -->
-  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link id="bootstrap-css" href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/pharmacy.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/pharmacy-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -37,11 +39,10 @@
 
       <ul class="list-unstyled components" id="sidebarComponents"></ul>
 
-
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -49,13 +50,32 @@
     <!-- Page Content -->
     <div id="content">
       <!-- Top Navigation -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
           <button type="button" id="sidebarCollapse" class="btn btn-light">
             <i class="bi bi-list"></i>
           </button>
           <div class="page-title">
-            <h4>Drug Management</h4>
+            <h4 data-i18n="pharmacy.title">Drug Management</h4>
+          </div>
+          <div class="ms-auto d-flex align-items-center">
+            <!-- Language Switcher -->
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </nav>
@@ -66,11 +86,10 @@
         <div class="row mb-4">
           <div class="col">
             <button type="button" class="btn btn-primary" id="createDrugBtn">
-              <i class="bi bi-plus-circle"></i> Create New Drug
+              <i class="bi bi-plus-circle"></i> <span data-i18n="pharmacy.buttons.createDrug">Create New Drug</span>
             </button>
-            <!-- Add this new button -->
             <button type="button" class="btn btn-success ms-2" id="manageWarehousesBtn">
-              <i class="bi bi-building"></i> Manage Warehouses
+              <i class="bi bi-building"></i> <span data-i18n="pharmacy.buttons.manageWarehouses">Manage Warehouses</span>
             </button>
           </div>
           <div class="col-auto">
@@ -78,7 +97,7 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input type="text" class="form-control" id="searchDrug" placeholder="Search drugs...">
+              <input type="text" class="form-control" id="searchDrug" data-i18n-placeholder="pharmacy.searchPlaceholder" placeholder="Search drugs...">
             </div>
           </div>
         </div>
@@ -91,13 +110,13 @@
                 <thead>
                   <tr>
                     <th style="width: 40px"></th>
-                    <th>Drug Name</th>
-                    <th>Manufacturer</th>
-                    <th>Provider</th>
-                    <th>Auto Renew</th>
-                    <th>Total Stock</th>
-                    <th>Nearest Expiry</th>
-                    <th>Actions</th>
+                    <th data-i18n="pharmacy.table.drugName">Drug Name</th>
+                    <th data-i18n="pharmacy.table.manufacturer">Manufacturer</th>
+                    <th data-i18n="pharmacy.table.provider">Provider</th>
+                    <th data-i18n="pharmacy.table.autoRenew">Auto Renew</th>
+                    <th data-i18n="pharmacy.table.totalStock">Total Stock</th>
+                    <th data-i18n="pharmacy.table.nearestExpiry">Nearest Expiry</th>
+                    <th data-i18n="common.actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="drugsTableBody">
@@ -116,8 +135,8 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="drugModalLabel">Create New Drug</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="drugModalLabel" data-i18n="pharmacy.modals.createDrug">Create New Drug</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="drugForm" novalidate>
@@ -126,27 +145,27 @@
             <!-- Basic Information -->
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="drugName" class="form-label">Drug Name</label>
+                <label for="drugName" class="form-label" data-i18n="pharmacy.fields.drugName">Drug Name</label>
                 <input type="text" class="form-control" id="drugName" required minlength="3">
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.drugNameLength">
                   Drug name must be at least 3 characters long
                 </div>
               </div>
               <div class="col-md-6">
-                <label for="manufacturer" class="form-label">Manufacturer</label>
+                <label for="manufacturer" class="form-label" data-i18n="pharmacy.fields.manufacturer">Manufacturer</label>
                 <input type="text" class="form-control" id="manufacturer">
               </div>
             </div>
 
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="provider" class="form-label">Provider</label>
+                <label for="provider" class="form-label" data-i18n="pharmacy.fields.provider">Provider</label>
                 <input type="text" class="form-control" id="provider">
               </div>
               <div class="col-md-6">
-                <label for="saleQuantity" class="form-label">Sale Quantity</label>
+                <label for="saleQuantity" class="form-label" data-i18n="pharmacy.fields.saleQuantity">Sale Quantity</label>
                 <input type="number" class="form-control" id="saleQuantity" required min="1">
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.saleQuantityMin">
                   Sale quantity must be greater than 0
                 </div>
               </div>
@@ -154,35 +173,35 @@
 
             <!-- Unit Conversion -->
             <div class="card mb-3">
-              <div class="card-header">
+              <div class="card-header" data-i18n="pharmacy.sections.unitConversion">
                 Unit Conversion
               </div>
               <div class="card-body">
                 <div class="row">
                   <div class="col-md-4">
-                    <label for="largerUnit" class="form-label">Larger Unit Name</label>
+                    <label for="largerUnit" class="form-label" data-i18n="pharmacy.fields.largerUnit">Larger Unit Name</label>
                     <input type="text" class="form-control" id="largerUnit" required>
-                    <div class="invalid-feedback">
+                    <div class="invalid-feedback" data-i18n="pharmacy.validation.largerUnitRequired">
                       Larger unit name is required
                     </div>
                   </div>
                   <div class="col-md-4">
-                    <label for="smallerUnit" class="form-label">Smaller Unit Name</label>
+                    <label for="smallerUnit" class="form-label" data-i18n="pharmacy.fields.smallerUnit">Smaller Unit Name</label>
                     <input type="text" class="form-control" id="smallerUnit" required>
-                    <div class="invalid-feedback">
+                    <div class="invalid-feedback" data-i18n="pharmacy.validation.smallerUnitRequired">
                       Smaller unit name is required
                     </div>
                   </div>
                   <div class="col-md-4">
-                    <label for="conversionRatio" class="form-label">Conversion Ratio</label>
+                    <label for="conversionRatio" class="form-label" data-i18n="pharmacy.fields.conversionRatio">Conversion Ratio</label>
                     <div class="input-group">
                       <span class="input-group-text">1</span>
                       <input type="number" class="form-control" id="conversionRatio" required min="1">
-                      <div class="invalid-feedback">
+                      <div class="invalid-feedback" data-i18n="pharmacy.validation.conversionRatioMin">
                         Conversion ratio must be greater than 0
                       </div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-muted" data-i18n="pharmacy.help.conversionRatio">
                       1 larger unit equals how many smaller units
                     </small>
                   </div>
@@ -192,22 +211,22 @@
 
             <!-- Additional Settings -->
             <div class="card mb-3">
-              <div class="card-header">
+              <div class="card-header" data-i18n="pharmacy.sections.additionalSettings">
                 Additional Settings
               </div>
               <div class="card-body">
                 <div class="row mb-3">
                   <div class="col-md-6">
-                    <label for="minStockAlert" class="form-label">Minimum Stock Alert</label>
+                    <label for="minStockAlert" class="form-label" data-i18n="pharmacy.fields.minStockAlert">Minimum Stock Alert</label>
                     <input type="number" class="form-control" id="minStockAlert" min="0">
-                    <small class="text-muted">
+                    <small class="text-muted" data-i18n="pharmacy.help.minStockAlert">
                       Alert when stock falls below this amount (in smaller units)
                     </small>
                   </div>
                   <div class="col-md-6">
-                    <label for="maxDaysExpiry" class="form-label">Expiry Alert Days</label>
+                    <label for="maxDaysExpiry" class="form-label" data-i18n="pharmacy.fields.expiryAlertDays">Expiry Alert Days</label>
                     <input type="number" class="form-control" id="maxDaysExpiry" min="0">
-                    <small class="text-muted">
+                    <small class="text-muted" data-i18n="pharmacy.help.expiryAlertDays">
                       Alert when drugs are this many days from expiry
                     </small>
                   </div>
@@ -217,15 +236,15 @@
                   <div class="col-md-6">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="isObligatoryContinuous">
-                      <label class="form-check-label" for="isObligatoryContinuous">
+                      <label class="form-check-label" for="isObligatoryContinuous" data-i18n="pharmacy.fields.isObligatoryContinuous">
                         Is Obligatory Continuous
                       </label>
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <label for="frequency" class="form-label">Frequency</label>
-                    <input type="number" class="form-control" id="frequency" placeholder="e.g., 8 hours">
-                    <small class="text-muted">
+                    <label for="frequency" class="form-label" data-i18n="pharmacy.fields.frequency">Frequency</label>
+                    <input type="number" class="form-control" id="frequency" data-i18n-placeholder="pharmacy.placeholders.frequency" placeholder="e.g., 8 hours">
+                    <small class="text-muted" data-i18n="pharmacy.help.frequency">
                       Time interval between doses (if continuous)
                     </small>
                   </div>
@@ -235,10 +254,10 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="saveDrugBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Save</span>
+            <span class="btn-text" data-i18n="common.save">Save</span>
           </button>
         </div>
       </div>
@@ -250,100 +269,101 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="sellDrugModalLabel">Sell Drug</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="sellDrugModalLabel" data-i18n="pharmacy.modals.sellDrug">Sell Drug</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="sellDrugForm" novalidate>
             <input type="hidden" id="sellShipmentId">
 
             <div class="mb-3">
-              <label for="transactionType" class="form-label">Transaction Type</label>
+              <label for="transactionType" class="form-label" data-i18n="pharmacy.fields.transactionType">Transaction Type</label>
               <select class="form-select" id="transactionType" required>
-                <option value="">Select Type</option>
-                <option value="patient">Patient</option>
-                <option value="check">Medical Check</option>
-                <option value="outside">Outside Sale</option>
+                <option value="" data-i18n="pharmacy.placeholders.selectType">Select Type</option>
+                <option value="patient" data-i18n="pharmacy.transactionTypes.patient">Patient</option>
+                <option value="check" data-i18n="pharmacy.transactionTypes.check">Medical Check</option>
+                <option value="outside" data-i18n="pharmacy.transactionTypes.outside">Outside Sale</option>
               </select>
-              <div class="invalid-feedback">
+              <div class="invalid-feedback" data-i18n="pharmacy.validation.transactionTypeRequired">
                 Please select a transaction type
               </div>
             </div>
 
             <div class="mb-3 patient-select-container d-none">
-              <label for="patientSelect" class="form-label">Select Patient</label>
+              <label for="patientSelect" class="form-label" data-i18n="pharmacy.fields.selectPatient">Select Patient</label>
               <select class="form-select" id="patientSelect">
-                <option value="">Loading patients...</option>
+                <option value="" data-i18n="pharmacy.placeholders.loadingPatients">Loading patients...</option>
               </select>
-              <div class="invalid-feedback">
+              <div class="invalid-feedback" data-i18n="pharmacy.validation.patientRequired">
                 Please select a patient
               </div>
             </div>
 
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="sellQuantityLarger" class="form-label" id="sellQuantityLargerLabel">Quantity</label>
+                <label for="sellQuantityLarger" class="form-label" id="sellQuantityLargerLabel" data-i18n="pharmacy.fields.quantity">Quantity</label>
                 <div class="input-group">
                   <input type="number" class="form-control" id="sellQuantityLarger" min="0" value="0" required>
                   <span class="input-group-text" id="quantityUnitLarger">units</span>
                 </div>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.quantityRequired">
                   Please enter a valid quantity
                 </div>
                 <small class="text-muted">
-                  Available: <span id="availableQuantityLarger">0</span>
+                  <span data-i18n="pharmacy.fields.available">Available</span>: <span id="availableQuantityLarger">0</span>
                 </small>
               </div>
               <div class="col-md-6">
-                <label for="sellQuantitySmaller" class="form-label" id="sellQuantitySmallerLabel">Quantity</label>
+                <label for="sellQuantitySmaller" class="form-label" id="sellQuantitySmallerLabel" data-i18n="pharmacy.fields.quantity">Quantity</label>
                 <div class="input-group">
                   <input type="number" class="form-control" id="sellQuantitySmaller" min="0" value="0" required>
                   <span class="input-group-text" id="quantityUnitSmaller">units</span>
                 </div>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.quantityRequired">
                   Please enter a valid quantity
                 </div>
                 <small class="text-muted">
-                  Available: <span id="availableQuantitySmaller">0</span>
+                  <span data-i18n="pharmacy.fields.available">Available</span>: <span id="availableQuantitySmaller">0</span>
                 </small>
               </div>
               <div class="col-md-6">
-                <label for="priceList" class="form-label">Price List</label>
+                <label for="priceList" class="form-label" data-i18n="pharmacy.fields.priceList">Price List</label>
                 <select class="form-select" id="priceList" required>
                   <!-- Price lists will be loaded dynamically -->
                 </select>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.priceListRequired">
                   Please select a price list
                 </div>
               </div>
             </div>
 
             <div class="mb-3">
-              <label for="totalPrice" class="form-label">Total Price</label>
+              <label for="totalPrice" class="form-label" data-i18n="pharmacy.fields.totalPrice">Total Price</label>
               <div class="input-group">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text" data-i18n="common.currency">EGP</span>
                 <input type="text" class="form-control" id="totalPrice" min="0" required>
               </div>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="confirmSellBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Confirm Sale</span>
+            <span class="btn-text" data-i18n="pharmacy.buttons.confirmSale">Confirm Sale</span>
           </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Add Shipment Modal -->
   <div class="modal fade" id="shipmentModal" tabindex="-1" aria-labelledby="shipmentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="shipmentModalLabel">Add New Shipment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="shipmentModalLabel" data-i18n="pharmacy.modals.addShipment">Add New Shipment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="shipmentForm" novalidate>
@@ -352,22 +372,22 @@
 
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="warehouseSelect" class="form-label">Warehouse</label>
+                <label for="warehouseSelect" class="form-label" data-i18n="pharmacy.fields.warehouse">Warehouse</label>
                 <select class="form-select" id="warehouseSelect" required>
-                  <option value="">Select Warehouse</option>
+                  <option value="" data-i18n="pharmacy.placeholders.selectWarehouse">Select Warehouse</option>
                   <!-- Warehouses will be loaded dynamically -->
                 </select>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.warehouseRequired">
                   Please select a warehouse
                 </div>
               </div>
               <div class="col-md-6">
-                <label for="quantity" class="form-label">Quantity</label>
+                <label for="quantity" class="form-label" data-i18n="pharmacy.fields.quantity">Quantity</label>
                 <div class="input-group">
                   <input type="number" class="form-control" id="quantity" required min="1">
                   <span class="input-group-text" id="quantityUnit">units</span>
                 </div>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.quantityMin">
                   Please enter a valid quantity
                 </div>
               </div>
@@ -375,26 +395,25 @@
 
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="buyPrice" class="form-label">Buy Price</label>
+                <label for="buyPrice" class="form-label" data-i18n="pharmacy.fields.buyPrice">Buy Price</label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="number" class="form-control" id="buyPrice" required min="0.01" step="0.01">
+                  <span class="input-group-text" data-i18n="common.currency">EGP</span> <input type="number" class="form-control" id="buyPrice" required min="0.01" step="0.01">
                 </div>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.buyPriceRequired">
                   Please enter a valid buy price
                 </div>
               </div>
               <div class="col-md-6">
-                <label for="expiryDate" class="form-label">Expiry Date</label>
+                <label for="expiryDate" class="form-label" data-i18n="pharmacy.fields.expiryDate">Expiry Date</label>
                 <input type="date" class="form-control" id="expiryDate" required>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" data-i18n="pharmacy.validation.expiryDateRequired">
                   Please select an expiry date
                 </div>
               </div>
             </div>
 
             <div class="card mb-3">
-              <div class="card-header">
+              <div class="card-header" data-i18n="pharmacy.sections.sellingPrices">
                 Selling Prices
               </div>
               <div class="card-body" id="priceListContainer">
@@ -404,10 +423,10 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="saveShipmentBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Save</span>
+            <span class="btn-text" data-i18n="common.save">Save</span>
           </button>
         </div>
       </div>
@@ -419,15 +438,15 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="warehouseModalLabel">Warehouse Management</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="warehouseModalLabel" data-i18n="pharmacy.modals.warehouseManagement">Warehouse Management</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <!-- Add New Warehouse Section -->
           <div class="row mb-4">
             <div class="col">
               <button type="button" class="btn btn-primary" id="addWarehouseBtn">
-                <i class="bi bi-plus-circle"></i> Add New Warehouse
+                <i class="bi bi-plus-circle"></i> <span data-i18n="pharmacy.buttons.addWarehouse">Add New Warehouse</span>
               </button>
             </div>
           </div>
@@ -435,17 +454,17 @@
           <!-- Warehouses List -->
           <div class="card">
             <div class="card-header">
-              <h6 class="mb-0">Existing Warehouses</h6>
+              <h6 class="mb-0" data-i18n="pharmacy.sections.existingWarehouses">Existing Warehouses</h6>
             </div>
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table table-hover align-middle">
                   <thead>
                     <tr>
-                      <th>Warehouse Name</th>
-                      <th>Location</th>
-                      <th>Total Shipments</th>
-                      <th>Actions</th>
+                      <th data-i18n="pharmacy.table.warehouseName">Warehouse Name</th>
+                      <th data-i18n="pharmacy.table.location">Location</th>
+                      <th data-i18n="pharmacy.table.totalShipments">Total Shipments</th>
+                      <th data-i18n="common.actions">Actions</th>
                     </tr>
                   </thead>
                   <tbody id="warehousesTableBody">
@@ -457,7 +476,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
         </div>
       </div>
     </div>
@@ -468,74 +487,47 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="addWarehouseModalLabel">Add New Warehouse</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="addWarehouseModalLabel" data-i18n="pharmacy.modals.addWarehouse">Add New Warehouse</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="warehouseForm" novalidate>
             <input type="hidden" id="warehouseId">
 
             <div class="mb-3">
-              <label for="warehouseName" class="form-label">Warehouse Name</label>
+              <label for="warehouseName" class="form-label" data-i18n="pharmacy.fields.warehouseName">Warehouse Name</label>
               <input type="text" class="form-control" id="warehouseName" required minlength="3">
-              <div class="invalid-feedback">
+              <div class="invalid-feedback" data-i18n="pharmacy.validation.warehouseNameLength">
                 Warehouse name must be at least 3 characters long
               </div>
             </div>
 
             <div class="mb-3">
-              <label for="warehouseLocation" class="form-label">Location</label>
+              <label for="warehouseLocation" class="form-label" data-i18n="pharmacy.fields.location">Location</label>
               <textarea class="form-control" id="warehouseLocation" rows="3" required minlength="5"></textarea>
-              <div class="invalid-feedback">
+              <div class="invalid-feedback" data-i18n="pharmacy.validation.locationLength">
                 Location must be at least 5 characters long
               </div>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="saveWarehouseBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Save Warehouse</span>
+            <span class="btn-text" data-i18n="pharmacy.buttons.saveWarehouse">Save Warehouse</span>
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Google Translate -->
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-  <script>
-    function googleTranslateElementInit() {
-      // Initialize only if not already initialized
-      if (!window.googleTranslateInitialized) {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en', // Source language (English)
-          includedLanguages: 'ar', // Target language (Arabic)
-          autoDisplay: false // Prevent automatic popup
-        }, 'google_translate_element');
-        window.googleTranslateInitialized = true;
-      }
-
-      // Automatically select Arabic
-      setTimeout(() => {
-        const select = document.querySelector('#google_translate_element select');
-        if (select && select.value !== 'ar') {
-          select.value = 'ar';
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 500); // Delay to ensure widget is loaded
-    }
-
-    // Initialize on page load and when navigating back
-    window.onload = googleTranslateElementInit;
-    window.onpageshow = googleTranslateElementInit;
-  </script>
-
   <!-- Bootstrap Bundle with Popper-->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- SweetAlert2 -->
   <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../js/pharmacy/drugs.js" type="module"></script>
