@@ -94,3 +94,19 @@ insurance has to be by individual company - DONE
 
 search patients by date
 serach doctors by date
+
+
+
+i18n pages:
+dashboard - DONE
+admin pages (users, roles) - DONE
+employees - DONE
+clocking
+login
+patients
+reports
+price-lists
+vault
+pharmacy - DONE
+services - DONE
+insurance - DONE

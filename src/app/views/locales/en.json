@@ -719,6 +719,89 @@
 			"deleteWarehouseText": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
 		}
 	},
+	"services": {
+		"pageTitle": "HMS - Services Management",
+		"title": "Services Management",
+		"searchPlaceholder": "Search services...",
+		"buttons": {
+			"createService": "Create New Service",
+			"saving": "Saving..."
+		},
+		"table": {
+			"serviceName": "Service Name",
+			"type": "Type",
+			"autoRenew": "Auto Renew",
+			"autoAdd": "Auto Add",
+			"priceLists": "Price Lists",
+			"associatedDrugs": "Associated Drugs"
+		},
+		"filters": {
+			"allTypes": "All Types",
+			"allPriceLists": "All Price Lists",
+			"filterDrugs": "Filter Drugs..."
+		},
+		"modals": {
+			"createService": "Create New Service",
+			"editService": "Edit Service"
+		},
+		"fields": {
+			"serviceName": "Service Name",
+			"serviceType": "Service Type",
+			"autoRenew": "Auto Renew",
+			"autoAdd": "Auto Add on Admission",
+			"includePriceList": "Include Price List",
+			"price": "Price",
+			"requiresPrepayment": "Requires Prepayment",
+			"prepaymentRequired": "Prepayment Required"
+		},
+		"sections": {
+			"priceLists": "Price Lists",
+			"associatedDrugs": "Associated Drugs",
+			"availableDrugs": "Available Drugs",
+			"selectedDrugs": "Selected Drugs"
+		},
+		"serviceTypes": {
+			"once": "One Time",
+			"hourly": "Hourly",
+			"daily": "Daily"
+		},
+		"prepaymentTypes": {
+			"fixed": "Fixed Amount",
+			"percentage": "Percentage"
+		},
+		"status": {
+			"default": "Default"
+		},
+		"help": {
+			"associatedDrugs": "Select drugs that will be automatically associated with this service."
+		},
+		"placeholders": {
+			"selectType": "Select Type",
+			"searchDrugs": "Search drugs..."
+		},
+		"validation": {
+			"serviceNameLength": "Service name must be at least 3 characters long",
+			"serviceTypeRequired": "Please select a service type",
+			"priceRequired": "Please enter a valid price",
+			"prepaymentAmountRequired": "Please enter prepayment amount for all price lists that require prepayment",
+			"prepaymentPercentageRange": "Percentage prepayment must be between 0 and 100"
+		},
+		"messages": {
+			"noDrugsAvailable": "No drugs available",
+			"noDrugsSelected": "No drugs selected",
+			"loadInitialDataError": "Failed to load initial data",
+			"loadPriceListsError": "Failed to load price lists",
+			"loadDrugsError": "Failed to load drugs",
+			"loadServicesError": "Failed to load services",
+			"createSuccess": "Service successfully created",
+			"updateSuccess": "Service successfully updated",
+			"saveError": "Failed to save service",
+			"deleteConfirmTitle": "Are you sure?",
+			"deleteConfirmText": "This action cannot be undone!",
+			"deleteSuccess": "Service has been deleted",
+			"deleteError": "Failed to delete service"
+		}
+	},
 	"auth": {
 		"login": "Login",
 		"logout": "Logout",
