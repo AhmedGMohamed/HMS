@@ -245,6 +245,51 @@
 			"saving": "Saving..."
 		}
 	},
+	"priceLists": {
+		"pageTitle": "HMS - Price Lists Management",
+		"title": "Price Lists Management",
+		"buttons": {
+			"createPriceList": "Create New Price List",
+			"createFirst": "Create First Price List",
+			"makeDefault": "Yes, make default",
+			"saving": "Saving..."
+		},
+		"modals": {
+			"createPriceList": "Create New Price List",
+			"editPriceList": "Edit Price List"
+		},
+		"fields": {
+			"priceListName": "Price List Name",
+			"setAsDefault": "Set as Default Price List"
+		},
+		"status": {
+			"default": "Default"
+		},
+		"stats": {
+			"services": "Services",
+			"drugs": "Drugs"
+		},
+		"help": {
+			"defaultNote": "Note: Setting this as default will remove default status from any other price list"
+		},
+		"validation": {
+			"nameLength": "Price list name must be at least 3 characters long"
+		},
+		"messages": {
+			"noPriceLists": "No price lists found. Create your first price list to get started.",
+			"loadError": "Failed to load price lists",
+			"createSuccess": "Price list successfully created",
+			"updateSuccess": "Price list successfully updated",
+			"saveError": "Failed to save price list",
+			"deleteConfirmTitle": "Are you sure?",
+			"deleteConfirmText": "This action cannot be undone!",
+			"deleteWithAssociationsWarning": "This price list is associated with {{services}} service(s) and {{drugs}} drug(s). Deleting it will remove these associations. This action cannot be undone!",
+			"deleteSuccess": "Price list has been deleted",
+			"deleteError": "Failed to delete price list",
+			"changeDefaultTitle": "Change Default Price List?",
+			"changeDefaultText": "This will remove default status from the current default price list."
+		}
+	},
 	"employees": {
 		"pageTitle": "HMS - Employees",
 		"title": "Employees",

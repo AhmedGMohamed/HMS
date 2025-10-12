@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
+import { i18n } from "../utils/i18n.js";
 
 interface PriceList {
 	pricelist_id: number;
@@ -22,9 +23,6 @@ class PriceListManager {
 	private priceListStats: Map<number, PriceListStats> = new Map();
 
 	constructor() {
-		// Initialize sidebar
-		new SidebarManager();
-
 		// Initialize modal
 		const modalElement = document.getElementById("priceListModal")!;
 		//@ts-ignore
@@ -37,9 +35,30 @@ class PriceListManager {
 		this.saveButton = document.getElementById(
 			"savePriceListBtn"
 		) as HTMLButtonElement;
+		// Wait for i18n to initialize
+		this.waitForI18n().then(() => {
+			// Initialize sidebar
+			new SidebarManager();
 
-		this.initializeEventListeners();
-		this.loadPriceLists();
+			this.initializeEventListeners();
+			this.loadPriceLists();
+
+			// Listen for locale changes
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Re-render price lists with new locale
+		this.renderPriceLists();
 	}
 
 	private initializeEventListeners(): void {
@@ -68,13 +87,14 @@ class PriceListManager {
 		defaultCheckbox.addEventListener("change", () => {
 			if (defaultCheckbox.checked) {
 				Swal.fire({
-					title: "Change Default Price List?",
-					text: "This will remove default status from the current default price list.",
+					title: i18n.t("priceLists.messages.changeDefaultTitle"),
+					text: i18n.t("priceLists.messages.changeDefaultText"),
 					icon: "warning",
 					showCancelButton: true,
 					confirmButtonColor: "#0d6efd",
 					cancelButtonColor: "#6c757d",
-					confirmButtonText: "Yes, make default"
+					confirmButtonText: i18n.t("priceLists.buttons.makeDefault"),
+					cancelButtonText: i18n.t("common.cancel")
 				}).then((result: any) => {
 					if (!result.isConfirmed) {
 						defaultCheckbox.checked = false;
@@ -99,7 +119,7 @@ class PriceListManager {
 			this.renderPriceLists();
 		} catch (error) {
 			console.error("Error loading price lists:", error);
-			this.showError("Failed to load price lists");
+			this.showError(i18n.t("priceLists.messages.loadError"));
 		}
 	}
 
@@ -133,6 +153,26 @@ class PriceListManager {
 
 	private renderPriceLists(): void {
 		const container = document.getElementById("priceListsContainer")!;
+
+		if (this.priceLists.length === 0) {
+			container.innerHTML = `
+				<div class="col-12">
+					<div class="card">
+						<div class="card-body text-center py-5">
+							<i class="bi bi-list-ul" style="font-size: 3rem; color: var(--bs-gray-400);"></i>
+							<p class="mt-3 mb-3 text-muted">${i18n.t(
+								"priceLists.messages.noPriceLists"
+							)}</p>
+							<button type="button" class="btn btn-primary" onclick="priceListManager.showPriceListModal()">
+								<i class="bi bi-plus-circle"></i> ${i18n.t("priceLists.buttons.createFirst")}
+							</button>
+						</div>
+					</div>
+				</div>
+			`;
+			return;
+		}
+
 		container.innerHTML = this.priceLists
 			.map((priceList) => {
 				const stats = this.priceListStats.get(
@@ -152,7 +192,9 @@ class PriceListManager {
                                 ${this.escapeHtml(priceList.name)}
                                 ${
 									priceList.is_default
-										? '<span class="default-badge">Default</span>'
+										? `<span class="default-badge">${i18n.t(
+												"priceLists.status.default"
+										  )}</span>`
 										: ""
 								}
                             </h5>
@@ -160,15 +202,23 @@ class PriceListManager {
                                 <button class="btn btn-sm btn-outline-primary" 
                                         onclick="priceListManager.editPriceList(${
 											priceList.pricelist_id
-										})">
-                                    <i class="bi bi-pencil"></i> Edit
+										})"
+                                        title="${i18n.t("common.edit")}">
+                                    <i class="bi bi-pencil"></i> ${i18n.t(
+										"common.edit"
+									)}
                                 </button>
                                 ${
 									!priceList.is_default
 										? `
                                     <button class="btn btn-sm btn-outline-danger" 
-                                            onclick="priceListManager.deletePriceList(${priceList.pricelist_id})">
-                                        <i class="bi bi-trash"></i> Delete
+                                            onclick="priceListManager.deletePriceList(${
+												priceList.pricelist_id
+											})"
+                                            title="${i18n.t("common.delete")}">
+                                        <i class="bi bi-trash"></i> ${i18n.t(
+											"common.delete"
+										)}
                                     </button>
                                 `
 										: ""
@@ -181,13 +231,17 @@ class PriceListManager {
                                     <div class="stat-value">${
 										stats.total_services
 									}</div>
-                                    <div class="stat-label">Services</div>
+                                    <div class="stat-label">${i18n.t(
+										"priceLists.stats.services"
+									)}</div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-value">${
 										stats.total_drugs
 									}</div>
-                                    <div class="stat-label">Drugs</div>
+                                    <div class="stat-label">${i18n.t(
+										"priceLists.stats.drugs"
+									)}</div>
                                 </div>
                             </div>
                         </div>
@@ -208,10 +262,12 @@ class PriceListManager {
 			);
 			if (!priceList) return;
 
-			modalTitle.textContent = "Edit Price List";
+			modalTitle.textContent = i18n.t("priceLists.modals.editPriceList");
 			this.populateForm(priceList);
 		} else {
-			modalTitle.textContent = "Create New Price List";
+			modalTitle.textContent = i18n.t(
+				"priceLists.modals.createPriceList"
+			);
 		}
 
 		this.priceListModal.show();
@@ -270,10 +326,10 @@ class PriceListManager {
 
 			Swal.fire({
 				icon: "success",
-				title: "Success",
-				text: `Price list successfully ${
-					priceListId ? "updated" : "created"
-				}`,
+				title: i18n.t("common.success"),
+				text: priceListId
+					? i18n.t("priceLists.messages.updateSuccess")
+					: i18n.t("priceLists.messages.createSuccess"),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -284,7 +340,7 @@ class PriceListManager {
 			this.showError(
 				error instanceof Error
 					? error.message
-					: "Failed to save price list"
+					: i18n.t("priceLists.messages.saveError")
 			);
 		} finally {
 			this.setLoading(false);
@@ -294,19 +350,29 @@ class PriceListManager {
 	public async deletePriceList(priceListId: number): Promise<void> {
 		try {
 			const stats = this.priceListStats.get(priceListId);
-			let warningMessage = "This action cannot be undone!";
+			let warningMessage = i18n.t(
+				"priceLists.messages.deleteConfirmText"
+			);
+
 			if (stats && (stats.total_services > 0 || stats.total_drugs > 0)) {
-				warningMessage = `This price list is associated with ${stats.total_services} service(s) and ${stats.total_drugs} drug(s). Deleting it will remove these associations. This action cannot be undone!`;
+				warningMessage = i18n.t(
+					"priceLists.messages.deleteWithAssociationsWarning",
+					{
+						services: stats.total_services,
+						drugs: stats.total_drugs
+					}
+				);
 			}
 
 			const result = await Swal.fire({
-				title: "Are you sure?",
+				title: i18n.t("priceLists.messages.deleteConfirmTitle"),
 				text: warningMessage,
 				icon: "warning",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: "Yes, delete it!"
+				confirmButtonText: i18n.t("common.yes"),
+				cancelButtonText: i18n.t("common.cancel")
 			});
 
 			if (result.isConfirmed) {
@@ -330,8 +396,8 @@ class PriceListManager {
 
 				Swal.fire({
 					icon: "success",
-					title: "Deleted!",
-					text: "Price list has been deleted.",
+					title: i18n.t("common.success"),
+					text: i18n.t("priceLists.messages.deleteSuccess"),
 					toast: true,
 					position: "top-end",
 					showConfirmButton: false,
@@ -340,7 +406,7 @@ class PriceListManager {
 			}
 		} catch (error) {
 			console.error("Error deleting price list:", error);
-			this.showError("Failed to delete price list");
+			this.showError(i18n.t("priceLists.messages.deleteError"));
 		}
 	}
 
@@ -364,13 +430,15 @@ class PriceListManager {
 		const buttonText = this.saveButton.querySelector(".btn-text")!;
 		this.saveButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("priceLists.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});
