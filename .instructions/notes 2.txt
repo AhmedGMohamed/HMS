@@ -103,10 +103,10 @@ admin pages (users, roles) - DONE
 employees - DONE
 clocking - DONE
 login
-patients
 reports
-price-lists - DONE
 vault
+patients - DONE
+price-lists - DONE
 pharmacy - DONE
 services - DONE
 insurance - DONE
