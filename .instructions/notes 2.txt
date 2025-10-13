@@ -105,7 +105,7 @@ clocking
 login
 patients
 reports
-price-lists
+price-lists - DONE
 vault
 pharmacy - DONE
 services - DONE

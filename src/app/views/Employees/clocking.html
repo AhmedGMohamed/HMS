@@ -4,53 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Clocking</title>
-
-  <style>
-    /* Hide the Google Translate widget */
-    #google_translate_element {
-      display: none;
-    }
-
-    .goog-te-gadget img {
-      display: none !important;
-    }
-
-    body>.skiptranslate {
-      display: none;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    #goog-gt-tt,
-    .goog-te-balloon-frame {
-      display: none !important;
-    }
-
-    .goog-text-highlight {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-	    ::selection {
-	    background: transparent;
-	    }
-
-    /* Optional: Adjust for right-to-left Arabic text */
-    body[lang="ar"] {
-      direction: rtl;
-      text-align: right;
-    }
-  </style>
-
-
+  <title data-i18n="clocking.pageTitle">HMS - Clocking</title>
   <!-- Bootstrap CSS -->
-  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link id="bootstrap-css" href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/clocking.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/clocking-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
   <!-- Toastr CSS -->
@@ -58,8 +21,6 @@
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -80,7 +41,7 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -92,25 +53,25 @@
           <button type="button" id="sidebarCollapse" class="btn btn-light">
             <i class="bi bi-list"></i>
           </button>
+          <div class="page-title">
+            <h4 data-i18n="clocking.title">Clocking</h4>
+          </div>
           <div class="ms-auto d-flex align-items-center">
-            <div class="notifications dropdown">
-              <button class="btn btn-link position-relative dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                  <span class="visually-hidden">unread notifications</span>
-                </span>
+            <!-- Language Switcher -->
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                <li>
-                  <h6 class="dropdown-header">Notifications</h6>
-                </li>
-                <li>
-                  <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="#">Low stock alert: Paracetamol</a></li>
-                <li><a class="dropdown-item" href="#">New patient admission</a></li>
-                <li><a class="dropdown-item" href="#">System update available</a></li>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
               </ul>
             </div>
           </div>
@@ -119,29 +80,99 @@
       <!-- Main Content -->
       <div class="container-fluid">
         <div class="welcome-section mb-4">
-          <h1>Clocking</h1>
-          <p class="text-muted">Manage clocking records</p>
+          <h1 data-i18n="clocking.title">Clocking</h1>
+          <p class="text-muted" data-i18n="clocking.subtitle">Manage clocking records</p>
         </div>
         <div class="row">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <button class="btn btn-primary" id="createClockInBtn">
-              <i class="bi bi-plus-circle"></i> New Clock-In
+              <i class="bi bi-plus-circle"></i> <span data-i18n="clocking.buttons.newClockIn">New Clock-In</span>
             </button>
-            <input type="text" class="form-control w-25" id="searchClockIn" placeholder="Search by employee name...">
           </div>
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Employee Name</th>
-                  <th>Clock-In Time</th>
-                  <th>Clock-Out Time</th>
-                  <th>Pay Deduction</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="clockInTableBody"></tbody>
-            </table>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-3" id="clockingTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-content" type="button" role="tab">
+                <i class="bi bi-clock"></i> <span data-i18n="clocking.tabs.active">Active Clock-Ins</span>
+                <span class="badge bg-primary ms-2" id="activeCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-content" type="button" role="tab">
+                <i class="bi bi-clock-history"></i> <span data-i18n="clocking.tabs.history">History</span>
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab Content -->
+          <div class="tab-content" id="clockingTabContent">
+            <!-- Active Clock-Ins Tab -->
+            <div class="tab-pane fade show active" id="active-content" role="tabpanel">
+              <div class="card">
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th data-i18n="clocking.table.employeeName">Employee Name</th>
+                          <th data-i18n="clocking.table.clockInTime">Clock-In Time</th>
+                          <th data-i18n="clocking.table.duration">Duration</th>
+                          <th data-i18n="common.actions">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="activeClockInTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-pane fade" id="history-content" role="tabpanel">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-md-3">
+                      <label for="searchEmployee" class="form-label" data-i18n="clocking.filters.searchEmployee">Search Employee</label>
+                      <input type="text" class="form-control" id="searchEmployee" data-i18n-placeholder="clocking.placeholders.searchEmployee" placeholder="Search by name...">
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filterFromDate" class="form-label" data-i18n="common.from">From</label>
+                      <input type="date" class="form-control" id="filterFromDate">
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filterToDate" class="form-label" data-i18n="common.to">To</label>
+                      <input type="date" class="form-control" id="filterToDate">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                      <button class="btn btn-outline-secondary w-100" id="clearFiltersBtn">
+                        <i class="bi bi-x-circle"></i> <span data-i18n="common.clear">Clear Filters</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th data-i18n="clocking.table.employeeName">Employee Name</th>
+                          <th data-i18n="clocking.table.clockInTime">Clock-In Time</th>
+                          <th data-i18n="clocking.table.clockOutTime">Clock-Out Time</th>
+                          <th data-i18n="clocking.table.duration">Duration</th>
+                          <th data-i18n="clocking.table.payDeduction">Pay Deduction</th>
+                          <th data-i18n="common.actions">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="historyClockInTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -149,73 +180,53 @@
   </div>
 
   <!-- Clock-In Modal -->
-  <div class="modal fade modal-lg" id="clockInModal" tabindex="-1">
+  <div class="modal fade" id="clockInModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="clockInModalLabel">New Clock-In</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title" id="clockInModalLabel" data-i18n="clocking.modals.newClockIn">New Clock-In</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
         </div>
         <form id="clockInForm" class="needs-validation" novalidate>
           <div class="modal-body">
             <input type="hidden" id="clockId">
             <div class="mb-3">
-              <label for="employeeId" class="form-label">Employee</label>
+              <label for="employeeId" class="form-label" data-i18n="clocking.fields.employee">Employee</label>
               <select class="form-select" id="employeeId" required>
-                <option value="">Select Employee</option>
+                <option value="" data-i18n="clocking.placeholders.selectEmployee">Select Employee</option>
               </select>
-              <div class="invalid-feedback">Please select an employee.</div>
+              <div class="invalid-feedback" data-i18n="clocking.validation.employeeRequired">Please select an employee.</div>
             </div>
             <div class="mb-3">
-              <label for="clockInTime" class="form-label">Clock-In Time</label>
+              <label for="clockInTime" class="form-label" data-i18n="clocking.fields.clockInTime">Clock-In Time</label>
               <input type="datetime-local" class="form-control" id="clockInTime" required>
-              <div class="invalid-feedback">Please enter a clock-in time.</div>
+              <div class="invalid-feedback" data-i18n="clocking.validation.clockInTimeRequired">Please enter a clock-in time.</div>
             </div>
             <div class="mb-3">
-              <label for="clockOutTime" class="form-label">Clock-Out Time</label>
+              <label for="clockOutTime" class="form-label" data-i18n="clocking.fields.clockOutTime">Clock-Out Time</label>
               <input type="datetime-local" class="form-control" id="clockOutTime">
+              <small class="text-muted" data-i18n="clocking.help.optionalClockOut">Optional - Leave empty for active clock-in</small>
+            </div>
+            <div class="mb-3">
+              <label for="payDeduction" class="form-label" data-i18n="clocking.fields.payDeduction">Pay Deduction</label>
+              <div class="input-group">
+                <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                <input type="number" class="form-control" id="payDeduction" min="0" step="0.01" value="0">
+              </div>
+              <small class="text-muted" data-i18n="clocking.help.payDeduction">Optional - Enter any pay deduction amount</small>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
             <button type="button" class="btn btn-primary" id="saveClockInBtn">
               <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-              <span class="btn-text">Save</span>
+              <span class="btn-text" data-i18n="common.save">Save</span>
             </button>
           </div>
         </form>
       </div>
     </div>
   </div>
-
-    <!-- Google Translate -->
-    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <script>
-      function googleTranslateElementInit() {
-        // Initialize only if not already initialized
-        if (!window.googleTranslateInitialized) {
-          new google.translate.TranslateElement({
-            pageLanguage: 'en', // Source language (English)
-            includedLanguages: 'ar', // Target language (Arabic)
-            autoDisplay: false // Prevent automatic popup
-          }, 'google_translate_element');
-          window.googleTranslateInitialized = true;
-        }
-
-        // Automatically select Arabic
-        setTimeout(() => {
-          const select = document.querySelector('#google_translate_element select');
-          if (select && select.value !== 'ar') {
-            select.value = 'ar';
-            select.dispatchEvent(new Event('change'));
-          }
-        }, 500); // Delay to ensure widget is loaded
-      }
-
-      // Initialize on page load and when navigating back
-      window.onload = googleTranslateElementInit;
-      window.onpageshow = googleTranslateElementInit;
-    </script>
 
   <!-- JQuery -->
   <script src="../js/jquery/jquery-3.7.1.min.js"></script>
@@ -224,7 +235,9 @@
   <!-- SweetAlert2 -->
   <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
   <!-- toastr -->
-  <script src="../js/toastr/toastr.min.js" type="module"></script>
+  <script src="../js/toastr/toastr.min.js"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../js/employees/clocking.js" type="module"></script>

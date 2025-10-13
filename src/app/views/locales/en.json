@@ -452,6 +452,75 @@
 			"savingPayment": "Saving Payment..."
 		}
 	},
+	"clocking": {
+		"pageTitle": "HMS - Clocking",
+		"title": "Clocking",
+		"subtitle": "Manage clocking records",
+		"buttons": {
+			"newClockIn": "New Clock-In",
+			"clockOut": "Clock Out",
+			"confirmClockOut": "Yes, clock out now",
+			"saving": "Saving..."
+		},
+		"tabs": {
+			"active": "Active Clock-Ins",
+			"history": "History"
+		},
+		"table": {
+			"employeeName": "Employee Name",
+			"clockInTime": "Clock-In Time",
+			"clockOutTime": "Clock-Out Time",
+			"duration": "Duration",
+			"payDeduction": "Pay Deduction"
+		},
+		"filters": {
+			"searchEmployee": "Search Employee"
+		},
+		"placeholders": {
+			"searchEmployee": "Search by name...",
+			"selectEmployee": "Select Employee"
+		},
+		"modals": {
+			"newClockIn": "New Clock-In",
+			"editClockIn": "Edit Clock-In"
+		},
+		"fields": {
+			"employee": "Employee",
+			"clockInTime": "Clock-In Time",
+			"clockOutTime": "Clock-Out Time",
+			"payDeduction": "Pay Deduction"
+		},
+		"help": {
+			"optionalClockOut": "Optional - Leave empty for active clock-in",
+			"payDeduction": "Optional - Enter any pay deduction amount"
+		},
+		"duration": {
+			"hoursMinutes": "{{hours}}h {{minutes}}m",
+			"minutes": "{{minutes}}m"
+		},
+		"validation": {
+			"employeeRequired": "Please select an employee.",
+			"clockInTimeRequired": "Please enter a clock-in time.",
+			"clockOutAfterClockIn": "Clock-out time must be after clock-in time."
+		},
+		"messages": {
+			"noActiveClockIns": "No active clock-ins found",
+			"noHistoryFound": "No history found for the selected filters",
+			"loadEmployeesError": "Failed to load employees",
+			"loadClockInsError": "Failed to load clock-ins",
+			"createSuccess": "Clock-in successfully created",
+			"updateSuccess": "Clock-in successfully updated",
+			"saveError": "Failed to save clock-in",
+			"clockOutConfirmTitle": "Clock Out Now?",
+			"clockOutConfirmText": "This will clock out the employee with the current time.",
+			"clockOutSuccess": "Employee clocked out successfully",
+			"clockOutError": "Failed to clock out",
+			"deleteConfirmTitle": "Are you sure?",
+			"deleteConfirmText": "This action cannot be undone!",
+			"deleteSuccess": "Clock-in deleted successfully",
+			"deleteError": "Failed to delete clock-in"
+		}
+	},
 	"insurance": {
 		"pageTitle": "HMS - Insurance Management",
 		"title": "Insurance Companies Management",
