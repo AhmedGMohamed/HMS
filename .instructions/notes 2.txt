@@ -101,7 +101,7 @@ i18n pages:
 dashboard - DONE
 admin pages (users, roles) - DONE
 employees - DONE
-clocking
+clocking - DONE
 login
 patients
 reports

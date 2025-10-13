@@ -29,3 +29,4 @@ dist-electron
 
 tree*
 .instructions/*
+check-i18n-keys.js
