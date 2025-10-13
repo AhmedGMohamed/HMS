@@ -4,54 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Vault Management</title>
-
-  <style>
-    /* Hide the Google Translate widget */
-    #google_translate_element {
-      display: none;
-    }
-
-    .goog-te-gadget img {
-      display: none !important;
-    }
-
-    body>.skiptranslate {
-      display: none;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    #goog-gt-tt,
-    .goog-te-balloon-frame {
-      display: none !important;
-    }
-
-    .goog-text-highlight {
-      background: none !important;
-      box-shadow: none !important;
-    }
-
-    ::selection {
-      background: transparent;
-    }
-
-    /* Optional: Adjust for right-to-left Arabic text */
-    body[lang="ar"] {
-      direction: rtl;
-      text-align: right;
-    }
-  </style>
-
+  <title data-i18n="vault.pageTitle">HMS - Vault Management</title>
   <!-- Bootstrap CSS -->
-  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link id="bootstrap-css" href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="../css/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/vault.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/vault-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
   <!-- Toastr CSS -->
@@ -59,8 +23,6 @@
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -84,7 +46,7 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -98,7 +60,26 @@
             <i class="bi bi-list"></i>
           </button>
           <div class="page-title">
-            <h4>Vault Management</h4>
+            <h4 data-i18n="vault.title">Vault Management</h4>
+          </div>
+          <!-- Language Switcher -->
+          <div class="ms-auto">
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </nav>
@@ -111,33 +92,36 @@
             <div class="card">
               <div class="card-header">
                 <h5 class="mb-0">
-                  <i class="bi bi-calendar-range me-2"></i>Date Range Selection
+                  <i class="bi bi-calendar-range me-2"></i>
+                  <span data-i18n="vault.dateRangeSelection">Date Range Selection</span>
                 </h5>
               </div>
               <div class="card-body">
                 <div class="row g-3 align-items-end">
                   <div class="col-md-3">
-                    <label for="startDate" class="form-label">Start Date</label>
+                    <label for="startDate" class="form-label" data-i18n="common.startDate">Start Date</label>
                     <input type="date" class="form-control" id="startDate">
                   </div>
                   <div class="col-md-3">
-                    <label for="endDate" class="form-label">End Date</label>
+                    <label for="endDate" class="form-label" data-i18n="common.endDate">End Date</label>
                     <input type="date" class="form-control" id="endDate">
                   </div>
                   <div class="col-md-3">
                     <button type="button" class="btn btn-primary" id="loadVaultDataBtn">
-                      <i class="bi bi-search"></i> Load Data
+                      <i class="bi bi-search"></i>
+                      <span data-i18n="vault.buttons.loadData">Load Data</span>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary ms-2" id="todayBtn">
+                    <button type="button" class="btn btn-outline-secondary ms-2" id="todayBtn" data-i18n="vault.buttons.today">
                       Today
                     </button>
-                    <button type="button" class="btn btn-outline-secondary ms-2" id="thisMonthBtn">
+                    <button type="button" class="btn btn-outline-secondary ms-2" id="thisMonthBtn" data-i18n="vault.buttons.thisMonth">
                       This Month
                     </button>
                   </div>
                   <div class="col-md-3 text-end" data-requires-permission="manage_vault">
                     <button type="button" class="btn btn-success" id="addManualPaymentBtn">
-                      <i class="bi bi-plus-circle"></i> Manual Payment
+                      <i class="bi bi-plus-circle"></i>
+                      <span data-i18n="vault.buttons.addManualPayment">Manual Payment</span>
                     </button>
                   </div>
                 </div>
@@ -149,9 +133,9 @@
         <!-- Loading State -->
         <div id="loadingState" class="text-center py-5" style="display: none;">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
           </div>
-          <p class="mt-3">Loading vault data...</p>
+          <p class="mt-3" data-i18n="vault.messages.loadingVaultData">Loading vault data...</p>
         </div>
 
         <!-- Vault Content -->
@@ -165,9 +149,9 @@
                     <i class="bi bi-graph-up-arrow"></i>
                   </div>
                   <div class="summary-content">
-                    <h6 class="summary-title">Total Revenue</h6>
+                    <h6 class="summary-title" data-i18n="vault.summary.totalRevenue">Total Revenue</h6>
                     <h3 class="summary-amount text-success" id="totalRevenue">$0.00</h3>
-                    <small class="text-muted">Includes insurance payments</small>
+                    <small class="text-muted" data-i18n="vault.summary.includesInsurancePayments">Includes insurance payments</small>
                   </div>
                 </div>
               </div>
@@ -179,9 +163,9 @@
                     <i class="bi bi-graph-down-arrow"></i>
                   </div>
                   <div class="summary-content">
-                    <h6 class="summary-title">Total Expenses</h6>
+                    <h6 class="summary-title" data-i18n="vault.summary.totalExpenses">Total Expenses</h6>
                     <h3 class="summary-amount text-danger" id="totalExpenses">$0.00</h3>
-                    <small class="text-muted">All expenditures</small>
+                    <small class="text-muted" data-i18n="vault.summary.allExpenditures">All expenditures</small>
                   </div>
                 </div>
               </div>
@@ -193,9 +177,9 @@
                     <i class="bi bi-currency-dollar"></i>
                   </div>
                   <div class="summary-content">
-                    <h6 class="summary-title">Net Profit</h6>
+                    <h6 class="summary-title" data-i18n="vault.summary.netProfit">Net Profit</h6>
                     <h3 class="summary-amount" id="netProfit">$0.00</h3>
-                    <small class="text-muted">Revenue - Expenses</small>
+                    <small class="text-muted" data-i18n="vault.summary.revenueMinusExpenses">Revenue - Expenses</small>
                   </div>
                 </div>
               </div>
@@ -206,7 +190,8 @@
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-person-heart me-2"></i>Patient Revenue
+                <i class="bi bi-person-heart me-2"></i>
+                <span data-i18n="vault.sections.patientRevenue">Patient Revenue</span>
               </h5>
             </div>
             <div class="card-body">
@@ -214,10 +199,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Services Revenue</span>
+                      <span class="metric-label" data-i18n="vault.metrics.servicesRevenue">Services Revenue</span>
                       <span class="metric-value" id="patientServicesTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-services" title="View Services Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-services" data-i18n-title="vault.reportButtons.viewServicesReport" title="View Services Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -225,10 +210,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Drugs Revenue</span>
+                      <span class="metric-label" data-i18n="vault.metrics.drugsRevenue">Drugs Revenue</span>
                       <span class="metric-value" id="patientDrugsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-drugs" title="View Drugs Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-drugs" data-i18n-title="vault.reportButtons.viewDrugsReport" title="View Drugs Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -236,10 +221,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Total Payments</span>
+                      <span class="metric-label" data-i18n="vault.metrics.totalPayments">Total Payments</span>
                       <span class="metric-value text-success" id="patientPaymentsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-payments" title="View Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-payments" data-i18n-title="vault.reportButtons.viewPaymentsReport" title="View Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -247,10 +232,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Outstanding Balance</span>
+                      <span class="metric-label" data-i18n="vault.metrics.outstandingBalance">Outstanding Balance</span>
                       <span class="metric-value text-warning" id="patientOutstandingTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-outstanding" title="View Outstanding Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-outstanding" data-i18n-title="vault.reportButtons.viewOutstandingReport" title="View Outstanding Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -258,10 +243,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Total Discounts</span>
+                      <span class="metric-label" data-i18n="vault.metrics.totalDiscounts">Total Discounts</span>
                       <span class="metric-value text-info" id="patientDiscountsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-discounts" title="View Discounts Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-discounts" data-i18n-title="vault.reportButtons.viewDiscountsReport" title="View Discounts Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -274,7 +259,8 @@
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-hand-thumbs-up me-2"></i>Manual Payments
+                <i class="bi bi-hand-thumbs-up me-2"></i>
+                <span data-i18n="vault.sections.manualPayments">Manual Payments</span>
               </h5>
             </div>
             <div class="card-body">
@@ -282,10 +268,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Manual Additions</span>
+                      <span class="metric-label" data-i18n="vault.metrics.manualAdditions">Manual Additions</span>
                       <span class="metric-value text-success" id="manualAdditionsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" data-i18n-title="vault.reportButtons.viewManualPaymentsReport" title="View Manual Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -293,10 +279,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Manual Deductions</span>
+                      <span class="metric-label" data-i18n="vault.metrics.manualDeductions">Manual Deductions</span>
                       <span class="metric-value text-danger" id="manualDeductionsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" data-i18n-title="vault.reportButtons.viewManualPaymentsReport" title="View Manual Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -304,10 +290,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Net Manual</span>
+                      <span class="metric-label" data-i18n="vault.metrics.netManual">Net Manual</span>
                       <span class="metric-value" id="manualNetTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" title="View Manual Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="manual-payments" data-i18n-title="vault.reportButtons.viewManualPaymentsReport" title="View Manual Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -320,7 +306,8 @@
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-shield-check me-2"></i>Insurance Payments
+                <i class="bi bi-shield-check me-2"></i>
+                <span data-i18n="vault.sections.insurancePayments">Insurance Payments</span>
               </h5>
             </div>
             <div class="card-body">
@@ -328,10 +315,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Total Received</span>
+                      <span class="metric-label" data-i18n="vault.metrics.totalReceived">Total Received</span>
                       <span class="metric-value text-success" id="insurancePaymentsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" data-i18n-title="vault.reportButtons.viewInsurancePaymentsReport" title="View Insurance Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -339,10 +326,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Payment Count</span>
+                      <span class="metric-label" data-i18n="vault.metrics.paymentCount">Payment Count</span>
                       <span class="metric-value text-info" id="insurancePaymentCount">0</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" data-i18n-title="vault.reportButtons.viewInsurancePaymentsReport" title="View Insurance Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -350,10 +337,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Average Payment</span>
+                      <span class="metric-label" data-i18n="vault.metrics.averagePayment">Average Payment</span>
                       <span class="metric-value text-primary" id="insurancePaymentAverage">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" title="View Insurance Payments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="insurance-payments" data-i18n-title="vault.reportButtons.viewInsurancePaymentsReport" title="View Insurance Payments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -366,7 +353,8 @@
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-capsule me-2"></i>Pharmacy Operations
+                <i class="bi bi-capsule me-2"></i>
+                <span data-i18n="vault.sections.pharmacyOperations">Pharmacy Operations</span>
               </h5>
             </div>
             <div class="card-body">
@@ -374,10 +362,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Shipment Costs</span>
+                      <span class="metric-label" data-i18n="vault.metrics.shipmentCosts">Shipment Costs</span>
                       <span class="metric-value text-danger" id="drugShipmentCostsTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-shipments" title="View Shipments Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-shipments" data-i18n-title="vault.reportButtons.viewShipmentsReport" title="View Shipments Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -385,10 +373,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Sales Revenue</span>
+                      <span class="metric-label" data-i18n="vault.metrics.salesRevenue">Sales Revenue</span>
                       <span class="metric-value text-success" id="drugSalesRevenueTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-sales" title="View Sales Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-sales" data-i18n-title="vault.reportButtons.viewSalesReport" title="View Sales Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -396,10 +384,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Sales Profit</span>
+                      <span class="metric-label" data-i18n="vault.metrics.salesProfit">Sales Profit</span>
                       <span class="metric-value text-primary" id="drugSalesProfitTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-profits" title="View Profits Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-profits" data-i18n-title="vault.reportButtons.viewProfitsReport" title="View Profits Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -412,7 +400,8 @@
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-people me-2"></i>Employee Wages
+                <i class="bi bi-people me-2"></i>
+                <span data-i18n="vault.sections.employeeWages">Employee Wages</span>
               </h5>
             </div>
             <div class="card-body">
@@ -420,10 +409,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Wages Owed</span>
+                      <span class="metric-label" data-i18n="vault.metrics.wagesOwed">Wages Owed</span>
                       <span class="metric-value text-warning" id="wagesOwedTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" title="View Wages Owed Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" data-i18n-title="vault.reportButtons.viewWagesOwedReport" title="View Wages Owed Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -431,10 +420,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Wages Paid</span>
+                      <span class="metric-label" data-i18n="vault.metrics.wagesPaid">Wages Paid</span>
                       <span class="metric-value text-success" id="wagesPaidTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-paid" title="View Wages Paid Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-paid" data-i18n-title="vault.reportButtons.viewWagesPaidReport" title="View Wages Paid Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -442,10 +431,10 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
-                      <span class="metric-label">Outstanding Wages</span>
+                      <span class="metric-label" data-i18n="vault.metrics.outstandingWages">Outstanding Wages</span>
                       <span class="metric-value text-danger" id="wagesOutstandingTotal">$0.00</span>
                     </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" title="View Outstanding Wages Report">
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="wages-owed" data-i18n-title="vault.reportButtons.viewOutstandingWagesReport" title="View Outstanding Wages Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -458,8 +447,8 @@
         <!-- Empty State -->
         <div id="emptyState" class="text-center py-5" style="display: none;">
           <i class="bi bi-safe" style="font-size: 4rem; color: #6c757d;"></i>
-          <h3 class="mt-3 text-muted">No Data Selected</h3>
-          <p class="text-muted">Please select a date range to view vault information.</p>
+          <h3 class="mt-3 text-muted" data-i18n="vault.emptyState.title">No Data Selected</h3>
+          <p class="text-muted" data-i18n="vault.emptyState.description">Please select a date range to view vault information.</p>
         </div>
       </div>
     </div>
@@ -470,39 +459,43 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="manualPaymentModalLabel">Add Manual Payment</h5>
+          <h5 class="modal-title" id="manualPaymentModalLabel" data-i18n="vault.modals.addManualPayment">Add Manual Payment</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="manualPaymentForm" novalidate>
             <div class="mb-3">
-              <label for="paymentAmount" class="form-label">Amount *</label>
+              <label for="paymentAmount" class="form-label">
+                <span data-i18n="vault.fields.amount">Amount</span> *
+              </label>
               <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="number" class="form-control" id="paymentAmount" min="0.01" step="0.01" required>
-                <div class="invalid-feedback">Please enter a valid amount.</div>
+                <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                <input type="number" class="form-control" id="paymentAmount" min="0.01" step="0.01" required data-i18n-placeholder="vault.fields.enterAmount">
+                <div class="invalid-feedback" data-i18n="vault.validation.validAmount">Please enter a valid amount.</div>
               </div>
             </div>
             <div class="mb-3">
-              <label for="paymentType" class="form-label">Type *</label>
+              <label for="paymentType" class="form-label">
+                <span data-i18n="vault.fields.type">Type</span> *
+              </label>
               <select class="form-select" id="paymentType" required>
-                <option value="">Select payment type</option>
-                <option value="addition">Addition (Income)</option>
-                <option value="deduction">Deduction (Expense)</option>
+                <option value="" data-i18n="vault.fields.selectPaymentType">Select payment type</option>
+                <option value="addition" data-i18n="vault.paymentTypes.addition">Addition (Income)</option>
+                <option value="deduction" data-i18n="vault.paymentTypes.deduction">Deduction (Expense)</option>
               </select>
-              <div class="invalid-feedback">Please select a payment type.</div>
+              <div class="invalid-feedback" data-i18n="vault.validation.selectPaymentType">Please select a payment type.</div>
             </div>
             <div class="mb-3">
-              <label for="paymentDescription" class="form-label">Description</label>
-              <textarea class="form-control" id="paymentDescription" rows="3" placeholder="Optional description of the payment"></textarea>
+              <label for="paymentDescription" class="form-label" data-i18n="vault.fields.description">Description</label>
+              <textarea class="form-control" id="paymentDescription" rows="3" data-i18n-placeholder="vault.fields.optionalDescription"></textarea>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
           <button type="button" class="btn btn-primary" id="saveManualPaymentBtn">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            <span class="btn-text">Add Payment</span>
+            <span class="btn-text" data-i18n="vault.buttons.addPayment">Add Payment</span>
           </button>
         </div>
       </div>
@@ -514,7 +507,7 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="reportDetailsModalLabel">Report Details</h5>
+          <h5 class="modal-title" id="reportDetailsModalLabel" data-i18n="vault.modals.reportDetails">Report Details</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -523,43 +516,15 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
           <button type="button" class="btn btn-primary" id="printReportBtn">
-            <i class="bi bi-printer"></i> Print Report
+            <i class="bi bi-printer"></i>
+            <span data-i18n="vault.buttons.printReport">Print Report</span>
           </button>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Google Translate -->
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-  <script>
-    function googleTranslateElementInit() {
-      // Initialize only if not already initialized
-      if (!window.googleTranslateInitialized) {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en', // Source language (English)
-          includedLanguages: 'ar', // Target language (Arabic)
-          autoDisplay: false // Prevent automatic popup
-        }, 'google_translate_element');
-        window.googleTranslateInitialized = true;
-      }
-
-      // Automatically select Arabic
-      setTimeout(() => {
-        const select = document.querySelector('#google_translate_element select');
-        if (select && select.value !== 'ar') {
-          select.value = 'ar';
-          select.dispatchEvent(new Event('change'));
-        }
-      }, 500); // Delay to ensure widget is loaded
-    }
-
-    // Initialize on page load and when navigating back
-    window.onload = googleTranslateElementInit;
-    window.onpageshow = googleTranslateElementInit;
-  </script>
 
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
@@ -572,6 +537,8 @@
   <!-- PDF Make -->
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
   <script src="../js/pdfmake/build/vfs_fonts.js"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../js/utils/pdfGenerator.js" type="module"></script>
