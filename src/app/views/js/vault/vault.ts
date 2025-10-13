@@ -2,6 +2,7 @@
 import Swal from "../sweetalert2/src/sweetalert2.js";
 import { SidebarManager } from "../shared/sidebar.js";
 import { createCustomReport } from "../utils/pdfGenerator.js";
+import { i18n } from "../utils/i18n.js";
 
 interface VaultSummary {
 	// Patient Revenue
@@ -49,9 +50,6 @@ class VaultManager {
 	private currentReportType: string = "";
 
 	constructor() {
-		// Initialize sidebar
-		new SidebarManager();
-
 		// Initialize modals
 		//@ts-ignore
 		this.manualPaymentModal = new bootstrap.Modal(
@@ -62,9 +60,21 @@ class VaultManager {
 			document.getElementById("reportDetailsModal")!
 		);
 
-		this.initializeEventListeners();
-		this.setDefaultDateRange();
-		this.showEmptyState();
+		this.waitForI18n().then(() => {
+			// Initialize sidebar
+			new SidebarManager();
+
+			this.initializeEventListeners();
+			this.setDefaultDateRange();
+			this.showEmptyState();
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		// Wait for i18n to be initialized
+		if (i18n) {
+			await i18n.init();
+		}
 	}
 
 	private initializeEventListeners(): void {
@@ -178,12 +188,12 @@ class VaultManager {
 			.value;
 
 		if (!startDate || !endDate) {
-			this.showError("Please select both start and end dates");
+			this.showError(i18n.t("vault.validation.selectBothDates"));
 			return;
 		}
 
 		if (new Date(startDate) > new Date(endDate)) {
-			this.showError("Start date cannot be after end date");
+			this.showError(i18n.t("vault.validation.startDateAfterEndDate"));
 			return;
 		}
 
@@ -209,7 +219,7 @@ class VaultManager {
 			this.displayVaultData();
 		} catch (error) {
 			console.error("Error loading vault data:", error);
-			this.showError("Failed to load vault data");
+			this.showError(i18n.t("vault.messages.loadError"));
 			this.showEmptyState();
 		}
 	}
@@ -226,36 +236,36 @@ class VaultManager {
 
 		// Update summary cards
 		document.getElementById("totalRevenue")!.textContent =
-			this.formatCurrency(summary.total_revenue);
+			i18n.formatCurrency(summary.total_revenue);
 		document.getElementById("totalExpenses")!.textContent =
-			this.formatCurrency(summary.total_expenses);
+			i18n.formatCurrency(summary.total_expenses);
 
 		const netProfitElement = document.getElementById("netProfit")!;
-		netProfitElement.textContent = this.formatCurrency(summary.net_profit);
+		netProfitElement.textContent = i18n.formatCurrency(summary.net_profit);
 		netProfitElement.className = `summary-amount ${
 			summary.net_profit >= 0 ? "text-success" : "text-danger"
 		}`;
 
 		// Update patient revenue metrics
 		document.getElementById("patientServicesTotal")!.textContent =
-			this.formatCurrency(summary.patient_services_total);
+			i18n.formatCurrency(summary.patient_services_total);
 		document.getElementById("patientDrugsTotal")!.textContent =
-			this.formatCurrency(summary.patient_drugs_total);
+			i18n.formatCurrency(summary.patient_drugs_total);
 		document.getElementById("patientPaymentsTotal")!.textContent =
-			this.formatCurrency(summary.patient_payments_total);
+			i18n.formatCurrency(summary.patient_payments_total);
 		document.getElementById("patientOutstandingTotal")!.textContent =
-			this.formatCurrency(summary.patient_outstanding_total);
+			i18n.formatCurrency(summary.patient_outstanding_total);
 		document.getElementById("patientDiscountsTotal")!.textContent =
-			this.formatCurrency(summary.patient_discounts_total);
+			i18n.formatCurrency(summary.patient_discounts_total);
 
 		// Update manual payments metrics
 		document.getElementById("manualAdditionsTotal")!.textContent =
-			this.formatCurrency(summary.manual_additions_total);
+			i18n.formatCurrency(summary.manual_additions_total);
 		document.getElementById("manualDeductionsTotal")!.textContent =
-			this.formatCurrency(summary.manual_deductions_total);
+			i18n.formatCurrency(summary.manual_deductions_total);
 
 		const manualNetElement = document.getElementById("manualNetTotal")!;
-		manualNetElement.textContent = this.formatCurrency(
+		manualNetElement.textContent = i18n.formatCurrency(
 			summary.manual_net_total
 		);
 		manualNetElement.className = `metric-value ${
@@ -263,27 +273,27 @@ class VaultManager {
 		}`;
 
 		document.getElementById("insurancePaymentsTotal")!.textContent =
-			this.formatCurrency(summary.insurance_payments_total);
+			i18n.formatCurrency(summary.insurance_payments_total);
 		document.getElementById("insurancePaymentCount")!.textContent =
-			summary.insurance_payment_count.toString();
+			i18n.formatNumber(summary.insurance_payment_count, 0);
 		document.getElementById("insurancePaymentAverage")!.textContent =
-			this.formatCurrency(summary.insurance_payment_average);
+			i18n.formatCurrency(summary.insurance_payment_average);
 
 		// Update pharmacy metrics
 		document.getElementById("drugShipmentCostsTotal")!.textContent =
-			this.formatCurrency(summary.drug_shipment_costs_total);
+			i18n.formatCurrency(summary.drug_shipment_costs_total);
 		document.getElementById("drugSalesRevenueTotal")!.textContent =
-			this.formatCurrency(summary.drug_sales_revenue_total);
+			i18n.formatCurrency(summary.drug_sales_revenue_total);
 		document.getElementById("drugSalesProfitTotal")!.textContent =
-			this.formatCurrency(summary.drug_sales_profit_total);
+			i18n.formatCurrency(summary.drug_sales_profit_total);
 
 		// Update wages metrics
 		document.getElementById("wagesOwedTotal")!.textContent =
-			this.formatCurrency(summary.wages_owed_total);
+			i18n.formatCurrency(summary.wages_owed_total);
 		document.getElementById("wagesPaidTotal")!.textContent =
-			this.formatCurrency(summary.wages_paid_total);
+			i18n.formatCurrency(summary.wages_paid_total);
 		document.getElementById("wagesOutstandingTotal")!.textContent =
-			this.formatCurrency(summary.wages_outstanding_total);
+			i18n.formatCurrency(summary.wages_outstanding_total);
 
 		// Add animation
 		document.getElementById("vaultContent")!.classList.add("fade-in");
@@ -360,7 +370,7 @@ class VaultManager {
 			}
 
 			this.manualPaymentModal.hide();
-			this.showSuccess("Manual payment added successfully");
+			this.showSuccess(i18n.t("vault.messages.manualPaymentSuccess"));
 
 			// Reload vault data if we have a current date range
 			if (this.currentDateRange) {
@@ -368,7 +378,9 @@ class VaultManager {
 			}
 		} catch (error: any) {
 			console.error("Error saving manual payment:", error);
-			this.showError(error.message || "Failed to add manual payment");
+			this.showError(
+				error.message || i18n.t("vault.messages.manualPaymentError")
+			);
 		} finally {
 			this.setButtonLoading(saveBtn, false);
 		}
@@ -376,7 +388,7 @@ class VaultManager {
 
 	private async showReportDetails(reportType: string): Promise<void> {
 		if (!this.currentDateRange) {
-			this.showError("Please load vault data first");
+			this.showError(i18n.t("vault.messages.loadDataFirst"));
 			return;
 		}
 
@@ -390,9 +402,13 @@ class VaultManager {
 			modalContent.innerHTML = `
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">${i18n.t(
+							"common.loading"
+						)}</span>
                     </div>
-                    <p class="mt-3">Loading report data...</p>
+                    <p class="mt-3">${i18n.t(
+						"vault.messages.loadingReportData"
+					)}</p>
                 </div>
             `;
 
@@ -422,7 +438,7 @@ class VaultManager {
 			document.getElementById("reportDetailsContent")!.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle me-2"></i>
-                    Failed to load report data. Please try again.
+                    ${i18n.t("vault.messages.reportLoadError")}
                 </div>
             `;
 		}
@@ -435,8 +451,8 @@ class VaultManager {
 			container.innerHTML = `
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3">No Data Found</h5>
-                    <p>No records found for the selected date range.</p>
+                    <h5 class="mt-3">${i18n.t("vault.report.noDataFound")}</h5>
+                    <p>${i18n.t("vault.report.noRecordsForDateRange")}</p>
                 </div>
             `;
 			return;
@@ -447,10 +463,14 @@ class VaultManager {
 
 		container.innerHTML = `
             <div class="report-header mb-4">
-                <h6 class="text-muted">Date Range: ${this.formatDate(
-					this.currentDateRange!.start
-				)} - ${this.formatDate(this.currentDateRange!.end)}</h6>
-                <h6 class="text-muted">Total Records: ${data.length}</h6>
+                <h6 class="text-muted">${i18n.t(
+					"vault.report.dateRange"
+				)}: ${i18n.formatDate(
+			this.currentDateRange!.start
+		)} - ${i18n.formatDate(this.currentDateRange!.end)}</h6>
+                <h6 class="text-muted">${i18n.t(
+					"vault.report.totalRecords"
+				)}: ${i18n.formatNumber(data.length, 0)}</h6>
             </div>
             ${summaryHtml}
             ${tableHtml}
@@ -461,7 +481,7 @@ class VaultManager {
 		const columns = this.getReportColumns(reportType);
 
 		const headerRow = columns
-			.map((col) => `<th>${col.label}</th>`)
+			.map((col) => `<th>${i18n.t(col.labelKey || col.label)}</th>`) // Use labelKey if available, fallback to label
 			.join("");
 		const dataRows = data
 			.map((row) => {
@@ -470,7 +490,8 @@ class VaultManager {
 						const value = this.getNestedValue(row, col.key);
 						const formattedValue = this.formatReportValue(
 							value,
-							col.type
+							col.type,
+							col.formatter
 						);
 						return `<td>${formattedValue}</td>`;
 					})
@@ -480,17 +501,17 @@ class VaultManager {
 			.join("");
 
 		return `
-            <div class="table-responsive mt-4">
-                <table class="report-table table table-striped">
-                    <thead>
-                        <tr>${headerRow}</tr>
-                    </thead>
-                    <tbody>
-                        ${dataRows}
-                    </tbody>
-                </table>
-            </div>
-        `;
+        <div class="table-responsive mt-4">
+            <table class="report-table table table-striped">
+                <thead>
+                    <tr>${headerRow}</tr>
+                </thead>
+                <tbody>
+                    ${dataRows}
+                </tbody>
+            </table>
+        </div>
+    `;
 	}
 
 	private generateReportSummary(reportType: string, data: any[]): string {
@@ -506,13 +527,16 @@ class VaultManager {
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">${this.formatSummaryLabel(
-							key
+                        <h6 class="text-muted mb-2">${i18n.t(
+							`vault.reportSummary.${key}`
 						)}</h6>
                         <h4 class="mb-0">${
-							typeof value === "number"
-								? this.formatCurrency(value)
-								: value
+							typeof value === "number" &&
+							!key.includes("count") &&
+							!key.includes("records") &&
+							!key.includes("unique")
+								? i18n.formatCurrency(value)
+								: i18n.formatNumber(value as number, 0)
 						}</h4>
                     </div>
                 </div>
@@ -593,6 +617,35 @@ class VaultManager {
 							: 0
 				};
 
+			case "patient-discounts":
+				return {
+					total_discounts: data.reduce(
+						(sum, row) =>
+							sum + parseFloat(row.discount_amount || 0),
+						0
+					),
+					total_records: data.length
+				};
+
+			case "manual-payments":
+				const additions = data.filter(
+					(row) => row.payment_type === "addition"
+				);
+				const deductions = data.filter(
+					(row) => row.payment_type === "deduction"
+				);
+				return {
+					total_additions: additions.reduce(
+						(sum, row) => sum + parseFloat(row.payment_amount || 0),
+						0
+					),
+					total_deductions: deductions.reduce(
+						(sum, row) => sum + parseFloat(row.payment_amount || 0),
+						0
+					),
+					total_records: data.length
+				};
+
 			case "insurance-payments":
 				return {
 					total_payments: data.reduce(
@@ -640,6 +693,22 @@ class VaultManager {
 					total_transactions: data.length
 				};
 
+			case "drug-profits":
+				return {
+					total_revenue: data.reduce(
+						(sum, row) => sum + parseFloat(row.total_revenue || 0),
+						0
+					),
+					total_cost: data.reduce(
+						(sum, row) => sum + parseFloat(row.total_cost || 0),
+						0
+					),
+					total_profit: data.reduce(
+						(sum, row) => sum + parseFloat(row.total_profit || 0),
+						0
+					)
+				};
+
 			case "wages-owed":
 			case "wages-paid":
 				return {
@@ -663,7 +732,7 @@ class VaultManager {
 
 	private async printCurrentReport(): Promise<void> {
 		if (!this.currentReportData || this.currentReportData.length === 0) {
-			this.showError("No report data to print");
+			this.showError(i18n.t("vault.messages.noReportData"));
 			return;
 		}
 
@@ -685,10 +754,10 @@ class VaultManager {
 			);
 
 			pdf.open();
-			this.showSuccess("Report generated successfully");
+			this.showSuccess(i18n.t("vault.messages.reportGeneratedSuccess"));
 		} catch (error) {
 			console.error("Error generating report:", error);
-			this.showError("Failed to generate report");
+			this.showError(i18n.t("vault.messages.reportGenerateError"));
 		}
 	}
 
@@ -758,176 +827,493 @@ class VaultManager {
 	private getReportColumns(reportType: string): any[] {
 		const columns: { [key: string]: any[] } = {
 			"patient-services": [
-				{ key: "patient_name", label: "Patient Name", type: "text" },
-				{ key: "bill_id", label: "Bill ID", type: "text" },
-				{ key: "generated_at", label: "Date", type: "date" },
+				{
+					key: "patient_name",
+					label: "Patient Name", // For PDF (English)
+					labelKey: "vault.reportColumns.patientName", // For UI (i18n)
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
 				{
 					key: "services_total",
 					label: "Services Total",
+					labelKey: "vault.reportColumns.servicesTotal",
 					type: "currency"
 				},
-				{ key: "discount_amount", label: "Discount", type: "currency" },
-				{ key: "paid_amount", label: "Paid", type: "currency" }
+				{
+					key: "discount_amount",
+					label: "Discount",
+					labelKey: "vault.reportColumns.discount",
+					type: "currency"
+				},
+				{
+					key: "paid_amount",
+					label: "Paid",
+					labelKey: "vault.reportColumns.paid",
+					type: "currency"
+				}
 			],
 			"patient-drugs": [
-				{ key: "patient_name", label: "Patient Name", type: "text" },
-				{ key: "bill_id", label: "Bill ID", type: "text" },
-				{ key: "generated_at", label: "Date", type: "date" },
-				{ key: "drugs_total", label: "Drugs Total", type: "currency" },
-				{ key: "discount_amount", label: "Discount", type: "currency" },
-				{ key: "paid_amount", label: "Paid", type: "currency" }
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
+				{
+					key: "drugs_total",
+					label: "Drugs Total",
+					labelKey: "vault.reportColumns.drugsTotal",
+					type: "currency"
+				},
+				{
+					key: "discount_amount",
+					label: "Discount",
+					labelKey: "vault.reportColumns.discount",
+					type: "currency"
+				},
+				{
+					key: "paid_amount",
+					label: "Paid",
+					labelKey: "vault.reportColumns.paid",
+					type: "currency"
+				}
 			],
 			"patient-payments": [
-				{ key: "patient_name", label: "Patient Name", type: "text" },
-				{ key: "bill_id", label: "Bill ID", type: "text" },
-				{ key: "updated_at", label: "Payment Date", type: "date" },
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "updated_at",
+					label: "Payment Date",
+					labelKey: "vault.reportColumns.paymentDate",
+					type: "date"
+				},
 				{
 					key: "total_amount",
 					label: "Total Amount",
+					labelKey: "vault.reportColumns.totalAmount",
 					type: "currency"
 				},
-				{ key: "paid_amount", label: "Paid Amount", type: "currency" },
-				{ key: "payment_type", label: "Payment Type", type: "text" }
+				{
+					key: "paid_amount",
+					label: "Paid Amount",
+					labelKey: "vault.reportColumns.paidAmount",
+					type: "currency"
+				},
+				{
+					key: "payment_type",
+					label: "Payment Type",
+					labelKey: "vault.reportColumns.paymentType",
+					type: "text"
+				}
 			],
 			"patient-outstanding": [
-				{ key: "patient_name", label: "Patient Name", type: "text" },
-				{ key: "bill_id", label: "Bill ID", type: "text" },
-				{ key: "generated_at", label: "Bill Date", type: "date" },
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Bill Date",
+					labelKey: "vault.reportColumns.billDate",
+					type: "date"
+				},
 				{
 					key: "total_amount",
 					label: "Total Amount",
+					labelKey: "vault.reportColumns.totalAmount",
 					type: "currency"
 				},
-				{ key: "paid_amount", label: "Paid Amount", type: "currency" },
+				{
+					key: "paid_amount",
+					label: "Paid Amount",
+					labelKey: "vault.reportColumns.paidAmount",
+					type: "currency"
+				},
 				{
 					key: "outstanding_amount",
 					label: "Outstanding",
+					labelKey: "vault.reportColumns.outstanding",
 					type: "currency"
 				},
-				{ key: "payment_type", label: "Payment Type", type: "text" }
+				{
+					key: "payment_type",
+					label: "Payment Type",
+					labelKey: "vault.reportColumns.paymentType",
+					type: "text"
+				}
 			],
 			"patient-discounts": [
-				{ key: "patient_name", label: "Patient Name", type: "text" },
-				{ key: "bill_id", label: "Bill ID", type: "text" },
-				{ key: "generated_at", label: "Date", type: "date" },
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
 				{
 					key: "total_amount",
 					label: "Total Amount",
+					labelKey: "vault.reportColumns.totalAmount",
 					type: "currency"
 				},
-				{ key: "discount_type", label: "Discount Type", type: "text" },
-				{ key: "discount", label: "Discount Value", type: "text" },
+				{
+					key: "discount_type",
+					label: "Discount Type",
+					labelKey: "vault.reportColumns.discountType",
+					type: "text"
+				},
+				{
+					key: "discount",
+					label: "Discount Value",
+					labelKey: "vault.reportColumns.discountValue",
+					type: "text"
+				},
 				{
 					key: "discount_amount",
 					label: "Discount Amount",
+					labelKey: "vault.reportColumns.discountAmount",
 					type: "currency"
 				}
 			],
 			"manual-payments": [
-				{ key: "payment_id", label: "Payment ID", type: "text" },
-				{ key: "payment_time", label: "Date", type: "date" },
+				{
+					key: "payment_id",
+					label: "Payment ID",
+					labelKey: "vault.reportColumns.paymentId",
+					type: "text"
+				},
+				{
+					key: "payment_time",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
 				{
 					key: "payment_type",
 					label: "Type",
+					labelKey: "vault.reportColumns.type",
 					type: "text",
 					formatter: (value: string) =>
 						value.charAt(0).toUpperCase() + value.slice(1)
 				},
-				{ key: "payment_amount", label: "Amount", type: "currency" },
-				{ key: "description", label: "Description", type: "text" }
+				{
+					key: "payment_amount",
+					label: "Amount",
+					labelKey: "vault.reportColumns.amount",
+					type: "currency"
+				},
+				{
+					key: "description",
+					label: "Description",
+					labelKey: "vault.reportColumns.description",
+					type: "text"
+				}
 			],
 			"insurance-payments": [
 				{
 					key: "insurance_name",
 					label: "Insurance Company",
+					labelKey: "vault.reportColumns.insuranceCompany",
 					type: "text"
 				},
-				{ key: "payment_amount", label: "Amount", type: "currency" },
-				{ key: "payment_from", label: "Period From", type: "date" },
-				{ key: "payment_to", label: "Period To", type: "date" },
+				{
+					key: "payment_amount",
+					label: "Amount",
+					labelKey: "vault.reportColumns.amount",
+					type: "currency"
+				},
+				{
+					key: "payment_from",
+					label: "Period From",
+					labelKey: "vault.reportColumns.periodFrom",
+					type: "date"
+				},
+				{
+					key: "payment_to",
+					label: "Period To",
+					labelKey: "vault.reportColumns.periodTo",
+					type: "date"
+				},
 				{
 					key: "issued_timestamp",
 					label: "Recorded Date",
+					labelKey: "vault.reportColumns.recordedDate",
 					type: "date"
 				},
-				{ key: "added_by", label: "Added By", type: "text" }
+				{
+					key: "added_by",
+					label: "Added By",
+					labelKey: "vault.reportColumns.addedBy",
+					type: "text"
+				}
 			],
 			"drug-shipments": [
-				{ key: "drug_name", label: "Drug Name", type: "text" },
-				{ key: "manufacturer", label: "Manufacturer", type: "text" },
-				{ key: "quantity", label: "Quantity", type: "number" },
-				{ key: "buy_price", label: "Unit Cost", type: "currency" },
-				{ key: "total_cost", label: "Total Cost", type: "currency" },
-				{ key: "received_date", label: "Received Date", type: "date" },
-				{ key: "warehouse_name", label: "Warehouse", type: "text" }
+				{
+					key: "drug_name",
+					label: "Drug Name",
+					labelKey: "vault.reportColumns.drugName",
+					type: "text"
+				},
+				{
+					key: "manufacturer",
+					label: "Manufacturer",
+					labelKey: "vault.reportColumns.manufacturer",
+					type: "text"
+				},
+				{
+					key: "quantity",
+					label: "Quantity",
+					labelKey: "vault.reportColumns.quantity",
+					type: "number"
+				},
+				{
+					key: "buy_price",
+					label: "Unit Cost",
+					labelKey: "vault.reportColumns.unitCost",
+					type: "currency"
+				},
+				{
+					key: "total_cost",
+					label: "Total Cost",
+					labelKey: "vault.reportColumns.totalCost",
+					type: "currency"
+				},
+				{
+					key: "received_date",
+					label: "Received Date",
+					labelKey: "vault.reportColumns.receivedDate",
+					type: "date"
+				},
+				{
+					key: "warehouse_name",
+					label: "Warehouse",
+					labelKey: "vault.reportColumns.warehouse",
+					type: "text"
+				}
 			],
 			"drug-sales": [
-				{ key: "drug_name", label: "Drug Name", type: "text" },
+				{
+					key: "drug_name",
+					label: "Drug Name",
+					labelKey: "vault.reportColumns.drugName",
+					type: "text"
+				},
 				{
 					key: "transaction_type",
 					label: "Transaction Type",
+					labelKey: "vault.reportColumns.transactionType",
 					type: "text"
 				},
-				{ key: "quantity", label: "Quantity", type: "number" },
-				{ key: "price", label: "Unit Price", type: "currency" },
+				{
+					key: "quantity",
+					label: "Quantity",
+					labelKey: "vault.reportColumns.quantity",
+					type: "number"
+				},
+				{
+					key: "price",
+					label: "Unit Price",
+					labelKey: "vault.reportColumns.unitPrice",
+					type: "currency"
+				},
 				{
 					key: "total_revenue",
 					label: "Total Revenue",
+					labelKey: "vault.reportColumns.totalRevenue",
 					type: "currency"
 				},
-				{ key: "timestamp", label: "Date", type: "date" },
-				{ key: "sale_type", label: "Sale Type", type: "text" }
+				{
+					key: "timestamp",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
+				{
+					key: "sale_type",
+					label: "Sale Type",
+					labelKey: "vault.reportColumns.saleType",
+					type: "text"
+				}
 			],
 			"drug-profits": [
-				{ key: "drug_name", label: "Drug Name", type: "text" },
-				{ key: "manufacturer", label: "Manufacturer", type: "text" },
+				{
+					key: "drug_name",
+					label: "Drug Name",
+					labelKey: "vault.reportColumns.drugName",
+					type: "text"
+				},
+				{
+					key: "manufacturer",
+					label: "Manufacturer",
+					labelKey: "vault.reportColumns.manufacturer",
+					type: "text"
+				},
 				{
 					key: "total_quantity_sold",
 					label: "Quantity Sold",
+					labelKey: "vault.reportColumns.quantitySold",
 					type: "number"
 				},
-				{ key: "total_revenue", label: "Revenue", type: "currency" },
-				{ key: "total_cost", label: "Cost", type: "currency" },
-				{ key: "total_profit", label: "Profit", type: "currency" },
+				{
+					key: "total_revenue",
+					label: "Revenue",
+					labelKey: "vault.reportColumns.revenue",
+					type: "currency"
+				},
+				{
+					key: "total_cost",
+					label: "Cost",
+					labelKey: "vault.reportColumns.cost",
+					type: "currency"
+				},
+				{
+					key: "total_profit",
+					label: "Profit",
+					labelKey: "vault.reportColumns.profit",
+					type: "currency"
+				},
 				{
 					key: "transaction_count",
 					label: "Transactions",
+					labelKey: "vault.reportColumns.transactions",
 					type: "number"
 				}
 			],
 			"wages-owed": [
-				{ key: "employee_name", label: "Employee", type: "text" },
-				{ key: "employee_type", label: "Type", type: "text" },
-				{ key: "payment_amount", label: "Base Pay", type: "currency" },
+				{
+					key: "employee_name",
+					label: "Employee",
+					labelKey: "vault.reportColumns.employee",
+					type: "text"
+				},
+				{
+					key: "employee_type",
+					label: "Type",
+					labelKey: "vault.reportColumns.type",
+					type: "text"
+				},
+				{
+					key: "payment_amount",
+					label: "Base Pay",
+					labelKey: "vault.reportColumns.basePay",
+					type: "currency"
+				},
 				{
 					key: "extra_amount",
 					label: "Extra Amount",
+					labelKey: "vault.reportColumns.extraAmount",
 					type: "currency"
 				},
 				{
 					key: "extra_payment_type",
 					label: "Extra Type",
+					labelKey: "vault.reportColumns.extraType",
 					type: "text"
 				},
-				{ key: "issued_timestamp", label: "Issued Date", type: "date" },
+				{
+					key: "issued_timestamp",
+					label: "Issued Date",
+					labelKey: "vault.reportColumns.issuedDate",
+					type: "date"
+				},
 				{
 					key: "is_paid",
 					label: "Status",
+					labelKey: "vault.reportColumns.status",
 					type: "text",
 					formatter: (value: boolean) => (value ? "Paid" : "Pending")
 				}
 			],
 			"wages-paid": [
-				{ key: "employee_name", label: "Employee", type: "text" },
-				{ key: "employee_type", label: "Type", type: "text" },
-				{ key: "payment_amount", label: "Base Pay", type: "currency" },
+				{
+					key: "employee_name",
+					label: "Employee",
+					labelKey: "vault.reportColumns.employee",
+					type: "text"
+				},
+				{
+					key: "employee_type",
+					label: "Type",
+					labelKey: "vault.reportColumns.type",
+					type: "text"
+				},
+				{
+					key: "payment_amount",
+					label: "Base Pay",
+					labelKey: "vault.reportColumns.basePay",
+					type: "currency"
+				},
 				{
 					key: "extra_amount",
 					label: "Extra Amount",
+					labelKey: "vault.reportColumns.extraAmount",
 					type: "currency"
 				},
-				{ key: "paid_timestamp", label: "Paid Date", type: "date" },
-				{ key: "paid_by", label: "Paid By", type: "text" }
+				{
+					key: "paid_timestamp",
+					label: "Paid Date",
+					labelKey: "vault.reportColumns.paidDate",
+					type: "date"
+				},
+				{
+					key: "paid_by",
+					label: "Paid By",
+					labelKey: "vault.reportColumns.paidBy",
+					type: "text"
+				}
 			]
 		};
 		return columns[reportType] || [];

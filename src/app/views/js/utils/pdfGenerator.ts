@@ -71,7 +71,7 @@ interface ReportConfig {
 
 // Default formatters
 const defaultFormatters = {
-	currency: (value: number) => `$${value.toFixed(2)}`,
+    currency: (value: number) => `${value.toFixed(2)} EGP`,
 	date: (value: string | Date) => new Date(value).toLocaleDateString(),
 	percentage: (value: number) => `${value}%`,
 	boolean: (value: boolean) => (value ? "Yes" : "No"),
@@ -339,11 +339,14 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 function formatValue(value: any, field: ReportField, item?: any): string {
-	if (value == null) return "N/A";
-
+	// If field has a custom formatter, call it first (even if value is null)
+	// This allows formatters to calculate values from the item
 	if (field.formatter) {
-		return field.formatter(value, item); // Pass the item/data context
+		return field.formatter(value, item);
 	}
+
+	// Check for null/undefined after custom formatter
+	if (value == null) return "N/A";
 
 	switch (field.type) {
 		case "currency":
