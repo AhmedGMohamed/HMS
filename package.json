@@ -13,7 +13,8 @@
 		"build:t": "npm run build & npm test",
 		"copyDist": "copyfiles -u 3 ./src/electron/assets/**/* ./dist-electron/electron/assets && copyfiles -e \"./**/*.ts\" -u 3 ./src/app/views/**/* ./dist-electron/app/views && copyfiles -u 3 ./src/app/assets/**/* ./dist-electron/app/assets",
 		"lint": "eslint .",
-		"dist": "npm run build & electron-builder --win --x64"
+		"dist": "npm run build & electron-builder --win --x64",
+		"check-i18n": "node src/app/check-i18n-keys.js"
 	},
 	"dependencies": {
 		"@digicole/pdfmake-rtl": "^1.2.0",
