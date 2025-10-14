@@ -1363,6 +1363,270 @@
 			"avg_outstanding": "Avg Outstanding"
 		}
 	},
+	"reports": {
+		"pageTitle": "HMS - Reports",
+		"title": "Reports & Analytics",
+		"tabs": {
+			"patientReports": "Patient Reports",
+			"doctorReports": "Doctor Reports",
+			"nurseReports": "Nurse Reports",
+			"statistics": "Statistics",
+			"employeePayments": "Employee Payments"
+		},
+		"filters": {
+			"title": "Report Filters",
+			"groupBy": "Group By",
+			"groupByOptions": {
+				"day": "Day",
+				"month": "Month",
+				"year": "Year"
+			},
+			"quickButtons": {
+				"today": "Today",
+				"thisWeek": "This Week",
+				"thisMonth": "This Month"
+			}
+		},
+		"buttons": {
+			"generateReport": "Generate Report",
+			"printReport": "Print Report",
+			"printPatientReport": "Print Patient Report",
+			"printAdmission": "Print Admission",
+			"loadStatistics": "Load Statistics"
+		},
+		"patientReports": {
+			"filterTitle": "Patient Report Filters",
+			"title": "Patient Reports",
+			"paymentType": "Payment Type",
+			"insuranceCompany": "Insurance Company",
+			"allCompanies": "All Companies"
+		},
+		"doctorReports": {
+			"filterTitle": "Doctor Report Options",
+			"title": "Doctor Reports",
+			"reportType": "Report Type",
+			"selectDoctor": "Select Doctor",
+			"selectDoctorPlaceholder": "Select a doctor",
+			"types": {
+				"allReferring": "All Referring Doctors",
+				"specificReferring": "Specific Referring Doctor",
+				"allAttending": "All Attending Doctors",
+				"specificAttending": "Specific Attending Doctor",
+				"specificSupervising": "Specific Supervising Doctor"
+			}
+		},
+		"nurseReports": {
+			"filterTitle": "Nurse Report Options",
+			"title": "Nurse Reports",
+			"reportType": "Report Type",
+			"selectNurse": "Select Nurse",
+			"selectNursePlaceholder": "Select a nurse",
+			"types": {
+				"allNurses": "All Nurses",
+				"specificNurse": "Specific Nurse"
+			}
+		},
+		"employeePayments": {
+			"filterTitle": "Employee Payment Filters",
+			"title": "Employee Payment Details",
+			"employeeType": "Employee Type",
+			"selectEmployee": "Specific Employee (Optional)",
+			"allEmployees": "All Employees",
+			"types": {
+				"doctors": "Doctors",
+				"nurses": "Nurses",
+				"other": "Other"
+			},
+			"charts": {
+				"paymentTimeline": "Payment Timeline",
+				"paymentTypeDistribution": "Payment Type Distribution"
+			}
+		},
+		"statistics": {
+			"totalPatients": "Total Patients",
+			"avgStay": "Avg Stay (Days)",
+			"occupancyRate": "Occupancy Rate",
+			"totalRevenue": "Total Revenue",
+			"charts": {
+				"patientTrends": "Patient Admission Trends",
+				"distribution": "Patient Distribution",
+				"payment": "Payment",
+				"gender": "Gender",
+				"avgStayDuration": "Average Stay Duration",
+				"revenueTrends": "Revenue Trends",
+				"admissionsVsDischarges": "Admissions vs Discharges",
+				"topServices": "Top 10 Services by Revenue",
+				"topDrugs": "Top 10 Drugs by Revenue",
+				"staffUtilization": "Staff Utilization"
+			}
+		},
+		"paymentTypes": {
+			"cash": "Cash",
+			"credit": "Credit",
+			"insurance": "Insurance"
+		},
+		"genderTypes": {
+			"male": "Male",
+			"female": "Female",
+			"other": "Other"
+		},
+		"summary": {
+			"totalPatients": "Total Patients",
+			"totalDoctors": "Total Doctors",
+			"totalNurses": "Total Nurses",
+			"totalEmployees": "Total Employees",
+			"totalBill": "Total Bill Amount",
+			"totalPaid": "Total Paid",
+			"totalOutstanding": "Total Outstanding",
+			"totalPayments": "Total Payments",
+			"totalUnpaid": "Total Unpaid"
+		},
+		"patientCard": {
+			"id": "ID",
+			"nationalId": "National ID",
+			"age": "Age",
+			"years": "years",
+			"born": "Born",
+			"phone": "Phone",
+			"address": "Address",
+			"insurance": "Insurance",
+			"referringDoctor": "Referring Doctor",
+			"totalBill": "Total Bill",
+			"totalPaid": "Total Paid",
+			"outstanding": "Outstanding",
+			"admissionHistory": "Admission History",
+			"noAdmissions": "No admissions in this period"
+		},
+		"admissionCard": {
+			"admissionId": "Admission ID",
+			"admission": "Admission",
+			"discharge": "Discharge",
+			"diagnosis": "Diagnosis",
+			"paid": "Paid",
+			"discount": "Discount",
+			"dailyStaff": "Daily Staff Assignments",
+			"doctors": "Doctors",
+			"nurses": "Nurses",
+			"services": "Services",
+			"drugs": "Drugs"
+		},
+		"doctorCard": {
+			"patients": "Patients"
+		},
+		"nurseCard": {
+			"patients": "Patients",
+			"patient": "patient",
+			"totalDays": "total days",
+			"workDays": "work days",
+			"patientSummary": "Patient Summary",
+			"dailyWorkAssignments": "Daily Work Assignments",
+			"days": "days"
+		},
+		"employeeCard": {
+			"hired": "Hired",
+			"workDays": "Work Days",
+			"patientsServed": "Patients",
+			"netPayment": "Net Payment",
+			"paymentRecords": "payment records",
+			"basePay": "Base Pay",
+			"extraPay": "Extra Pay",
+			"deductions": "Deductions",
+			"paid": "Paid",
+			"unpaid": "Unpaid",
+			"avgPayment": "Avg Payment",
+			"paymentDetails": "Payment Details"
+		},
+		"paymentCard": {
+			"configuration": "Employee Payment Configuration",
+			"basePay": "Base Pay",
+			"baseExtraAmount": "Base Extra Amount",
+			"extraPaymentType": "Extra Payment Type",
+			"perPatientType": "Per Patient Type",
+			"percentageScope": "Percentage Scope",
+			"shift": "Shift"
+		},
+		"paymentDetail": {
+			"basePay": "Base Pay",
+			"extraPay": "Extra Pay",
+			"deductions": "Deductions",
+			"netAmount": "Net Amount",
+			"paidOn": "Paid on",
+			"by": "by",
+			"mainPatient": "Main Patient",
+			"patientWorkDetails": "Patient Work Details",
+			"toggleDetails": "Toggle Details",
+			"admitted": "Admitted",
+			"discharged": "Discharged",
+			"clockInDeductions": "Clock-In Deductions",
+			"totalDeductions": "Total Deductions"
+		},
+		"table": {
+			"patientName": "Patient Name",
+			"nationalId": "National ID",
+			"gender": "Gender",
+			"age": "Age",
+			"paymentType": "Payment Type",
+			"admissions": "# Admissions",
+			"totalBilled": "Total Billed",
+			"totalPaid": "Total Paid",
+			"lastAdmission": "Last Admission",
+			"lastDischarge": "Last Discharge",
+			"diagnosis": "Diagnosis",
+			"daysAssigned": "Days Assigned",
+			"totalDays": "Total Days",
+			"totals": "TOTALS",
+			"workDate": "Work Date",
+			"hours": "Hours",
+			"hoursWorked": "Hours Worked",
+			"amount": "Amount",
+			"clockIn": "Clock In",
+			"clockOut": "Clock Out",
+			"status": "Status",
+			"deduction": "Deduction"
+		},
+		"units": {
+			"hours": "h"
+		},
+		"clockStatus": {
+			"ontime": "On Time",
+			"incomplete": "Incomplete",
+			"late": "Late"
+		},
+		"emptyState": {
+			"noReport": "No Report Generated",
+			"selectFilters": "Select filters and click \"Generate Report\" to view data",
+			"noPatientsFound": "No Patients Found",
+			"noPatientsDescription": "No patients match the selected criteria",
+			"noDataFound": "No Data Found",
+			"noDoctorsDescription": "No doctors match the selected criteria",
+			"noNursesDescription": "No nurses match the selected criteria",
+			"noEmployeePaymentsDescription": "No employee payments found for the selected criteria",
+			"noPatientsForDoctor": "No patients found for this doctor",
+			"noPatientsForNurse": "No patients found for this nurse",
+			"noPaymentDetails": "No payment details available"
+		},
+		"validation": {
+			"selectDates": "Please select both start and end dates",
+			"selectDoctor": "Please select a doctor",
+			"selectNurse": "Please select a nurse"
+		},
+		"messages": {
+			"patientReportSuccess": "Patient report generated successfully",
+			"patientReportError": "Failed to load patient report",
+			"doctorReportSuccess": "Doctor report generated successfully",
+			"doctorReportError": "Failed to load doctor report",
+			"nurseReportSuccess": "Nurse report generated successfully",
+			"nurseReportError": "Failed to load nurse report",
+			"statisticsSuccess": "Statistics loaded successfully",
+			"statisticsError": "Failed to load statistics",
+			"employeePaymentSuccess": "Employee payment report generated successfully",
+			"employeePaymentError": "Failed to load employee payment report"
+		},
+		"loading": {
+			"title": "Generating Report...",
+			"subtitle": "Please wait while we process your request"
+		}
+	},
 	"auth": {
 		"login": "Login",
 		"logout": "Logout",

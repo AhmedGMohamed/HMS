@@ -4,14 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMS - Reports</title>
+  <title data-i18n="reports.pageTitle">HMS - Reports</title>
   <!-- Bootstrap CSS -->
-  <link href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link id="bootstrap-css" href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="../css/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="../css/dashboard.css" rel="stylesheet">
   <link href="../css/reports.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/reports-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
   <!-- SweetAlert2 CSS -->
   <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
   <!-- Toastr CSS -->
@@ -19,8 +23,6 @@
 </head>
 
 <body>
-  <!-- Placeholder for Google Translate widget (hidden) -->
-  <div id="google_translate_element"></div>
   <div class="wrapper">
     <!-- Sidebar -->
     <nav id="sidebar" class="active">
@@ -44,7 +46,7 @@
       <div class="sidebar-footer">
         <button id="logoutBtn" class="btn btn-link">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
+          <span data-i18n="sidebar.logout">Logout</span>
         </button>
       </div>
     </nav>
@@ -52,13 +54,32 @@
     <!-- Page Content -->
     <div id="content">
       <!-- Top Navigation -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
           <button type="button" id="sidebarCollapse" class="btn btn-light">
             <i class="bi bi-list"></i>
           </button>
-          <div class="page-title">
-            <h4>Reports & Analytics</h4>
+          <div class="page-title ms-3">
+            <h4 data-i18n="reports.title">Reports & Analytics</h4>
+          </div>
+          <div class="ms-auto d-flex align-items-center">
+            <!-- Language Switcher -->
+            <div class="dropdown me-3">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </nav>
@@ -71,35 +92,35 @@
             <div class="card">
               <div class="card-header">
                 <h5 class="mb-0">
-                  <i class="bi bi-funnel me-2"></i>Report Filters
+                  <i class="bi bi-funnel me-2"></i><span data-i18n="reports.filters.title">Report Filters</span>
                 </h5>
               </div>
               <div class="card-body">
                 <div class="row g-3 align-items-end">
                   <div class="col-md-2">
-                    <label for="startDate" class="form-label">Start Date</label>
+                    <label for="startDate" class="form-label" data-i18n="common.startDate">Start Date</label>
                     <input type="date" class="form-control" id="startDate">
                   </div>
                   <div class="col-md-2">
-                    <label for="endDate" class="form-label">End Date</label>
+                    <label for="endDate" class="form-label" data-i18n="common.endDate">End Date</label>
                     <input type="date" class="form-control" id="endDate">
                   </div>
                   <div class="col-md-2">
-                    <label for="timeGrouping" class="form-label">Group By</label>
+                    <label for="timeGrouping" class="form-label" data-i18n="reports.filters.groupBy">Group By</label>
                     <select class="form-select" id="timeGrouping">
-                      <option value="day">Day</option>
-                      <option value="month">Month</option>
-                      <option value="year">Year</option>
+                      <option value="day" data-i18n="reports.filters.groupByOptions.day">Day</option>
+                      <option value="month" data-i18n="reports.filters.groupByOptions.month">Month</option>
+                      <option value="year" data-i18n="reports.filters.groupByOptions.year">Year</option>
                     </select>
                   </div>
                   <div class="col-md-3">
-                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="todayBtn">
+                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="todayBtn" data-i18n="reports.filters.quickButtons.today">
                       Today
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="thisWeekBtn">
+                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="thisWeekBtn" data-i18n="reports.filters.quickButtons.thisWeek">
                       This Week
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="thisMonthBtn">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="thisMonthBtn" data-i18n="reports.filters.quickButtons.thisMonth">
                       This Month
                     </button>
                   </div>
@@ -115,27 +136,27 @@
             <ul class="nav nav-tabs nav-justified" id="reportCategoryTabs" role="tablist">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="patient-reports-tab" data-bs-toggle="tab" data-bs-target="#patient-reports" type="button" role="tab">
-                  <i class="bi bi-people me-2"></i>Patient Reports
+                  <i class="bi bi-people me-2"></i><span data-i18n="reports.tabs.patientReports">Patient Reports</span>
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="doctor-reports-tab" data-bs-toggle="tab" data-bs-target="#doctor-reports" type="button" role="tab">
-                  <i class="bi bi-hospital me-2"></i>Doctor Reports
+                  <i class="bi bi-hospital me-2"></i><span data-i18n="reports.tabs.doctorReports">Doctor Reports</span>
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="nurse-reports-tab" data-bs-toggle="tab" data-bs-target="#nurse-reports" type="button" role="tab">
-                  <i class="bi bi-heart-pulse me-2"></i>Nurse Reports
+                  <i class="bi bi-heart-pulse me-2"></i><span data-i18n="reports.tabs.nurseReports">Nurse Reports</span>
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab">
-                  <i class="bi bi-graph-up me-2"></i>Statistics
+                  <i class="bi bi-graph-up me-2"></i><span data-i18n="reports.tabs.statistics">Statistics</span>
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="employee-payments-tab" data-bs-toggle="tab" data-bs-target="#employee-payments" type="button" role="tab">
-                  <i class="bi bi-cash-coin me-2"></i>Employee Payments
+                  <i class="bi bi-cash-coin me-2"></i><span data-i18n="reports.tabs.employeePayments">Employee Payments</span>
                 </button>
               </li>
             </ul>
@@ -151,28 +172,28 @@
               <div class="col-md-12 mb-3">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Patient Report Filters</h5>
+                    <h5 class="mb-0" data-i18n="reports.patientReports.filterTitle">Patient Report Filters</h5>
                   </div>
                   <div class="card-body">
                     <div class="row g-3">
                       <div class="col-md-3">
-                        <label for="patientPaymentType" class="form-label">Payment Type</label>
+                        <label for="patientPaymentType" class="form-label" data-i18n="reports.patientReports.paymentType">Payment Type</label>
                         <select class="form-select" id="patientPaymentType">
-                          <option value="all">All</option>
-                          <option value="cash">Cash</option>
-                          <option value="credit">Credit</option>
-                          <option value="insurance">Insurance</option>
+                          <option value="all" data-i18n="common.all">All</option>
+                          <option value="cash" data-i18n="reports.paymentTypes.cash">Cash</option>
+                          <option value="credit" data-i18n="reports.paymentTypes.credit">Credit</option>
+                          <option value="insurance" data-i18n="reports.paymentTypes.insurance">Insurance</option>
                         </select>
                       </div>
                       <div class="col-md-3" id="insuranceFilterContainer" style="display: none;">
-                        <label for="insuranceCompany" class="form-label">Insurance Company</label>
+                        <label for="insuranceCompany" class="form-label" data-i18n="reports.patientReports.insuranceCompany">Insurance Company</label>
                         <select class="form-select" id="insuranceCompany">
-                          <option value="">All Companies</option>
+                          <option value="" data-i18n="reports.patientReports.allCompanies">All Companies</option>
                         </select>
                       </div>
                       <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-primary" id="loadPatientReportBtn">
-                          <i class="bi bi-search"></i> Generate Report
+                          <i class="bi bi-search"></i> <span data-i18n="reports.buttons.generateReport">Generate Report</span>
                         </button>
                       </div>
                     </div>
@@ -183,17 +204,17 @@
               <div class="col-md-12">
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Patient Reports</h5>
+                    <h5 class="mb-0" data-i18n="reports.patientReports.title">Patient Reports</h5>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="printPatientReportBtn" disabled>
-                      <i class="bi bi-printer"></i> Print Report
+                      <i class="bi bi-printer"></i> <span data-i18n="reports.buttons.printReport">Print Report</span>
                     </button>
                   </div>
                   <div class="card-body">
                     <div id="patientReportContent">
                       <div class="text-center py-5">
                         <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #6c757d;"></i>
-                        <h5 class="mt-3 text-muted">No Report Generated</h5>
-                        <p class="text-muted">Select filters and click "Generate Report" to view data</p>
+                        <h5 class="mt-3 text-muted" data-i18n="reports.emptyState.noReport">No Report Generated</h5>
+                        <p class="text-muted" data-i18n="reports.emptyState.selectFilters">Select filters and click "Generate Report" to view data</p>
                       </div>
                     </div>
                   </div>
@@ -208,29 +229,29 @@
               <div class="col-md-12 mb-3">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Doctor Report Options</h5>
+                    <h5 class="mb-0" data-i18n="reports.doctorReports.filterTitle">Doctor Report Options</h5>
                   </div>
                   <div class="card-body">
                     <div class="row g-3">
                       <div class="col-md-3">
-                        <label for="doctorReportType" class="form-label">Report Type</label>
+                        <label for="doctorReportType" class="form-label" data-i18n="reports.doctorReports.reportType">Report Type</label>
                         <select class="form-select" id="doctorReportType">
-                          <option value="all-referred">All Referring Doctors</option>
-                          <option value="specific-referred">Specific Referring Doctor</option>
-                          <option value="all-attending">All Attending Doctors</option>
-                          <option value="specific-attending">Specific Attending Doctor</option>
-                          <option value="specific-supervising">Specific Supervising Doctor</option>
+                          <option value="all-referred" data-i18n="reports.doctorReports.types.allReferring">All Referring Doctors</option>
+                          <option value="specific-referred" data-i18n="reports.doctorReports.types.specificReferring">Specific Referring Doctor</option>
+                          <option value="all-attending" data-i18n="reports.doctorReports.types.allAttending">All Attending Doctors</option>
+                          <option value="specific-attending" data-i18n="reports.doctorReports.types.specificAttending">Specific Attending Doctor</option>
+                          <option value="specific-supervising" data-i18n="reports.doctorReports.types.specificSupervising">Specific Supervising Doctor</option>
                         </select>
                       </div>
                       <div class="col-md-3" id="doctorSelectContainer" style="display: none;">
-                        <label for="doctorSelect" class="form-label">Select Doctor</label>
+                        <label for="doctorSelect" class="form-label" data-i18n="reports.doctorReports.selectDoctor">Select Doctor</label>
                         <select class="form-select" id="doctorSelect">
-                          <option value="">Select a doctor</option>
+                          <option value="" data-i18n="reports.doctorReports.selectDoctorPlaceholder">Select a doctor</option>
                         </select>
                       </div>
                       <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-primary" id="loadDoctorReportBtn">
-                          <i class="bi bi-search"></i> Generate Report
+                          <i class="bi bi-search"></i> <span data-i18n="reports.buttons.generateReport">Generate Report</span>
                         </button>
                       </div>
                     </div>
@@ -241,17 +262,17 @@
               <div class="col-md-12">
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Doctor Reports</h5>
+                    <h5 class="mb-0" data-i18n="reports.doctorReports.title">Doctor Reports</h5>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="printDoctorReportBtn" disabled>
-                      <i class="bi bi-printer"></i> Print Report
+                      <i class="bi bi-printer"></i> <span data-i18n="reports.buttons.printReport">Print Report</span>
                     </button>
                   </div>
                   <div class="card-body">
                     <div id="doctorReportContent">
                       <div class="text-center py-5">
                         <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #6c757d;"></i>
-                        <h5 class="mt-3 text-muted">No Report Generated</h5>
-                        <p class="text-muted">Select filters and click "Generate Report" to view data</p>
+                        <h5 class="mt-3 text-muted" data-i18n="reports.emptyState.noReport">No Report Generated</h5>
+                        <p class="text-muted" data-i18n="reports.emptyState.selectFilters">Select filters and click "Generate Report" to view data</p>
                       </div>
                     </div>
                   </div>
@@ -266,26 +287,26 @@
               <div class="col-md-12 mb-3">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Nurse Report Options</h5>
+                    <h5 class="mb-0" data-i18n="reports.nurseReports.filterTitle">Nurse Report Options</h5>
                   </div>
                   <div class="card-body">
                     <div class="row g-3">
                       <div class="col-md-3">
-                        <label for="nurseReportType" class="form-label">Report Type</label>
+                        <label for="nurseReportType" class="form-label" data-i18n="reports.nurseReports.reportType">Report Type</label>
                         <select class="form-select" id="nurseReportType">
-                          <option value="all">All Nurses</option>
-                          <option value="specific">Specific Nurse</option>
+                          <option value="all" data-i18n="reports.nurseReports.types.allNurses">All Nurses</option>
+                          <option value="specific" data-i18n="reports.nurseReports.types.specificNurse">Specific Nurse</option>
                         </select>
                       </div>
                       <div class="col-md-3" id="nurseSelectContainer" style="display: none;">
-                        <label for="nurseSelect" class="form-label">Select Nurse</label>
+                        <label for="nurseSelect" class="form-label" data-i18n="reports.nurseReports.selectNurse">Select Nurse</label>
                         <select class="form-select" id="nurseSelect">
-                          <option value="">Select a nurse</option>
+                          <option value="" data-i18n="reports.nurseReports.selectNursePlaceholder">Select a nurse</option>
                         </select>
                       </div>
                       <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-primary" id="loadNurseReportBtn">
-                          <i class="bi bi-search"></i> Generate Report
+                          <i class="bi bi-search"></i> <span data-i18n="reports.buttons.generateReport">Generate Report</span>
                         </button>
                       </div>
                     </div>
@@ -296,17 +317,17 @@
               <div class="col-md-12">
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Nurse Reports</h5>
+                    <h5 class="mb-0" data-i18n="reports.nurseReports.title">Nurse Reports</h5>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="printNurseReportBtn" disabled>
-                      <i class="bi bi-printer"></i> Print Report
+                      <i class="bi bi-printer"></i> <span data-i18n="reports.buttons.printReport">Print Report</span>
                     </button>
                   </div>
                   <div class="card-body">
                     <div id="nurseReportContent">
                       <div class="text-center py-5">
                         <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #6c757d;"></i>
-                        <h5 class="mt-3 text-muted">No Report Generated</h5>
-                        <p class="text-muted">Select filters and click "Generate Report" to view data</p>
+                        <h5 class="mt-3 text-muted" data-i18n="reports.emptyState.noReport">No Report Generated</h5>
+                        <p class="text-muted" data-i18n="reports.emptyState.selectFilters">Select filters and click "Generate Report" to view data</p>
                       </div>
                     </div>
                   </div>
@@ -328,7 +349,7 @@
                           <i class="bi bi-people"></i>
                         </div>
                         <div class="stat-info">
-                          <h6>Total Patients</h6>
+                          <h6 data-i18n="reports.statistics.totalPatients">Total Patients</h6>
                           <h3 id="statTotalPatients">-</h3>
                         </div>
                       </div>
@@ -341,7 +362,7 @@
                           <i class="bi bi-calendar-check"></i>
                         </div>
                         <div class="stat-info">
-                          <h6>Avg Stay (Days)</h6>
+                          <h6 data-i18n="reports.statistics.avgStay">Avg Stay (Days)</h6>
                           <h3 id="statAvgStay">-</h3>
                         </div>
                       </div>
@@ -354,7 +375,7 @@
                           <i class="bi bi-hospital"></i>
                         </div>
                         <div class="stat-info">
-                          <h6>Occupancy Rate</h6>
+                          <h6 data-i18n="reports.statistics.occupancyRate">Occupancy Rate</h6>
                           <h3 id="statOccupancyRate">-%</h3>
                         </div>
                       </div>
@@ -367,7 +388,7 @@
                           <i class="bi bi-currency-dollar"></i>
                         </div>
                         <div class="stat-info">
-                          <h6>Total Revenue</h6>
+                          <h6 data-i18n="reports.statistics.totalRevenue">Total Revenue</h6>
                           <h3 id="statTotalRevenue">$0</h3>
                         </div>
                       </div>
@@ -380,7 +401,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Patient Admission Trends</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.patientTrends">Patient Admission Trends</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="patientTrendsChart" height="300"></canvas>
@@ -391,12 +412,12 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Patient Distribution</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.distribution">Patient Distribution</h5>
                     <div class="btn-group btn-group-sm" role="group">
                       <input type="radio" class="btn-check" name="distributionType" id="paymentDistribution" checked>
-                      <label class="btn btn-outline-primary" for="paymentDistribution">Payment</label>
+                      <label class="btn btn-outline-primary" for="paymentDistribution" data-i18n="reports.statistics.charts.payment">Payment</label>
                       <input type="radio" class="btn-check" name="distributionType" id="genderDistribution">
-                      <label class="btn btn-outline-primary" for="genderDistribution">Gender</label>
+                      <label class="btn btn-outline-primary" for="genderDistribution" data-i18n="reports.statistics.charts.gender">Gender</label>
                     </div>
                   </div>
                   <div class="card-body">
@@ -405,11 +426,11 @@
                 </div>
               </div>
 
-              <!-- Charts Row 2: Average Stay and Occupancy -->
+              <!-- Charts Row 2: Average Stay and Revenue -->
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Average Stay Duration</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.avgStayDuration">Average Stay Duration</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="avgStayChart" height="300"></canvas>
@@ -421,7 +442,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Revenue Trends</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.revenueTrends">Revenue Trends</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="revenueChart" height="300"></canvas>
@@ -432,7 +453,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Admissions vs Discharges</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.admissionsVsDischarges">Admissions vs Discharges</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="admissionDischargeChart" height="300"></canvas>
@@ -444,7 +465,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Top 10 Services by Revenue</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.topServices">Top 10 Services by Revenue</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="topServicesChart" height="300"></canvas>
@@ -455,7 +476,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Top 10 Drugs by Revenue</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.topDrugs">Top 10 Drugs by Revenue</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="topDrugsChart" height="300"></canvas>
@@ -463,14 +484,13 @@
                 </div>
               </div>
 
-              <!-- Charts Row 5: Staff Utilization -->
-              <div class="col-md-12 mb-4">
+              <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Staff Utilization</h5>
+                    <h5 class="mb-0" data-i18n="reports.statistics.charts.staffUtilization">Staff Utilization</h5>
                   </div>
                   <div class="card-body">
-                    <canvas id="staffUtilizationChart" height="200"></canvas>
+                    <canvas id="staffUtilizationChart" height="300"></canvas>
                   </div>
                 </div>
               </div>
@@ -478,7 +498,7 @@
               <!-- Load Statistics Button -->
               <div class="col-md-12 text-center">
                 <button type="button" class="btn btn-primary btn-lg" id="loadStatisticsBtn">
-                  <i class="bi bi-graph-up"></i> Load Statistics
+                  <i class="bi bi-graph-up"></i> <span data-i18n="reports.buttons.loadStatistics">Load Statistics</span>
                 </button>
               </div>
             </div>
@@ -490,28 +510,28 @@
               <div class="col-md-12 mb-3">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Employee Payment Filters</h5>
+                    <h5 class="mb-0" data-i18n="reports.employeePayments.filterTitle">Employee Payment Filters</h5>
                   </div>
                   <div class="card-body">
                     <div class="row g-3">
                       <div class="col-md-3">
-                        <label for="employeeType" class="form-label">Employee Type</label>
+                        <label for="employeeType" class="form-label" data-i18n="reports.employeePayments.employeeType">Employee Type</label>
                         <select class="form-select" id="employeeType">
-                          <option value="all">All</option>
-                          <option value="doctor">Doctors</option>
-                          <option value="nurse">Nurses</option>
-                          <option value="other">Other</option>
+                          <option value="all" data-i18n="common.all">All</option>
+                          <option value="doctor" data-i18n="reports.employeePayments.types.doctors">Doctors</option>
+                          <option value="nurse" data-i18n="reports.employeePayments.types.nurses">Nurses</option>
+                          <option value="other" data-i18n="reports.employeePayments.types.other">Other</option>
                         </select>
                       </div>
                       <div class="col-md-3">
-                        <label for="employeeSelect" class="form-label">Specific Employee (Optional)</label>
+                        <label for="employeeSelect" class="form-label" data-i18n="reports.employeePayments.selectEmployee">Specific Employee (Optional)</label>
                         <select class="form-select" id="employeeSelect">
-                          <option value="">All Employees</option>
+                          <option value="" data-i18n="reports.employeePayments.allEmployees">All Employees</option>
                         </select>
                       </div>
                       <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-primary" id="loadEmployeePaymentReportBtn">
-                          <i class="bi bi-search"></i> Generate Report
+                          <i class="bi bi-search"></i> <span data-i18n="reports.buttons.generateReport">Generate Report</span>
                         </button>
                       </div>
                     </div>
@@ -523,7 +543,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Payment Timeline</h5>
+                    <h5 class="mb-0" data-i18n="reports.employeePayments.charts.paymentTimeline">Payment Timeline</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="paymentTimelineChart" height="300"></canvas>
@@ -534,7 +554,7 @@
               <div class="col-md-6 mb-4">
                 <div class="card">
                   <div class="card-header">
-                    <h5 class="mb-0">Payment Type Distribution</h5>
+                    <h5 class="mb-0" data-i18n="reports.employeePayments.charts.paymentTypeDistribution">Payment Type Distribution</h5>
                   </div>
                   <div class="card-body">
                     <canvas id="paymentTypeChart" height="300"></canvas>
@@ -545,17 +565,17 @@
               <div class="col-md-12">
                 <div class="card">
                   <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Employee Payment Details</h5>
+                    <h5 class="mb-0" data-i18n="reports.employeePayments.title">Employee Payment Details</h5>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="printEmployeePaymentReportBtn" disabled>
-                      <i class="bi bi-printer"></i> Print Report
+                      <i class="bi bi-printer"></i> <span data-i18n="reports.buttons.printReport">Print Report</span>
                     </button>
                   </div>
                   <div class="card-body">
                     <div id="employeePaymentContent">
                       <div class="text-center py-5">
                         <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #6c757d;"></i>
-                        <h5 class="mt-3 text-muted">No Report Generated</h5>
-                        <p class="text-muted">Select filters and click "Generate Report" to view data</p>
+                        <h5 class="mt-3 text-muted" data-i18n="reports.emptyState.noReport">No Report Generated</h5>
+                        <p class="text-muted" data-i18n="reports.emptyState.selectFilters">Select filters and click "Generate Report" to view data</p>
                       </div>
                     </div>
                   </div>
@@ -575,14 +595,15 @@
       <div class="modal-content">
         <div class="modal-body text-center py-5">
           <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
           </div>
-          <h5>Generating Report...</h5>
-          <p class="text-muted">Please wait while we process your request</p>
+          <h5 data-i18n="reports.loading.title">Generating Report...</h5>
+          <p class="text-muted" data-i18n="reports.loading.subtitle">Please wait while we process your request</p>
         </div>
       </div>
     </div>
   </div>
+
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- jQuery -->
@@ -596,6 +617,8 @@
   <!-- PDF Make -->
   <script src="../js/pdfmake/build/pdfmake.min.js"></script>
   <script src="../js/pdfmake/build/vfs_fonts.js"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
   <!-- Custom JS -->
   <script src="../js/shared/sidebar.js" type="module"></script>
   <script src="../js/utils/pdfGenerator.js" type="module"></script>

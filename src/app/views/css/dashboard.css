@@ -141,6 +141,10 @@ body {
     text-align: center;
 }
 
+body.rtl #sidebar.active ul li a i {
+	margin-right: 0px !important
+}
+
 #sidebar.active .components li a span,
 #sidebar.active .sidebar-footer span {
     display: none;
