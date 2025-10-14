@@ -2655,7 +2655,6 @@ class InsuranceManager {
 					}
 				]);
 			});
-			console.log(groupedPatients);
 			const docDefinition = {
 				content: [
 					{
@@ -3385,7 +3384,7 @@ class InsuranceManager {
 
 		// Re-attach event listeners
 		container.querySelectorAll(".insurance-card").forEach((card) => {
-			card.addEventListener("click", (e) => {
+			card.addEventListener("click", () => {
 				const insuranceId = parseInt(
 					card.getAttribute("data-insurance-id")!
 				);
@@ -3435,7 +3434,6 @@ class InsuranceManager {
 	}
 
 	private formatCurrency(amount: number, en: boolean = false): string {
-		console.log(en)
 		return i18n.formatCurrency(amount, en);
 	}
 

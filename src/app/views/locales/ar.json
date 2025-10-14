@@ -84,8 +84,8 @@
 		"recentActivity": "النشاط الأخير",
 		"metrics": {
 			"totalPatients": "إجمالي المرضى",
-			"activePatients": "المرضى النشطون",
-			"admittedPatients": "المرضى المُنوَّمون",
+			"activePatients": "المرضى النشطين",
+			"admittedPatients": "المرضى المحجوزين",
 			"quickCheckPatients": "مرضى الكشف السريع",
 			"totalRevenue": "إجمالي الإيرادات",
 			"todayRevenue": "إيرادات اليوم",

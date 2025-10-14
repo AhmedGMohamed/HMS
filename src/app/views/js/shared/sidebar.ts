@@ -93,7 +93,7 @@ export class SidebarManager {
 			this.buildNavigationHTML(navigation);
 		} catch (error) {
 			console.error("Error loading navigation:", error);
-			this.handleAuthError();
+			//this.handleAuthError();
 		}
 	}
 
@@ -255,7 +255,7 @@ export class SidebarManager {
 			'[data-bs-toggle="collapse"]'
 		);
 		collapseElements.forEach((element) => {
-			element.addEventListener("click", (e) => {
+			element.addEventListener("click", () => {
 				// Optionally close other open collapses for accordion behavior
 				const target = element.getAttribute("href");
 				if (target) {
