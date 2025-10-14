@@ -1278,15 +1278,11 @@ class PatientManager {
 
 		// Update display fields
 		(document.getElementById("servicesTotal") as HTMLInputElement).value =
-			i18n.formatNumber(servicesTotal, 2, true);
+			parseFloat(servicesTotal.toString()).toFixed(2);
 		(document.getElementById("drugsTotal") as HTMLInputElement).value =
-			i18n.formatNumber(drugsTotal, 2, true);
+			parseFloat(drugsTotal.toString()).toFixed(2);
 		(document.getElementById("paidAmount") as HTMLInputElement).value =
-			i18n.formatNumber(
-				parseInt(bill.paid_amount as unknown as string),
-				2,
-				true
-			);
+			bill.paid_amount.toString();
 
 		// Set editable fields from bill
 		(document.getElementById("discount") as HTMLInputElement).value =
@@ -1411,17 +1407,17 @@ class PatientManager {
 
 		// Update display
 		(document.getElementById("discountTotal") as HTMLInputElement).value =
-			i18n.formatNumber(discountAmount, 2, true);
+			discountAmount.toFixed(2);
 		(
 			document.getElementById("totalAfterDiscount") as HTMLInputElement
-		).value = i18n.formatNumber(totalAfterDiscount, 2, true);
+		).value = totalAfterDiscount.toFixed(2);
 		(document.getElementById("totalFee") as HTMLInputElement).value =
-			i18n.formatNumber(totalFee, 2, true);
+			totalFee.toFixed(2);
 
 		if (remaining > 0) {
 			(
 				document.getElementById("remainingFacility") as HTMLInputElement
-			).value = i18n.formatNumber(remaining, 2, true);
+			).value = remaining.toFixed(2);
 			(
 				document.getElementById("remainingPatient") as HTMLInputElement
 			).value = "0.00";
@@ -1431,7 +1427,7 @@ class PatientManager {
 			).value = "0.00";
 			(
 				document.getElementById("remainingPatient") as HTMLInputElement
-			).value = i18n.formatNumber(Math.abs(remaining), 2, true);
+			).value = Math.abs(remaining).toFixed(2);
 		}
 	}
 
