@@ -29,6 +29,8 @@
 		"electron-store": "^10.0.1",
 		"express": "^5.1.0",
 		"jsonwebtoken": "^9.0.2",
+		"jspdf": "^3.0.3",
+		"jspdf-autotable": "^5.0.2",
 		"pdfmake": "^0.2.20",
 		"pg": "^8.14.0",
 		"sweetalert2": "^11.17.2",

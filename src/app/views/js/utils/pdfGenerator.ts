@@ -1,41 +1,175 @@
 import { Patient } from "../../../utils/types/patients.js";
 import { Bill, BillDetail } from "../../../utils/types/billing.js";
 
-// Declare global pdfMake and pdfFonts (set by <script> tags)
+// Extend jsPDF type to include autoTable
 declare global {
 	interface Window {
-		pdfMake: {
-			createPdf: (docDefinition: any) => any;
-			vfs?: any;
-			fonts?: any;
+		jspdf: {
+			jsPDF: new (options?: {
+				orientation?: "portrait" | "landscape";
+				unit?: "pt" | "px" | "in" | "mm" | "cm" | "ex" | "em" | "pc";
+				format?: string | number[];
+				compress?: boolean;
+				precision?: number;
+				userUnit?: number;
+			}) => jsPDF;
 		};
-		vfs?: any;
+		autoTable: any;
+	}
+
+	interface jsPDF {
+		internal: {
+			pageSize: {
+				width: number;
+				height: number;
+				getWidth: () => number;
+				getHeight: () => number;
+			};
+			scaleFactor: number;
+			pageFormats: any;
+		};
+
+		// Page management
+		addPage(
+			format?: string | number[],
+			orientation?: "portrait" | "landscape"
+		): jsPDF;
+		setPage(pageNumber: number): jsPDF;
+		insertPage(beforePage: number): jsPDF;
+		movePage(targetPage: number, beforePage: number): jsPDF;
+		deletePage(targetPage: number): jsPDF;
+
+		// Text
+		text(
+			text: string | string[],
+			x: number,
+			y: number,
+			options?: {
+				align?: "left" | "center" | "right" | "justify";
+				baseline?:
+					| "alphabetic"
+					| "ideographic"
+					| "bottom"
+					| "top"
+					| "middle"
+					| "hanging";
+				angle?: number | number[];
+				rotationDirection?: 0 | 1;
+				charSpace?: number;
+				lineHeightFactor?: number;
+				flags?: {
+					noBOM?: boolean;
+					autoencode?: boolean;
+				};
+				maxWidth?: number;
+			}
+		): jsPDF;
+
+		// Font
+		setFont(
+			fontName: string,
+			fontStyle?: string,
+			fontWeight?: string | number
+		): jsPDF;
+		setFontSize(size: number): jsPDF;
+		setTextColor(r: number, g?: number, b?: number, a?: number): jsPDF;
+		setTextColor(hexColor: string): jsPDF;
+
+		// Lines and shapes
+		line(
+			x1: number,
+			y1: number,
+			x2: number,
+			y2: number,
+			style?: string
+		): jsPDF;
+		rect(
+			x: number,
+			y: number,
+			width: number,
+			height: number,
+			style?: "S" | "F" | "FD" | "DF"
+		): jsPDF;
+		circle(x: number, y: number, r: number, style?: string): jsPDF;
+		ellipse(
+			x: number,
+			y: number,
+			rx: number,
+			ry: number,
+			style?: string
+		): jsPDF;
+		triangle(
+			x1: number,
+			y1: number,
+			x2: number,
+			y2: number,
+			x3: number,
+			y3: number,
+			style?: string
+		): jsPDF;
+
+		// Drawing properties
+		setLineWidth(width: number): jsPDF;
+		setDrawColor(r: number, g?: number, b?: number, a?: number): jsPDF;
+		setDrawColor(hexColor: string): jsPDF;
+		setFillColor(r: number, g?: number, b?: number, a?: number): jsPDF;
+		setFillColor(hexColor: string): jsPDF;
+
+		// Images
+		addImage(
+			imageData:
+				| string
+				| HTMLImageElement
+				| HTMLCanvasElement
+				| Uint8Array,
+			format: string,
+			x: number,
+			y: number,
+			width: number,
+			height: number,
+			alias?: string,
+			compression?: "NONE" | "FAST" | "MEDIUM" | "SLOW",
+			rotation?: number
+		): jsPDF;
+
+		// Utilities
+		getTextWidth(text: string): number;
+		splitTextToSize(
+			text: string,
+			maxWidth: number,
+			options?: any
+		): string[];
+		getLineHeight(): number;
+		getLineHeightFactor(): number;
+		setLineHeightFactor(factor: number): jsPDF;
+
+		// Output
+		output(type: "arraybuffer"): ArrayBuffer;
+		output(type: "blob"): Blob;
+		output(type: "bloburi" | "bloburl"): string;
+		output(type: "datauristring" | "dataurlstring"): string;
+		output(
+			type: "datauri" | "dataurl",
+			options?: { filename?: string }
+		): void;
+		output(type: "dataurlnewwindow"): void;
+		output(type: "pdfobjectnewwindow"): void;
+		output(type: "pdfjsnewwindow"): void;
+		output(type?: string): any;
+
+		save(filename: string): jsPDF;
+
+		// AutoTable plugin
+		autoTable: (options: any) => jsPDF;
+		lastAutoTable?: {
+			finalY: number;
+		};
+		previousAutoTable?: {
+			finalY: number;
+		};
 	}
 }
 
-const pdfMake = window.pdfMake
-
-window.pdfMake.vfs = { ...window.vfs };
-window.pdfMake.fonts = {
-	Roboto: {
-		normal: "Roboto-Regular.ttf",
-		bold: "Roboto-Medium.ttf",
-		italics: "Roboto-Italic.ttf",
-		bolditalics: "Roboto-MediumItalic.ttf"
-	},
-	"Segoe UI": {
-		normal: "Segoe UI.ttf",
-		bold: "Segoe UI Semibold.ttf",
-		italics: "Segoe UI Semibold.ttf",
-		bolditalics: "Segoe UI Semibold.ttf"
-	},
-	"Nillima": {
-		normal: "Nillima.ttf",
-		bold: "Nillima.ttf",
-		italics: "Nillima.ttf",
-		bolditalics: "Nillima.ttf"
-	}
-};
 
 // Generic report configuration interfaces
 interface ReportField {
@@ -59,7 +193,7 @@ interface ReportSection {
 	tableConfig?: {
 		headerRows?: number;
 		widths?: (string | number)[];
-		groupBy?: string; // For grouping table data
+		groupBy?: string;
 	};
 }
 
@@ -69,9 +203,16 @@ interface ReportConfig {
 	styles?: any;
 }
 
+interface JSPDFWithAutoTable extends jsPDF {
+	autoTable: any;
+}
+
+const jsPDF = window.jspdf.jsPDF as unknown as JSPDFWithAutoTable
+jsPDF.autoTable = window.autoTable
+
 // Default formatters
 const defaultFormatters = {
-    currency: (value: number) => `${value.toFixed(2)} EGP`,
+	currency: (value: number) => `${value.toFixed(2)} EGP`,
 	date: (value: string | Date) => new Date(value).toLocaleDateString(),
 	percentage: (value: number) => `${value}%`,
 	boolean: (value: boolean) => (value ? "Yes" : "No"),
@@ -79,22 +220,41 @@ const defaultFormatters = {
 		value.charAt(0).toUpperCase() + value.slice(1)
 };
 
+// PDF Configuration
+const PDF_CONFIG = {
+	margin: {
+		top: 20,
+		right: 15,
+		bottom: 20,
+		left: 15
+	},
+	fontSize: {
+		header: 18,
+		subheader: 14,
+		normal: 10,
+		small: 8
+	},
+	colors: {
+		primary: "#0d6efd",
+		secondary: "#6c757d",
+		headerBg: "#f0f0f0",
+		altRowBg: "#f9f9f9"
+	}
+};
+
 // Group bill details by service/drug ID
 function groupBillDetails(billDetails: BillDetail[]): BillDetail[] {
 	const grouped = new Map<string, BillDetail>();
 
 	billDetails.forEach((detail) => {
-		// Create a unique key for grouping
 		const key = detail.service_id
 			? `service_${detail.service_id}`
 			: `drug_${detail.drug_shipment_id}`;
 
 		if (grouped.has(key)) {
-			// Add to existing group
 			const existing = grouped.get(key)!;
 			existing.quantity += detail.quantity;
 		} else {
-			// Create new group
 			grouped.set(key, { ...detail });
 		}
 	});
@@ -102,17 +262,274 @@ function groupBillDetails(billDetails: BillDetail[]): BillDetail[] {
 	return Array.from(grouped.values());
 }
 
+// Helper class for managing PDF generation
+class PDFGenerator {
+	private doc: jsPDF;
+	private currentY: number;
+	private pageWidth: number;
+	private pageHeight: number;
+
+	constructor() {
+		//@ts-ignore
+		this.doc = new jsPDF({
+			orientation: "portrait",
+			unit: "mm",
+			format: "a4"
+		});
+		this.pageWidth = this.doc.internal.pageSize.getWidth();
+		this.pageHeight = this.doc.internal.pageSize.getHeight();
+		this.currentY = PDF_CONFIG.margin.top;
+	}
+
+	// Add title to document
+	addTitle(title: string): void {
+		this.doc.setFontSize(PDF_CONFIG.fontSize.header);
+		this.doc.setFont("helvetica", "bold");
+		const textWidth = this.doc.getTextWidth(title);
+		const x = (this.pageWidth - textWidth) / 2;
+		this.doc.text(title, x, this.currentY);
+		this.currentY += 10;
+	}
+
+	// Add section header
+	addSectionHeader(title: string): void {
+		this.checkPageBreak(15);
+		this.currentY += 5;
+		this.doc.setFontSize(PDF_CONFIG.fontSize.subheader);
+		this.doc.setFont("helvetica", "bold");
+		this.doc.text(title, PDF_CONFIG.margin.left, this.currentY);
+		this.currentY += 8;
+	}
+
+	// Add columns section
+	addColumns(columns: ReportSection[], data: any): void {
+		this.checkPageBreak(40);
+
+		const columnWidth =
+			(this.pageWidth -
+				PDF_CONFIG.margin.left -
+				PDF_CONFIG.margin.right) /
+			columns.length;
+		let startX = PDF_CONFIG.margin.left;
+
+		columns.forEach((column) => {
+			if (column.fields && data) {
+				let tempY = this.currentY;
+				this.doc.setFontSize(PDF_CONFIG.fontSize.normal);
+
+				column.fields.forEach((field) => {
+					const value = getNestedValue(data, field.key);
+					const formattedValue = formatValue(value, field, data);
+
+					// Label
+					this.doc.setFont(
+						"helvetica",
+						field.bold ? "bold" : "normal"
+					);
+					this.doc.text(`${field.label}:`, startX, tempY);
+
+					// Value
+					this.doc.setFont("helvetica", "normal");
+					const labelWidth = this.doc.getTextWidth(
+						`${field.label}: `
+					);
+					this.doc.text(formattedValue, startX + labelWidth, tempY);
+
+					tempY += 6;
+				});
+
+				startX += columnWidth;
+			}
+		});
+
+		this.currentY +=
+			Math.max(
+				...columns.map((col) =>
+					col.fields ? col.fields.length * 6 : 0
+				)
+			) + 5;
+	}
+
+	// Add table section
+	addTable(section: ReportSection, data: any): void {
+		if (!section.fields || !data) return;
+
+		this.checkPageBreak(30);
+
+		let tableData: any[] = [];
+
+		// Handle different data structures
+		if (
+			section.tableConfig?.groupBy === "billDetails" &&
+			data.billDetails
+		) {
+			tableData = groupBillDetails(data.billDetails);
+		} else if (data.data && Array.isArray(data.data)) {
+			tableData = data.data;
+		} else if (Array.isArray(data)) {
+			tableData = data;
+		} else {
+			tableData = [data];
+		}
+
+		if (!tableData || tableData.length === 0) {
+			this.doc.setFontSize(PDF_CONFIG.fontSize.normal);
+			this.doc.setFont("helvetica", "normal");
+			const text = "No data available for this report.";
+			const textWidth = this.doc.getTextWidth(text);
+			this.doc.text(
+				text,
+				(this.pageWidth - textWidth) / 2,
+				this.currentY
+			);
+			this.currentY += 10;
+			return;
+		}
+
+		// Prepare table headers
+		const headers = section.fields.map((field) => field.label);
+
+		// Prepare table body
+		const body = tableData.map((item: any) =>
+			section.fields!.map((field) => {
+				const value = field.key.includes(".")
+					? getNestedValue(item, field.key)
+					: item[field.key];
+				return formatValue(value, field, item);
+			})
+		);
+
+		// Calculate column widths
+		const columnStyles: any = {};
+		section.fields.forEach((field, index) => {
+			columnStyles[index] = {
+				cellWidth: field.width === "*" ? "auto" : field.width,
+				halign: field.alignment || "left"
+			};
+		});
+
+		(jsPDF as any).autoTable(this.doc, {
+			startY: this.currentY,
+			head: [headers],
+			body: body,
+			theme: "striped",
+			headStyles: {
+				fillColor: [240, 240, 240],
+				textColor: [0, 0, 0],
+				fontStyle: "bold",
+				fontSize: PDF_CONFIG.fontSize.normal
+			},
+			bodyStyles: {
+				fontSize: PDF_CONFIG.fontSize.normal
+			},
+			alternateRowStyles: {
+				fillColor: [249, 249, 249]
+			},
+			columnStyles: columnStyles,
+			margin: {
+				left: PDF_CONFIG.margin.left,
+				right: PDF_CONFIG.margin.right
+			}
+		});
+
+		this.currentY = (this.doc as any).lastAutoTable.finalY + 5;
+	}
+
+	// Add summary section
+	addSummary(section: ReportSection, data: any): void {
+		if (!section.fields || !data) return;
+
+		this.checkPageBreak(50);
+
+		// Filter fields based on conditions
+		const filteredFields = section.fields.filter((field) => {
+			if (field.condition) {
+				return data.bill && data.bill[field.condition] !== false;
+			}
+			return true;
+		});
+
+		const summaryData = filteredFields.map((field) => {
+			const value = calculateSummaryValue(field, data);
+			const formattedValue = formatValue(value, field, data);
+			return [field.label, formattedValue];
+		});
+
+		const summaryStartX = this.pageWidth - PDF_CONFIG.margin.right - 70;
+
+		(jsPDF as any).autoTable(this.doc, {
+			startY: this.currentY,
+			body: summaryData,
+			theme: "plain",
+			styles: {
+				fontSize: PDF_CONFIG.fontSize.normal,
+				cellPadding: 2
+			},
+			columnStyles: {
+				0: { halign: "right", fontStyle: "normal", cellWidth: 40 },
+				1: { halign: "right", cellWidth: 30 }
+			},
+			margin: { left: summaryStartX },
+			didParseCell: (data: any) => {
+				// Make specific rows bold
+				const boldLabels = ["Total:", "Balance:"];
+				if (
+					data.column.index === 0 &&
+					boldLabels.includes(data.cell.raw)
+				) {
+					data.cell.styles.fontStyle = "bold";
+				}
+				if (
+					data.column.index === 1 &&
+					boldLabels.includes(summaryData[data.row.index][0])
+				) {
+					data.cell.styles.fontStyle = "bold";
+				}
+			}
+		});
+
+		this.currentY = (this.doc as any).lastAutoTable.finalY + 5;
+	}
+
+	// Add custom content
+	addCustomContent(content: any): void {
+		// Handle custom content if needed
+		if (typeof content === "string") {
+			this.checkPageBreak(10);
+			this.doc.setFontSize(PDF_CONFIG.fontSize.normal);
+			this.doc.text(content, PDF_CONFIG.margin.left, this.currentY);
+			this.currentY += 6;
+		}
+	}
+
+	// Check if page break is needed
+	private checkPageBreak(requiredSpace: number): void {
+		if (
+			this.currentY + requiredSpace >
+			this.pageHeight - PDF_CONFIG.margin.bottom
+		) {
+			this.doc.addPage();
+			this.currentY = PDF_CONFIG.margin.top;
+		}
+	}
+
+	// Get the final PDF document
+	getDocument(): jsPDF {
+		return this.doc;
+	}
+
+	open(): void {
+		pdfHelpers.openInNewWindow(this.doc)
+	}
+}
+
 // Generic PDF generator
-export function generateReport(config: ReportConfig, data?: any) {
-	const content: any[] = [];
+export function generateReport(config: ReportConfig, data?: any): PDFGenerator {
+	const pdfGen = new PDFGenerator();
 
 	// Add title
 	if (config.title) {
-		content.push({
-			text: config.title,
-			style: "header",
-			alignment: "center"
-		});
+		pdfGen.addTitle(config.title);
 	}
 
 	// Process sections
@@ -120,218 +537,39 @@ export function generateReport(config: ReportConfig, data?: any) {
 		switch (section.type) {
 			case "header":
 				if (section.title) {
-					content.push({
-						text: section.title,
-						style: "subheader",
-						margin: [0, 20, 0, 10]
-					});
+					pdfGen.addSectionHeader(section.title);
 				}
 				break;
 
 			case "columns":
 				if (section.columns) {
-					const columns = section.columns.map((col) =>
-						buildSectionContent(col, data)
-					);
-					content.push({ columns });
+					pdfGen.addColumns(section.columns, data);
 				}
 				break;
 
 			case "table":
-				content.push(buildTable(section, data));
+				pdfGen.addTable(section, data);
 				break;
 
 			case "summary":
-				content.push(buildSummary(section, data));
+				pdfGen.addSummary(section, data);
 				break;
 
 			case "custom":
-				// Handle custom content for patient grouping
 				if (section.customContent) {
 					if (Array.isArray(section.customContent)) {
-						content.push(...section.customContent);
+						section.customContent.forEach((content) =>
+							pdfGen.addCustomContent(content)
+						);
 					} else {
-						content.push(section.customContent);
+						pdfGen.addCustomContent(section.customContent);
 					}
 				}
 				break;
 		}
 	});
 
-	const docDefinition = {
-		content,
-		styles: {
-			header: {
-				fontSize: 18,
-				bold: true,
-				margin: [0, 0, 0, 10]
-			},
-			subheader: {
-				fontSize: 14,
-				bold: true,
-				margin: [0, 10, 0, 5]
-			},
-			patientHeader: {
-				fontSize: 12,
-				bold: true,
-				color: "#0d6efd"
-			},
-			patientInfo: {
-				fontSize: 10,
-				color: "#6c757d"
-			},
-			...config.styles
-		},
-		pageMargins: [40, 60, 40, 60],
-		defaultStyle: {
-			font: "Segoe UI"
-		}
-	};
-
-	pdfMake.vfs = { ...window.vfs };
-	pdfMake.fonts = {
-		Roboto: {
-			normal: "Roboto-Regular.ttf",
-			bold: "Roboto-Medium.ttf",
-			italics: "Roboto-Italic.ttf",
-			bolditalics: "Roboto-MediumItalic.ttf"
-		},
-		"Segoe UI": {
-			normal: "Segoe UI.ttf",
-			bold: "Segoe UI Semibold.ttf"
-		}
-	};
-
-	return pdfMake.createPdf(docDefinition);
-}
-
-function buildSectionContent(section: ReportSection, data: any): any {
-	if (section.fields && data) {
-		const textContent: any[] = [];
-
-		section.fields.forEach((field) => {
-			const value = getNestedValue(data, field.key);
-			const formattedValue = formatValue(value, field, data); // Pass data as context
-
-			textContent.push(
-				{ text: `${field.label}: `, bold: field.bold || false },
-				formattedValue,
-				"\n"
-			);
-		});
-
-		return {
-			width: "*",
-			text: textContent
-		};
-	}
-
-	return { width: "*", text: "" };
-}
-
-function buildTable(section: ReportSection, data: any): any {
-	if (!section.fields || !data) return { text: "" };
-
-	// Handle different data structures
-	let tableData: any[] = [];
-
-	// For bill details (patient bills)
-	if (section.tableConfig?.groupBy === "billDetails" && data.billDetails) {
-		tableData = groupBillDetails(data.billDetails);
-	}
-	// For vault reports with data property
-	else if (data.data && Array.isArray(data.data)) {
-		tableData = data.data;
-	}
-	// For direct array data
-	else if (Array.isArray(data)) {
-		tableData = data;
-	}
-	// For single object data
-	else {
-		tableData = [data];
-	}
-
-	// If no data found, return empty table message
-	if (!tableData || tableData.length === 0) {
-		return {
-			text: "No data available for this report.",
-			style: "subheader",
-			alignment: "center",
-			margin: [0, 20, 0, 20]
-		};
-	}
-
-	// Build header row
-	const headerRow = section.fields.map((field) => ({
-		text: field.label,
-		bold: true,
-		fillColor: "#f0f0f0"
-	}));
-
-	// Build data rows
-	const dataRows = tableData.map((item: any) =>
-		section.fields!.map((field) => {
-			const value = field.key.includes(".")
-				? getNestedValue(item, field.key)
-				: item[field.key];
-			return formatValue(value, field, item); // Pass item as context
-		})
-	);
-
-	return {
-		table: {
-			headerRows: section.tableConfig?.headerRows || 1,
-			widths:
-				section.tableConfig?.widths ||
-				section.fields.map((f) => f.width || "*"),
-			body: [headerRow, ...dataRows]
-		},
-		layout: {
-			fillColor: function (rowIndex: number) {
-				return rowIndex === 0
-					? "#f0f0f0"
-					: rowIndex % 2 === 0
-					? "#f9f9f9"
-					: null;
-			}
-		}
-	};
-}
-
-function buildSummary(section: ReportSection, data: any): any {
-	if (!section.fields || !data) return { text: "" };
-
-	// Filter fields based on conditions
-	const filteredFields = section.fields.filter((field) => {
-		if (field.condition) {
-			return data.bill && data.bill[field.condition] !== false;
-		}
-		return true;
-	});
-
-	const summaryRows = filteredFields.map((field) => {
-		const value = calculateSummaryValue(field, data);
-		const formattedValue = formatValue(value, field, data); // Pass data as context
-
-		return [
-			field.label,
-			field.bold ? { text: formattedValue, bold: true } : formattedValue
-		];
-	});
-
-	return {
-		columns: [
-			{ width: "*", text: "" },
-			{
-				width: 200,
-				table: {
-					body: summaryRows
-				},
-				layout: "noBorders"
-			}
-		]
-	};
+	return pdfGen;
 }
 
 function getNestedValue(obj: any, path: string): any {
@@ -339,13 +577,10 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 function formatValue(value: any, field: ReportField, item?: any): string {
-	// If field has a custom formatter, call it first (even if value is null)
-	// This allows formatters to calculate values from the item
 	if (field.formatter) {
 		return field.formatter(value, item);
 	}
 
-	// Check for null/undefined after custom formatter
 	if (value == null) return "N/A";
 
 	switch (field.type) {
@@ -363,7 +598,6 @@ function formatValue(value: any, field: ReportField, item?: any): string {
 }
 
 function calculateSummaryValue(field: ReportField, data: any): any {
-	// Handle calculated fields for summaries
 	switch (field.key) {
 		case "calculated.subtotal":
 			return (
@@ -418,7 +652,7 @@ export const reportTemplates = {
 								label: "Payment Type",
 								type: "text" as const,
 								formatter: (value: any) =>
-									defaultFormatters.capitalize(value) // Fixed formatter
+									defaultFormatters.capitalize(value)
 							}
 						]
 					},
@@ -441,7 +675,6 @@ export const reportTemplates = {
 								label: "Status",
 								type: "text" as const,
 								formatter: (value: number, data: any) => {
-									// Add safety check for data
 									if (!data || !data.bill) return "Unknown";
 									return value >= data.bill.total_amount
 										? "Paid"
@@ -460,11 +693,10 @@ export const reportTemplates = {
 				type: "table" as const,
 				fields: [
 					{
-						key: "description", // Use a simpler key
+						key: "description",
 						label: "Description",
 						type: "text" as const,
 						formatter: (value: any, item: any) => {
-							// Add safety check
 							if (!item) return "Unknown Item";
 							return (
 								item.service_name ||
@@ -479,37 +711,39 @@ export const reportTemplates = {
 						key: "quantity",
 						label: "Quantity",
 						type: "number" as const,
-						width: "auto"
+						width: 25,
+						alignment: "center" as const
 					},
 					{
 						key: "unit_price",
 						label: "Unit Price",
 						type: "currency" as const,
-						width: "auto"
+						width: 30,
+						alignment: "right" as const
 					},
 					{
 						key: "total",
 						label: "Total",
 						type: "currency" as const,
 						formatter: (value: any, item: any) => {
-							// Add safety check
 							if (
 								!item ||
 								typeof item.quantity !== "number" ||
 								typeof item.unit_price !== "number"
 							) {
-								return "$0.00";
+								return "0.00 EGP";
 							}
 							return defaultFormatters.currency(
 								item.quantity * item.unit_price
 							);
 						},
-						width: "auto"
+						width: 30,
+						alignment: "right" as const
 					}
 				],
 				tableConfig: {
 					headerRows: 1,
-					widths: ["*", "auto", "auto", "auto"],
+					widths: ["*", 25, 30, 30],
 					groupBy: "billDetails"
 				}
 			},
@@ -565,7 +799,7 @@ export function generatePatientBill(
 	patient: Patient,
 	bill: Bill,
 	billDetails: Partial<BillDetail>[]
-) {
+): PDFGenerator {
 	const groupedBillDetails = groupBillDetails(billDetails as BillDetail[]);
 
 	const data = {
@@ -583,7 +817,7 @@ export function createCustomReport(
 	sections: ReportSection[],
 	data: any,
 	styles?: any
-): any {
+): PDFGenerator {
 	const config: ReportConfig = {
 		title,
 		sections,
@@ -592,3 +826,41 @@ export function createCustomReport(
 
 	return generateReport(config, data);
 }
+
+// Helper functions for using the generated PDFs
+export const pdfHelpers = {
+	// Open PDF in new window
+	openInNewWindow: (doc: jsPDF) => {
+		const blob = doc.output("blob");
+		const url = URL.createObjectURL(blob);
+		window.open(url, "_blank");
+	},
+
+	// Download PDF
+	download: (doc: jsPDF, filename: string = "report.pdf") => {
+		doc.save(filename);
+	},
+
+	// Print PDF
+	print: (doc: jsPDF) => {
+		const blob = doc.output("blob");
+		const url = URL.createObjectURL(blob);
+		const iframe = document.createElement("iframe");
+		iframe.style.display = "none";
+		iframe.src = url;
+		document.body.appendChild(iframe);
+		iframe.onload = () => {
+			iframe.contentWindow?.print();
+		};
+	},
+
+	// Get PDF as base64 string
+	getBase64: (doc: jsPDF): string => {
+		return doc.output("datauristring");
+	},
+
+	// Get PDF as blob
+	getBlob: (doc: jsPDF): Blob => {
+		return doc.output("blob");
+	}
+};
