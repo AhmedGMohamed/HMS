@@ -761,7 +761,7 @@ class VaultManager {
 		}
 	}
 
-	private createPrintReportConfig(reportType: string, data: any[]): any {
+	private createPrintReportConfig(reportType: string, _data: any[]): any {
 		const columns = this.getReportColumns(reportType);
 		const title = this.getReportTitle(reportType);
 
@@ -1336,55 +1336,20 @@ class VaultManager {
 
 		switch (type) {
 			case "currency":
-				return this.formatCurrency(parseFloat(value) || 0);
+				return i18n.formatCurrency(parseFloat(value) || 0);
 			case "date":
-				return this.formatDateTime(value);
+				return i18n.formatDateTime(value);
 			case "number":
-				return parseInt(value).toLocaleString();
+				return i18n.formatNumber(parseInt(value));
 			case "boolean":
-				return value ? "Yes" : "No";
+				return i18n.t(value ? "common.yes" : "common.no");
 			default:
 				return String(value);
 		}
 	}
 
-	private formatSummaryLabel(key: string): string {
-		const labels: { [key: string]: string } = {
-			total_revenue: "Total Revenue",
-			total_cost: "Total Cost",
-			total_profit: "Total Profit",
-			total_paid: "Total Paid",
-			total_outstanding: "Total Outstanding",
-			total_records: "Total Records",
-			total_quantity: "Total Quantity",
-			total_shipments: "Total Shipments",
-			total_transactions: "Total Transactions",
-			total_wages: "Total Wages",
-			unique_employees: "Employees",
-			avg_per_patient: "Avg per Patient",
-			avg_payment: "Avg Payment",
-			avg_outstanding: "Avg Outstanding"
-		};
-		return (
-			labels[key] ||
-			key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-		);
-	}
-
-	private formatCurrency(amount: number): string {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 2
-		}).format(amount);
-	}
-
 	private formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString();
-	}
-
-	private formatDateTime(dateString: string): string {
-		return new Date(dateString).toLocaleString();
 	}
 
 	private setButtonLoading(

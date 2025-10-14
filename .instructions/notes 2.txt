@@ -104,7 +104,7 @@ employees - DONE
 clocking - DONE
 login
 reports
-vault
+vault - DONE
 patients - DONE
 price-lists - DONE
 pharmacy - DONE
