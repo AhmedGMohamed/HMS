@@ -641,7 +641,7 @@ class InsuranceManager {
 
 		let lastClearedDate = "N/A";
 		if (this.selectedInsurance.last_cleared_date)
-			i18n.formatDate(this.selectedInsurance.last_cleared_date);
+			lastClearedDate = i18n.formatDate(this.selectedInsurance.last_cleared_date);
 
 		container.innerHTML = `
 	        <div class="insurance-info-item">
@@ -2650,7 +2650,7 @@ class InsuranceManager {
 				patientsSummaryColumns.push([
 					key,
 					{
-						text: `${this.formatCurrency(value.totalCost - value.patientPaid || 0)}`,
+						text: `${this.formatCurrency(value.totalCost - value.patientPaid || 0, true)}`,
 						color: "red"
 					}
 				]);
@@ -3434,7 +3434,7 @@ class InsuranceManager {
 	}
 
 	private formatCurrency(amount: number, en: boolean = false): string {
-		return i18n.formatCurrency(amount, en);
+		return `${amount} ${en ? "EGP" : i18n.t("common.currency")}`;
 	}
 
 	private capitalizeFirst(str: string): string {
