@@ -558,8 +558,6 @@ class EmployeePaymentCron {
 
 		if (patientInfoResult.rows.length === 0) return;
 
-		const patientInfo = patientInfoResult.rows[0];
-
 		// Get all staff assignments for this patient that haven't been paid percentage
 		const staffResult = await query(
 			`SELECT DISTINCT dsa.employee_id, e.extra_amount, e.percentage_scope,
