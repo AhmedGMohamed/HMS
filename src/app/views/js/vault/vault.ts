@@ -783,7 +783,10 @@ class VaultManager {
 						formatter: col.formatter
 					}))
 				}
-			]
+			],
+			styles: {
+				
+			}
 		};
 	}
 

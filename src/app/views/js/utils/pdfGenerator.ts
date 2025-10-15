@@ -14,7 +14,7 @@ declare global {
 	}
 }
 
-const pdfMake = window.pdfMake
+const pdfMake = window.pdfMake;
 
 window.pdfMake.vfs = { ...window.vfs };
 window.pdfMake.fonts = {
@@ -68,7 +68,7 @@ interface ReportConfig {
 
 // Default formatters
 const defaultFormatters = {
-    currency: (value: number) => `${value.toFixed(2)} EGP`,
+	currency: (value: number) => `${value.toFixed(2)} EGP`,
 	date: (value: string | Date) => new Date(value).toLocaleDateString(),
 	percentage: (value: number) => `${value}%`,
 	boolean: (value: boolean) => (value ? "Yes" : "No"),
@@ -181,8 +181,10 @@ export function generateReport(config: ReportConfig, data?: any) {
 		},
 		pageMargins: [40, 60, 40, 60],
 		defaultStyle: {
-			font: "Segoe UI"
-		}
+			font: "Segoe UI",
+			fontSize: 9
+		},
+		pageSize: "A4"
 	};
 
 	pdfMake.vfs = { ...window.vfs };
@@ -195,7 +197,9 @@ export function generateReport(config: ReportConfig, data?: any) {
 		},
 		"Segoe UI": {
 			normal: "Segoe UI.ttf",
-			bold: "Segoe UI Semibold.ttf"
+			bold: "Segoe UI Semibold.ttf",
+			italics: "Segoe UI Semibold.ttf",
+			bolditalics: "Segoe UI Semibold.ttf"
 		}
 	};
 
@@ -281,7 +285,9 @@ function buildTable(section: ReportSection, data: any): any {
 			headerRows: section.tableConfig?.headerRows || 1,
 			widths:
 				section.tableConfig?.widths ||
-				section.fields.map((f) => f.width || "*"),
+				section.fields.map((f, i) =>
+					f.width || i == 0 ? "*" : "auto"
+				),
 			body: [headerRow, ...dataRows]
 		},
 		layout: {
@@ -460,7 +466,7 @@ export const reportTemplates = {
 						key: "description", // Use a simpler key
 						label: "Description",
 						type: "text" as const,
-						formatter: (value: any, item: any) => {
+						formatter: (_value: any, item: any) => {
 							// Add safety check
 							if (!item) return "Unknown Item";
 							return (
@@ -488,7 +494,7 @@ export const reportTemplates = {
 						key: "total",
 						label: "Total",
 						type: "currency" as const,
-						formatter: (value: any, item: any) => {
+						formatter: (_value: any, item: any) => {
 							// Add safety check
 							if (
 								!item ||
