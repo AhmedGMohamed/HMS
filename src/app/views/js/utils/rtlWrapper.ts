@@ -41,7 +41,8 @@ function reverseArabicText(text: string): string {
 	const words = text.split(" ");
 	const reversed = words.reverse();
 
-	return reversed.join(" ");
+	
+	return reversed.join(" ") + " ";
 }
 
 /**
@@ -53,7 +54,8 @@ function processTextElement(element: any): any {
 		if (isPrimarilyArabic(element)) {
 			return {
 				text: reverseArabicText(element),
-				alignment: "right"
+				alignment: "right",
+				preserveLeadingSpaces: true
 			};
 		}
 		return element;
@@ -70,6 +72,9 @@ function processTextElement(element: any): any {
 				// Set alignment to right if not explicitly set
 				if (!processed.alignment) {
 					processed.alignment = "right";
+				}
+				if (!processed.preserveLeadingSpaces) {
+					processed.preserveLeadingSpaces = true;
 				}
 			}
 		} else if (Array.isArray(processed.text)) {
@@ -224,6 +229,7 @@ export function initRTLSupport(pdfMake: any): void {
 			content: processDocumentContent(clonedDoc.content)
 		};
 
+		console.log(processedDoc)
 		// Call the original method with processed definition
 		return originalCreatePdf(processedDoc, tableLayouts, fonts, vfs);
 	};
