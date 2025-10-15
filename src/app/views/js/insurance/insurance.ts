@@ -2650,7 +2650,7 @@ class InsuranceManager {
 				patientsSummaryColumns.push([
 					key,
 					{
-						text: `$${value.totalCost - value.patientPaid || 0}`,
+						text: `${this.formatCurrency(value.totalCost - value.patientPaid || 0)}`,
 						color: "red"
 					}
 				]);

@@ -1,5 +1,6 @@
 import { Patient } from "../../../utils/types/patients.js";
 import { Bill, BillDetail } from "../../../utils/types/billing.js";
+import { initRTLSupport } from "./rtlWrapper.js";
 
 // Declare global pdfMake and pdfFonts (set by <script> tags)
 declare global {
@@ -28,14 +29,10 @@ window.pdfMake.fonts = {
 		bold: "Segoe UI Semibold.ttf",
 		italics: "Segoe UI Semibold.ttf",
 		bolditalics: "Segoe UI Semibold.ttf"
-	},
-	"Nillima": {
-		normal: "Nillima.ttf",
-		bold: "Nillima.ttf",
-		italics: "Nillima.ttf",
-		bolditalics: "Nillima.ttf"
 	}
 };
+
+initRTLSupport(window.pdfMake);
 
 // Generic report configuration interfaces
 interface ReportField {
