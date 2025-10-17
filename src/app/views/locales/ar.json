@@ -97,7 +97,7 @@
 			"nursesOnDuty": "الممرضات المناوبات",
 			"pendingServices": "الخدمات المعلقة",
 			"lowStockAlerts": "عناصر المخزون المنخفض",
-			"expiringDrugs": "الأدوية منتهية الصلاحية",
+			"expiringDrugs": "الأدوية المقتربة من انتهاء الصلاحية",
 			"todayProfit": "ربح اليوم"
 		},
 		"charts": {
@@ -1049,6 +1049,13 @@
 		"messages": {
 			"noShipments": "لا توجد شحنات متاحة لهذا الدواء",
 			"loadShipmentError": "فشل تحميل تفاصيل الشحنة",
+			"deleteShipmentTitle": "حذف الشحنة؟",
+			"deleteShipmentConfirm": "هل أنت متأكد من حذف هذه الشحنة؟",
+			"deleteShipmentConfirmText": "لا يمكن التراجع عن هذا الإجراء.",
+			"warning": "تحذير",
+			"shipmentHasStock": "هذه الشحنة لا تزال تحتوي على مخزون متاح.",
+			"deleteShipmentWarning": "سيؤدي حذف هذه الشحنة إلى إزالة جميع سجلات المخزون بشكل دائم. لا يمكن التراجع عن هذا الإجراء!",
+			"deletingShipment": "جاري حذف الشحنة...",
 			"shipmentDeleteSuccess": "تم حذف الشحنة بنجاح",
 			"shipmentDeleteError": "فشل حذف الشحنة",
 			"noActivePatients": "لا يوجد مرضى نشطون",
@@ -1079,7 +1086,8 @@
 			"warehouseDeleteError": "فشل حذف المخزن",
 			"deleteWarehouseTitle": "حذف المخزن؟",
 			"deleteWarehouseText": "هل أنت متأكد من رغبتك في حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء."
-		}
+		},
+		"shipmentActions": "إجراءات الشحنة"
 	},
 	"services": {
 		"pageTitle": "نظام إدارة المستشفى - إدارة الخدمات",

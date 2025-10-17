@@ -5,6 +5,7 @@ export interface DashboardStatistics {
 	todayRevenue: number;
 	todayProfit: number;
 	lowStockItemsCount: number;
+	nearExpiryItemsCount: number;
 	todayInsurancePayments: number;
 }
 

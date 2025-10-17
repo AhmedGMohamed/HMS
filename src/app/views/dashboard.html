@@ -88,7 +88,7 @@
         <div id="adminDashboard" style="display: none">
           <!-- Quick Stats -->
           <div class="row mb-4">
-            <div class="col-md-3 mb-3">
+            <div class="col-md mb-3">
               <div class="card stat-card">
                 <div class="card-body">
                   <div class="d-flex align-items-center">
@@ -104,7 +104,7 @@
               </div>
             </div>
 
-            <div class="col-md-3 mb-3">
+            <div class="col-md mb-3">
               <div class="card stat-card">
                 <div class="card-body">
                   <div class="d-flex align-items-center">
@@ -120,7 +120,7 @@
               </div>
             </div>
 
-            <div class="col-md-3 mb-3">
+            <div class="col-md mb-3">
               <a href="/drugs" class="text-decoration-none">
                 <div class="card stat-card">
                   <div class="card-body">
@@ -138,7 +138,26 @@
               </a>
             </div>
 
-            <div class="col-md-3 mb-3">
+            <!-- NEW CARD: Near Expiry Items -->
+            <div class="col-md mb-3">
+              <a href="/drugs" class="text-decoration-none">
+                <div class="card stat-card">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center">
+                      <div class="stat-icon bg-danger">
+                        <i class="bi bi-calendar-x"></i>
+                      </div>
+                      <div class="ms-3">
+                        <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.expiringDrugs">Near Expiry Items</h6>
+                        <h3 class="card-title mb-0" id="nearExpiryItemsCount">0</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-md mb-3">
               <div class="card stat-card">
                 <div class="card-body">
                   <div class="d-flex align-items-center">

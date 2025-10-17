@@ -306,6 +306,10 @@ class DashboardManager {
 				i18n.formatNumber(stats.lowStockItemsCount || 0, 0)
 			);
 			this.updateStatElement(
+				"nearExpiryItemsCount",
+				i18n.formatNumber(stats.nearExpiryItemsCount || 0, 0)
+			);
+			this.updateStatElement(
 				"todayProfit",
 				i18n.formatCurrency(parseFloat(stats.todayProfit || 0))
 			);

@@ -263,7 +263,6 @@ class I18n {
 	}
 
 	public formatNumber(num: number, decimals: number = 2, en: boolean = false): string {
-		console.log(num, en)
 		if (this.currentLocale === "ar" && !en) {
 			return num.toLocaleString("ar-EG", {
 				useGrouping: false,

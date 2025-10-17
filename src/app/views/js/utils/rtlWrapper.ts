@@ -233,7 +233,6 @@ export function initRTLSupport(pdfMake: any): void {
 			content: processDocumentContent(clonedDoc.content)
 		};
 
-		console.log(processedDoc);
 		// Call the original method with processed definition
 		return originalCreatePdf(processedDoc, tableLayouts, fonts, vfs);
 	};
