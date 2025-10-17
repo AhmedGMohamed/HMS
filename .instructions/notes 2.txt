@@ -103,7 +103,7 @@ admin pages (users, roles) - DONE
 employees - DONE
 clocking - DONE
 login
-reports
+reports - DONE
 vault - DONE
 patients - DONE
 price-lists - DONE

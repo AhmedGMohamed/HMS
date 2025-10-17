@@ -84,6 +84,9 @@ interface Drug {
 
 interface InsuranceCompany {
 	insurance_id: number;
+	contact_info: string | null;
+	pricelist_id: number | null;
+	pricelist_name: string | null;
 	name: string;
 }
 
@@ -698,9 +701,46 @@ class PatientManager {
 					(company) =>
 						`<option value="${
 							company.insurance_id
+						}" data-pricelist-id="${
+							company.pricelist_id || ""
 						}">${this.escapeHtml(company.name)}</option>`
 				)
 				.join("");
+
+		// Add event listener for insurance company change
+		select.addEventListener("change", (e) => {
+			this.handleInsuranceCompanyChange(
+				(e.target as HTMLSelectElement).value
+			);
+		});
+	}
+
+	private handleInsuranceCompanyChange(insuranceCompanyId: string): void {
+		if (!insuranceCompanyId) {
+			// Reset to default if no insurance company selected
+			(
+				document.getElementById("modalPriceList") as HTMLSelectElement
+			).value = "";
+			return;
+		}
+
+		const selectedCompany = this.insuranceCompanies.find(
+			(company) => company.insurance_id === parseInt(insuranceCompanyId)
+		);
+
+		if (selectedCompany) {
+			const priceListSelect = document.getElementById(
+				"modalPriceList"
+			) as HTMLSelectElement;
+
+			if (selectedCompany.pricelist_id) {
+				// Set the pricelist associated with the insurance company
+				priceListSelect.value = selectedCompany.pricelist_id.toString();
+			} else {
+				// Set to default (empty value) if insurance company has no pricelist
+				priceListSelect.value = "";
+			}
+		}
 	}
 
 	private populatePriceListSelect(): void {
@@ -2595,17 +2635,17 @@ class PatientManager {
 		const drug = this.availableDrugs.find((d) => d.drug_id === drugId);
 		if (!drug) return;
 
-		const maxQuantity = Math.floor(
-			drug.available_quantity / (drug.unit_conversion?.ratio || 1)
-		);
+		const ratio = drug.unit_conversion?.ratio || 1;
+		const maxLargerUnit = Math.floor(drug.available_quantity / ratio);
+		const maxSmallerUnit = drug.available_quantity;
 
 		Swal.fire({
 			title: i18n.t("patients.messages.addDrugTitle", {
 				drugName: drug.name
 			}),
 			html: `
-                <div class="mb-3">
-                    <label for="swal-quantity" class="form-label">${i18n.t(
+				<div class="mb-3">
+					<label for="swal-quantity-larger" class="form-label">${i18n.t(
 						"patients.messages.quantityLabel",
 						{
 							unit:
@@ -2613,35 +2653,68 @@ class PatientManager {
 								i18n.t("common.units")
 						}
 					)}</label>
-                    <input type="number" id="swal-quantity" class="form-control" min="1" max="${maxQuantity}" value="1">
-                    <div class="form-text">${i18n.t(
-						"patients.messages.availableQuantity",
+					<input type="number" id="swal-quantity-larger" class="form-control" min="0" max="${maxLargerUnit}" value="0">
+					<div class="form-text">${i18n.t("patients.messages.availableQuantity", {
+						quantity: maxLargerUnit,
+						unit: drug.unit_conversion?.larger || "units"
+					})}</div>
+				</div>
+				<div class="mb-3">
+					<label for="swal-quantity-smaller" class="form-label">${i18n.t(
+						"patients.messages.quantityLabel",
 						{
-							quantity: maxQuantity,
-							unit: drug.unit_conversion?.larger || "units"
+							unit:
+								drug.unit_conversion?.smaller ||
+								i18n.t("common.units")
 						}
-					)}</div>
-                </div>
-            `,
+					)}</label>
+					<input type="number" id="swal-quantity-smaller" class="form-control" min="0" max="${maxSmallerUnit}" value="0">
+					<div class="form-text">${i18n.t("patients.messages.availableQuantity", {
+						quantity: maxSmallerUnit,
+						unit: drug.unit_conversion?.smaller || "units"
+					})}</div>
+				</div>
+			`,
 			showCancelButton: true,
 			confirmButtonText: i18n.t("patients.buttons.addDrug"),
 			cancelButtonText: i18n.t("common.cancel"),
 			confirmButtonColor: "#28a745",
 			preConfirm: () => {
-				const quantity = parseInt(
-					(
-						document.getElementById(
-							"swal-quantity"
-						) as HTMLInputElement
-					).value
-				);
-				if (!quantity || quantity <= 0) {
+				const quantityLarger =
+					parseInt(
+						(
+							document.getElementById(
+								"swal-quantity-larger"
+							) as HTMLInputElement
+						).value
+					) || 0;
+				const quantitySmaller =
+					parseInt(
+						(
+							document.getElementById(
+								"swal-quantity-smaller"
+							) as HTMLInputElement
+						).value
+					) || 0;
+
+				// Calculate total quantity in smaller units
+				const totalQuantity = quantityLarger * ratio + quantitySmaller;
+
+				if (totalQuantity <= 0) {
 					Swal.showValidationMessage(
 						i18n.t("patients.messages.enterValidQuantity")
 					);
 					return false;
 				}
-				return quantity;
+
+				if (totalQuantity > maxSmallerUnit) {
+					Swal.showValidationMessage(
+						i18n.t("patients.messages.quantityExceedsAvailable")
+					);
+					return false;
+				}
+
+				return totalQuantity;
 			}
 		}).then(async (result: any) => {
 			if (result.isConfirmed) {
