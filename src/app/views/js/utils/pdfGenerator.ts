@@ -69,7 +69,7 @@ interface ReportConfig {
 // Default formatters
 const defaultFormatters = {
 	currency: (value: number) => `${value.toFixed(2)} EGP`,
-	date: (value: string | Date) => new Date(value).toLocaleDateString(),
+	date: (value: string | Date) => new Date(value).toLocaleDateString("en-GB"),
 	percentage: (value: number) => `${value}%`,
 	boolean: (value: boolean) => (value ? "Yes" : "No"),
 	capitalize: (value: string) =>

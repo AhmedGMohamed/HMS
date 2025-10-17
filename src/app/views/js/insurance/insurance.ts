@@ -405,7 +405,7 @@ class InsuranceManager {
 
 			if (response.ok) {
 				const result = await response.json();
-				this.priceLists = result.data || [];
+				this.priceLists = result || [];
 				this.populatePriceListOptions();
 			}
 		} catch (error) {
@@ -641,7 +641,9 @@ class InsuranceManager {
 
 		let lastClearedDate = "N/A";
 		if (this.selectedInsurance.last_cleared_date)
-			lastClearedDate = i18n.formatDate(this.selectedInsurance.last_cleared_date);
+			lastClearedDate = i18n.formatDate(
+				this.selectedInsurance.last_cleared_date
+			);
 
 		container.innerHTML = `
 	        <div class="insurance-info-item">
@@ -1532,9 +1534,9 @@ class InsuranceManager {
 					{
 						text: `Report Period: ${new Date(
 							this.currentPatientReport.report_period.start_date
-						).toLocaleDateString()} - ${new Date(
+						).toLocaleDateString("en-GB")} - ${new Date(
 							this.currentPatientReport.report_period.end_date
-						).toLocaleDateString()}`,
+						).toLocaleDateString("en-GB")}`,
 						style: "info",
 						alignment: "center",
 						margin: [0, 0, 0, 20]
@@ -1625,7 +1627,7 @@ class InsuranceManager {
 											"Registration:",
 											new Date(
 												this.currentPatientReport.patient_info.registration_date
-											).toLocaleDateString()
+											).toLocaleDateString("en-GB")
 										],
 										[
 											"Insurance:",
@@ -1662,33 +1664,48 @@ class InsuranceManager {
 								],
 								[
 									"Services Cost:",
-									this.formatCurrency(
-										this.currentPatientReport
-											.total_services_cost
-									)
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.total_services_cost,
+											true
+										),
+										alignment: "right"
+									}
 								],
 								[
 									"Drugs Cost:",
-									this.formatCurrency(
-										this.currentPatientReport
-											.total_drugs_cost
-									)
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.total_drugs_cost,
+											true
+										),
+										alignment: "right"
+									}
 								],
 								[
 									{ text: "Total Cost:", bold: true },
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport.total_cost
+											this.currentPatientReport
+												.total_cost,
+											true
 										),
-										bold: true
+										bold: true,
+										alignment: "right"
 									}
 								],
 								[
 									"Patient Payments:",
-									this.formatCurrency(
-										this.currentPatientReport
-											.total_patient_payments
-									)
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.total_patient_payments,
+											true
+										),
+										alignment: "right"
+									}
 								],
 								[
 									{
@@ -1699,15 +1716,20 @@ class InsuranceManager {
 									{
 										text: this.formatCurrency(
 											this.currentPatientReport
-												.outstanding_amount
+												.outstanding_amount,
+											true
 										),
 										bold: true,
-										color: "#dc3545"
+										color: "#dc3545",
+										alignment: "right"
 									}
 								],
 								[
 									"Total Admissions:",
-									this.currentPatientReport.admissions.length.toString()
+									{
+										text: this.currentPatientReport.admissions.length.toString(),
+										alignment: "right"
+									}
 								]
 							]
 						},
@@ -1752,7 +1774,7 @@ class InsuranceManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -1804,7 +1826,7 @@ class InsuranceManager {
 				admission.admission_time
 			).toLocaleDateString();
 			const dischargeDate = admission.discharge_time
-				? new Date(admission.discharge_time).toLocaleDateString()
+				? new Date(admission.discharge_time).toLocaleDateString("en-GB")
 				: "Currently Admitted";
 
 			content.push({
@@ -1823,13 +1845,16 @@ class InsuranceManager {
 						[
 							`Bill ID: ${admission.bill_id}`,
 							`Total: ${this.formatCurrency(
-								admission.total_amount, true
+								admission.total_amount,
+								true
 							)}`,
 							`Paid: ${this.formatCurrency(
-								admission.paid_amount, true
+								admission.paid_amount,
+								true
 							)}`,
 							`Outstanding: ${this.formatCurrency(
-								admission.outstanding_amount, true
+								admission.outstanding_amount,
+								true
 							)}`
 						]
 					]
@@ -1887,7 +1912,7 @@ class InsuranceManager {
 					tableBody.push([
 						itemName,
 						this.capitalizeFirst(item.item_type),
-						new Date(item.service_date).toLocaleDateString(),
+						new Date(item.service_date).toLocaleDateString("en-GB"),
 						{ text: item.quantity.toString(), alignment: "center" },
 						{
 							text: this.formatCurrency(item.unit_price, true),
@@ -2006,6 +2031,7 @@ class InsuranceManager {
 			modalLabel.textContent = i18n.t("insurance.modals.addCompany");
 			(document.getElementById("insuranceId") as HTMLInputElement).value =
 				"";
+			this.populatePriceListOptions();
 		}
 
 		this.insuranceModal.show();
@@ -2650,7 +2676,10 @@ class InsuranceManager {
 				patientsSummaryColumns.push([
 					key,
 					{
-						text: `${this.formatCurrency(value.totalCost - value.patientPaid || 0, true)}`,
+						text: `${this.formatCurrency(
+							value.totalCost - value.patientPaid || 0,
+							true
+						)}`,
 						color: "red"
 					}
 				]);
@@ -2665,9 +2694,9 @@ class InsuranceManager {
 					{
 						text: `Report Period: ${new Date(
 							this.currentReport.report_period.start_date
-						).toLocaleDateString()} - ${new Date(
+						).toLocaleDateString("en-GB")} - ${new Date(
 							this.currentReport.report_period.end_date
-						).toLocaleDateString()}`,
+						).toLocaleDateString("en-GB")}`,
 						style: "subheader",
 						alignment: "center"
 					},
@@ -2691,19 +2720,25 @@ class InsuranceManager {
 										],
 										[
 											"Services Cost:",
-											this.formatCurrency(
-												this.currentReport
-													.total_services_cost,
-												true
-											)
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_services_cost,
+													true
+												),
+												alignment: "right"
+											}
 										],
 										[
 											"Drugs Cost:",
-											this.formatCurrency(
-												this.currentReport
-													.total_drugs_cost,
-												true
-											)
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_drugs_cost,
+													true
+												),
+												alignment: "right"
+											}
 										],
 										[
 											{ text: "Total Cost:", bold: true },
@@ -2713,16 +2748,20 @@ class InsuranceManager {
 														.total_cost,
 													true
 												),
-												bold: true
+												bold: true,
+												alignment: "right"
 											}
 										],
 										[
 											"Patient Payments:",
-											this.formatCurrency(
-												this.currentReport
-													.total_patient_payments,
-												true
-											)
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_patient_payments,
+													true
+												),
+												alignment: "right"
+											}
 										],
 										[
 											{
@@ -2737,12 +2776,16 @@ class InsuranceManager {
 													true
 												),
 												bold: true,
-												color: "#dc3545"
+												color: "#dc3545",
+												alignment: "right"
 											}
 										],
 										[
 											"Total Patients:",
-											this.currentReport.patient_count.toString()
+											{
+												text: this.currentReport.patient_count.toString(),
+												alignment: "right"
+											}
 										],
 										...(patientsSummaryColumns as any[])
 									]
@@ -2789,7 +2832,7 @@ class InsuranceManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -2865,13 +2908,13 @@ class InsuranceManager {
 				patientInfo.push(
 					`Admission: ${new Date(
 						sampleItem.admission_time
-					).toLocaleDateString()}`
+					).toLocaleDateString("en-GB")}`
 				);
 				if (sampleItem.discharge_time) {
 					patientInfo.push(
 						`Discharge: ${new Date(
 							sampleItem.discharge_time
-						).toLocaleDateString()}`
+						).toLocaleDateString("en-GB")}`
 					);
 				} else {
 					patientInfo.push(`Status: Currently Admitted`);
@@ -2921,7 +2964,7 @@ class InsuranceManager {
 					tableBody.push([
 						itemName,
 						this.capitalizeFirst(item.item_type),
-						new Date(item.service_date).toLocaleDateString(),
+						new Date(item.service_date).toLocaleDateString("en-GB"),
 						{ text: item.quantity.toString(), alignment: "center" },
 						{
 							text: this.formatCurrency(item.unit_price, true),

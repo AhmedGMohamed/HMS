@@ -1,6 +1,7 @@
 //@ts-ignore
 import Swal from "../../sweetalert2/src/sweetalert2.js";
 import { generatePatientBill } from "../utils/pdfGenerator.js";
+import { i18n } from "../utils/i18n.js";
 
 interface PrintBillItem {
 	id: string;
@@ -116,7 +117,7 @@ export class PrintBillManager {
 
 	public async showPrintModal(patient: any, bill: any): Promise<void> {
 		if (!bill || !patient) {
-			this.showError("No bill or patient selected");
+			this.showError(i18n.t("patients.printBill.messages.noBillOrPatient"));
 			return;
 		}
 
@@ -131,7 +132,7 @@ export class PrintBillManager {
 			this.printCustomizationModal.show();
 		} catch (error) {
 			console.error("Error preparing print modal:", error);
-			this.showError("Failed to prepare print customization");
+			this.showError(i18n.t("patients.printBill.messages.prepareFailed"));
 		}
 	}
 
@@ -171,7 +172,7 @@ export class PrintBillManager {
 					description:
 						detail.service_name ||
 						detail.drug_name ||
-						"Unknown Item",
+						i18n.t("patients.printBill.unknownItem"),
 					quantity: detail.quantity,
 					unit_price: detail.unit_price
 				});
@@ -186,7 +187,7 @@ export class PrintBillManager {
 		document.getElementById("printPatientName")!.textContent =
 			this.customBillData.patient.name;
 		document.getElementById("printPatientPhone")!.textContent =
-			this.customBillData.patient.phone || "N/A";
+			this.customBillData.patient.phone || i18n.t("common.unknown");
 		document.getElementById("printPaymentType")!.textContent =
 			this.customBillData.patient.payment_type.charAt(0).toUpperCase() +
 			this.customBillData.patient.payment_type.slice(1);
@@ -212,9 +213,8 @@ export class PrintBillManager {
 		).checked = true;
 
 		// Populate paid amount (read-only)
-		document.getElementById("printPaidAmount")!.textContent = `$${parseInt(
-			this.customBillData.bill.paid_amount as unknown as string
-		).toFixed(2)}`;
+		document.getElementById("printPaidAmount")!.textContent = 
+			i18n.formatCurrency(parseInt(this.customBillData.bill.paid_amount as unknown as string));
 
 		// Populate bill items
 		this.updatePrintBillItemsTable();
@@ -227,8 +227,7 @@ export class PrintBillManager {
 		const tbody = document.getElementById("printBillItemsBody")!;
 
 		if (this.customBillItems.length === 0) {
-			tbody.innerHTML =
-				'<tr><td colspan="5" class="text-center text-muted">No items in bill</td></tr>';
+			tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${i18n.t("patients.printBill.noItemsInBill")}</td></tr>`;
 			return;
 		}
 
@@ -241,7 +240,9 @@ export class PrintBillManager {
 						item.description
 					)}</div>
                     <small class="text-muted">${
-						item.type === "service" ? "Service" : "Drug"
+						item.type === "service" 
+							? i18n.t("patients.printBill.itemTypes.service")
+							: i18n.t("patients.printBill.itemTypes.drug")
 					}</small>
                 </td>
                 <td>
@@ -254,12 +255,11 @@ export class PrintBillManager {
                            value="${item.unit_price}" min="0" step="0.01"
                            onchange="window.printBillManager.updatePrintItemPrice(${index}, this.value)">
                 </td>
-                <td class="fw-bold">$${(
-					item.quantity * item.unit_price
-				).toFixed(2)}</td>
+                <td class="fw-bold">${i18n.formatCurrency(item.quantity * item.unit_price)}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-danger" 
-                            onclick="window.printBillManager.removePrintItem(${index})">
+                            onclick="window.printBillManager.removePrintItem(${index})"
+                            title="${i18n.t("common.delete")}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -383,27 +383,20 @@ export class PrintBillManager {
 		const balance = totalAmount - paidAmount;
 
 		// Update display
-		document.getElementById(
-			"printSubtotal"
-		)!.textContent = `$${subtotal.toFixed(2)}`;
-		document.getElementById(
-			"printServicesTotal"
-		)!.textContent = `$${servicesTotal.toFixed(2)}`;
-		document.getElementById(
-			"printDrugsTotal"
-		)!.textContent = `$${drugsTotal.toFixed(2)}`;
-		document.getElementById(
-			"printDiscountAmount"
-		)!.textContent = `$${discountAmount.toFixed(2)}`;
-		document.getElementById(
-			"printVatAmount"
-		)!.textContent = `$${vatAmount.toFixed(2)}`;
-		document.getElementById(
-			"printTotalAmount"
-		)!.textContent = `$${totalAmount.toFixed(2)}`;
-		document.getElementById(
-			"printBalance"
-		)!.textContent = `$${balance.toFixed(2)}`;
+		document.getElementById("printSubtotal")!.textContent = 
+			i18n.formatCurrency(subtotal);
+		document.getElementById("printServicesTotal")!.textContent = 
+			i18n.formatCurrency(servicesTotal);
+		document.getElementById("printDrugsTotal")!.textContent = 
+			i18n.formatCurrency(drugsTotal);
+		document.getElementById("printDiscountAmount")!.textContent = 
+			i18n.formatCurrency(discountAmount);
+		document.getElementById("printVatAmount")!.textContent = 
+			i18n.formatCurrency(vatAmount);
+		document.getElementById("printTotalAmount")!.textContent = 
+			i18n.formatCurrency(totalAmount);
+		document.getElementById("printBalance")!.textContent = 
+			i18n.formatCurrency(balance);
 
 		// Enable/disable discount fields based on checkbox
 		const discountInput = document.getElementById(
@@ -462,15 +455,13 @@ export class PrintBillManager {
 								service.name
 							)}</div>
                             <div class="print-item-details">
-                                Type: ${this.formatServiceType(
+                                ${i18n.t("patients.printBill.type")}: ${this.formatServiceType(
 									service.service_type
 								)}
-                                ${service.auto_renew ? " • Auto Renew" : ""}
+                                ${service.auto_renew ? " • " + i18n.t("patients.printBill.autoRenew") : ""}
                             </div>
                         </div>
-                        <div class="print-item-price">$${parseInt(
-							price as unknown as string
-						).toFixed(2)}</div>
+                        <div class="print-item-price">${i18n.formatCurrency(price)}</div>
                     </div>
                 </div>
             `;
@@ -481,8 +472,7 @@ export class PrintBillManager {
 		const drugsContainer = document.getElementById(
 			"availableDrugsForPrint"
 		)!;
-		drugsContainer.innerHTML = this.availableDrugs
-			.filter((drug) => drug.available_quantity > 0)
+		drugsContainer.innerHTML = this.availableDrugs.filter((drug) => drug.available_quantity > 0)
 			.map(
 				(drug) => `
             <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${
@@ -494,8 +484,8 @@ export class PrintBillManager {
 							drug.name
 						)}</div>
                         <div class="print-item-details">
-                            Available: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || "units"
+                            ${i18n.t("patients.printBill.available")}: ${drug.available_quantity} ${
+					drug.unit_conversion?.smaller || i18n.t("common.units")
 				}
                             ${
 								drug.manufacturer
@@ -504,9 +494,7 @@ export class PrintBillManager {
 							}
                         </div>
                     </div>
-                    <div class="print-item-price">$${(drug.price || 0).toFixed(
-						2
-					)}</div>
+                    <div class="print-item-price">${i18n.formatCurrency(drug.price || 0)}</div>
                 </div>
             </div>
         `
@@ -538,13 +526,13 @@ export class PrintBillManager {
 								service.name
 							)}</div>
                             <div class="print-item-details">
-                                Type: ${this.formatServiceType(
+                                ${i18n.t("patients.printBill.type")}: ${this.formatServiceType(
 									service.service_type
 								)}
-                                ${service.auto_renew ? " • Auto Renew" : ""}
+                                ${service.auto_renew ? " • " + i18n.t("patients.printBill.autoRenew") : ""}
                             </div>
                         </div>
-                        <div class="print-item-price">$${price.toFixed(2)}</div>
+                        <div class="print-item-price">${i18n.formatCurrency(price)}</div>
                     </div>
                 </div>
             `;
@@ -574,8 +562,8 @@ export class PrintBillManager {
 							drug.name
 						)}</div>
                         <div class="print-item-details">
-                            Available: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || "units"
+                            ${i18n.t("patients.printBill.available")}: ${drug.available_quantity} ${
+					drug.unit_conversion?.smaller || i18n.t("common.units")
 				}
                             ${
 								drug.manufacturer
@@ -584,9 +572,7 @@ export class PrintBillManager {
 							}
                         </div>
                     </div>
-                    <div class="print-item-price">$${(drug.price || 0).toFixed(
-						2
-					)}</div>
+                    <div class="print-item-price">${i18n.formatCurrency(drug.price || 0)}</div>
                 </div>
             </div>
         `
@@ -653,7 +639,7 @@ export class PrintBillManager {
 			// Close the add item modal
 			this.addItemToPrintModal.hide();
 
-			this.showSuccess(`${item.name} added to bill`);
+			this.showSuccess(i18n.t("patients.printBill.messages.itemAdded", { name: item.name }));
 		}
 	}
 
@@ -760,10 +746,10 @@ export class PrintBillManager {
 			this.printCustomizationModal.hide();
 			pdf.open();
 
-			this.showSuccess("Custom bill generated successfully");
+			this.showSuccess(i18n.t("patients.printBill.messages.pdfGeneratedSuccess"));
 		} catch (error) {
 			console.error("Error generating custom PDF:", error);
-			this.showError("Failed to generate custom PDF");
+			this.showError(i18n.t("patients.printBill.messages.pdfGenerateFailed"));
 		}
 	}
 

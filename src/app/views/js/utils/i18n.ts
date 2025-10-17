@@ -270,7 +270,7 @@ class I18n {
 				maximumFractionDigits: decimals
 			});
 		}
-		return num.toLocaleString("en-US", {
+		return num.toLocaleString("en-EG", {
 			minimumFractionDigits: decimals,
 			maximumFractionDigits: decimals
 		});
@@ -290,7 +290,7 @@ class I18n {
 			});
 		}
 
-		return dateObj.toLocaleString("en-US", {
+		return dateObj.toLocaleString("en-GB", {
 			year: "numeric",
 			month: format === "long" ? "long" : "2-digit",
 			day: "2-digit"
@@ -308,7 +308,7 @@ class I18n {
 			});
 		}
 
-		return dateObj.toLocaleTimeString("en-US", {
+		return dateObj.toLocaleTimeString("en-GB", {
 			hour: "2-digit",
 			minute: "2-digit",
 			hour12: true

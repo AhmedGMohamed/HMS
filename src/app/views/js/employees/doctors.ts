@@ -243,7 +243,7 @@ class DoctorManager {
             </td>
             <td>${this.escapeHtml(doctor.name)}</td>
             <td>${this.escapeHtml(doctor.doctor_type)}</td>
-            <td>${new Date(doctor.hire_date).toLocaleDateString()}</td>
+            <td>${new Date(doctor.hire_date).toLocaleDateString("en-GB")}</td>
             <td>$${
 				this.userPermissions.includes("manage_payments")
 					? Number(doctor.daily_pay) || "-"
