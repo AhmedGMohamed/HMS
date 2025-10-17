@@ -1086,6 +1086,10 @@ class DrugManager {
 
 	private async handleSellDrug(): Promise<void> {
 		if (!this.validateSellForm()) return;
+		if (!this.currentShipment) return;
+
+		const currentDrug = this.drugs.get(this.currentShipment.drug_id);
+		if (!currentDrug) return;
 
 		const transactionType = (
 			document.getElementById("transactionType") as HTMLSelectElement
@@ -1097,7 +1101,7 @@ class DrugManager {
 						"sellQuantityLarger"
 					) as HTMLInputElement
 				).value
-			) +
+			) * (currentDrug.unit_conversion.ratio || 1) +
 			parseInt(
 				(
 					document.getElementById(
@@ -1117,7 +1121,6 @@ class DrugManager {
 				  )
 				: null;
 
-		if (!this.currentShipment) return;
 
 		const drug = this.drugs.get(this.currentShipment.drug_id);
 		if (!drug) return;
@@ -1137,7 +1140,7 @@ class DrugManager {
 		}
 
 		// Check if price is less than buy price
-		if (price / quantity < parseFloat(this.currentShipment.buy_price)) {
+		if (price * currentDrug.unit_conversion.ratio / quantity < parseFloat(this.currentShipment.buy_price)) {
 			const result = await Swal.fire({
 				title: i18n.t("common.warning"),
 				text: i18n.t("pharmacy.messages.priceBelowBuyPrice"),
@@ -1369,7 +1372,7 @@ class DrugManager {
 		// Set drug ID and unit
 		(document.getElementById("shipmentDrugId") as HTMLInputElement).value =
 			drugId.toString();
-		quantityUnit.textContent = this.currentDrug.unit_conversion.smaller;
+		quantityUnit.textContent = this.currentDrug.unit_conversion.larger;
 
 		if (shipmentId) {
 			modalTitle.textContent = i18n.t("pharmacy.modals.editShipment");

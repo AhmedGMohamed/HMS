@@ -78,8 +78,10 @@ CREATE TABLE IF NOT EXISTS Employee (
 	employee_type employee_type NOT NULL,
 	base_pay DECIMAL(15, 2) DEFAULT 0,
 	extra_amount DECIMAL(15, 2) DEFAULT 0,
-	extra_payment_type VARCHAR(50), --"per_patient" | "income" | "both" | "none"
-	per_patient_payment_type VARCHAR(50), --"fixed" | "percentage"
+	extra_payment_type VARCHAR(50),
+	--"per_patient" | "income" | "both" | "none"
+	per_patient_payment_type VARCHAR(50),
+	--"fixed" | "percentage"
 	percentage_scope percentage_scope,
 	need_clock_in BOOLEAN DEFAULT false,
 	shift_type shift_type,
@@ -315,8 +317,10 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 	payment_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
 	payment_amount DECIMAL(15, 2) NOT NULL,
-	extra_payment_type VARCHAR(50), -- 'none' | 'per_patient' | 'income'
-	payment_type VARCHAR(50) NOT NULL, -- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' 
+	extra_payment_type VARCHAR(50),
+	-- 'none' | 'per_patient' | 'income'
+	payment_type VARCHAR(50) NOT NULL,
+	-- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' 
 	percentage_scope percentage_scope,
 	extra_amount DECIMAL(15, 2),
 	is_paid BOOLEAN DEFAULT false,
@@ -444,7 +448,6 @@ CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_doctor ON DoctorPatientHis
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_date ON DailyStaffAssignment(work_date, payment_processed);
 
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_employee ON DailyStaffAssignment(employee_id, work_date);
-
 
 -- Add indexes for employee patient payments
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_payment ON EmployeePaymentPatient(payment_id);
@@ -701,3 +704,19 @@ VALUES
 	),
 	('view_reports', 'Can view facility reports'),
 	('view_only', 'Can only view records');
+
+INSERT INTO
+	Role (name)
+VALUES
+	('Admin');
+
+INSERT INTO
+	RolePermission (role_id, permission_id)
+VALUES
+	(1, 12),
+	(1, 13);
+
+INSERT INTO
+	"User" (username, password_hash, role_id)
+VALUES
+	('admin', 'admin_hash', 1);

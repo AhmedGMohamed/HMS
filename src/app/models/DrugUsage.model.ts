@@ -104,12 +104,8 @@ export class DrugUsageModel {
 				throw new Error("Invalid shipment for this drug");
 			}
 
-			// Convert quantity to smaller units
-			const unitConversion = drugResult.rows[0].unit_conversion;
-			const quantityInSmallerUnits = data.quantity * unitConversion.ratio;
-
 			// Check if sufficient quantity available in specified shipment
-			if (quantityInSmallerUnits > shipmentResult.rows[0].quantity) {
+			if (data.quantity > shipmentResult.rows[0].quantity) {
 				throw new Error("Insufficient quantity in selected shipment");
 			}
 
@@ -120,7 +116,7 @@ export class DrugUsageModel {
             	SET quantity = quantity - $1
             	WHERE shipment_id = $2;
         	`,
-				[quantityInSmallerUnits, data.shipment_id]
+				[data.quantity, data.shipment_id]
 			);
 
 			// Create transaction for the drug usage
@@ -135,7 +131,7 @@ export class DrugUsageModel {
             `,
 				[
 					shipmentResult.rows[0].shipment_id,
-					quantityInSmallerUnits,
+					data.quantity,
 					data.price,
 					userId
 				]
@@ -156,7 +152,7 @@ export class DrugUsageModel {
 				data.drug_id,
 				transactionResult.rows[0].transaction_id,
 				data.patient_history_id,
-				quantityInSmallerUnits
+				data.quantity
 			]);
 
 			// Get full usage details
