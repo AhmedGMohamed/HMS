@@ -130,7 +130,7 @@ export class DrugUsageModel {
                     shipment_id, transaction_type, quantity,
                     price, created_by_user_id
                 )	
-                VALUES ($1, 'patient', $2, $3, $4, $5)	
+                VALUES ($1, 'patient', $2, $3, $4)	
                 RETURNING transaction_id;
             `,
 				[

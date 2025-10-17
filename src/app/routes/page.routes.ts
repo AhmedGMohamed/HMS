@@ -6,7 +6,7 @@ import {
 	verifyToken
 } from "../middleware/auth.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
-import navigationController from "../controllers/navigation.controller.js";
+import navigationController from "../controllers/Navigation.controller.js";
 
 const router = Router();
 

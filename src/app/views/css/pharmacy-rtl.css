@@ -345,6 +345,10 @@ small.text-muted {
     direction: rtl;
 }
 
+.shipment-rows .mt-2 {
+	direction: rtl;
+}
+
 /* Quantity Display */
 .stock-quantity {
     direction: rtl;

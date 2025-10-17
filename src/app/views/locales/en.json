@@ -96,8 +96,8 @@
 			"doctorsOnDuty": "Doctors On Duty",
 			"nursesOnDuty": "Nurses On Duty",
 			"pendingServices": "Pending Services",
-			"lowStockAlerts": "Low Stock Items",
-			"expiringDrugs": "Expiring Drugs",
+			"lowStockAlerts": "Low Stock Drugs",
+			"expiringDrugs": "Near Expiry Drugs",
 			"todayProfit": "Today's Profit"
 		},
 		"charts": {
@@ -1051,6 +1051,13 @@
 		"messages": {
 			"noShipments": "No shipments available for this drug",
 			"loadShipmentError": "Failed to load shipment details",
+			"deleteShipmentTitle": "Delete Shipment?",
+			"deleteShipmentConfirm": "Are you sure you want to delete this shipment?",
+			"deleteShipmentConfirmText": "This action cannot be undone.",
+			"warning": "Warning",
+			"shipmentHasStock": "This shipment still has stock available.",
+			"deleteShipmentWarning": "Deleting this shipment will permanently remove all stock records. This action cannot be undone!",
+			"deletingShipment": "Deleting shipment...",
 			"shipmentDeleteSuccess": "Shipment deleted successfully",
 			"shipmentDeleteError": "Failed to delete shipment",
 			"noActivePatients": "No active patients",
@@ -1081,7 +1088,8 @@
 			"warehouseDeleteError": "Failed to delete warehouse",
 			"deleteWarehouseTitle": "Delete Warehouse?",
 			"deleteWarehouseText": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
-		}
+		},
+		"shipmentActions": "Shipment Actions"
 	},
 	"services": {
 		"pageTitle": "HMS - Services Management",

@@ -596,22 +596,22 @@ class DrugManager {
 	): string {
 		if (shipments.length === 0) {
 			return `
-            	<tr class="shipment-rows">
-            	    <td colspan="8" class="text-center py-3">
-            	        <div class="text-muted mb-3">${i18n.t(
+	        	<tr class="shipment-rows">
+	        	    <td colspan="8" class="text-center py-3">
+	        	        <div class="text-muted mb-3">${i18n.t(
 							"pharmacy.messages.noShipments"
 						)}</div>
-            	        <button class="btn btn-sm btn-primary" 
-            	                onclick="drugManager.showShipmentModal(${
+	        	        <button class="btn btn-sm btn-primary" 
+	        	                onclick="drugManager.showShipmentModal(${
 									drug.drug_id
 								})">
-            	            <i class="bi bi-plus-circle"></i> ${i18n.t(
-								"pharmacy.buttons.addShipment"
-							)}
-            	        </button>
-            	    </td>
-            	</tr>
-            `;
+		        	            <i class="bi bi-plus-circle"></i> ${i18n.t(
+									"pharmacy.buttons.addShipment"
+								)}
+	        	        </button>
+	        	    </td>
+	        	</tr>
+	        `;
 		}
 
 		let rows = shipments.map((shipment) => {
@@ -622,120 +622,142 @@ class DrugManager {
 				shipment.quantity % drug.unit_conversion.ratio;
 
 			return `
-                <tr class="shipment-rows">
-                    <td colspan="8">
-                        <div class="shipment-detail">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <strong>${i18n.t(
-										"pharmacy.fields.warehouse"
-									)}:</strong> ${this.escapeHtml(
+		            <tr class="shipment-rows">
+		                <td colspan="8">
+		                    <div class="shipment-detail">
+		                        <div class="row align-items-center justify-content-between">
+		                            <div class="col-md-2">
+		                                <strong>${i18n.t(
+											"pharmacy.fields.warehouse"
+										)}:</strong> ${this.escapeHtml(
 				shipment.warehouse_name
 			)}
-                                </div>
-								<div class="col-md-3">
-									<strong>${i18n.t("pharmacy.fields.buyPrice")}:</strong> ${i18n.formatCurrency(
+		                            </div>
+									<div class="col-md-2">
+										<strong>${i18n.t("pharmacy.fields.buyPrice")}:</strong> ${i18n.formatCurrency(
 				parseFloat(shipment.buy_price)
 			)}
-								</div>
-                                <div class="col-md-3">
-                                    <strong>${i18n.t(
-										"pharmacy.fields.quantity"
-									)}:</strong> 
-                                    ${quantityInLarger} ${
+									</div>
+		                            <div class="col-md-2">
+		                                <strong>${i18n.t(
+											"pharmacy.fields.quantity"
+										)}:</strong> 
+		                                ${quantityInLarger} ${
 				drug.unit_conversion.larger
 			}
-                                    ${
-										quantityInSmaller > 0
-											? ` + ${quantityInSmaller} ${drug.unit_conversion.smaller}`
-											: ""
-									}
-                                </div>
-                                <div class="col-md-2">
-                                    <strong>${i18n.t(
-										"pharmacy.fields.expiry"
-									)}:</strong> 
-                                    ${i18n.formatDate(shipment.expiry_date)}
-                                </div>
-                                <div class="col-md-1">
-                                    <button class="btn btn-sm btn-success" 
-                                            onclick="drugManager.showSellModal(${
-												shipment.shipment_id
-											})"
-                                            ${
-												shipment.quantity === 0
-													? "disabled"
-													: ""
-											}>
-                                        <i class="bi bi-cart"></i> ${i18n.t(
-											"pharmacy.buttons.sell"
-										)}
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <strong>${i18n.t(
-									"pharmacy.fields.prices"
-								)}:</strong>
-                                ${shipment.prices
-									.map((price) => {
-										const priceList = this.priceLists.find(
-											(pl) =>
-												pl.pricelist_id ===
-												price.pricelist_id
-										);
-										return `
-                                    	    <span class="price-badge">
-                                    	    ${this.escapeHtml(
-												priceList?.name || ""
-											)}: 
-                                    	    ${i18n.formatCurrency(
-												parseFloat(price.price)
-											)}
-                                    	    ${
-												price.requires_prepayment
-													? `
-                                    	        <small class="ms-1">
-                                    	            (${i18n.t(
-														"pharmacy.fields.prepayment"
-													)}: ${
-															price.prepayment_type ===
-															"fixed"
-																? i18n.formatCurrency(
-																		price.prepayment_amount ||
-																			0
-																  )
-																: `${price.prepayment_amount}%`
-													  })
-                                    	        </small>
-                                    	    `
-													: ""
-											}
-                                    	</span>
-                                    `;
-									})
-									.join("")}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
+		                                ${
+											quantityInSmaller > 0
+												? ` + ${quantityInSmaller} ${drug.unit_conversion.smaller}`
+												: ""
+										}
+		                            </div>
+		                            <div class="col-md-2">
+		                                <strong>${i18n.t(
+											"pharmacy.fields.expiry"
+										)}:</strong> 
+		                                ${i18n.formatDate(shipment.expiry_date)}
+		                            </div>
+		                            <div class="col-md-2">
+		                                <div class="btn-group btn-group-sm" role="group" aria-label="${i18n.t(
+											"pharmacy.shipmentActions"
+										)}">
+		                                    <button class="btn btn-success" 
+		                                            onclick="drugManager.showSellModal(${
+														shipment.shipment_id
+													})"
+		                                            ${
+														shipment.quantity === 0
+															? "disabled"
+															: ""
+													}
+		                                            title="${i18n.t(
+														"pharmacy.buttons.sell"
+													)}">
+		                                        <i class="bi bi-cart"></i> ${i18n.t(
+													"pharmacy.buttons.sell"
+												)}
+		                                    </button>
+		                                    <button class="btn btn-primary" 
+		                                            onclick="drugManager.showShipmentModal(${
+														drug.drug_id
+													}, ${shipment.shipment_id})"
+		                                            title="${i18n.t("common.edit")}">
+		                                        <i class="bi bi-pencil"></i> ${i18n.t(
+													"common.edit"
+												)}
+		                                    </button>
+		                                    <button class="btn btn-danger" 
+		                                            onclick="drugManager.deleteShipment(${
+														shipment.shipment_id
+													}, ${drug.drug_id})"
+		                                            title="${i18n.t("common.delete")}">
+		                                        <i class="bi bi-trash"></i> ${i18n.t(
+													"common.delete"
+												)}
+		                                    </button>
+		                                </div>
+		                            </div>
+		                        </div>
+		                        <div class="mt-2">
+		                            <strong>${i18n.t(
+										"pharmacy.fields.prices"
+									)}:</strong>
+		                            ${shipment.prices
+										.map((price) => {
+											const priceList =
+												this.priceLists.find(
+													(pl) =>
+														pl.pricelist_id ===
+														price.pricelist_id
+												);
+											return `
+		                                	    <span class="price-badge">
+		                                	    ${this.escapeHtml(priceList?.name || "")}: 
+		                                	    ${i18n.formatCurrency(
+													parseFloat(price.price)
+												)}
+		                                	    ${
+													price.requires_prepayment
+														? `
+		                                	        <small class="ms-1">
+		                                	            (${i18n.t(
+															"pharmacy.fields.prepayment"
+														)}: ${
+																price.prepayment_type ===
+																"fixed"
+																	? i18n.formatCurrency(
+																			price.prepayment_amount ||
+																				0
+																	  )
+																	: `${price.prepayment_amount}%`
+														  })
+		                                	        </small>
+		                                	    `
+														: ""
+												}
+		                                	</span>
+		                                `;
+										})
+										.join("")}
+		                        </div>
+		                    </div>
+		                </td>
+		            </tr>
+		        `;
 		});
 
 		rows.push(`
-        <tr class="shipment-rows">
-            <td colspan="8" class="text-center py-2">
-                <button class="btn btn-sm btn-outline-primary" 
-                        onclick="drugManager.showShipmentModal(${
-							drug.drug_id
-						})">
-                    <i class="bi bi-plus-circle"></i> ${i18n.t(
-						"pharmacy.buttons.addShipment"
-					)}
-                </button>
-            </td>
-        </tr>
-    `);
+		    <tr class="shipment-rows">
+		        <td colspan="8" class="text-center py-2">
+		            <button class="btn btn-sm btn-outline-primary" 
+		                    onclick="drugManager.showShipmentModal(${drug.drug_id})">
+		                <i class="bi bi-plus-circle"></i> ${i18n.t(
+							"pharmacy.buttons.addShipment"
+						)}
+		            </button>
+		        </td>
+		    </tr>
+		`);
 
 		return rows.join("");
 	}
@@ -1551,20 +1573,113 @@ class DrugManager {
 		}
 	}
 
-	public async deleteShipment(shipmentId: number): Promise<void> {
+	public async deleteShipment(
+		shipmentId: number,
+		drugId: number
+	): Promise<void> {
 		try {
+			const drug = this.drugs.get(drugId);
+			const stock = this.drugStocks.get(drugId);
+			const shipment = stock?.shipments.find(
+				(s) => s.shipment_id === shipmentId
+			);
+
+			if (!drug || !shipment) {
+				this.showError(i18n.t("pharmacy.messages.shipmentNotFound"));
+				return;
+			}
+
+			// Build warning message based on shipment quantity
+			let warningMessage = i18n.t(
+				"pharmacy.messages.deleteShipmentConfirm"
+			);
+			let warningHtml = "";
+
+			if (shipment.quantity > 0) {
+				const quantityInLarger = Math.floor(
+					shipment.quantity / drug.unit_conversion.ratio
+				);
+				const quantityInSmaller =
+					shipment.quantity % drug.unit_conversion.ratio;
+
+				const quantityDisplay =
+					quantityInLarger > 0
+						? `${quantityInLarger} ${drug.unit_conversion.larger}` +
+						  (quantityInSmaller > 0
+								? ` + ${quantityInSmaller} ${drug.unit_conversion.smaller}`
+								: "")
+						: `${quantityInSmaller} ${drug.unit_conversion.smaller}`;
+
+				warningHtml = `
+				<div class="alert alert-danger mb-3">
+					<i class="bi bi-exclamation-triangle-fill me-2"></i>
+					<strong>${i18n.t("pharmacy.messages.warning")}:</strong> 
+					${i18n.t("pharmacy.messages.shipmentHasStock")}
+				</div>
+				<div class="text-start mb-3">
+					<p><strong>${i18n.t("pharmacy.fields.drugName")}:</strong> ${this.escapeHtml(
+					drug.name
+				)}</p>
+					<p><strong>${i18n.t("pharmacy.fields.warehouse")}:</strong> ${this.escapeHtml(
+					shipment.warehouse_name
+				)}</p>
+					<p><strong>${i18n.t(
+						"pharmacy.fields.quantity"
+					)}:</strong> ${quantityDisplay}</p>
+					<p><strong>${i18n.t(
+						"pharmacy.fields.buyPrice"
+					)}:</strong> ${i18n.formatCurrency(
+					parseFloat(shipment.buy_price)
+				)}</p>
+					<p><strong>${i18n.t("pharmacy.fields.expiryDate")}:</strong> ${i18n.formatDate(
+					shipment.expiry_date
+				)}</p>
+				</div>
+				<p class="text-danger fw-bold">${i18n.t(
+					"pharmacy.messages.deleteShipmentWarning"
+				)}</p>
+			`;
+			} else {
+				warningHtml = `
+				<div class="text-start mb-3">
+					<p><strong>${i18n.t("pharmacy.fields.drugName")}:</strong> ${this.escapeHtml(
+					drug.name
+				)}</p>
+					<p><strong>${i18n.t("pharmacy.fields.warehouse")}:</strong> ${this.escapeHtml(
+					shipment.warehouse_name
+				)}</p>
+					<p><strong>${i18n.t("pharmacy.fields.expiryDate")}:</strong> ${i18n.formatDate(
+					shipment.expiry_date
+				)}</p>
+				</div>
+				<p>${i18n.t("pharmacy.messages.deleteShipmentConfirmText")}</p>
+			`;
+			}
+
 			const result = await Swal.fire({
-				title: i18n.t("pharmacy.messages.deleteConfirmTitle"),
-				text: i18n.t("pharmacy.messages.deleteConfirmText"),
-				icon: "warning",
+				title: i18n.t("pharmacy.messages.deleteShipmentTitle"),
+				html: warningHtml,
+				icon: shipment.quantity > 0 ? "warning" : "question",
 				showCancelButton: true,
 				confirmButtonColor: "#dc3545",
 				cancelButtonColor: "#6c757d",
-				confirmButtonText: i18n.t("common.yes"),
-				cancelButtonText: i18n.t("common.cancel")
+				confirmButtonText: i18n.t("common.deleteConfirm"),
+				cancelButtonText: i18n.t("common.cancel"),
+				focusCancel: true,
+				reverseButtons: true
 			});
 
 			if (result.isConfirmed) {
+				// Show loading state
+				Swal.fire({
+					title: i18n.t("pharmacy.messages.deletingShipment"),
+					allowOutsideClick: false,
+					allowEscapeKey: false,
+					didOpen: () => {
+						Swal.showLoading();
+					}
+				});
+
 				const response = await fetch(
 					`/api/pharmacy/drugs/shipments/${shipmentId}`,
 					{
@@ -1578,24 +1693,35 @@ class DrugManager {
 				);
 
 				if (!response.ok) {
-					throw new Error("Failed to delete shipment");
+					const error = await response.json();
+					throw new Error(error.error || "Failed to delete shipment");
 				}
 
+				// Reload drugs to reflect changes
 				await this.loadDrugs();
 
-				Swal.fire({
+				// Show success message
+				await Swal.fire({
 					icon: "success",
 					title: i18n.t("common.success"),
 					text: i18n.t("pharmacy.messages.shipmentDeleteSuccess"),
-					toast: true,
-					position: "top-end",
+					timer: 3000,
 					showConfirmButton: false,
-					timer: 3000
+					toast: true,
+					position: "top-end"
 				});
 			}
 		} catch (error) {
 			console.error("Error deleting shipment:", error);
-			this.showError(i18n.t("pharmacy.messages.shipmentDeleteError"));
+			Swal.fire({
+				icon: "error",
+				title: i18n.t("common.error"),
+				text:
+					error instanceof Error
+						? error.message
+						: i18n.t("pharmacy.messages.shipmentDeleteError"),
+				confirmButtonColor: "#dc3545"
+			});
 		}
 	}
 

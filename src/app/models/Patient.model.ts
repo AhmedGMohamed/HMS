@@ -1292,9 +1292,14 @@ export class PatientModel {
 
 		for (const service of autoServicesResult.rows) {
 			// Add to active patient services
+			const isOnce = service.service_type === "once";
 			await query(
-				`INSERT INTO ActivePatientService (patient_id, service_id, start_date, is_active, last_renewed) 
-                 VALUES ($1, $2, CURRENT_TIMESTAMP, true, NULL)`,
+				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${
+					isOnce ? " end_date," : ""
+				} is_active, last_renewed) 
+                 	 VALUES ($1, $2, CURRENT_TIMESTAMP,${
+							isOnce ? " CURRENT_TIMESTAMP," : ""
+						} ${isOnce ? "false," : "true,"} NULL)`,
 				[patientId, service.service_id]
 			);
 

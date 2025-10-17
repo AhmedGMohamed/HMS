@@ -12,12 +12,14 @@ export class DashboardService {
 				todayRevenue,
 				todayProfit,
 				lowStockItemsCount,
+				nearExpiryItemsCount,
 				todayInsurancePayments
 			] = await Promise.all([
 				this.getActivePatientsCount(),
 				this.getTodayRevenue(),
 				this.getTodayProfit(),
 				this.getLowStockItemsCount(),
+				this.getNearExpiryItemsCount(),
 				this.getTodayInsurancePayments()
 			]);
 
@@ -26,6 +28,7 @@ export class DashboardService {
 				todayRevenue,
 				todayProfit,
 				lowStockItemsCount,
+				nearExpiryItemsCount,
 				todayInsurancePayments
 			};
 		} catch (error) {
@@ -187,6 +190,22 @@ export class DashboardService {
 
 		const result = await query(sql);
 		return parseInt(result.rows[0].total_drugs_under_min_stock) || 0;
+	}
+
+	private async getNearExpiryItemsCount(): Promise<number> {
+		const sql = `
+			SELECT COUNT(DISTINCT ds.shipment_id) as near_expiry_count
+			FROM DrugShipment ds
+			JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+			WHERE 
+				ds.quantity > 0
+				AND dc.max_days_expiry_alert IS NOT NULL
+				AND ds.expiry_date > CURRENT_DATE
+				AND ds.expiry_date <= CURRENT_DATE + (dc.max_days_expiry_alert || ' days')::INTERVAL;
+		`;
+
+		const result = await query(sql);
+		return parseInt(result.rows[0].near_expiry_count) || 0;
 	}
 
 	private async getLast30DaysData(): Promise<ChartDataPoint[]> {

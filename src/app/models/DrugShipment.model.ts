@@ -223,21 +223,71 @@ export class DrugShipmentModel {
 
 			await query(sql, values);
 
-			if (data.prices !== undefined) {
+			if (data.prices !== undefined && data.prices.length > 0) {
+				// Delete all existing prices for this shipment
+				await query(
+					"DELETE FROM ShipmentPrice WHERE shipment_id = $1",
+					[data.shipment_id]
+				);
+
+				// Insert all new prices
 				for (const price of data.prices) {
+					// Validate price data
+					if (!price.pricelist_id || price.price === undefined) {
+						throw new Error(
+							"Invalid price data: pricelist_id and price are required"
+						);
+					}
+
+					// Validate prepayment data if required
+					if (price.requires_prepayment) {
+						if (
+							!price.prepayment_type ||
+							price.prepayment_amount === undefined
+						) {
+							throw new Error(
+								"Invalid prepayment data: prepayment_type and prepayment_amount are required when prepayment is required"
+							);
+						}
+
+						// Validate percentage values
+						if (
+							price.prepayment_type === "percentage" &&
+							(price.prepayment_amount < 0 ||
+								price.prepayment_amount > 100)
+						) {
+							throw new Error(
+								"Prepayment percentage must be between 0 and 100"
+							);
+						}
+
+						// Validate fixed amount values
+						if (
+							price.prepayment_type === "fixed" &&
+							price.prepayment_amount < 0
+						) {
+							throw new Error(
+								"Prepayment amount must be greater than or equal to 0"
+							);
+						}
+					}
+
+					// Insert the price
 					await query(
-						"DELETE FROM ShipmentPrice WHERE shipment_id = $1",
-						[data.shipment_id]
-					);
-					await query(
-						"INSERT INTO ShipmentPrice (pricelist_id, shipment_id, price, requires_prepayment, prepayment_type, prepayment_amount) VALUES ($1, $2, $3, $4, $5, $6)",
+						`INSERT INTO ShipmentPrice 
+						 (shipment_id, pricelist_id, price, requires_prepayment, prepayment_type, prepayment_amount) 
+						 VALUES ($1, $2, $3, $4, $5, $6)`,
 						[
-							price.pricelist_id,
 							data.shipment_id,
+							price.pricelist_id,
 							price.price,
-							price.requires_prepayment,
-							price.prepayment_type,
-							price.prepayment_amount
+							price.requires_prepayment || false,
+							price.requires_prepayment
+								? price.prepayment_type
+								: null,
+							price.requires_prepayment
+								? price.prepayment_amount
+								: null
 						]
 					);
 				}
@@ -294,7 +344,9 @@ export class DrugShipmentModel {
 		}
 	}
 
-	async getShipmentsByDrug(drugId: number): Promise<Array<ShipmentStock & { prices: ShipmentPrice[] }>> {
+	async getShipmentsByDrug(
+		drugId: number
+	): Promise<Array<ShipmentStock & { prices: ShipmentPrice[] }>> {
 		try {
 			const sql = `
                 SELECT 
@@ -326,7 +378,7 @@ export class DrugShipmentModel {
 
 	async getShipmentsByWarehouse(
 		warehouseId: number
-	): Promise<Array<ShipmentStock& { prices: ShipmentPrice[] }>> {
+	): Promise<Array<ShipmentStock & { prices: ShipmentPrice[] }>> {
 		try {
 			const sql = `
                 SELECT 
