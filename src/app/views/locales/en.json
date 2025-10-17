@@ -767,6 +767,24 @@
 			"due": "Due",
 			"credit": "Credit",
 			"processing": "Processing..."
+		},
+		"printBill": {
+			"unknownItem": "Unknown Item",
+			"noItemsInBill": "No items in bill",
+			"type": "Type",
+			"autoRenew": "Auto Renew",
+			"available": "Available",
+			"itemTypes": {
+				"service": "Service",
+				"drug": "Drug"
+			},
+			"messages": {
+				"noBillOrPatient": "No bill or patient selected",
+				"prepareFailed": "Failed to prepare print customization",
+				"itemAdded": "{{name}} added to bill",
+				"pdfGeneratedSuccess": "Custom bill generated successfully",
+				"pdfGenerateFailed": "Failed to generate custom PDF"
+			}
 		}
 	},
 	"insurance": {

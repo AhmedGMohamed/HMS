@@ -767,6 +767,24 @@
 			"due": "مستحق",
 			"credit": "رصيد",
 			"processing": "جارٍ المعالجة..."
+		},
+		"printBill": {
+			"unknownItem": "عنصر غير معروف",
+			"noItemsInBill": "لا توجد عناصر في الفاتورة",
+			"type": "النوع",
+			"autoRenew": "تجديد تلقائي",
+			"available": "متاح",
+			"itemTypes": {
+				"service": "خدمة",
+				"drug": "دواء"
+			},
+			"messages": {
+				"noBillOrPatient": "لم يتم اختيار فاتورة أو مريض",
+				"prepareFailed": "فشل في تحضير تخصيص الطباعة",
+				"itemAdded": "تمت إضافة {{name}} إلى الفاتورة",
+				"pdfGeneratedSuccess": "تم إنشاء الفاتورة المخصصة بنجاح",
+				"pdfGenerateFailed": "فشل في إنشاء ملف PDF المخصص"
+			}
 		}
 	},
 	"insurance": {

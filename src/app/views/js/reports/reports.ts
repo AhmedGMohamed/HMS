@@ -1192,7 +1192,7 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -1898,7 +1898,7 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -2680,7 +2680,7 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -3087,7 +3087,7 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -4097,7 +4097,7 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -4477,7 +4477,7 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -4857,10 +4857,10 @@ class ReportsManager {
 								const dataPoint = data[context.dataIndex];
 								if (dataPoint.total_amount > 0) {
 									return `Revenue: ${new Intl.NumberFormat(
-										"en-US",
+										"en-EG",
 										{
 											style: "currency",
-											currency: "USD"
+											currency: "EGP"
 										}
 									).format(dataPoint.total_amount)}`;
 								}
@@ -5210,9 +5210,9 @@ class ReportsManager {
 								return (
 									context.dataset.label +
 									": " +
-									new Intl.NumberFormat("en-US", {
+									new Intl.NumberFormat("en-EG", {
 										style: "currency",
-										currency: "USD"
+										currency: "EGP"
 									}).format(context.parsed.y)
 								);
 							}
@@ -5364,9 +5364,9 @@ class ReportsManager {
 							label: function (context: any) {
 								return (
 									"Revenue: " +
-									new Intl.NumberFormat("en-US", {
+									new Intl.NumberFormat("en-EG", {
 										style: "currency",
-										currency: "USD"
+										currency: "EGP"
 									}).format(context.parsed.x)
 								);
 							},
@@ -5438,9 +5438,9 @@ class ReportsManager {
 							label: function (context: any) {
 								return (
 									"Revenue: " +
-									new Intl.NumberFormat("en-US", {
+									new Intl.NumberFormat("en-EG", {
 										style: "currency",
-										currency: "USD"
+										currency: "EGP"
 									}).format(context.parsed.x)
 								);
 							},
@@ -6546,7 +6546,7 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString()}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -7277,20 +7277,16 @@ class ReportsManager {
 		}
 	}
 
-	private formatCurrency(amount: number): string {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 2
-		}).format(amount);
+	private formatCurrency(amount: number, en: boolean = false): string {
+		return i18n.formatCurrency(amount, en);
 	}
 
 	private formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString();
+		return new Date(dateString).toLocaleDateString("en-GB");
 	}
 
 	private formatDateTime(dateString: string): string {
-		return new Date(dateString).toLocaleString();
+		return new Date(dateString).toLocaleString("en-GB");
 	}
 
 	private escapeHtml(text: string): string {
