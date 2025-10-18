@@ -766,7 +766,8 @@
 			"hours": "ساعات",
 			"due": "مستحق",
 			"credit": "رصيد",
-			"processing": "جارٍ المعالجة..."
+			"processing": "جارٍ المعالجة...",
+			"quantityExceedsAvailable": "الكمية الإجمالية تتجاوز المخزون المتاح"
 		},
 		"printBill": {
 			"unknownItem": "عنصر غير معروف",
