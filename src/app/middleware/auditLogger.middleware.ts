@@ -192,11 +192,13 @@ export async function auditLogger(
 			"/api/employees/:id": "Delete employee",
 			"/api/doctors/:id": "Delete doctor"
 		},
+		PATCH: {},
 		actionTypes: {
 			GET: "View",
 			POST: "Create",
 			PUT: "Update",
-			DELETE: "Delete"
+			DELETE: "Delete",
+			PATCH: "Update"
 		}
 	};
 

@@ -41,7 +41,7 @@ app.use((_req, res) => {
 	res.status(404).sendFile("./views/404.html", { root: __dirname });
 });
 
-app.use(errorHandler);
+//app.use(errorHandler);
 
 try {
 	PatientAutoRenewalCron.start();

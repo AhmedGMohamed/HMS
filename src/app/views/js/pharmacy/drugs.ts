@@ -1168,7 +1168,7 @@ class DrugManager {
 					shipment_id: this.currentShipment.shipment_id,
 					transaction_type: transactionType,
 					quantity: quantity,
-					price: price / quantity,
+					price: price * quantity,
 					patient_id: patientId
 				})
 			});
@@ -2001,7 +2001,7 @@ class DrugManager {
 
 		if (price && quantity > 0) {
 			const total =
-				(quantity * Number(price.price)) / drug.unit_conversion.ratio;
+				(quantity * Number(price.price));
 			totalPriceInput.value = i18n.formatNumber(total, 2, true);
 		} else {
 			totalPriceInput.value = i18n.formatNumber(0, 2, true);

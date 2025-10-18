@@ -15,6 +15,23 @@ interface PrintBillItem {
 	unit_price: number;
 }
 
+interface PatientHistory {
+	patient_history_id: number;
+	patient_id: number;
+	bill_id: number | null;
+	diagnosis: string | null;
+	admission_time: Date;
+	discharge_time: Date | null;
+	attending_doctors?: string[];
+	attending_doctor_ids?: number[];
+	attending_nurses?: string[];
+	attending_nurse_ids?: number[];
+	total_amount?: number;
+	paid_amount?: number;
+	pricelist_id: number | null;
+	quick_check: boolean;
+}
+
 export class PrintBillManager {
 	//@ts-ignore
 	private printCustomizationModal: Modal;
@@ -27,6 +44,7 @@ export class PrintBillManager {
 	private availableServices: any[] = [];
 	private availableDrugs: any[] = [];
 	private servicePrices: Map<number, number> = new Map();
+	private currentAdmission: PatientHistory | null = null;
 	private showSuccess: (message: string) => void;
 	private showError: (message: string) => void;
 	private escapeHtml: (text: string) => string;
@@ -117,7 +135,9 @@ export class PrintBillManager {
 
 	public async showPrintModal(patient: any, bill: any): Promise<void> {
 		if (!bill || !patient) {
-			this.showError(i18n.t("patients.printBill.messages.noBillOrPatient"));
+			this.showError(
+				i18n.t("patients.printBill.messages.noBillOrPatient")
+			);
 			return;
 		}
 
@@ -213,8 +233,12 @@ export class PrintBillManager {
 		).checked = true;
 
 		// Populate paid amount (read-only)
-		document.getElementById("printPaidAmount")!.textContent = 
-			i18n.formatCurrency(parseInt(this.customBillData.bill.paid_amount as unknown as string));
+		document.getElementById("printPaidAmount")!.textContent =
+			i18n.formatCurrency(
+				parseInt(
+					this.customBillData.bill.paid_amount as unknown as string
+				)
+			);
 
 		// Populate bill items
 		this.updatePrintBillItemsTable();
@@ -227,7 +251,9 @@ export class PrintBillManager {
 		const tbody = document.getElementById("printBillItemsBody")!;
 
 		if (this.customBillItems.length === 0) {
-			tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${i18n.t("patients.printBill.noItemsInBill")}</td></tr>`;
+			tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${i18n.t(
+				"patients.printBill.noItemsInBill"
+			)}</td></tr>`;
 			return;
 		}
 
@@ -240,7 +266,7 @@ export class PrintBillManager {
 						item.description
 					)}</div>
                     <small class="text-muted">${
-						item.type === "service" 
+						item.type === "service"
 							? i18n.t("patients.printBill.itemTypes.service")
 							: i18n.t("patients.printBill.itemTypes.drug")
 					}</small>
@@ -255,7 +281,9 @@ export class PrintBillManager {
                            value="${item.unit_price}" min="0" step="0.01"
                            onchange="window.printBillManager.updatePrintItemPrice(${index}, this.value)">
                 </td>
-                <td class="fw-bold">${i18n.formatCurrency(item.quantity * item.unit_price)}</td>
+                <td class="fw-bold">${i18n.formatCurrency(
+					item.quantity * item.unit_price
+				)}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-danger" 
                             onclick="window.printBillManager.removePrintItem(${index})"
@@ -383,19 +411,19 @@ export class PrintBillManager {
 		const balance = totalAmount - paidAmount;
 
 		// Update display
-		document.getElementById("printSubtotal")!.textContent = 
+		document.getElementById("printSubtotal")!.textContent =
 			i18n.formatCurrency(subtotal);
-		document.getElementById("printServicesTotal")!.textContent = 
+		document.getElementById("printServicesTotal")!.textContent =
 			i18n.formatCurrency(servicesTotal);
-		document.getElementById("printDrugsTotal")!.textContent = 
+		document.getElementById("printDrugsTotal")!.textContent =
 			i18n.formatCurrency(drugsTotal);
-		document.getElementById("printDiscountAmount")!.textContent = 
+		document.getElementById("printDiscountAmount")!.textContent =
 			i18n.formatCurrency(discountAmount);
-		document.getElementById("printVatAmount")!.textContent = 
+		document.getElementById("printVatAmount")!.textContent =
 			i18n.formatCurrency(vatAmount);
-		document.getElementById("printTotalAmount")!.textContent = 
+		document.getElementById("printTotalAmount")!.textContent =
 			i18n.formatCurrency(totalAmount);
-		document.getElementById("printBalance")!.textContent = 
+		document.getElementById("printBalance")!.textContent =
 			i18n.formatCurrency(balance);
 
 		// Enable/disable discount fields based on checkbox
@@ -417,7 +445,7 @@ export class PrintBillManager {
 		}
 	}
 
-	private showAddItemModal(type: "service" | "drug"): void {
+	private async showAddItemModal(type: "service" | "drug"): Promise<void> {
 		// Set active tab
 		if (type === "service") {
 			(
@@ -428,13 +456,13 @@ export class PrintBillManager {
 		}
 
 		// Populate available items
-		this.populateAvailableItemsForPrint();
+		await this.populateAvailableItemsForPrint();
 
 		// Show modal
 		this.addItemToPrintModal.show();
 	}
 
-	private populateAvailableItemsForPrint(): void {
+	private async populateAvailableItemsForPrint(): Promise<void> {
 		// Populate services
 		const servicesContainer = document.getElementById(
 			"availableServicesForPrint"
@@ -446,7 +474,7 @@ export class PrintBillManager {
 					service.price ||
 					0;
 				return `
-                <div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${
+				<div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${
 					service.service_id
 				})">
                     <div class="d-flex justify-content-between align-items-center">
@@ -455,13 +483,22 @@ export class PrintBillManager {
 								service.name
 							)}</div>
                             <div class="print-item-details">
-                                ${i18n.t("patients.printBill.type")}: ${this.formatServiceType(
-									service.service_type
-								)}
-                                ${service.auto_renew ? " • " + i18n.t("patients.printBill.autoRenew") : ""}
+                                ${i18n.t(
+									"patients.printBill.type"
+								)}: ${this.formatServiceType(
+					service.service_type
+				)}
+                                ${
+									service.auto_renew
+										? " • " +
+										  i18n.t("patients.printBill.autoRenew")
+										: ""
+								}
                             </div>
                         </div>
-                        <div class="print-item-price">${i18n.formatCurrency(price)}</div>
+                        <div class="print-item-price">${i18n.formatCurrency(
+							price
+						)}</div>
                     </div>
                 </div>
             `;
@@ -472,34 +509,92 @@ export class PrintBillManager {
 		const drugsContainer = document.getElementById(
 			"availableDrugsForPrint"
 		)!;
-		drugsContainer.innerHTML = this.availableDrugs.filter((drug) => drug.available_quantity > 0)
-			.map(
-				(drug) => `
-            <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${
-				drug.drug_id
-			})">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="print-item-name">${this.escapeHtml(
-							drug.name
-						)}</div>
-                        <div class="print-item-details">
-                            ${i18n.t("patients.printBill.available")}: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || i18n.t("common.units")
-				}
-                            ${
-								drug.manufacturer
-									? ` • ${drug.manufacturer}`
-									: ""
-							}
-                        </div>
-                    </div>
-                    <div class="print-item-price">${i18n.formatCurrency(drug.price || 0)}</div>
-                </div>
-            </div>
-        `
+		drugsContainer.innerHTML = await this.renderAvailableDrugs(
+			this.availableDrugs
+		);
+	}
+
+	private async renderAvailableDrugs(drugList: any[]): Promise<string> {
+		return (
+			await Promise.all(
+				drugList
+					.filter((drug) => drug.available_quantity > 0)
+					.map(async (drug) => {
+						let drugShipments = await this.getAvailableShipments(
+							drug.drug_id
+						);
+
+						const shipment = drugShipments[0];
+
+						const sellingPrice = shipment.prices.find(
+							(p: any) =>
+								p.pricelist_id ==
+								this.currentAdmission?.pricelist_id
+						)!.price;
+
+						return `
+			            <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${
+							drug.drug_id
+						}, ${sellingPrice})">
+			                <div class="d-flex justify-content-between align-items-center">
+			                    <div>
+			                        <div class="print-item-name">${this.escapeHtml(
+										drug.name
+									)}</div>
+			                        <div class="print-item-details">
+			                            ${i18n.t("patients.printBill.available")}: ${
+							drug.available_quantity
+						} ${
+							drug.unit_conversion?.smaller ||
+							i18n.t("common.units")
+						}
+			                            ${
+											drug.manufacturer
+												? ` • ${drug.manufacturer}`
+												: ""
+										}
+			                        </div>
+			                    </div>
+			                    <div class="print-item-price">${i18n.formatCurrency(
+									sellingPrice || 0
+								)}</div>
+			                </div>
+			            </div>
+			        `;
+					})
 			)
-			.join("");
+		).join("");
+	}
+
+	private async getAvailableShipments(drugId: number): Promise<any[]> {
+		try {
+			let pricelistId = this.currentAdmission?.pricelist_id;
+			if (!pricelistId) {
+				const defRes = await fetch("/api/price-lists/default", {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				});
+				if (defRes.ok) {
+					const defPl = await defRes.json();
+					pricelistId = defPl.pricelist_id;
+				}
+			}
+			const url = `/api/pharmacy/drugs/shipments/drug/${drugId}`;
+
+			const response = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok) throw new Error("Failed to fetch shipments");
+
+			return await response.json();
+		} catch (error) {
+			console.error("Error fetching shipments:", error);
+			return [];
+		}
 	}
 
 	private filterPrintServices(searchTerm: string): void {
@@ -526,13 +621,22 @@ export class PrintBillManager {
 								service.name
 							)}</div>
                             <div class="print-item-details">
-                                ${i18n.t("patients.printBill.type")}: ${this.formatServiceType(
-									service.service_type
-								)}
-                                ${service.auto_renew ? " • " + i18n.t("patients.printBill.autoRenew") : ""}
+                                ${i18n.t(
+									"patients.printBill.type"
+								)}: ${this.formatServiceType(
+					service.service_type
+				)}
+                                ${
+									service.auto_renew
+										? " • " +
+										  i18n.t("patients.printBill.autoRenew")
+										: ""
+								}
                             </div>
                         </div>
-                        <div class="print-item-price">${i18n.formatCurrency(price)}</div>
+                        <div class="print-item-price">${i18n.formatCurrency(
+							price
+						)}</div>
                     </div>
                 </div>
             `;
@@ -540,47 +644,27 @@ export class PrintBillManager {
 			.join("");
 	}
 
-	private filterPrintDrugs(searchTerm: string): void {
+	private async filterPrintDrugs(searchTerm: string): Promise<void> {
 		const drugsContainer = document.getElementById(
 			"availableDrugsForPrint"
 		)!;
+
 		const filteredDrugs = this.availableDrugs.filter(
 			(drug) =>
 				drug.available_quantity > 0 &&
 				drug.name.toLowerCase().includes(searchTerm.toLowerCase())
 		);
 
-		drugsContainer.innerHTML = filteredDrugs
-			.map(
-				(drug) => `
-            <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${
-				drug.drug_id
-			})">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="print-item-name">${this.escapeHtml(
-							drug.name
-						)}</div>
-                        <div class="print-item-details">
-                            ${i18n.t("patients.printBill.available")}: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || i18n.t("common.units")
-				}
-                            ${
-								drug.manufacturer
-									? ` • ${drug.manufacturer}`
-									: ""
-							}
-                        </div>
-                    </div>
-                    <div class="print-item-price">${i18n.formatCurrency(drug.price || 0)}</div>
-                </div>
-            </div>
-        `
-			)
-			.join("");
+		drugsContainer.innerHTML = await this.renderAvailableDrugs(
+			filteredDrugs
+		);
 	}
 
-	public addPrintItem(type: "service" | "drug", itemId: number): void {
+	public addPrintItem(
+		type: "service" | "drug",
+		itemId: number,
+		drugPrice: number | null = null
+	): void {
 		let item: any = null;
 		let newBillItem: PrintBillItem | null = null;
 
@@ -613,7 +697,7 @@ export class PrintBillManager {
 					drug_name: item.name,
 					description: item.name,
 					quantity: 1,
-					unit_price: item.price || 0
+					unit_price: drugPrice || 0
 				};
 			}
 		}
@@ -639,7 +723,11 @@ export class PrintBillManager {
 			// Close the add item modal
 			this.addItemToPrintModal.hide();
 
-			this.showSuccess(i18n.t("patients.printBill.messages.itemAdded", { name: item.name }));
+			this.showSuccess(
+				i18n.t("patients.printBill.messages.itemAdded", {
+					name: item.name
+				})
+			);
 		}
 	}
 
@@ -746,10 +834,14 @@ export class PrintBillManager {
 			this.printCustomizationModal.hide();
 			pdf.open();
 
-			this.showSuccess(i18n.t("patients.printBill.messages.pdfGeneratedSuccess"));
+			this.showSuccess(
+				i18n.t("patients.printBill.messages.pdfGeneratedSuccess")
+			);
 		} catch (error) {
 			console.error("Error generating custom PDF:", error);
-			this.showError(i18n.t("patients.printBill.messages.pdfGenerateFailed"));
+			this.showError(
+				i18n.t("patients.printBill.messages.pdfGenerateFailed")
+			);
 		}
 	}
 
@@ -757,10 +849,12 @@ export class PrintBillManager {
 	public updateData(
 		availableServices: any[],
 		availableDrugs: any[],
-		servicePrices: Map<number, number>
+		servicePrices: Map<number, number>,
+		currentAdmission: PatientHistory
 	): void {
 		this.availableServices = availableServices;
 		this.availableDrugs = availableDrugs;
 		this.servicePrices = servicePrices;
+		this.currentAdmission = currentAdmission;
 	}
 }

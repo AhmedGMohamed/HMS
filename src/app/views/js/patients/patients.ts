@@ -814,10 +814,8 @@ class PatientManager {
 
 			if (!this.currentPatient) throw new Error("Patient not found");
 
-			// Load price maps based on patient's price list
-			await this.loadPriceMaps();
-
-			// Load current admission if patient is active
+			// Load current admission FIRST if patient is active
+			// This is critical because we need the admission's pricelist_id for pricing
 			if (this.currentPatient.is_active) {
 				try {
 					const admissionResponse = await fetch(
@@ -833,6 +831,8 @@ class PatientManager {
 
 					if (admissionResponse.ok) {
 						this.currentAdmission = await admissionResponse.json();
+					} else {
+						this.currentAdmission = null;
 					}
 				} catch (error) {
 					console.warn("No current admission found");
@@ -841,6 +841,12 @@ class PatientManager {
 			} else {
 				this.currentAdmission = null;
 			}
+
+			// NOW load price maps - this.currentAdmission is set, so it will use the correct pricelist
+			await this.loadPriceMaps();
+
+			// THEN reload services and drugs with the correct pricing context
+			await Promise.all([this.loadServices(), this.loadDrugs()]);
 
 			// Load assigned services and drugs if admitted
 			if (this.currentAdmission) {
@@ -2582,7 +2588,7 @@ class PatientManager {
 		this.filterAndRenderDrugs("");
 	}
 
-	private filterAndRenderDrugs(searchTerm: string): void {
+	private async filterAndRenderDrugs(searchTerm: string): Promise<void> {
 		const container = document.getElementById("availableDrugsList")!;
 
 		let filteredDrugs = this.availableDrugs.filter(
@@ -2599,34 +2605,71 @@ class PatientManager {
 			return;
 		}
 
-		container.innerHTML = filteredDrugs
+		// Get pricelist_id for fetching prices
+		let pricelistId = this.currentAdmission?.pricelist_id;
+
+		// Fetch prices for all filtered drugs
+		const drugsWithPrices = await Promise.all(
+			filteredDrugs.map(async (drug) => {
+				try {
+					const url = `/api/pharmacy/drugs/shipments/drug/${drug.drug_id}`;
+					const response = await fetch(url, {
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem(
+								"token"
+							)}`
+						}
+					});
+
+					if (response.ok) {
+						const shipments = await response.json();
+						if (shipments.length > 0 && shipments[0].prices) {
+							// Find price for the current pricelist
+							const priceInfo = (
+								shipments[0].prices as any[]
+							).find((p: any) => p.pricelist_id == pricelistId);
+							return {
+								...drug,
+								displayPrice: priceInfo?.price || 0
+							};
+						}
+					}
+				} catch (error) {
+					console.error(
+						`Error fetching price for drug ${drug.drug_id}:`,
+						error
+					);
+				}
+				return {
+					...drug,
+					displayPrice: 0
+				};
+			})
+		);
+
+		container.innerHTML = drugsWithPrices
 			.map(
 				(drug) => `
-            <div class="available-item" onclick="patientManager.showAddDrugQuantityModal(${
+			<div class="available-item" onclick="patientManager.showAddDrugQuantityModal(${
 				drug.drug_id
 			})">
-                <div class="available-item-info">
-                    <div class="available-item-name">${this.escapeHtml(
-						drug.name
-					)}</div>
-                    <div class="available-item-details">
-                        ${i18n.t("patients.table.available")}: ${
-					drug.available_quantity
-				} ${drug.unit_conversion?.smaller || "units"}
-                        ${
-							drug.manufacturer
-								? ` • ${this.escapeHtml(drug.manufacturer)}`
-								: ""
-						}
-                    </div>
-                </div>
-                <div class="available-item-actions">
-                    <button class="btn btn-primary">${i18n.t(
-						"patients.buttons.addDrug"
-					)}</button>
-                </div>
-            </div>
-        `
+				<div class="available-item-info">
+					<div class="available-item-name">${this.escapeHtml(drug.name)}</div>
+					<div class="available-item-details">
+						${i18n.t("patients.table.available")}: ${drug.available_quantity} ${
+					drug.unit_conversion?.smaller || "units"
+				}
+						${drug.manufacturer ? ` • ${this.escapeHtml(drug.manufacturer)}` : ""}
+					</div>
+				</div>
+				<div class="available-item-price">${i18n.formatCurrency(
+					drug.displayPrice
+				)}</div>
+				<div class="available-item-actions">
+					<button class="btn btn-primary">${i18n.t("patients.buttons.addDrug")}</button>
+				</div>
+			</div>
+		`
 			)
 			.join("");
 	}
@@ -2802,9 +2845,7 @@ class PatientManager {
 					pricelistId = defPl.pricelist_id;
 				}
 			}
-			const url = `/api/pharmacy/drugs/usages/shipments/${drugId}${
-				pricelistId ? `?pricelist_id=${pricelistId}` : ""
-			}`;
+			const url = `/api/pharmacy/drugs/shipments/drug/${drugId}`;
 
 			const response = await fetch(url, {
 				headers: {
@@ -3495,7 +3536,8 @@ class PatientManager {
 			this.printBillManager.updateData(
 				this.availableServices,
 				this.availableDrugs,
-				this.servicePrices
+				this.servicePrices,
+				this.currentAdmission!
 			);
 
 			// Show print modal
@@ -3599,7 +3641,8 @@ class PatientManager {
 		this.printBillManager.updateData(
 			this.availableServices,
 			this.availableDrugs,
-			this.servicePrices
+			this.servicePrices,
+			this.currentAdmission!
 		);
 
 		// Show print modal

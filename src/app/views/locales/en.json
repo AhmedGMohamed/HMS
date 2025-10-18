@@ -766,7 +766,8 @@
 			"hours": "hours",
 			"due": "Due",
 			"credit": "Credit",
-			"processing": "Processing..."
+			"processing": "Processing...",
+			"quantityExceedsAvailable": "Total quantity exceeds available stock"
 		},
 		"printBill": {
 			"unknownItem": "Unknown Item",
