@@ -95,7 +95,7 @@ export class VaultModel {
             FROM Bill b
             JOIN Patient p ON b.patient_id = p.patient_id
             JOIN BillDetail bd ON b.bill_id = bd.bill_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
             GROUP BY p.patient_id, p.name, b.bill_id, b.generated_at, b.discount, b.paid_amount
             HAVING SUM(CASE WHEN bd.service_id IS NOT NULL THEN bd.quantity * bd.unit_price ELSE 0 END) > 0
             ORDER BY b.generated_at DESC;
@@ -121,7 +121,7 @@ export class VaultModel {
             FROM Bill b
             JOIN Patient p ON b.patient_id = p.patient_id
             JOIN BillDetail bd ON b.bill_id = bd.bill_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
             GROUP BY p.patient_id, p.name, b.bill_id, b.generated_at, b.discount, b.paid_amount
             HAVING SUM(CASE WHEN bd.drug_shipment_id IS NOT NULL THEN bd.quantity * bd.unit_price ELSE 0 END) > 0
             ORDER BY b.generated_at DESC;`;
@@ -145,7 +145,7 @@ export class VaultModel {
                 b.paid_amount
             FROM Bill b
             JOIN Patient p ON b.patient_id = p.patient_id
-            WHERE b.updated_at >= $1 AND b.updated_at <= $2
+            WHERE b.updated_at >= $1 AND b.updated_at <= $2::DATE + '1 day'::INTERVAL
                 AND b.paid_amount > 0
             ORDER BY b.updated_at DESC;
         `;
@@ -170,7 +170,7 @@ export class VaultModel {
                 (b.total_amount - b.paid_amount) as outstanding_amount
             FROM Bill b
             JOIN Patient p ON b.patient_id = p.patient_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
                 AND (b.total_amount - b.paid_amount) > 0
             ORDER BY outstanding_amount DESC;
         `;
@@ -198,7 +198,7 @@ export class VaultModel {
                 END as discount_amount
             FROM Bill b
             JOIN Patient p ON b.patient_id = p.patient_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
                 AND b.discount > 0
             ORDER BY b.generated_at DESC;
         `;
@@ -220,7 +220,7 @@ export class VaultModel {
                 payment_time,
                 description
             FROM VaultManualPayment
-            WHERE payment_time >= $1 AND payment_time <= $2
+            WHERE payment_time >= $1 AND payment_time <= $2::DATE + '1 day'::INTERVAL
             ORDER BY payment_time DESC;
         `;
 
@@ -259,9 +259,10 @@ export class VaultModel {
                 dc.drug_id,
                 dc.name as drug_name,
                 dc.manufacturer,
+				ds.buy_quantity,
                 ds.quantity,
                 ds.buy_price,
-                (ds.quantity * ds.buy_price) as total_cost,
+                (ds.buy_quantity * ds.buy_price) as total_cost,
                 ds.expiry_date,
                 ds.received_date,
                 w.name as warehouse_name
@@ -297,7 +298,7 @@ export class VaultModel {
             FROM DrugTransaction dt
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
             JOIN DrugCard dc ON ds.drug_id = dc.drug_id
-            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2
+            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2::DATE + '1 day'::INTERVAL
 			AND dt.transaction_type != 'patient'
             ORDER BY dt.timestamp DESC;
         `;
@@ -323,7 +324,7 @@ export class VaultModel {
             FROM DrugTransaction dt
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
             JOIN DrugCard dc ON ds.drug_id = dc.drug_id
-            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2
+            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check')
             GROUP BY dc.drug_id, dc.name, dc.manufacturer
             ORDER BY total_profit DESC;
@@ -351,7 +352,7 @@ export class VaultModel {
                 ep.issued_timestamp
             FROM EmployeePayment ep
             JOIN Employee e ON ep.employee_id = e.employee_id
-            WHERE ep.issued_timestamp >= $1 AND ep.issued_timestamp <= $2
+            WHERE ep.issued_timestamp >= $1 AND ep.issued_timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND ep.is_void = false
             ORDER BY ep.issued_timestamp DESC;
         `;
@@ -378,7 +379,7 @@ export class VaultModel {
             FROM EmployeePayment ep
             JOIN Employee e ON ep.employee_id = e.employee_id
             LEFT JOIN "User" u ON ep.paid_by_user_id = u.user_id
-            WHERE ep.paid_timestamp >= $1 AND ep.paid_timestamp <= $2
+            WHERE ep.paid_timestamp >= $1 AND ep.paid_timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND ep.is_paid = true
                 AND ep.is_void = false
             ORDER BY ep.paid_timestamp DESC;
@@ -402,7 +403,7 @@ export class VaultModel {
                 ), 0) as total
             FROM BillDetail bd
             JOIN Bill b ON bd.bill_id = b.bill_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2;
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -422,7 +423,7 @@ export class VaultModel {
                 ), 0) as total
             FROM BillDetail bd
             JOIN Bill b ON bd.bill_id = b.bill_id
-            WHERE b.generated_at >= $1 AND b.generated_at <= $2;
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -436,7 +437,7 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(paid_amount), 0) as total
             FROM Bill
-            WHERE updated_at >= $1 AND updated_at <= $2;
+            WHERE updated_at >= $1 AND updated_at <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -450,7 +451,7 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(total_amount - paid_amount), 0) as total
             FROM Bill
-            WHERE generated_at >= $1 AND generated_at <= $2;
+            WHERE generated_at >= $1 AND generated_at <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -470,7 +471,7 @@ export class VaultModel {
                     END
                 ), 0) as total
             FROM Bill
-            WHERE generated_at >= $1 AND generated_at <= $2
+            WHERE generated_at >= $1 AND generated_at <= $2::DATE + '1 day'::INTERVAL
                 AND discount > 0;
         `;
 
@@ -487,7 +488,7 @@ export class VaultModel {
                 COALESCE(SUM(CASE WHEN payment_type = 'addition' THEN payment_amount ELSE 0 END), 0) as additions,
                 COALESCE(SUM(CASE WHEN payment_type = 'deduction' THEN payment_amount ELSE 0 END), 0) as deductions
             FROM VaultManualPayment
-            WHERE payment_time >= $1 AND payment_time <= $2;
+            WHERE payment_time >= $1 AND payment_time <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -506,7 +507,7 @@ export class VaultModel {
 		endDate: string
 	): Promise<number> {
 		const sql = `
-            SELECT COALESCE(SUM(quantity * buy_price), 0) as total
+            SELECT COALESCE(SUM(buy_quantity * buy_price), 0) as total
             FROM DrugShipment
             WHERE received_date >= $1 AND received_date <= $2;
         `;
@@ -522,7 +523,7 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(quantity * price), 0) as total
             FROM DrugTransaction
-            WHERE timestamp >= $1 AND timestamp <= $2
+            WHERE timestamp >= $1 AND timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND (transaction_type = 'outside' OR transaction_type = 'check');
         `;
 
@@ -538,7 +539,7 @@ export class VaultModel {
             SELECT COALESCE(SUM(dt.quantity * (dt.price - ds.buy_price)), 0) as total
             FROM DrugTransaction dt
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
-            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2
+            WHERE dt.timestamp >= $1 AND dt.timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check');
         `;
 
@@ -553,7 +554,7 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(payment_amount + COALESCE(extra_amount, 0)), 0) as total
             FROM EmployeePayment
-            WHERE issued_timestamp >= $1 AND issued_timestamp <= $2
+            WHERE issued_timestamp >= $1 AND issued_timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND is_void = false;
         `;
 
@@ -568,7 +569,7 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(payment_amount + COALESCE(extra_amount, 0)), 0) as total
             FROM EmployeePayment
-            WHERE paid_timestamp >= $1 AND paid_timestamp <= $2
+            WHERE paid_timestamp >= $1 AND paid_timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND is_paid = true
                 AND is_void = false;
         `;
@@ -594,7 +595,7 @@ export class VaultModel {
         FROM InsurancePayments ip
         JOIN InsuranceCompany ic ON ip.insurance_id = ic.insurance_id
         LEFT JOIN "User" u ON ip.added_by_user_id = u.user_id
-        WHERE ip.issued_timestamp >= $1 AND ip.issued_timestamp <= $2
+        WHERE ip.issued_timestamp >= $1 AND ip.issued_timestamp <= $2::DATE + '1 day'::INTERVAL
         ORDER BY ip.issued_timestamp DESC;
     `;
 
@@ -609,7 +610,7 @@ export class VaultModel {
 		const sql = `
         SELECT COALESCE(SUM(payment_amount), 0) as total
         FROM InsurancePayments
-        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2::DATE + '1 day'::INTERVAL;
     `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -623,7 +624,7 @@ export class VaultModel {
 		const sql = `
         SELECT COUNT(*) as count
         FROM InsurancePayments
-        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2::DATE + '1 day'::INTERVAL;
     `;
 
 		const result = await query(sql, [startDate, endDate]);
@@ -637,7 +638,7 @@ export class VaultModel {
 		const sql = `
         SELECT COALESCE(AVG(payment_amount), 0) as average
         FROM InsurancePayments
-        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2;
+        WHERE issued_timestamp >= $1 AND issued_timestamp <= $2::DATE + '1 day'::INTERVAL;
     `;
 
 		const result = await query(sql, [startDate, endDate]);

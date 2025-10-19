@@ -1106,11 +1106,11 @@ class ReportsManager {
 					patient.age.toString(),
 					this.capitalizeFirst(patient.payment_type),
 					{
-						text: this.formatCurrency(patient.total_billed),
+						text: this.formatCurrency(patient.total_billed, true),
 						alignment: "right"
 					},
 					{
-						text: this.formatCurrency(patient.total_paid),
+						text: this.formatCurrency(patient.total_paid, true),
 						alignment: "right"
 					},
 					patient.referring_doctor_name || "N/A"
@@ -1192,7 +1192,9 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+							"en-GB"
+						)}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -1295,12 +1297,12 @@ class ReportsManager {
 			);
 			patientInfoRow.push(
 				{
-					text: this.formatCurrency(patient.total_billed),
+					text: this.formatCurrency(patient.total_billed, true),
 					alignment: "left",
 					bold: true
 				},
 				{
-					text: this.formatCurrency(patient.total_paid),
+					text: this.formatCurrency(patient.total_paid, true),
 					alignment: "left",
 					bold: true,
 					color: "#28a745"
@@ -1429,13 +1431,15 @@ class ReportsManager {
 											},
 											{
 												text: this.formatCurrency(
-													item.unit_price
+													item.unit_price,
+													true
 												),
 												alignment: "right"
 											},
 											{
 												text: this.formatCurrency(
-													item.total_price
+													item.total_price,
+													true
 												),
 												alignment: "right"
 											}
@@ -1462,7 +1466,8 @@ class ReportsManager {
 							{},
 							{
 								text: this.formatCurrency(
-									admission.total_amount
+									admission.total_amount,
+									true
 								),
 								bold: true,
 								alignment: "right",
@@ -1483,7 +1488,8 @@ class ReportsManager {
 							{},
 							{
 								text: this.formatCurrency(
-									admission.paid_amount
+									admission.paid_amount,
+									true
 								),
 								bold: true,
 								alignment: "right",
@@ -1507,7 +1513,10 @@ class ReportsManager {
 							{},
 							{},
 							{
-								text: this.formatCurrency(outstandingAmount),
+								text: this.formatCurrency(
+									outstandingAmount,
+									true
+								),
 								bold: true,
 								alignment: "right",
 								fillColor:
@@ -1791,12 +1800,15 @@ class ReportsManager {
 			);
 			patientInfoRow.push(
 				{
-					text: this.formatCurrency(data.admission.total_amount),
+					text: this.formatCurrency(
+						data.admission.total_amount,
+						true
+					),
 					alignment: "left",
 					bold: true
 				},
 				{
-					text: this.formatCurrency(data.admission.paid_amount),
+					text: this.formatCurrency(data.admission.paid_amount, true),
 					alignment: "left",
 					bold: true,
 					color: "#28a745"
@@ -1898,7 +1910,9 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+							"en-GB"
+						)}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -1965,11 +1979,11 @@ class ReportsManager {
 						this.formatDate(dateGroup.service_date),
 						{ text: item.quantity.toString(), alignment: "center" },
 						{
-							text: this.formatCurrency(item.unit_price),
+							text: this.formatCurrency(item.unit_price, true),
 							alignment: "right"
 						},
 						{
-							text: this.formatCurrency(item.total_price),
+							text: this.formatCurrency(item.total_price, true),
 							alignment: "right"
 						}
 					]);
@@ -2008,7 +2022,7 @@ class ReportsManager {
 			{},
 			{},
 			{
-				text: this.formatCurrency(admission.total_amount),
+				text: this.formatCurrency(admission.total_amount, true),
 				bold: true,
 				alignment: "right",
 				fillColor: "#f8f9fa"
@@ -2027,7 +2041,7 @@ class ReportsManager {
 			{},
 			{},
 			{
-				text: this.formatCurrency(admission.paid_amount),
+				text: this.formatCurrency(admission.paid_amount, true),
 				bold: true,
 				alignment: "right",
 				fillColor: "#f8f9fa",
@@ -2047,7 +2061,7 @@ class ReportsManager {
 			{},
 			{},
 			{
-				text: this.formatCurrency(outstandingAmount),
+				text: this.formatCurrency(outstandingAmount, true),
 				bold: true,
 				alignment: "right",
 				fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
@@ -2680,7 +2694,9 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+						"en-GB"
+					)}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -2869,11 +2885,14 @@ class ReportsManager {
 							alignment: "center"
 						},
 						{
-							text: this.formatCurrency(patient.total_billed),
+							text: this.formatCurrency(
+								patient.total_billed,
+								true
+							),
 							alignment: "right"
 						},
 						{
-							text: this.formatCurrency(patient.total_paid),
+							text: this.formatCurrency(patient.total_paid, true),
 							alignment: "right",
 							color: "#28a745"
 						}
@@ -2925,13 +2944,13 @@ class ReportsManager {
 						fillColor: "#f0f0f0"
 					},
 					{
-						text: this.formatCurrency(totalBilled),
+						text: this.formatCurrency(totalBilled, true),
 						bold: true,
 						alignment: "right",
 						fillColor: "#f0f0f0"
 					},
 					{
-						text: this.formatCurrency(totalPaid),
+						text: this.formatCurrency(totalPaid, true),
 						bold: true,
 						alignment: "right",
 						fillColor: "#f0f0f0",
@@ -3087,7 +3106,9 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+						"en-GB"
+					)}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -3159,11 +3180,11 @@ class ReportsManager {
 					alignment: "center"
 				},
 				{
-					text: this.formatCurrency(patient.total_billed),
+					text: this.formatCurrency(patient.total_billed, true),
 					alignment: "right"
 				},
 				{
-					text: this.formatCurrency(patient.total_paid),
+					text: this.formatCurrency(patient.total_paid, true),
 					alignment: "right",
 					color: "#28a745"
 				}
@@ -3194,13 +3215,13 @@ class ReportsManager {
 				fillColor: "#f0f0f0"
 			},
 			{
-				text: this.formatCurrency(totalBilled),
+				text: this.formatCurrency(totalBilled, true),
 				bold: true,
 				alignment: "right",
 				fillColor: "#f0f0f0"
 			},
 			{
-				text: this.formatCurrency(totalPaid),
+				text: this.formatCurrency(totalPaid, true),
 				bold: true,
 				alignment: "right",
 				fillColor: "#f0f0f0",
@@ -4097,7 +4118,9 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+						"en-GB"
+					)}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -4477,7 +4500,9 @@ class ReportsManager {
 			pageMargins: [40, 60, 40, 60],
 			footer: function (currentPage: number, pageCount: number) {
 				return {
-					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+						"en-GB"
+					)}`,
 					alignment: "center",
 					fontSize: 8,
 					margin: [0, 10, 0, 0]
@@ -4873,10 +4898,7 @@ class ReportsManager {
 					y: {
 						beginAtZero: true,
 						ticks: {
-							precision: 0,
-							callback: function (value: any) {
-								return value + " patients";
-							}
+							precision: 0
 						},
 						title: {
 							display: true,
@@ -6546,7 +6568,9 @@ class ReportsManager {
 				pageMargins: [40, 60, 40, 60],
 				footer: function (currentPage: number, pageCount: number) {
 					return {
-						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString("en-GB")}`,
+						text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+							"en-GB"
+						)}`,
 						alignment: "center",
 						fontSize: 8,
 						margin: [0, 10, 0, 0]
@@ -6635,31 +6659,34 @@ class ReportsManager {
 						],
 						[
 							{
-								text: this.formatCurrency(totalBasePay),
+								text: this.formatCurrency(totalBasePay, true),
 								alignment: "right"
 							},
 							{
-								text: this.formatCurrency(totalExtraPay),
+								text: this.formatCurrency(totalExtraPay, true),
 								alignment: "right",
 								color: "#28a745"
 							},
 							{
-								text: this.formatCurrency(totalDeductions),
+								text: this.formatCurrency(
+									totalDeductions,
+									true
+								),
 								alignment: "right",
 								color: "#dc3545"
 							},
 							{
-								text: this.formatCurrency(totalPaid),
+								text: this.formatCurrency(totalPaid, true),
 								alignment: "right",
 								color: "#28a745"
 							},
 							{
-								text: this.formatCurrency(totalUnpaid),
+								text: this.formatCurrency(totalUnpaid, true),
 								alignment: "right",
 								color: "#ffc107"
 							},
 							{
-								text: this.formatCurrency(netPayment),
+								text: this.formatCurrency(netPayment, true),
 								alignment: "right",
 								bold: true
 							}
@@ -6739,31 +6766,40 @@ class ReportsManager {
 						[
 							{
 								text: this.formatCurrency(
-									summary.total_base_pay
+									summary.total_base_pay,
+									true
 								),
 								alignment: "right"
 							},
 							{
 								text: this.formatCurrency(
-									summary.total_extra_pay
+									summary.total_extra_pay,
+									true
 								),
 								alignment: "left",
 								color: "#28a745"
 							},
 							{
 								text: this.formatCurrency(
-									summary.total_deductions
+									summary.total_deductions,
+									true
 								),
 								alignment: "left",
 								color: "#dc3545"
 							},
 							{
-								text: this.formatCurrency(summary.total_paid),
+								text: this.formatCurrency(
+									summary.total_paid,
+									true
+								),
 								alignment: "left",
 								color: "#28a745"
 							},
 							{
-								text: this.formatCurrency(summary.total_unpaid),
+								text: this.formatCurrency(
+									summary.total_unpaid,
+									true
+								),
 								alignment: "left",
 								color: "#ffc107"
 							}
@@ -6794,13 +6830,13 @@ class ReportsManager {
 
 	private generateEmployeeConfigSection(breakdown: any): any[] {
 		const configRows = [
-			["Base Pay", this.formatCurrency(breakdown.base_pay)]
+			["Base Pay", this.formatCurrency(breakdown.base_pay, true)]
 		];
 
 		if (breakdown.base_extra_amount > 0) {
 			configRows.push([
 				"Base Extra Amount",
-				this.formatCurrency(breakdown.base_extra_amount)
+				this.formatCurrency(breakdown.base_extra_amount, true)
 			]);
 			configRows.push([
 				"Extra Payment Type",
@@ -6916,11 +6952,11 @@ class ReportsManager {
 			],
 			[
 				{
-					text: this.formatCurrency(payment.payment_amount),
+					text: this.formatCurrency(payment.payment_amount, true),
 					alignment: "left"
 				},
 				{
-					text: this.formatCurrency(payment.extra_amount),
+					text: this.formatCurrency(payment.extra_amount, true),
 					alignment: "left",
 					color: "#28a745"
 				},
@@ -6929,13 +6965,14 @@ class ReportsManager {
 						payment.clock_in_deductions?.reduce(
 							(sum: number, d: any) => sum + d.pay_deduction,
 							0
-						) || 0
+						) || 0,
+						true
 					),
 					alignment: "left",
 					color: "#dc3545"
 				},
 				{
-					text: this.formatCurrency(netAmount),
+					text: this.formatCurrency(netAmount, true),
 					alignment: "left",
 					bold: true
 				}
@@ -7042,7 +7079,7 @@ class ReportsManager {
 						fontSize: 8
 					},
 					{
-						text: this.formatCurrency(assoc.payment_amount),
+						text: this.formatCurrency(assoc.payment_amount, true),
 						fontSize: 8,
 						alignment: "right"
 					}
@@ -7078,7 +7115,8 @@ class ReportsManager {
 						payment.patient_associations.reduce(
 							(sum: number, a: any) => sum + a.payment_amount,
 							0
-						)
+						),
+						true
 					),
 					bold: true,
 					fontSize: 8,
@@ -7166,7 +7204,10 @@ class ReportsManager {
 					},
 					{ text: deduction.status, fontSize: 8 },
 					{
-						text: this.formatCurrency(deduction.pay_deduction),
+						text: this.formatCurrency(
+							deduction.pay_deduction,
+							true
+						),
 						fontSize: 8,
 						alignment: "right",
 						color: "#dc3545"
@@ -7191,7 +7232,8 @@ class ReportsManager {
 						payment.clock_in_deductions.reduce(
 							(sum: number, d: any) => sum + d.pay_deduction,
 							0
-						)
+						),
+						true
 					),
 					bold: true,
 					fontSize: 8,

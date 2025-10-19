@@ -81,6 +81,19 @@
     padding: 1.5rem;
 }
 
+#addPricesModal .card.border-primary {
+  border-width: 2px !important;
+}
+
+#addPricesModal .card {
+  position: relative;
+}
+
+#addPricesModal .badge.position-absolute {
+  font-size: 0.7rem;
+  z-index: 1;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .action-buttons {

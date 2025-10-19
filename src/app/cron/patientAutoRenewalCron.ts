@@ -281,7 +281,14 @@ export class PatientAutoRenewalCron {
                 WHERE 
                     du.remaining_quantity <= 0
                     AND p.is_active = true
-                    AND dc.is_obligatory_continuous = true;
+                    AND dc.is_obligatory_continuous = true
+					AND NOT EXISTS (
+				        SELECT 1 
+				        FROM DrugUsage du2 
+				        WHERE du2.patient_history_id = du.patient_history_id 
+				            AND du2.drug_id = du.drug_id 
+				            AND du2.remaining_quantity > 0
+				    );
             `;
 
 			const replenishmentDrugs = await query(replenishmentSql);

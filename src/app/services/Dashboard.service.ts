@@ -118,7 +118,7 @@ export class DashboardService {
 				) - 
 				-- Drug purchase costs
 				COALESCE(
-					(SELECT SUM(ds.quantity * ds.buy_price) 
+					(SELECT SUM(ds.buy_quantity * ds.buy_price) 
 					 FROM DrugShipment ds 
 					 WHERE ds.received_date >= $1 AND ds.received_date <= $2), 0
 				) - 
@@ -266,7 +266,7 @@ export class DashboardService {
 			daily_expenses AS (
 				SELECT 
 					DATE(ds.received_date) as date,
-					SUM(ds.quantity * ds.buy_price) as drug_costs,
+					SUM(ds.buy_quantity * ds.buy_price) as drug_costs,
 					'drug_costs' as expense_type
 				FROM DrugShipment ds
 				WHERE ds.received_date >= CURRENT_DATE - INTERVAL '29 days'

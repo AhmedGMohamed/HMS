@@ -254,25 +254,54 @@
 			"createPriceList": "Create New Price List",
 			"createFirst": "Create First Price List",
 			"makeDefault": "Yes, make default",
-			"saving": "Saving..."
+			"saving": "Saving...",
+			"addPrices": "Add Prices",
+			"skipForNow": "Skip for Now"
 		},
 		"modals": {
 			"createPriceList": "Create New Price List",
-			"editPriceList": "Edit Price List"
+			"editPriceList": "Edit Price List",
+			"addPrices": "Add Prices to Price List"
 		},
 		"fields": {
 			"priceListName": "Price List Name",
-			"setAsDefault": "Set as Default Price List"
+			"setAsDefault": "Set as Default Price List",
+			"price": "Price",
+			"requirePrepayment": "Require Prepayment",
+			"prepaymentType": "Prepayment Type",
+			"prepaymentAmount": "Prepayment Amount",
+			"warehouse": "Warehouse",
+			"quantity": "Quantity",
+			"expiry": "Expiry"
+		},
+		"prepaymentTypes": {
+			"fixed": "Fixed Amount",
+			"percentage": "Percentage"
+		},
+		"tabs": {
+			"services": "Services",
+			"drugs": "Drug Shipments"
+		},
+		"placeholders": {
+			"searchServices": "Search services...",
+			"searchDrugs": "Search drugs..."
+		},
+		"serviceTypes": {
+			"once": "One Time",
+			"hourly": "Hourly",
+			"daily": "Daily"
 		},
 		"status": {
-			"default": "Default"
+			"default": "Default",
+			"hasPrice": "Price Set"
 		},
 		"stats": {
 			"services": "Services",
 			"drugs": "Drugs"
 		},
 		"help": {
-			"defaultNote": "Note: Setting this as default will remove default status from any other price list"
+			"defaultNote": "Note: Setting this as default will remove default status from any other price list",
+			"addPricesInfo": "Add prices for services and drug shipments for this price list. Leave blank to skip items."
 		},
 		"validation": {
 			"nameLength": "Price list name must be at least 3 characters long"
@@ -289,7 +318,13 @@
 			"deleteSuccess": "Price list has been deleted",
 			"deleteError": "Failed to delete price list",
 			"changeDefaultTitle": "Change Default Price List?",
-			"changeDefaultText": "This will remove default status from the current default price list."
+			"changeDefaultText": "This will remove default status from the current default price list.",
+			"noServices": "No services found",
+			"noDrugs": "No drug shipments found",
+			"pricesSaveError": "Failed to save prices",
+			"pricesAddedSuccess": "Successfully added {{services}} service prices and {{drugs}} drug prices",
+			"addPricesNow": "Add Prices Now?",
+			"addPricesNowText": "Would you like to add prices for services and drugs to this price list now?"
 		}
 	},
 	"employees": {

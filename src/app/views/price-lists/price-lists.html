@@ -141,6 +141,96 @@
     </div>
   </div>
 
+  <!-- Add Prices to Price List Modal -->
+  <div class="modal fade" id="addPricesModal" tabindex="-1" aria-labelledby="addPricesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addPricesModalLabel">
+            <span data-i18n="priceLists.modals.addPrices">Add Prices to Price List</span>:
+            <span id="addPricesPriceListName" class="text-primary"></span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Info Alert -->
+          <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle"></i>
+            <span data-i18n="priceLists.help.addPricesInfo">Add prices for services and drug shipments for this price list. Leave blank to skip items.</span>
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-3" id="pricesTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-prices" type="button" role="tab">
+                <i class="bi bi-briefcase"></i>
+                <span data-i18n="priceLists.tabs.services">Services</span>
+                <span class="badge bg-secondary ms-2" id="servicesCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="drugs-tab" data-bs-toggle="tab" data-bs-target="#drugs-prices" type="button" role="tab">
+                <i class="bi bi-capsule"></i>
+                <span data-i18n="priceLists.tabs.drugs">Drug Shipments</span>
+                <span class="badge bg-secondary ms-2" id="drugsCount">0</span>
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="pricesTabContent">
+            <!-- Services Tab -->
+            <div class="tab-pane fade show active" id="services-prices" role="tabpanel">
+              <div class="mb-3">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input type="text" class="form-control" id="serviceSearchInput" data-i18n-placeholder="priceLists.placeholders.searchServices" placeholder="Search services...">
+                </div>
+              </div>
+              <div id="servicesListContainer" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center py-5">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Drug Shipments Tab -->
+            <div class="tab-pane fade" id="drugs-prices" role="tabpanel">
+              <div class="mb-3">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input type="text" class="form-control" id="drugSearchInput" data-i18n-placeholder="priceLists.placeholders.searchDrugs" placeholder="Search drugs...">
+                </div>
+              </div>
+              <div id="drugsListContainer" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center py-5">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" id="skipPricesBtn">
+            <span data-i18n="priceLists.buttons.skipForNow">Skip for Now</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="savePricesBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text" data-i18n="common.save">Save Prices</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap Bundle with Popper-->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- SweetAlert2 -->

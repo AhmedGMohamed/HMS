@@ -1130,17 +1130,17 @@ class DrugManager {
 			return;
 		}
 
-		const price = parseFloat(
+		const totalPrice = Number(
 			(document.getElementById("totalPrice") as HTMLInputElement).value
 		);
 
-		if (!price) {
+		if (!totalPrice) {
 			this.showError(i18n.t("pharmacy.validation.invalidPrice"));
 			return;
 		}
 
 		// Check if price is less than buy price
-		if (price * currentDrug.unit_conversion.ratio / quantity < parseFloat(this.currentShipment.buy_price)) {
+		if (totalPrice / quantity < parseFloat(this.currentShipment.buy_price)) {
 			const result = await Swal.fire({
 				title: i18n.t("common.warning"),
 				text: i18n.t("pharmacy.messages.priceBelowBuyPrice"),
@@ -1168,7 +1168,7 @@ class DrugManager {
 					shipment_id: this.currentShipment.shipment_id,
 					transaction_type: transactionType,
 					quantity: quantity,
-					price: price * quantity,
+					price: totalPrice * quantity,
 					patient_id: patientId
 				})
 			});
@@ -2002,9 +2002,9 @@ class DrugManager {
 		if (price && quantity > 0) {
 			const total =
 				(quantity * Number(price.price));
-			totalPriceInput.value = i18n.formatNumber(total, 2, true);
+			totalPriceInput.value = total.toFixed(2) 
 		} else {
-			totalPriceInput.value = i18n.formatNumber(0, 2, true);
+			totalPriceInput.value = "0.00"
 		}
 	}
 
