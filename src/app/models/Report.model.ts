@@ -66,7 +66,7 @@ export default class ReportModel {
             WHERE EXISTS (
                 SELECT 1 FROM PatientHistory ph
                 WHERE ph.patient_id = p.patient_id
-                AND ph.admission_time BETWEEN $1 AND $2
+                AND ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             )
             ${paymentTypeCondition}
             ORDER BY p.name
@@ -212,7 +212,7 @@ export default class ReportModel {
             LEFT JOIN Employee rd ON d.doctor_id = rd.employee_id
             JOIN PatientHistory ph ON p.patient_id = ph.patient_id
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE ph.admission_time BETWEEN $1 AND $2
+            WHERE ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             ${paymentTypeCondition}
             ${patientCondition}
             GROUP BY p.patient_id, p.name, p.national_id, p.gender, p.phone, p.address, 
@@ -275,7 +275,7 @@ export default class ReportModel {
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
             WHERE ph.patient_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
+            AND ph.admission_time BETWEEN $2 AND $3::DATE + '1 day'::INTERVAL
             ORDER BY ph.admission_time DESC
         `;
 
@@ -334,7 +334,7 @@ export default class ReportModel {
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
             WHERE ph.patient_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3
+            AND ph.admission_time BETWEEN $2 AND $3::DATE + '1 day'::INTERVAL
             ORDER BY ph.admission_time DESC
         `;
 
@@ -741,7 +741,7 @@ export default class ReportModel {
     	    ${joinClause}
     	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
     	    WHERE ${whereClause}
-    	    AND ph.admission_time BETWEEN $2 AND $3
+    	    AND ph.admission_time BETWEEN $2 AND $3::DATE + '1 day'::INTERVAL
     	    GROUP BY p.patient_id, p.name, p.national_id, p.gender, p.payment_type, 
     	             ic.name, p.insurance_card_id, p.insurance_form_id
     	    ORDER BY p.name
@@ -821,7 +821,7 @@ export default class ReportModel {
                 SELECT 1 FROM Patient p
                 JOIN PatientHistory ph ON p.patient_id = ph.patient_id
                 WHERE p.referring_doctor_id = d.doctor_id
-                AND ph.admission_time BETWEEN $1 AND $2
+                AND ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             )
             ORDER BY e.name
         `;
@@ -892,7 +892,7 @@ export default class ReportModel {
                 SELECT 1 FROM DoctorPatientHistory dph
                 JOIN PatientHistory ph ON dph.patient_history_id = ph.patient_history_id
                 WHERE dph.doctor_id = d.doctor_id
-                AND ph.admission_time BETWEEN $1 AND $2
+                AND ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             )
             ORDER BY e.name
         `;
@@ -969,7 +969,7 @@ export default class ReportModel {
         FROM DailyStaffAssignment dsa
         JOIN Patient p ON dsa.patient_id = p.patient_id
         LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            AND dsa.work_date BETWEEN ph.admission_time::date AND COALESCE(ph.discharge_time::date, CURRENT_DATE)
+            AND dsa.work_date BETWEEN ph.admission_time::date AND COALESCE(ph.discharge_time::date + '1 day'::interval, CURRENT_DATE)
         WHERE dsa.employee_id = $1
         AND dsa.work_date BETWEEN $2 AND $3
         AND dsa.hours_worked > 0
@@ -1042,7 +1042,7 @@ export default class ReportModel {
 	        JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	        JOIN DailyStaffAssignment dsa ON p.patient_id = dsa.patient_id
 	        WHERE dsa.employee_id = $1
-	        AND ph.admission_time BETWEEN $2 AND $3
+	        AND ph.admission_time BETWEEN $2 AND $3::DATE + '1 day'::INTERVAL
 	        GROUP BY p.patient_id, p.name, p.payment_type
 	        ORDER BY last_admission_time DESC
 	    `;
@@ -1092,7 +1092,7 @@ export default class ReportModel {
 	            SELECT 1 FROM DailyStaffAssignment dsa
 	            JOIN PatientHistory ph ON dsa.patient_id = ph.patient_id
 	            WHERE dsa.employee_id = e.employee_id
-	            AND ph.admission_time BETWEEN $1 AND $2
+	            AND ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
 	        )
 	        ORDER BY e.name
 	    `;
@@ -1136,7 +1136,7 @@ export default class ReportModel {
                 AVG(EXTRACT(EPOCH FROM (ph.discharge_time - ph.admission_time)) / 86400.0) as avg_stay_duration_days
             FROM Patient p
             JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            WHERE ph.admission_time BETWEEN $1 AND $2
+            WHERE ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
         `;
 
 		const statsResult = await query(statsSql, [
@@ -1198,7 +1198,7 @@ export default class ReportModel {
  	       WITH date_series AS (
  	           SELECT generate_series(
  	               $1::date,
- 	               $2::date,
+ 	               $2::date + '1 day'::interval,
  	               $3::interval
  	           )::date as period_date
  	       ),
@@ -1303,7 +1303,7 @@ export default class ReportModel {
         WITH date_series AS (
             SELECT generate_series(
                 $1::date,
-                $2::date,
+                $2::date + '1 day'::interval,
                 $3::interval
             )::date as period_date
         ),
@@ -1385,7 +1385,7 @@ export default class ReportModel {
         WITH date_series AS (
             SELECT generate_series(
                 $1::date,
-                $2::date,
+                $2::date + '1 day'::interval,
                 $3::interval
             )::date as period_date
         ),
@@ -1465,7 +1465,7 @@ export default class ReportModel {
         WITH date_series AS (
             SELECT generate_series(
                 $1::date,
-                $2::date,
+                $2::date + '1 day'::interval,
                 $3::interval
             )::date as period_date
         ),
@@ -1535,7 +1535,7 @@ export default class ReportModel {
         FROM BillDetail bd
         JOIN Service s ON bd.service_id = s.service_id
         JOIN Bill b ON bd.bill_id = b.bill_id
-        WHERE b.generated_at BETWEEN $1 AND $2
+        WHERE b.generated_at BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
         GROUP BY s.service_id, s.name, s.service_type
         ORDER BY total_revenue DESC
         LIMIT $3
@@ -1576,7 +1576,7 @@ export default class ReportModel {
         JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
         JOIN DrugCard dc ON ds.drug_id = dc.drug_id
         JOIN Bill b ON bd.bill_id = b.bill_id
-        WHERE b.generated_at BETWEEN $1 AND $2
+        WHERE b.generated_at BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
         GROUP BY dc.drug_id, dc.name, dc.manufacturer
         ORDER BY total_revenue DESC
         LIMIT $3
@@ -1675,7 +1675,7 @@ export default class ReportModel {
                 COUNT(DISTINCT p.patient_id) as count
             FROM Patient p
             JOIN PatientHistory ph ON p.patient_id = ph.patient_id
-            WHERE ph.admission_time BETWEEN $1 AND $2
+            WHERE ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             GROUP BY ${groupByClause}
             ORDER BY period, p.gender
         `;
@@ -1733,7 +1733,7 @@ export default class ReportModel {
             LEFT JOIN PatientHistory ph ON dph.patient_history_id = ph.patient_history_id
             LEFT JOIN Patient p ON ph.patient_id = p.patient_id
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE ph.admission_time BETWEEN $1 AND $2
+            WHERE ph.admission_time BETWEEN $1 AND $2::DATE + '1 day'::INTERVAL
             OR p.referring_doctor_id = d.doctor_id
             GROUP BY d.doctor_id, e.name, d.doctor_type
             ORDER BY total_revenue_generated DESC
@@ -1871,7 +1871,7 @@ export default class ReportModel {
 	            JOIN Patient p ON epp.patient_id = p.patient_id
 	        ) p ON ep.payment_id = p.payment_id
 	        WHERE ep.employee_id = $1
-	        AND ep.issued_timestamp BETWEEN $2 AND $3
+	        AND ep.issued_timestamp BETWEEN $2 AND $3::DATE + INTERVAL '1 day'
 	        AND ep.is_void = false
 	        ORDER BY ep.issued_timestamp DESC
 	    `;
@@ -2033,13 +2033,13 @@ export default class ReportModel {
 	                SELECT COALESCE(SUM(ec.pay_deduction), 0)
 	                FROM EmployeeClockIn ec
 	                WHERE ec.employee_id = e.employee_id
-	                AND ec.clock_in BETWEEN $2 AND $3
+	                AND ec.clock_in BETWEEN $2 AND $3::DATE + INTERVAL '1 day'
 	            ) as total_deductions,
 	            COUNT(DISTINCT dsa.work_date) as total_work_days,
 	            COUNT(DISTINCT dsa.patient_id) as total_patients_served
 	        FROM Employee e
 	        LEFT JOIN EmployeePayment ep ON e.employee_id = ep.employee_id
-	            AND ep.issued_timestamp BETWEEN $2 AND $3
+	            AND ep.issued_timestamp BETWEEN $2 AND $3::DATE + INTERVAL '1 day'
 	            AND ep.is_void = false
 	        LEFT JOIN DailyStaffAssignment dsa ON e.employee_id = dsa.employee_id
 	            AND dsa.work_date BETWEEN $2::date AND $3::date

@@ -146,7 +146,10 @@ export class PriceListModel {
 		const sql = `
 			SELECT
 				(SELECT COUNT(*) FROM ServicePrice WHERE pricelist_id = $1) AS total_services,
-				(SELECT COUNT(*) FROM ShipmentPrice WHERE pricelist_id = $1) AS total_drugs
+				(SELECT COUNT(*) FROM ShipmentPrice
+				 JOIN DrugShipment ds ON ds.shipment_id = shipmentprice.shipment_id
+				 AND ds.quantity > 0
+				 WHERE pricelist_id = $1) AS total_drugs
 				`;
 
 		const result = await query(sql, [priceListId]);

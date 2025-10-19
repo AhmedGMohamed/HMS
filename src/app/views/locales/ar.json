@@ -254,25 +254,54 @@
 			"createPriceList": "إضافة قائمة أسعار جديدة",
 			"createFirst": "إنشاء أول قائمة أسعار",
 			"makeDefault": "نعم، اجعلها افتراضية",
-			"saving": "جاري الحفظ..."
+			"saving": "جاري الحفظ...",
+			"addPrices": "إضافة أسعار",
+			"skipForNow": "تخطي في الوقت الحالي"
 		},
 		"modals": {
 			"createPriceList": "إضافة قائمة أسعار جديدة",
-			"editPriceList": "تعديل قائمة الأسعار"
+			"editPriceList": "تعديل قائمة الأسعار",
+			"addPrices": "إضافة أسعار إلى قائمة الأسعار"
 		},
 		"fields": {
 			"priceListName": "اسم قائمة الأسعار",
-			"setAsDefault": "تعيين كقائمة افتراضية"
+			"setAsDefault": "تعيين كقائمة افتراضية",
+			"price": "السعر",
+			"requirePrepayment": "يتطلب دفع مقدم",
+			"prepaymentType": "نوع الدفع المقدم",
+			"prepaymentAmount": "مبلغ الدفع المقدم",
+			"warehouse": "المستودع",
+			"quantity": "الكمية",
+			"expiry": "تاريخ الانتهاء"
+		},
+		"prepaymentTypes": {
+			"fixed": "مبلغ ثابت",
+			"percentage": "نسبة مئوية"
+		},
+		"tabs": {
+			"services": "الخدمات",
+			"drugs": "شحنات الأدوية"
+		},
+		"placeholders": {
+			"searchServices": "البحث عن خدمات...",
+			"searchDrugs": "البحث عن أدوية..."
+		},
+		"serviceTypes": {
+			"once": "مرة واحدة",
+			"hourly": "كل ساعة",
+			"daily": "يومياً"
 		},
 		"status": {
-			"default": "افتراضي"
+			"default": "افتراضي",
+			"hasPrice": "تم تحديد السعر"
 		},
 		"stats": {
 			"services": "الخدمات",
 			"drugs": "الأدوية"
 		},
 		"help": {
-			"defaultNote": "ملاحظة: تعيين هذه القائمة كافتراضية سيزيل الحالة الافتراضية من أي قائمة أسعار أخرى"
+			"defaultNote": "ملاحظة: تعيين هذه القائمة كافتراضية سيزيل الحالة الافتراضية من أي قائمة أسعار أخرى",
+			"addPricesInfo": "أضف أسعار الخدمات وشحنات الأدوية لقائمة الأسعار هذه. اترك فارغًا لتخطي العناصر"
 		},
 		"validation": {
 			"nameLength": "يجب أن يكون اسم قائمة الأسعار 3 أحرف على الأقل"
@@ -289,7 +318,13 @@
 			"deleteSuccess": "تم حذف قائمة الأسعار",
 			"deleteError": "فشل حذف قائمة الأسعار",
 			"changeDefaultTitle": "تغيير قائمة الأسعار الافتراضية؟",
-			"changeDefaultText": "سيؤدي هذا إلى إزالة الحالة الافتراضية من قائمة الأسعار الافتراضية الحالية."
+			"changeDefaultText": "سيؤدي هذا إلى إزالة الحالة الافتراضية من قائمة الأسعار الافتراضية الحالية.",
+			"noServices": "لم يتم العثور على خدمات",
+			"noDrugs": "لم يتم العثور على شحنات أدوية",
+			"pricesSaveError": "فشل حفظ الأسعار",
+			"pricesAddedSuccess": "تم إضافة {{services}} أسعار خدمات و {{drugs}} أسعار أدوية بنجاح",
+			"addPricesNow": "إضافة الأسعار الآن؟",
+			"addPricesNowText": "هل ترغب في إضافة أسعار للخدمات والأدوية إلى قائمة الأسعار هذه الآن؟"
 		}
 	},
 	"employees": {

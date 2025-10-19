@@ -1,18 +1,17 @@
 // src/app/models/Insurance.model.ts
 import { query } from "./database/connection.js";
-import { 
-    InsuranceCompany, 
-    InsurancePayment,
-    CreateInsuranceCompanyDTO,
-    UpdateInsuranceCompanyDTO,
-    CreateInsurancePaymentDTO,
-    InsurancePatient,
-    InsuranceReportSummary,
-    InsuranceReportFilters,
+import {
+	InsuranceCompany,
+	InsurancePayment,
+	CreateInsuranceCompanyDTO,
+	UpdateInsuranceCompanyDTO,
+	CreateInsurancePaymentDTO,
+	InsurancePatient,
+	InsuranceReportSummary,
+	InsuranceReportFilters,
 	InsuranceReportItem,
 	PatientReportSummary,
-	PatientReportFilters,
-	
+	PatientReportFilters
 } from "../utils/types/insurance.js";
 
 class InsuranceModel {
@@ -387,7 +386,7 @@ class InsuranceModel {
 			const endDate = new Date(filters.end_date);
 
 			// Validate date range
-			if (startDate >= endDate) {
+			if (startDate > endDate) {
 				throw new Error("Start date must be before end date");
 			}
 
@@ -493,7 +492,7 @@ class InsuranceModel {
         LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
         WHERE p.insurance_id = $1
             AND bd.generated_at >= $2 
-            AND bd.generated_at <= $3
+            AND bd.generated_at <= $3::DATE + '1 day'::INTERVAL
     `;
 
 		const values = [
@@ -550,9 +549,9 @@ class InsuranceModel {
             JOIN "User" u ON ip.added_by_user_id = u.user_id
             WHERE ip.insurance_id = $1
                 AND (
-                    (ip.payment_from >= $2 AND ip.payment_from <= $3)
-                    OR (ip.payment_to >= $2 AND ip.payment_to <= $3)
-                    OR (ip.payment_from <= $2 AND ip.payment_to >= $3)
+                    (ip.payment_from >= $2 AND ip.payment_from <= $3::DATE + '1 day'::INTERVAL)
+                    OR (ip.payment_to >= $2 AND ip.payment_to <= $3::DATE + '1 day'::INTERVAL)
+                    OR (ip.payment_from <= $2 AND ip.payment_to >= $3::DATE + '1 day'::INTERVAL)
                 )
             ORDER BY ip.issued_timestamp DESC;
         `;
@@ -573,7 +572,7 @@ class InsuranceModel {
             JOIN Bill b ON ph.bill_id = b.bill_id
             WHERE p.insurance_id = $1
                 AND b.updated_at >= $2
-                AND b.updated_at <= $3;
+                AND b.updated_at <= $3::DATE + '1 day'::INTERVAL;
         `;
 
 		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
@@ -605,7 +604,7 @@ class InsuranceModel {
         JOIN Bill b ON ph.bill_id = b.bill_id
         JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
         WHERE p.insurance_id = $1
-            AND b.generated_at > ic.last_cleared_date;
+            AND b.generated_at > ic.last_cleared_date::DATE + '1 day'::INTERVAL;
     `;
 
 		// Get insurance payments total
@@ -665,8 +664,8 @@ class InsuranceModel {
         JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
         WHERE p.insurance_id = $1
             AND b.generated_at >= $2
-            AND b.generated_at <= $3
-            AND b.generated_at > ic.last_cleared_date
+            AND b.generated_at <= $3::DATE + '1 day'::INTERVAL
+            AND b.generated_at > ic.last_cleared_date::DATE + '1 day'::INTERVAL
             AND (b.total_amount - b.paid_amount) > 0;
     `;
 
@@ -804,7 +803,7 @@ class InsuranceModel {
 		JOIN Bill b ON ph.bill_id = b.bill_id
 		WHERE ph.patient_id = $1
 			AND ph.admission_time >= $2
-			AND ph.admission_time <= $3
+			AND ph.admission_time <= $3::DATE + '1 day'::INTERVAL
 		ORDER BY ph.admission_time DESC;
 	`;
 
@@ -837,7 +836,7 @@ class InsuranceModel {
 			LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
 			WHERE bd.bill_id = $1
 				AND bd.generated_at >= $2 
-				AND bd.generated_at <= $3
+				AND bd.generated_at <= $3::DATE + '1 day'::INTERVAL
 		`;
 
 			let itemsQuery = [
@@ -915,7 +914,7 @@ class InsuranceModel {
 		WHERE p.patient_id = $1
 			AND p.insurance_id = $2
 			AND bd.generated_at >= $3 
-			AND bd.generated_at <= $4
+			AND bd.generated_at <= $4::DATE + '1 day'::INTERVAL
 	`;
 
 		const values = [
@@ -936,7 +935,7 @@ class InsuranceModel {
 			SELECT last_cleared_date 
 			FROM InsuranceCompany 
 			WHERE insurance_id = $2
-		)`;
+		)::DATE + '1 day'::INTERVAL`;
 		}
 
 		sql += " ORDER BY bd.generated_at DESC";
@@ -964,7 +963,7 @@ class InsuranceModel {
 		JOIN Bill b ON ph.bill_id = b.bill_id
 		WHERE p.patient_id = $1
 			AND b.updated_at >= $2
-			AND b.updated_at <= $3;
+			AND b.updated_at <= $3::DATE + '1 day'::INTERVAL;
 	`;
 
 		const { rows } = await query(sql, [patientId, startDate, endDate]);

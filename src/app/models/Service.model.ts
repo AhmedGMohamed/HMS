@@ -11,9 +11,32 @@ import {
 
 export class ServiceModel {
 	// Get all services with their prices
-	async getAllServices(): Promise<Service[]> {
+	async getAllServices(): Promise<
+		Array<
+			Service & { prices: ServicePrice[] } & {
+				drugs: Array<ServiceDrug & { name: string }>;
+			}
+		>
+	> {
 		const sql = `
-            SELECT * FROM Service 
+            SELECT s.*, (
+				SELECT json_agg(t)
+				FROM (
+					SELECT DISTINCT sp.pricelist_id, sp.price, sp.requires_prepayment, sp.prepayment_type, sp.prepayment_amount
+					FROM ServicePrice sp
+					WHERE sp.service_id = s.service_id
+				) t
+			) as prices,
+    		(
+        		SELECT json_agg(d)
+        		FROM (
+            		SELECT sd.*, d.name
+            		FROM ServiceDrug sd
+					JOIN DrugCard d ON d.drug_id = sd.drug_id
+            		WHERE sd.service_id = s.service_id
+        		) d
+    		) as drugs
+			FROM Service s
             ORDER BY name;
         `;
 		const result = await query(sql);
@@ -302,15 +325,15 @@ export class ServiceModel {
 				drugIds.forEach((_, index) => {
 					placeholders.push(`($1, $${index + 2})`);
 				});
-				
+
 				const insertSql = `
                 INSERT INTO ServiceDrug (service_id, drug_id)
                 VALUES ${placeholders.join(",")}
                 ON CONFLICT (service_id, drug_id) DO NOTHING;
 				`;
-				
+
 				(await query(insertSql, params)).rows;
-				
+
 				await query("COMMIT");
 			}
 		} catch (error) {

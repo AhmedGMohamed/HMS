@@ -531,7 +531,7 @@ class EmployeePaymentCron {
 				`SELECT 
 					COALESCE(SUM(ep.payment_amount), 0) as employee_costs,
 					COALESCE(
-						(SELECT SUM(ds.quantity * ds.buy_price) 
+						(SELECT SUM(ds.buy_quantity * ds.buy_price) 
 						 FROM DrugShipment ds 
 						 WHERE ds.received_date >= $1::date), 0
 					) as drug_costs,

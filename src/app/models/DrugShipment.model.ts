@@ -102,17 +102,18 @@ export class DrugShipmentModel {
 
 			const sql = `
                 INSERT INTO DrugShipment (
-                    drug_id, warehouse_id, quantity,
-                    buy_price, expiry_date,
+                    drug_id, warehouse_id, buy_quantity,
+					quantity, buy_price, expiry_date,
                     received_date, created_by_user_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *;
             `;
 
 			const values = [
 				data.drug_id,
 				data.warehouse_id,
+				quantityInSmallerUnits,
 				quantityInSmallerUnits,
 				data.buy_price,
 				new Date(data.expiry_date),

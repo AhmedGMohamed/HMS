@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS DrugShipment (
 	shipment_id SERIAL PRIMARY KEY,
 	drug_id INTEGER REFERENCES DrugCard(drug_id),
 	warehouse_id INTEGER REFERENCES Warehouse(warehouse_id),
+	buy_quantity INTEGER NOT NULL,
 	quantity INTEGER NOT NULL,
 	buy_price DECIMAL(15, 2) NOT NULL,
 	expiry_date DATE NOT NULL,

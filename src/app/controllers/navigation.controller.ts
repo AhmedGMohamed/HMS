@@ -39,16 +39,6 @@ export class NavigationController {
 				icon: "bi-speedometer2",
 				url: "/dashboard"
 			},
-
-			// Administration Header
-			{
-				id: "admin_header",
-				label: "Administration",
-				icon: "",
-				isHeader: true,
-				role: "Admin"
-			},
-
 			// User Management - Admin only
 			{
 				id: "user_management",
@@ -69,14 +59,6 @@ export class NavigationController {
 						url: "/admin/roles"
 					}
 				]
-			},
-
-			// Management Header
-			{
-				id: "management_header",
-				label: "Management",
-				icon: "",
-				isHeader: true
 			},
 
 			// Patient Management
@@ -134,15 +116,6 @@ export class NavigationController {
 				permission: "manage_prices"
 			},
 
-			// Vault
-			{
-				id: "vault",
-				label: "Vault",
-				icon: "bi-safe",
-				url: "/vault",
-				permission: "view_vault"
-			},
-
 			// Insurance Companies
 			{
 				id: "insurance",
@@ -152,6 +125,15 @@ export class NavigationController {
 				permission: "view_patients"
 			},
 
+			// Vault
+			{
+				id: "vault",
+				label: "Vault",
+				icon: "bi-safe",
+				url: "/vault",
+				permission: "view_vault"
+			},
+
 			// Reports
 			{
 				id: "reports",
@@ -159,7 +141,7 @@ export class NavigationController {
 				icon: "bi-file-earmark-text",
 				url: "/reports",
 				permission: "view_reports"
-			},
+			}
 		];
 
 		return this.filterNavigationByPermissions(allNavigation, user);

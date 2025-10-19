@@ -674,7 +674,7 @@ class VaultManager {
 						0
 					),
 					total_quantity: data.reduce(
-						(sum, row) => sum + parseInt(row.quantity || 0),
+						(sum, row) => sum + parseInt(row.buy_quantity || 0),
 						0
 					),
 					total_shipments: data.length
@@ -1117,7 +1117,7 @@ class VaultManager {
 					type: "text"
 				},
 				{
-					key: "quantity",
+					key: "buy_quantity",
 					label: "Quantity",
 					labelKey: "vault.reportColumns.quantity",
 					type: "number"
