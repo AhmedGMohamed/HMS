@@ -15,6 +15,10 @@ router.get(
 	(req, res) => EmployeeClockInController.getAllClockIns(req, res)
 );
 
+router.get("/clocked-in", verifyToken, auditLogger, (req, res) =>
+	EmployeeClockInController.getClockedInEmployees(req, res)
+);
+
 router.get(
 	"/:id",
 	verifyToken,

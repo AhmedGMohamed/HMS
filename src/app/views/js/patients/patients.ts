@@ -431,7 +431,7 @@ class PatientManager {
 		let tableHtml = `
 			<table class="table table-hover">
 				<thead>
-					<tr>
+					<tr class="table-secondary">
 						<th>${i18n.t("common.name")}</th>
 						<th>${i18n.t("patients.fields.nationalId")}</th>
 						<th>${i18n.t("patients.table.admitted")}</th>
@@ -1123,6 +1123,14 @@ class PatientManager {
     		            </div>
     		        </div>
     		        <div class="assigned-item-actions">
+    		            <button class="btn btn-sm btn-outline-danger"
+    		                    onclick="patientManager.removeService(${
+									service.service_id
+								})">
+    		                <i class="bi bi-trash"></i> ${i18n.t(
+								"patients.buttons.remove"
+							)}
+    		            </button>
     		            ${
 							service.is_active
 								? `
@@ -1134,16 +1142,8 @@ class PatientManager {
 									"patients.buttons.stop"
 								)}
     		                </button>
-    		                <button class="btn btn-sm btn-outline-danger" 
-    		                        onclick="patientManager.removeService(${
-										service.service_id
-									})">
-    		                    <i class="bi bi-trash"></i> ${i18n.t(
-									"patients.buttons.remove"
-								)}
-    		                </button>
     		            `
-								: `<span class="badge bg-secondary">${i18n.t(
+								: `<span class="badge bg-secondary align-self-center">${i18n.t(
 										"patients.status.inactive"
 								  )}</span>`
 						}

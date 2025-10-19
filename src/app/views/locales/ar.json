@@ -11,6 +11,7 @@
 		"confirm": "تأكيد",
 		"yes": "نعم",
 		"no": "لا",
+		"deleteConfirm": "نعم، احذفها",
 		"loading": "جاري التحميل...",
 		"noData": "لا توجد بيانات متاحة",
 		"error": "خطأ",
@@ -49,6 +50,7 @@
 		"clear": "مسح",
 		"page": "صفحة",
 		"of": "من",
+		"units": "وحدات",
 		"unknown": "غير معروف"
 	},
 	"sidebar": {
@@ -1102,6 +1104,7 @@
 		},
 		"messages": {
 			"noShipments": "لا توجد شحنات متاحة لهذا الدواء",
+			"shipmentNotFound": "الشحنة غير موجودة",
 			"loadShipmentError": "فشل تحميل تفاصيل الشحنة",
 			"deleteShipmentTitle": "حذف الشحنة؟",
 			"deleteShipmentConfirm": "هل أنت متأكد من حذف هذه الشحنة؟",

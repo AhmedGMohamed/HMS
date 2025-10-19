@@ -22,6 +22,25 @@ export default class EmployeeClockInModel {
 		return rows[0] || null;
 	}
 
+	static async getClockedInEmployees(): Promise<
+		Array<
+			EmployeeClockIn & {
+				shift_start_time: string;
+				shift_end_time: string;
+			}
+		>
+	> {
+		const sql = `SELECT ec.*,
+			e.shift_start_time,
+			e.shift_end_time
+			FROM EmployeeClockIn ec
+			LEFT JOIN Employee e ON ec.employee_id = e.employee_id
+			WHERE clock_in IS NOT NULL
+			AND clock_out IS NULL";`;
+		const { rows } = await query(sql);
+		return rows;
+	}
+
 	static async getClockInsByEmployeeId(
 		employee_id: number
 	): Promise<EmployeeClockIn[]> {
@@ -33,7 +52,8 @@ export default class EmployeeClockInModel {
 	static async getLastClockInByEmployeeId(
 		employee_id: number
 	): Promise<EmployeeClockIn | null> {
-		const sql = "SELECT * FROM EmployeeClockIn WHERE employee_id = $1 ORDER BY clock_id DESC LIMIT 1";
+		const sql =
+			"SELECT * FROM EmployeeClockIn WHERE employee_id = $1 ORDER BY clock_id DESC LIMIT 1";
 		const { rows } = await query(sql, [employee_id]);
 		return rows[0] || null;
 	}
