@@ -16,6 +16,18 @@ export default class EmployeeClockInController {
 		}
 	}
 
+	static async getClockedInEmployees(
+		_req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const clockIns = await EmployeeClockInModel.getClockedInEmployees();
+			res.status(200).json(clockIns);
+		} catch (error) {
+			res.status(500).json({ error: "Failed to fetch clock-ins" });
+		}
+	}
+
 	static async getClockInById(req: Request, res: Response): Promise<void> {
 		try {
 			const clock_id = parseInt(req.params.id);

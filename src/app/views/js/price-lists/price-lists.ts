@@ -345,8 +345,7 @@ class PriceListManager {
 		                        <h6 class="mb-1">${this.escapeHtml(service.name)}</h6>
 		                        <small class="text-muted">
 									<span class="badge bg-info">${i18n.t(
-										"priceLists.serviceTypes." +
-											service.service_type
+										`priceLists.serviceTypes.${service.service_type}`
 									)}</span>
 		                        </small>
 		                    </div>

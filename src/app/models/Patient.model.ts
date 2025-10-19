@@ -1096,22 +1096,22 @@ export class PatientModel {
 			// Find active service
 			const activeServiceSql = `
                 SELECT * FROM ActivePatientService 
-                WHERE patient_id = $1 AND service_id = $2 AND is_active = true;
+                WHERE patient_id = $1 AND service_id = $2;
             `;
-			const activeServiceResult = await query(activeServiceSql, [
+			const serviceResult = await query(activeServiceSql, [
 				patientId,
 				serviceId
 			]);
 
-			if (activeServiceResult.rows.length === 0) {
-				throw new Error("Active service not found");
+			if (serviceResult.rows.length === 0) {
+				throw new Error("Patient service not found");
 			}
 
 			// Remove service from ActivePatientService
 			await query(
 				`DELETE FROM ActivePatientService 
                  WHERE active_service_id = $1`,
-				[activeServiceResult.rows[0].active_service_id]
+				[serviceResult.rows[0].active_service_id]
 			);
 
 			// Remove service charges from bill
@@ -1132,7 +1132,7 @@ export class PatientModel {
 			await this.updateBillTotal(currentAdmission.bill_id!);
 
 			await query("COMMIT");
-			return activeServiceResult.rows[0];
+			return serviceResult.rows[0];
 		} catch (error) {
 			await query("ROLLBACK");
 			throw error;
