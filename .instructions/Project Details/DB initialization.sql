@@ -680,6 +680,7 @@ VALUES
 	('manage_services', 'Can manage services'),
 	('manage_billing', 'Can manage billing'),
 	('manage_pharmacy', 'Can manage pharmacy'),
+	('manage_shipments', 'Can manage/edit shipments'),
 	(
 		'manage_insurance',
 		'Can manage insurance companies and their payments'
@@ -694,7 +695,6 @@ VALUES
 	('manage_settings', 'Can manage system settings'),
 	('manage_users', 'Can manage users'),
 	('manage_prices', 'Can manage price lists'),
-	('manage_employees', 'Can manage employees'),
 	(
 		'manage_payments',
 		'Can manage employee payments'
@@ -703,6 +703,7 @@ VALUES
 		'manage_clocking',
 		'Can manage employee clock-in/out'
 	),
+	('manage_insurance', 'Can manage insurance companies'),
 	('view_reports', 'Can view facility reports'),
 	('view_only', 'Can only view records');
 

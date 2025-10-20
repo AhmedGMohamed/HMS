@@ -7,6 +7,7 @@ import {
 	DischargePatientDTO
 } from "../utils/types/patients.js";
 import DrugUsageModel from "../models/DrugUsage.model.js";
+import { error } from "toastr";
 
 export class PatientController {
 	async getAllPatients(_req: Request, res: Response) {
@@ -307,6 +308,22 @@ export class PatientController {
 			console.error("Error fetching current admission:", error);
 			res.status(500).json({
 				error: "Failed to fetch current admission"
+			});
+		}
+	}
+
+	async getCurrentAdmissionsWithStaff(
+		_req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			let admissions = await PatientModel.getCurrentAdmissionsWithStaff();
+
+			res.status(200).json(admissions);
+		} catch (error) {
+			console.error("Error fetching current admissions:", error);
+			res.status(500).json({
+				error: "Failed to fetch current admissions"
 			});
 		}
 	}

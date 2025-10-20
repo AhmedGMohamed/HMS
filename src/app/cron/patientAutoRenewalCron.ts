@@ -332,7 +332,7 @@ export class PatientAutoRenewalCron {
 
 			if (shipmentsResult.rows.length === 0) {
 				console.warn(
-					`No available shipments for drug ${drugInfo.drug_name} - patient ${drugInfo.patient_name}`
+					`No available shipments for drug ${drugInfo.drug_name} - patient ${drugInfo.patient_id}`
 				);
 				await query("ROLLBACK");
 				return;

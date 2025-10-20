@@ -140,7 +140,7 @@
 			"doctors": "ملفات الأطباء وإدارة الطاقم الطبي",
 			"nurses": "إدارة طاقم التمريض والتعيينات",
 			"clocking": "تتبع الوقت وحضور الموظفين",
-			"drugs": "إدارة مخزون الأدوية والوصفات الطبية",
+			"pharmacy": "إدارة مخزون الأدوية والوصفات الطبية",
 			"inventory": "إدارة المخزون وإمدادات الأدوية",
 			"services": "خدمات المستشفى وخيارات العلاج",
 			"price_lists": "تسعير الخدمات وإدارة التأمين",
@@ -149,7 +149,11 @@
 			"users": "حسابات مستخدمي النظام والتحكم في الوصول",
 			"roles": "إدارة أدوار المستخدمين والصلاحيات",
 			"permissions": "أمان النظام وصلاحيات الوصول",
-			"insurance": "إدارة شركات التأمين والمطالبات"
+			"insurance": "إدارة شركات التأمين والمطالبات",
+			"onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الأطباء",
+			"onlyAdminsCanSave": "يمكن للمسؤولين فقط حفظ الأطباء",
+			"onlyAdminsCanEdit": "يمكن للمسؤولين فقط تعديل الأطباء",
+			"onlyAdminsCanDelete": "يمكن للمسؤولين فقط حذف الأطباء"
 		}
 	},
 	"users": {
@@ -214,6 +218,7 @@
 			"manage_services": "إدارة الخدمات",
 			"manage_billing": "إدارة الفواتير",
 			"manage_pharmacy": "إدارة الصيدلية",
+			"manage_shipments": "إدارة شحنات الأدوية",
 			"manage_insurance": "إدارة التأمين",
 			"manage_employees": "إدارة الموظفين",
 			"view_vault": "عرض الخزينة",
@@ -617,7 +622,8 @@
 			"admitImmediately": "إدخال المريض فوراً",
 			"quickCheckAdmission": "إدخال فحص سريع",
 			"leaveReason": "سبب المغادرة",
-			"dischargeTime": "وقت التسريح"
+			"dischargeTime": "وقت التسريح",
+			"admittedOn": "تاريخ الإقامة"
 		},
 		"table": {
 			"admitted": "مُدخل",
@@ -657,6 +663,12 @@
 			"male": "ذكر",
 			"female": "أنثى",
 			"other": "آخر"
+		},
+		"doctorTypes": {
+			"attending": "معالج",
+			"supervising": "مشرف",
+			"referring": "محيل",
+			"outside": "خارجي"
 		},
 		"paymentTypes": {
 			"cash": "نقدي",
@@ -709,8 +721,34 @@
 			"includeDiscount": "تضمين الخصم في الطباعة"
 		},
 		"tabs": {
+			"allPatients": "جميع المرضى",
+			"staffStatus": "حالة الموظفين",
 			"services": "الخدمات",
 			"drugs": "الأدوية"
+		},
+		"staffStatus": {
+			"clockedInDoctors": "الأطباء المسجلون حالياً",
+			"clockedInNurses": "الممرضون المسجلون حالياً",
+			"currentAssignments": "تعيينات المرضى الحالية",
+			"available": "متاح",
+			"assignedToPatients": "معين لـ {{count}} مريض",
+			"clockedInAt": "تسجيل الدخول في",
+			"shift": "الوردية",
+			"assignedPatients": "المرضى المعينون",
+			"noClockedInDoctors": "لا يوجد أطباء مسجلون حالياً",
+			"noClockedInNurses": "لا يوجد ممرضون مسجلون حالياً",
+			"noCurrentAdmissions": "لا يوجد مرضى مقيمون حالياً",
+			"doctors": "الأطباء",
+			"nurses": "الممرضون",
+			"noDoctorsClockedIn": "لا يوجد أطباء مسجلون لهذا المريض",
+			"noNursesClockedIn": "لا يوجد ممرضون مسجلون لهذا المريض",
+			"minutesAgo": "منذ {{minutes}} دقيقة",
+			"hoursAgo": "{{hours}}س {{minutes}}د",
+			"daysAgo": "{{days}} يوم {{hours}}س",
+			"clockedIn": "مسجل حضور",
+			"notClockedIn": "لم يسجل حضور",
+			"noDoctorsAssignedToPatient": "لا يوجد أطباء معينون لهذا المريض",
+			"noNursesAssignedToPatient": "لا يوجد ممرضون معينون لهذا المريض"
 		},
 		"help": {
 			"quickCheckInfo": "إدخالات الفحص السريع لا تضيف الخدمات تلقائياً",
@@ -804,7 +842,9 @@
 			"due": "مستحق",
 			"credit": "رصيد",
 			"processing": "جارٍ المعالجة...",
-			"quantityExceedsAvailable": "الكمية الإجمالية تتجاوز المخزون المتاح"
+			"quantityExceedsAvailable": "الكمية الإجمالية تتجاوز المخزون المتاح",
+			"loadingStaffStatus": "جاري تحميل حالة الموظفين...",
+			"loadStaffStatusError": "فشل تحميل حالة الموظفين"
 		},
 		"printBill": {
 			"unknownItem": "عنصر غير معروف",

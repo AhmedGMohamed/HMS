@@ -1,3 +1,17 @@
 .billing-section .form-control {
     direction: rtl;
 }
+
+[dir="rtl"] .staff-member-card.available,
+[dir="rtl"] .staff-member-card.assigned {
+  border-left: none;
+  border-right: 4px solid;
+}
+
+[dir="rtl"] .staff-member-card.available {
+  border-right-color: #28a745;
+}
+
+[dir="rtl"] .staff-member-card.assigned {
+  border-right-color: #ffc107;
+}

@@ -133,6 +133,40 @@ interface Bill {
 	updated_at: Date;
 }
 
+interface ClockedInEmployee {
+	clock_id: number;
+	employee_id: number;
+	name: string;
+	employee_type: "doctor" | "nurse" | "other";
+	clock_in: Date;
+	clock_out: Date | null;
+	shift_start_time: string | null;
+	shift_end_time: string | null;
+	doctor_type?: string;
+}
+
+interface CurrentAdmission {
+	patient_id: number;
+	patient_name: string;
+	patient_history_id: number;
+	diagnosis: string | null;
+	admission_time: Date;
+	quick_check: boolean;
+	attending_doctor_ids: number[];
+	attending_doctors: string[];
+	doctor_types: string;
+	attending_nurse_ids: number[];
+	attending_nurses: string[];
+}
+
+interface StaffAssignment {
+	patient_id: number;
+	patient_name: string;
+	assigned_at: Date;
+	admission_time: Date;
+	diagnosis: string | null;
+}
+
 class PatientManager {
 	//@ts-ignore
 	private patientModal: Modal;
@@ -159,6 +193,9 @@ class PatientManager {
 	private assignedServices: any[] = [];
 	private assignedDrugs: any[] = [];
 	private servicePrices: Map<number, number> = new Map();
+	private clockedInStaff: ClockedInEmployee[] = [];
+	private staffAssignments: Map<number, StaffAssignment[]> = new Map();
+	private staffStatusInterval: NodeJS.Timeout | null = null;
 
 	private searchTimeout: NodeJS.Timeout | null = null;
 	private allPatients: Patient[] = [];
@@ -214,6 +251,12 @@ class PatientManager {
 
 			window.addEventListener("localeChanged", () => {
 				this.handleLocaleChange();
+			});
+
+			window.addEventListener("beforeunload", () => {
+				if (this.staffStatusInterval) {
+					clearInterval(this.staffStatusInterval);
+				}
 			});
 		});
 	}
@@ -378,6 +421,48 @@ class PatientManager {
 			.getElementById("printAdmissionBillBtn")
 			?.addEventListener("click", () => {
 				this.printAdmissionBill();
+			});
+
+		// Staff status tab
+		document
+			.getElementById("refreshStaffStatusBtn")
+			?.addEventListener("click", () => {
+				this.loadStaffStatus();
+			});
+
+		document
+			.getElementById("staff-status-tab")
+			?.addEventListener("shown.bs.tab", () => {
+				// Hide patient details when switching to staff status
+				document.getElementById("patientContent")!.style.display =
+					"none";
+
+				this.loadStaffStatus();
+				// Auto-refresh every 30 seconds when tab is active
+				this.staffStatusInterval = setInterval(() => {
+					this.loadStaffStatus();
+				}, 30000);
+			});
+
+		document
+			.getElementById("all-patients-tab")
+			?.addEventListener("shown.bs.tab", () => {
+				// Stop auto-refresh when leaving staff status tab
+				if (this.staffStatusInterval) {
+					clearInterval(this.staffStatusInterval);
+					this.staffStatusInterval = null;
+				}
+
+				// If no patient is currently selected, show the patient list
+				if (
+					!this.currentPatient ||
+					document.getElementById("patientContent")!.style.display ===
+						"none"
+				) {
+					document.getElementById(
+						"patientListContainer"
+					)!.style.display = "block";
+				}
 			});
 	}
 
@@ -776,10 +861,24 @@ class PatientManager {
 
 	public async selectPatient(patientId: number): Promise<void> {
 		try {
-			//this.hideSuggestions();
 			const searchInput = document.getElementById(
 				"patientSearch"
 			) as HTMLInputElement;
+
+			// Switch to "All Patients" tab if not already active
+			const allPatientsTab = document.getElementById(
+				"all-patients-tab"
+			) as HTMLButtonElement;
+			const staffStatusTab = document.getElementById(
+				"staff-status-tab"
+			) as HTMLButtonElement;
+
+			if (staffStatusTab?.classList.contains("active")) {
+				// Programmatically switch tabs using Bootstrap's tab API
+				//@ts-ignore
+				const bsTab = new bootstrap.Tab(allPatientsTab);
+				bsTab.show();
+			}
 
 			// Load patient data
 			await this.loadPatientData(patientId);
@@ -789,7 +888,7 @@ class PatientManager {
 				searchInput.value = this.currentPatient.name;
 			}
 
-			// Show patient content
+			// Show patient content, hide patient list
 			document.getElementById("patientListContainer")!.style.display =
 				"none";
 			document.getElementById("patientContent")!.style.display = "block";
@@ -3603,6 +3702,537 @@ class PatientManager {
 		return billDetails;
 	}
 
+	private async loadStaffStatus(): Promise<void> {
+		try {
+			this.showInfo(i18n.t("patients.messages.loadingStaffStatus"));
+
+			// Fetch clocked-in employees
+			await this.loadClockedInStaff();
+
+			// Fetch current admissions with staff assignments
+			await this.loadStaffAssignments();
+
+			// Render the staff status view
+			this.renderStaffStatus();
+		} catch (error) {
+			console.error("Error loading staff status:", error);
+			this.showError(i18n.t("patients.messages.loadStaffStatusError"));
+		}
+	}
+
+	private async loadClockedInStaff(): Promise<void> {
+		try {
+			const response = await fetch("/api/clock-ins/clocked-in", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok)
+				throw new Error("Failed to fetch clocked-in staff");
+
+			const clockIns = await response.json();
+
+			// Enrich with employee details
+			this.clockedInStaff = await Promise.all(
+				clockIns.map(async (clockIn: any) => {
+					// Find employee in our existing doctors/nurses arrays
+					const doctor = this.doctors.find(
+						(d) => d.employee_id === clockIn.employee_id
+					);
+					const nurse = this.nurses.find(
+						(n) => n.employee_id === clockIn.employee_id
+					);
+
+					return {
+						...clockIn,
+						name: doctor?.name || nurse?.name || "Unknown",
+						employee_type: doctor
+							? "doctor"
+							: nurse
+							? "nurse"
+							: "other",
+						doctor_type: doctor?.doctor_type
+					};
+				})
+			);
+		} catch (error) {
+			console.error("Error loading clocked-in staff:", error);
+			throw error;
+		}
+	}
+
+	private async loadStaffAssignments(): Promise<void> {
+		try {
+			// Fetch current admissions with staff assignments
+			const response = await fetch("/api/patients/admissions/current", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok)
+				throw new Error("Failed to fetch staff assignments");
+
+			const admissions: CurrentAdmission[] = await response.json();
+
+			// Build a map of employee_id -> assigned patients
+			this.staffAssignments.clear();
+
+			admissions.forEach((admission) => {
+				const patientInfo: StaffAssignment = {
+					patient_id: admission.patient_id,
+					patient_name: admission.patient_name,
+					assigned_at: admission.admission_time, // Using admission time as assignment time
+					admission_time: admission.admission_time,
+					diagnosis: admission.diagnosis
+				};
+
+				// Add to doctor assignments (only if currently assigned - unassigned_at IS NULL)
+				if (
+					admission.attending_doctor_ids &&
+					admission.attending_doctor_ids.length > 0
+				) {
+					admission.attending_doctor_ids.forEach(
+						(doctorId: number) => {
+							if (!this.staffAssignments.has(doctorId)) {
+								this.staffAssignments.set(doctorId, []);
+							}
+							this.staffAssignments
+								.get(doctorId)!
+								.push(patientInfo);
+						}
+					);
+				}
+
+				// Add to nurse assignments (only if currently assigned - unassigned_at IS NULL)
+				if (
+					admission.attending_nurse_ids &&
+					admission.attending_nurse_ids.length > 0
+				) {
+					admission.attending_nurse_ids.forEach((nurseId: number) => {
+						if (!this.staffAssignments.has(nurseId)) {
+							this.staffAssignments.set(nurseId, []);
+						}
+						this.staffAssignments.get(nurseId)!.push(patientInfo);
+					});
+				}
+			});
+		} catch (error) {
+			console.error("Error loading staff assignments:", error);
+			throw error;
+		}
+	}
+
+	private renderStaffStatus(): void {
+		this.renderClockedInDoctors();
+		this.renderClockedInNurses();
+		this.renderPatientAssignments();
+	}
+
+	private renderClockedInDoctors(): void {
+		const container = document.getElementById("clockedInDoctorsList")!;
+		const countBadge = document.getElementById("doctorsCount")!;
+
+		const doctors = this.clockedInStaff.filter(
+			(s) => s.employee_type === "doctor"
+		);
+		countBadge.textContent = doctors.length.toString();
+
+		if (doctors.length === 0) {
+			container.innerHTML = `
+      <div class="no-staff-message">
+        <i class="bi bi-person-x"></i>
+        <p>${i18n.t("patients.staffStatus.noClockedInDoctors")}</p>
+      </div>
+    `;
+			return;
+		}
+
+		container.innerHTML = doctors
+			.map((doctor) => this.renderStaffMemberCard(doctor))
+			.join("");
+	}
+
+	private renderClockedInNurses(): void {
+		const container = document.getElementById("clockedInNursesList")!;
+		const countBadge = document.getElementById("nursesCount")!;
+
+		const nurses = this.clockedInStaff.filter(
+			(s) => s.employee_type === "nurse"
+		);
+		countBadge.textContent = nurses.length.toString();
+
+		if (nurses.length === 0) {
+			container.innerHTML = `
+      <div class="no-staff-message">
+        <i class="bi bi-person-x"></i>
+        <p>${i18n.t("patients.staffStatus.noClockedInNurses")}</p>
+      </div>
+    `;
+			return;
+		}
+
+		container.innerHTML = nurses
+			.map((nurse) => this.renderStaffMemberCard(nurse))
+			.join("");
+	}
+
+	private renderStaffMemberCard(staff: ClockedInEmployee): string {
+		const assignments = this.staffAssignments.get(staff.employee_id) || [];
+		const isAvailable = assignments.length === 0;
+		const statusClass = isAvailable ? "available" : "assigned";
+		const statusText = isAvailable
+			? i18n.t("patients.staffStatus.available")
+			: i18n.t("patients.staffStatus.assignedToPatients", {
+					count: assignments.length
+			  });
+
+		const clockInTime = i18n.formatTime(staff.clock_in);
+		const clockedInDuration = this.calculateDuration(staff.clock_in);
+
+		return `
+    <div class="staff-member-card ${statusClass}">
+      <div class="staff-member-header">
+        <div>
+          <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
+          ${
+				staff.doctor_type
+					? `<div class="staff-member-type">${this.escapeHtml(
+							staff.doctor_type
+					  )}</div>`
+					: ""
+			}
+        </div>
+        <div class="staff-member-status">
+          <span class="status-indicator ${
+				isAvailable ? "available" : "busy"
+			}"></span>
+          <span class="badge bg-${
+				isAvailable ? "success" : "warning"
+			}">${statusText}</span>
+        </div>
+      </div>
+      
+      <div class="clock-in-info">
+        <div class="clock-in-info-item">
+          <i class="bi bi-clock"></i>
+          <span>${i18n.t(
+				"patients.staffStatus.clockedInAt"
+			)}: ${clockInTime}</span>
+        </div>
+        <div class="clock-in-info-item">
+          <i class="bi bi-hourglass-split"></i>
+          <span>${clockedInDuration}</span>
+        </div>
+        ${
+			staff.shift_start_time && staff.shift_end_time
+				? `
+          <div class="clock-in-info-item">
+            <i class="bi bi-calendar2-week"></i>
+            <span>${i18n.t("patients.staffStatus.shift")}: ${
+						staff.shift_start_time
+				  } - ${staff.shift_end_time}</span>
+          </div>
+        `
+				: ""
+		}
+      </div>
+      
+      ${
+			assignments.length > 0
+				? `
+        <div class="assigned-patients-list">
+          <div class="assigned-patients-title">
+            <i class="bi bi-people"></i> ${i18n.t(
+				"patients.staffStatus.assignedPatients"
+			)}:
+          </div>
+          ${assignments
+				.map(
+					(patient) => `
+            <div class="assigned-patient-item" onclick="patientManager.selectPatient(${
+				patient.patient_id
+			})">
+              <span class="assigned-patient-name">${this.escapeHtml(
+					patient.patient_name
+				)}</span>
+              <span class="assigned-patient-duration">${this.calculateDuration(
+					patient.admission_time
+				)}</span>
+            </div>
+          `
+				)
+				.join("")}
+        </div>
+      `
+				: ""
+		}
+    </div>
+  `;
+	}
+
+	private async renderPatientAssignments(): Promise<void> {
+		const container = document.getElementById("patientAssignmentsList")!;
+
+		try {
+			// Fetch all current admissions again to get complete patient list
+			const response = await fetch("/api/patients/admissions/current", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok) throw new Error("Failed to fetch admissions");
+
+			const admissions: CurrentAdmission[] = await response.json();
+
+			if (admissions.length === 0) {
+				container.innerHTML = `
+			        <div class="no-staff-message">
+			          <i class="bi bi-hospital"></i>
+			          <p>${i18n.t("patients.staffStatus.noCurrentAdmissions")}</p>
+			        </div>
+			      `;
+				return;
+			}
+
+			// Build patient assignment cards for each admission
+			const assignmentCards = admissions.map((admission) => {
+				// Find which assigned doctors are clocked in
+				const clockedInDoctors = this.clockedInStaff.filter(
+					(staff) =>
+						staff.employee_type === "doctor" &&
+						admission.attending_doctor_ids.includes(
+							staff.employee_id
+						)
+				);
+
+				// Find which assigned nurses are clocked in
+				const clockedInNurses = this.clockedInStaff.filter(
+					(staff) =>
+						staff.employee_type === "nurse" &&
+						admission.attending_nurse_ids.includes(
+							staff.employee_id
+						)
+				);
+
+				// Get all assigned doctors (even if not clocked in)
+				const allAssignedDoctors = admission.attending_doctor_ids.map(
+					(id, index) => ({
+						employee_id: id,
+						name: admission.attending_doctors[index],
+						doctor_type: i18n.t(`patients.doctorTypes.${this.parseDoctorType(
+							admission.doctor_types,
+							index
+						) as string}`),
+						isClockedIn: clockedInDoctors.some(
+							(d) => d.employee_id === id
+						)
+					})
+				);
+
+				// Get all assigned nurses (even if not clocked in)
+				const allAssignedNurses = admission.attending_nurse_ids.map(
+					(id, index) => ({
+						employee_id: id,
+						name: admission.attending_nurses[index],
+						isClockedIn: clockedInNurses.some(
+							(n) => n.employee_id === id
+						)
+					})
+				);
+
+				return this.renderPatientAssignmentCardFromAdmission(
+					admission,
+					allAssignedDoctors,
+					allAssignedNurses
+				);
+			});
+
+			container.innerHTML = assignmentCards.join("");
+		} catch (error) {
+			console.error("Error rendering patient assignments:", error);
+			container.innerHTML = `
+		      <div class="alert alert-danger">
+		        ${i18n.t("patients.messages.loadStaffStatusError")}
+		      </div>
+		    `;
+		}
+	}
+
+	private renderPatientAssignmentCardFromAdmission(
+		admission: CurrentAdmission,
+		assignedDoctors: Array<{
+			employee_id: number;
+			name: string;
+			doctor_type: string | null;
+			isClockedIn: boolean;
+		}>,
+		assignedNurses: Array<{
+			employee_id: number;
+			name: string;
+			isClockedIn: boolean;
+		}>
+	): string {
+		const admissionDuration = this.calculateDuration(
+			admission.admission_time
+		);
+		const admissionDate = i18n.formatDateTime(admission.admission_time);
+
+		const clockedInDoctorCount = assignedDoctors.filter(
+			(d) => d.isClockedIn
+		).length;
+		const clockedInNurseCount = assignedNurses.filter(
+			(n) => n.isClockedIn
+		).length;
+
+		return `
+	    <div class="patient-assignment-card">
+	      <div class="patient-assignment-header">
+	        <div>
+	          <div class="patient-assignment-name">${this.escapeHtml(
+					admission.patient_name
+				)}</div>
+	          ${
+					admission.quick_check
+						? '<span class="badge bg-warning text-dark ms-2">' +
+						  i18n.t("patients.fields.quickCheck") +
+						  "</span>"
+						: ""
+				}
+	        </div>
+	        <button class="btn btn-sm btn-outline-primary" onclick="patientManager.selectPatient(${
+				admission.patient_id
+			})">
+	          <i class="bi bi-eye"></i> ${i18n.t("common.view")}
+	        </button>
+	      </div>
+			
+	      <div class="patient-assignment-meta">
+	        <span><i class="bi bi-calendar-check"></i> ${i18n.t(
+				"patients.fields.admittedOn"
+			)}: ${admissionDate}</span>
+	        <span><i class="bi bi-hourglass-split"></i> ${admissionDuration}</span>
+	        ${
+				admission.diagnosis
+					? `<span><i class="bi bi-clipboard-pulse"></i> ${this.escapeHtml(
+							admission.diagnosis
+					  )}</span>`
+					: ""
+			}
+	      </div>
+				  
+	      <div class="patient-assignment-staff">
+	        <div class="staff-group">
+	          <div class="staff-group-title">
+	            <i class="bi bi-person-badge"></i>
+	            ${i18n.t("patients.staffStatus.doctors")} 
+	            (${clockedInDoctorCount}/${assignedDoctors.length} ${i18n.t(
+			"patients.staffStatus.clockedIn"
+		)})
+	          </div>
+	          ${
+					assignedDoctors.length > 0
+						? assignedDoctors
+								.map(
+									(doctor) => `
+	            <span class="staff-member-chip doctor ${
+					doctor.isClockedIn ? "" : "not-clocked-in"
+				}">
+	              <i class="bi bi-${doctor.isClockedIn ? "circle-fill" : "circle"}" 
+	                 style="font-size: 0.5rem; color: ${
+							doctor.isClockedIn ? "#28a745" : "#dc3545"
+						};"></i>
+	              ${this.escapeHtml(doctor.name)}
+	              ${
+						doctor.doctor_type
+							? `<small>(${this.escapeHtml(
+									doctor.doctor_type
+							  )})</small>`
+							: ""
+					}
+	              ${
+						!doctor.isClockedIn
+							? `<small class="text-muted ms-1">${i18n.t(
+									"patients.staffStatus.notClockedIn"
+							  )}</small>`
+							: ""
+					}
+	            </span>
+	          `
+								)
+								.join("")
+						: `<span class="text-muted">${i18n.t(
+								"patients.staffStatus.noDoctorsAssignedToPatient"
+						  )}</span>`
+				}
+	        </div>
+					  
+	        <div class="staff-group">
+	          <div class="staff-group-title">
+	            <i class="bi bi-person-heart"></i>
+	            ${i18n.t("patients.staffStatus.nurses")} 
+	            (${clockedInNurseCount}/${assignedNurses.length} ${i18n.t(
+			"patients.staffStatus.clockedIn"
+		)})
+	          </div>
+	          ${
+					assignedNurses.length > 0
+						? assignedNurses
+								.map(
+									(nurse) => `
+	            <span class="staff-member-chip nurse ${
+					nurse.isClockedIn ? "" : "not-clocked-in"
+				}">
+	              <i class="bi bi-${nurse.isClockedIn ? "circle-fill" : "circle"}" 
+	                 style="font-size: 0.5rem; color: ${
+							nurse.isClockedIn ? "#28a745" : "#dc3545"
+						};"></i>
+	              ${this.escapeHtml(nurse.name)}
+	              ${
+						!nurse.isClockedIn
+							? `<small class="text-muted ms-1">${i18n.t(
+									"patients.staffStatus.notClockedIn"
+							  )}</small>`
+							: ""
+					}
+	            </span>
+	          `
+								)
+								.join("")
+						: `<span class="text-muted">${i18n.t(
+								"patients.staffStatus.noNursesAssignedToPatient"
+						  )}</span>`
+				}
+	        </div>
+	      </div>
+	    </div>
+	  `;
+	}
+
+	private calculateDuration(startDate: Date | string): string {
+		const start = new Date(startDate);
+		const now = new Date();
+		const diffMs = now.getTime() - start.getTime();
+
+		const hours = Math.floor(diffMs / (1000 * 60 * 60));
+		const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+		if (hours === 0) {
+			return i18n.t("patients.staffStatus.minutesAgo", { minutes });
+		} else if (hours < 24) {
+			return i18n.t("patients.staffStatus.hoursAgo", { hours, minutes });
+		} else {
+			const days = Math.floor(hours / 24);
+			const remainingHours = hours % 24;
+			return i18n.t("patients.staffStatus.daysAgo", {
+				days,
+				hours: remainingHours
+			});
+		}
+	}
+
 	private formatDismissalReason(reason: string): string {
 		return i18n.t(`patients.leaveReasons.${reason}`);
 	}
@@ -3749,6 +4379,17 @@ class PatientManager {
 
 	private formatServiceType(serviceType: string): string {
 		return i18n.t(`patients.serviceTypes.${serviceType}`);
+	}
+
+	private parseDoctorType(
+		doctorTypesString: string,
+		index: number
+	): string | null {
+		if (!doctorTypesString) return null;
+
+		// Remove curly braces and split by comma
+		const types = doctorTypesString.replace(/[{}]/g, "").split(",");
+		return types[index] || null;
 	}
 
 	private setButtonLoading(

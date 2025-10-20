@@ -36,7 +36,7 @@ export default class EmployeeClockInModel {
 			FROM EmployeeClockIn ec
 			LEFT JOIN Employee e ON ec.employee_id = e.employee_id
 			WHERE clock_in IS NOT NULL
-			AND clock_out IS NULL";`;
+			AND clock_out IS NULL;`;
 		const { rows } = await query(sql);
 		return rows;
 	}

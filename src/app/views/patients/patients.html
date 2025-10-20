@@ -107,14 +107,93 @@
           </div>
         </div>
 
-        <!-- Patient List -->
-        <div id="patientListContainer" class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0" data-i18n="patients.allPatients">All Patients</h5>
+        <!-- Tab Navigation -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <ul class="nav nav-tabs" id="patientTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-patients-tab" data-bs-toggle="tab" data-bs-target="#all-patients-pane" type="button" role="tab" data-i18n="patients.tabs.allPatients">All Patients</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="staff-status-tab" data-bs-toggle="tab" data-bs-target="#staff-status-pane" type="button" role="tab" data-i18n="patients.tabs.staffStatus">Staff Status</button>
+              </li>
+            </ul>
           </div>
-          <div class="card-body">
-            <div id="patientList">
-              <!-- Patient table will be rendered here -->
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="patientTabsContent">
+          <!-- All Patients Tab -->
+          <div class="tab-pane fade show active" id="all-patients-pane" role="tabpanel">
+            <div id="patientListContainer" class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0" data-i18n="patients.allPatients">All Patients</h5>
+              </div>
+              <div class="card-body">
+                <div id="patientList">
+                  <!-- Patient table will be rendered here -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Status Tab -->
+          <div class="tab-pane fade" id="staff-status-pane" role="tabpanel">
+            <div class="row">
+              <!-- Clocked-in Doctors -->
+              <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                      <i class="bi bi-person-badge"></i>
+                      <span data-i18n="patients.staffStatus.clockedInDoctors">Clocked-In Doctors</span>
+                      <span class="badge bg-primary ms-2" id="doctorsCount">0</span>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" id="refreshStaffStatusBtn">
+                      <i class="bi bi-arrow-clockwise"></i>
+                      <span data-i18n="common.refresh">Refresh</span>
+                    </button>
+                  </div>
+                  <div class="card-body">
+                    <div id="clockedInDoctorsList">
+                      <!-- Doctors list will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Clocked-in Nurses -->
+              <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                  <div class="card-header">
+                    <h5 class="mb-0">
+                      <i class="bi bi-person-heart"></i>
+                      <span data-i18n="patients.staffStatus.clockedInNurses">Clocked-In Nurses</span>
+                      <span class="badge bg-success ms-2" id="nursesCount">0</span>
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="clockedInNursesList">
+                      <!-- Nurses list will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Current Patient Assignments Summary -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="bi bi-hospital"></i>
+                  <span data-i18n="patients.staffStatus.currentAssignments">Current Patient Assignments</span>
+                </h5>
+              </div>
+              <div class="card-body">
+                <div id="patientAssignmentsList">
+                  <!-- Patient assignments will be rendered here -->
+                </div>
+              </div>
             </div>
           </div>
         </div>
