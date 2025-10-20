@@ -1,5 +1,6 @@
 //@ts-ignore
 import Swal from "../sweetalert2/src/sweetalert2.js";
+import { i18n } from "../utils/i18n.js";
 
 interface Doctor {
 	employee_id: number;
@@ -71,9 +72,27 @@ class DoctorManager {
 			"doctorPaymentEndDate"
 		) as HTMLInputElement;
 
-		this.initializeEventListeners();
-		this.loadUser();
-		this.loadDoctors();
+		this.waitForI18n().then(() => {
+			this.initializeEventListeners();
+			this.loadUser();
+			this.loadDoctors();
+
+			// Listen for locale changes
+			window.addEventListener("localeChanged", () => {
+				this.handleLocaleChange();
+			});
+		});
+	}
+
+	private async waitForI18n(): Promise<void> {
+		if (i18n) {
+			await i18n.init();
+		}
+	}
+
+	private handleLocaleChange(): void {
+		// Re-render doctors table with new formatting and translations
+		this.renderDoctors(this.searchDoctor.value);
 	}
 
 	private initializeEventListeners(): void {
@@ -81,7 +100,9 @@ class DoctorManager {
 			.getElementById("createEmployeeBtnDoctorsTab")
 			?.addEventListener("click", () => {
 				if (this.userRole !== "Admin") {
-					this.showError("Only admins can create doctors");
+					this.showError(
+						i18n.t("employees.messages.onlyAdminsCanCreate")
+					);
 					return;
 				}
 				this.showDoctorModal();
@@ -100,7 +121,7 @@ class DoctorManager {
 		) as HTMLSelectElement;
 		perPatientPaymentTypeSelect.addEventListener("change", () => {
 			const percentageScopeContainer = document.getElementById(
-				"percentageScopeContainer"
+				"percentageScopeContainerDoctor"
 			)!;
 			percentageScopeContainer.style.display =
 				perPatientPaymentTypeSelect.value === "percentage"
@@ -139,7 +160,7 @@ class DoctorManager {
 			this.userPermissions = user.permissions;
 			this.userRole = user.role;
 		} catch (error) {
-			this.showError("Failed to load user permissions");
+			this.showError(i18n.t("employees.messages.loadError"));
 		}
 	}
 
@@ -150,7 +171,8 @@ class DoctorManager {
 					Authorization: `Bearer ${localStorage.getItem("token")}`
 				}
 			});
-			if (!response.ok) throw new Error("Failed to fetch doctors");
+			if (!response.ok)
+				throw new Error(i18n.t("employees.messages.loadError"));
 			const doctors: Doctor[] = await response.json();
 			this.doctors.clear();
 			doctors.forEach((doctor) =>
@@ -158,7 +180,7 @@ class DoctorManager {
 			);
 			this.renderDoctors(this.searchDoctor.value);
 		} catch (error) {
-			this.showError("Failed to load doctors");
+			this.showError(i18n.t("employees.messages.loadError"));
 		}
 	}
 
@@ -173,12 +195,10 @@ class DoctorManager {
 				}
 			);
 			if (!response.ok)
-				throw new Error(
-					`Failed to fetch payments for employee ${employeeId}`
-				);
+				throw new Error(i18n.t("employees.messages.loadPaymentsError"));
 			return await response.json();
 		} catch (error) {
-			this.showError(`Failed to load payments for doctor`);
+			this.showError(i18n.t("employees.messages.loadPaymentsError"));
 			return [];
 		}
 	}
@@ -197,6 +217,17 @@ class DoctorManager {
 				doctor.employee_type === "doctor" &&
 				doctor.name.toLowerCase().includes(filterTerm.toLowerCase())
 		);
+
+		if (filteredDoctors.length === 0) {
+			tbody.innerHTML = `
+				<tr>
+					<td colspan="9" class="text-center text-muted">
+						${i18n.t("common.noData")}
+					</td>
+				</tr>
+			`;
+			return;
+		}
 
 		const doctorData = await Promise.all(
 			filteredDoctors.map(async (doctor) => {
@@ -235,53 +266,70 @@ class DoctorManager {
               ${
 					this.userPermissions.includes("manage_payments") &&
 					payments.length > 0
-						? `<button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                                 <i class="bi bi-chevron-down"></i>
-                               </button>`
+						? `<button class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                             <i class="bi bi-chevron-down"></i>
+                           </button>`
 						: ""
 				}
             </td>
             <td>${this.escapeHtml(doctor.name)}</td>
-            <td>${this.escapeHtml(doctor.doctor_type)}</td>
-            <td>${new Date(doctor.hire_date).toLocaleDateString("en-GB")}</td>
-            <td>$${
+            <td>${i18n.t(`employees.doctorTypes.${doctor.doctor_type}`)}</td>
+            <td>${i18n.formatDate(new Date(doctor.hire_date))}</td>
+            <td>${
 				this.userPermissions.includes("manage_payments")
-					? Number(doctor.daily_pay) || "-"
+					? i18n.formatCurrency(Number(doctor.daily_pay) || 0)
 					: "-"
 			}</td>
-            <td>${doctor.per_patient_payment_type == "fixed" ? "$" : ""}${
-					this.userPermissions.includes("manage_payments")
-						? Number(doctor.per_patient_pay) || "-"
-						: "-"
-				}${doctor.per_patient_payment_type != "fixed" ? "%" : ""}</td>
-			<td>${this.escapeHtml(doctor.shift_type || "-")}</td>
+            <td>${
+				this.userPermissions.includes("manage_payments")
+					? this.formatPerPatientPay(doctor)
+					: "-"
+			}</td>
+			<td>${
+				doctor.shift_type
+					? i18n.t(`employees.shiftTypes.${doctor.shift_type}`)
+					: "-"
+			}</td>
             <td>${
 				doctor.is_active
 					? `<span class='feature-indicator enabled'>
 						<i class='bi bi-check-circle-fill text-success'></i>
-						Yes
+						${i18n.t("common.yes")}
 					</span>`
 					: `<span class="feature-indicator disabled">
                         <i class="bi bi-x-circle-fill text-danger"></i>
-                        No
-                    </span>}</td>`
-			}<td>
+                        ${i18n.t("common.no")}
+                    </span>`
+			}</td>
+            <td>
               <div class="action-buttons">
                 ${
 					this.userRole === "Admin"
-						? `<button class="btn btn-sm btn-outline-primary" onclick="doctorManager.editDoctor(${doctor.employee_id})">
-                                 <i class="bi bi-pencil"></i> Edit
-                               </button>
-                               <button class="btn btn-sm btn-outline-danger" onclick="doctorManager.deleteDoctor(${doctor.employee_id})">
-                                 <i class="bi bi-trash"></i> Delete
-                               </button>`
+						? `<button class="btn btn-sm btn-outline-primary" onclick="doctorManager.editDoctor(${
+								doctor.employee_id
+						  })">
+                             <i class="bi bi-pencil"></i> ${i18n.t(
+									"employees.buttons.edit"
+								)}
+                           </button>
+                           <button class="btn btn-sm btn-outline-danger" onclick="doctorManager.deleteDoctor(${
+								doctor.employee_id
+							})">
+                             <i class="bi bi-trash"></i> ${i18n.t(
+									"employees.buttons.delete"
+								)}
+                           </button>`
 						: ""
 				}
                 ${
 					this.userPermissions.includes("manage_payments")
-						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${doctor.employee_id})">
-                                 <i class="bi bi-plus-circle"></i> Create Payment
-                               </button>`
+						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${
+								doctor.employee_id
+						  })">
+                             <i class="bi bi-plus-circle"></i> ${i18n.t(
+									"employees.buttons.createPayment"
+								)}
+                           </button>`
 						: ""
 				}
               </div>
@@ -297,14 +345,14 @@ class DoctorManager {
                     <table class="table table-hover">
                       <thead>
                         <tr>
-                          <th>Payment ID</th>
-                          <th>Amount</th>
-                          <th>Type</th>
-                          <th>Issued</th>
-                          <th>Status</th>
-                          <th>Paid By</th>
-                          <th>Paid On</th>
-                          <th>Actions</th>
+                          <th>${i18n.t("employees.table.paymentId")}</th>
+                          <th>${i18n.t("employees.table.amount")}</th>
+                          <th>${i18n.t("employees.table.type")}</th>
+                          <th>${i18n.t("employees.table.issued")}</th>
+                          <th>${i18n.t("employees.table.status")}</th>
+                          <th>${i18n.t("employees.table.paidBy")}</th>
+                          <th>${i18n.t("employees.table.paidOn")}</th>
+                          <th>${i18n.t("common.actions")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -313,19 +361,26 @@ class DoctorManager {
 								(payment) => `
                           <tr>
                             <td>${payment.payment_id}</td>
-                            <td>$${Number(payment.payment_amount)}</td>
-                            <td>${this.escapeHtml(
-								payment.extra_payment_type || "None"
+                            <td>${i18n.formatCurrency(
+								Number(payment.payment_amount)
 							)}</td>
-                            <td>${new Date(
-								payment.issued_timestamp
-							).toLocaleString()}</td>
+                            <td>${
+								payment.extra_payment_type &&
+								payment.extra_payment_type !== "none"
+									? i18n.t(
+											`employees.paymentTypes.${payment.extra_payment_type}`
+									  )
+									: i18n.t("employees.paymentTypes.none")
+							}</td>
+                            <td>${i18n.formatDateTime(
+								new Date(payment.issued_timestamp)
+							)}</td>
                             <td>${
 								payment.is_void
-									? "Void"
+									? i18n.t("employees.paymentStatus.void")
 									: payment.is_paid
-									? "Paid"
-									: "Pending"
+									? i18n.t("employees.paymentStatus.paid")
+									: i18n.t("employees.paymentStatus.pending")
 							}</td>
                             <td>${
 								payment.is_paid && payment.paid_by
@@ -334,9 +389,9 @@ class DoctorManager {
 							}</td>
                             <td>${
 								payment.is_paid && payment.paid_timestamp
-									? new Date(
-											payment.paid_timestamp
-									  ).toLocaleString()
+									? i18n.formatDateTime(
+											new Date(payment.paid_timestamp)
+									  )
 									: "-"
 							}</td>
                             <td>
@@ -344,17 +399,29 @@ class DoctorManager {
                                 ${
 									!payment.is_paid && !payment.is_void
 										? `
-                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${payment.payment_id})">
-                                    <i class="bi bi-check-circle"></i> Mark Paid
+                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-check-circle"></i> ${i18n.t(
+										"employees.buttons.markPaid"
+									)}
                                   </button>
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
-                                    <i class="bi bi-x-circle"></i> Void
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-x-circle"></i> ${i18n.t(
+										"employees.buttons.void"
+									)}
                                   </button>
                                 `
 										: payment.is_paid && !payment.is_void
 										? `
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id})">
-                                    <i class="bi bi-x-circle"></i> Void
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+										payment.payment_id
+									})">
+                                    <i class="bi bi-x-circle"></i> ${i18n.t(
+										"employees.buttons.void"
+									)}
                                   </button>
                                 `
 										: ""
@@ -378,6 +445,18 @@ class DoctorManager {
 			.join("");
 	}
 
+	private formatPerPatientPay(doctor: Doctor): string {
+		if (!doctor.per_patient_pay) return "-";
+
+		const amount = Number(doctor.per_patient_pay);
+		if (doctor.per_patient_payment_type === "fixed") {
+			return i18n.formatCurrency(amount);
+		} else if (doctor.per_patient_payment_type === "percentage") {
+			return `${i18n.formatNumber(amount, 0)}%`;
+		}
+		return i18n.formatCurrency(amount);
+	}
+
 	private async getUserNameById(id: number): Promise<string> {
 		try {
 			const response = await fetch("/api/users/name/" + id, {
@@ -388,11 +467,11 @@ class DoctorManager {
 				}
 			});
 			if (!response.ok) {
-				throw new Error("Failed to load user name");
+				throw new Error(i18n.t("employees.messages.loadUserNameError"));
 			}
 			return await response.json();
 		} catch (error) {
-			this.showError("Failed to load user name");
+			this.showError(i18n.t("employees.messages.loadUserNameError"));
 			return "";
 		}
 	}
@@ -401,11 +480,11 @@ class DoctorManager {
 		this.resetDoctorForm();
 		const modalTitle = document.getElementById("doctorModalLabel")!;
 		if (doctorId) {
-			modalTitle.textContent = "Edit Doctor";
+			modalTitle.textContent = i18n.t("employees.editDoctor");
 			const doctor = this.doctors.get(doctorId);
 			if (doctor) this.populateDoctorForm(doctor);
 		} else {
-			modalTitle.textContent = "Create New Doctor";
+			modalTitle.textContent = i18n.t("employees.createNewDoctor");
 		}
 		this.doctorModal.show();
 	}
@@ -470,7 +549,7 @@ class DoctorManager {
 
 	private async handleSaveDoctor(): Promise<void> {
 		if (this.userRole !== "Admin") {
-			this.showError("Only admins can save doctors");
+			this.showError(i18n.t("employees.messages.onlyAdminsCanSave"));
 			return;
 		}
 
@@ -573,14 +652,17 @@ class DoctorManager {
 				}
 			);
 
-			if (!response.ok) throw new Error("Failed to save doctor");
+			if (!response.ok)
+				throw new Error(i18n.t("employees.messages.saveError"));
 			await this.loadDoctors();
 			this.doctorModal.hide();
 			toastr.success(
-				`Doctor successfully ${doctorId ? "updated" : "created"}`
+				doctorId
+					? i18n.t("employees.messages.updateSuccess")
+					: i18n.t("employees.messages.createSuccess")
 			);
 		} catch (error) {
-			this.showError("Failed to save doctor");
+			this.showError(i18n.t("employees.messages.saveError"));
 		} finally {
 			this.setDoctorLoading(false);
 		}
@@ -588,18 +670,19 @@ class DoctorManager {
 
 	public async deleteDoctor(doctorId: number): Promise<void> {
 		if (this.userRole !== "Admin") {
-			this.showError("Only admins can delete doctors");
+			this.showError(i18n.t("employees.messages.onlyAdminsCanDelete"));
 			return;
 		}
 
 		const result = await Swal.fire({
-			title: "Are you sure?",
-			text: "This action cannot be undone!",
+			title: i18n.t("employees.messages.deleteConfirmTitle"),
+			text: i18n.t("employees.messages.deleteConfirmText"),
 			icon: "warning",
 			showCancelButton: true,
 			confirmButtonColor: "#dc3545",
 			cancelButtonColor: "#6c757d",
-			confirmButtonText: "Yes, delete it!"
+			confirmButtonText: i18n.t("common.yes"),
+			cancelButtonText: i18n.t("common.cancel")
 		});
 
 		if (result.isConfirmed) {
@@ -610,18 +693,19 @@ class DoctorManager {
 						Authorization: `Bearer ${localStorage.getItem("token")}`
 					}
 				});
-				if (!response.ok) throw new Error("Failed to delete doctor");
+				if (!response.ok)
+					throw new Error(i18n.t("employees.messages.deleteError"));
 				await this.loadDoctors();
-				toastr.success("Doctor deleted successfully");
+				toastr.success(i18n.t("employees.messages.deleteSuccess"));
 			} catch (error) {
-				this.showError("Failed to delete doctor");
+				this.showError(i18n.t("employees.messages.deleteError"));
 			}
 		}
 	}
 
 	public editDoctor(doctorId: number): void {
 		if (this.userRole !== "Admin") {
-			this.showError("Only admins can edit doctors");
+			this.showError(i18n.t("employees.messages.onlyAdminsCanEdit"));
 			return;
 		}
 		this.showDoctorModal(doctorId);
@@ -649,13 +733,15 @@ class DoctorManager {
 		const buttonText = this.saveDoctorButton.querySelector(".btn-text")!;
 		this.saveDoctorButton.disabled = loading;
 		spinner.classList.toggle("d-none", !loading);
-		buttonText.textContent = loading ? "Saving..." : "Save";
+		buttonText.textContent = loading
+			? i18n.t("employees.buttons.saving")
+			: i18n.t("common.save");
 	}
 
 	private showError(message: string): void {
 		Swal.fire({
 			icon: "error",
-			title: "Error",
+			title: i18n.t("common.error"),
 			text: message,
 			confirmButtonColor: "#0d6efd"
 		});

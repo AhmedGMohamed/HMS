@@ -122,7 +122,7 @@ export class NavigationController {
 				label: "Insurance Companies",
 				icon: "bi bi-shield-check",
 				url: "/insurance",
-				permission: "view_patients"
+				permission: "manage_insurance"
 			},
 
 			// Vault

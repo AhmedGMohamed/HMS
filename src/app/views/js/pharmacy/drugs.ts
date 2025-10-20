@@ -98,6 +98,8 @@ class DrugManager {
 	private warehouses: Warehouse[] = [];
 	private saveWarehouseButton: HTMLButtonElement;
 	private warehouseForm: HTMLFormElement;
+	private userPermissions: string[] = [];
+	private userRole: string = "";
 
 	constructor() {
 		// Initialize modals
@@ -160,6 +162,7 @@ class DrugManager {
 			// Initialize sidebar
 			new SidebarManager();
 
+			this.loadUser();
 			this.loadWarehouses();
 			this.initializeEventListeners();
 			this.loadInitialData();
@@ -292,6 +295,19 @@ class DrugManager {
 				this.updateUnitConversionPreview();
 			});
 		});
+	}
+
+	private async loadUser(): Promise<void> {
+		try {
+			const userString = localStorage.getItem("user");
+			if (!userString) return;
+
+			const user = JSON.parse(userString);
+			this.userPermissions = user.permissions;
+			this.userRole = user.role;
+		} catch (error) {
+			this.showError(i18n.t("employees.messages.loadError"));
+		}
 	}
 
 	private async loadDrugs(): Promise<void> {
@@ -677,7 +693,12 @@ class DrugManager {
 													"pharmacy.buttons.sell"
 												)}
 		                                    </button>
-		                                    <button class="btn btn-primary" 
+											${
+												this.userPermissions.includes(
+													"manage_shipments"
+												)
+													? `
+		                                    <button class="btn btn-primary" data-requires-permission="manage_shipments"
 		                                            onclick="drugManager.showShipmentModal(${
 														drug.drug_id
 													}, ${shipment.shipment_id})"
@@ -685,7 +706,9 @@ class DrugManager {
 		                                        <i class="bi bi-pencil"></i> ${i18n.t(
 													"common.edit"
 												)}
-		                                    </button>
+		                                    </button>`
+													: ""
+											}
 		                                    <button class="btn btn-danger" 
 		                                            onclick="drugManager.deleteShipment(${
 														shipment.shipment_id
@@ -1101,7 +1124,8 @@ class DrugManager {
 						"sellQuantityLarger"
 					) as HTMLInputElement
 				).value
-			) * (currentDrug.unit_conversion.ratio || 1) +
+			) *
+				(currentDrug.unit_conversion.ratio || 1) +
 			parseInt(
 				(
 					document.getElementById(
@@ -1121,7 +1145,6 @@ class DrugManager {
 				  )
 				: null;
 
-
 		const drug = this.drugs.get(this.currentShipment.drug_id);
 		if (!drug) return;
 
@@ -1140,7 +1163,10 @@ class DrugManager {
 		}
 
 		// Check if price is less than buy price
-		if (totalPrice / quantity < parseFloat(this.currentShipment.buy_price)) {
+		if (
+			totalPrice / quantity <
+			parseFloat(this.currentShipment.buy_price)
+		) {
 			const result = await Swal.fire({
 				title: i18n.t("common.warning"),
 				text: i18n.t("pharmacy.messages.priceBelowBuyPrice"),
@@ -2000,11 +2026,10 @@ class DrugManager {
 		) as HTMLInputElement;
 
 		if (price && quantity > 0) {
-			const total =
-				(quantity * Number(price.price));
-			totalPriceInput.value = total.toFixed(2) 
+			const total = quantity * Number(price.price);
+			totalPriceInput.value = total.toFixed(2);
 		} else {
-			totalPriceInput.value = "0.00"
+			totalPriceInput.value = "0.00";
 		}
 	}
 

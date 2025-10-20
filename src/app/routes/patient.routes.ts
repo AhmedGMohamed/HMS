@@ -49,6 +49,14 @@ router.get(
 	(req, res) => PatientController.getPatientSuggestions(req, res)
 );
 
+router.get(
+	"/admissions/current",
+	verifyToken,
+	checkPermission("view_patients"),
+	auditLogger,
+	(req, res) => PatientController.getCurrentAdmissionsWithStaff(req, res)
+);
+
 // Get specific patient by ID
 router.get(
 	"/:id",

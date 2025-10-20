@@ -139,7 +139,7 @@
 			"doctors": "Doctor profiles and medical staff management",
 			"nurses": "Nursing staff management and assignments",
 			"clocking": "Employee time tracking and attendance",
-			"drugs": "Medication inventory and prescription management",
+			"pharmacy": "Medication inventory and prescription management",
 			"inventory": "Stock management and drug supplies",
 			"services": "Hospital services and treatment options",
 			"price_lists": "Service pricing and insurance management",
@@ -213,6 +213,7 @@
 			"manage_services": "Manage Services",
 			"manage_billing": "Manage Billing",
 			"manage_pharmacy": "Manage Pharmacy",
+			"manage_shipments": "Manage Shipments",
 			"manage_insurance": "Manage Insurance",
 			"manage_employees": "Manage Employees",
 			"view_vault": "View Vault",
@@ -476,7 +477,11 @@
 			"voidAllSuccess": "All payments voided successfully",
 			"voidAllError": "Failed to void all payments",
 			"loadUserNameError": "Failed to load user name",
-			"loadPaymentsError": "Failed to load payments"
+			"loadPaymentsError": "Failed to load payments",
+			"onlyAdminsCanCreate": "Only admins can create doctors",
+			"onlyAdminsCanSave": "Only admins can save doctors",
+			"onlyAdminsCanEdit": "Only admins can edit doctors",
+			"onlyAdminsCanDelete": "Only admins can delete doctors"
 		},
 		"buttons": {
 			"edit": "Edit",
@@ -616,7 +621,8 @@
 			"admitImmediately": "Admit Patient Immediately",
 			"quickCheckAdmission": "Quick Check Admission",
 			"leaveReason": "Leave Reason",
-			"dischargeTime": "Discharge Time"
+			"dischargeTime": "Discharge Time",
+			"admittedOn": "Admitted on"
 		},
 		"table": {
 			"admitted": "Admitted",
@@ -656,6 +662,12 @@
 			"male": "Male",
 			"female": "Female",
 			"other": "Other"
+		},
+		"doctorTypes": {
+			"attending": "Attending",
+			"supervising": "Supervising",
+			"referring": "Referring",
+			"outside": "Outside"
 		},
 		"paymentTypes": {
 			"cash": "Cash",
@@ -708,8 +720,34 @@
 			"includeDiscount": "Include discount in print"
 		},
 		"tabs": {
+			"allPatients": "All Patients",
+			"staffStatus": "Staff Status",
 			"services": "Services",
 			"drugs": "Drugs"
+		},
+		"staffStatus": {
+			"clockedInDoctors": "Clocked-In Doctors",
+			"clockedInNurses": "Clocked-In Nurses",
+			"currentAssignments": "Current Patient Assignments",
+			"available": "Available",
+			"assignedToPatients": "Assigned to {{count}} patient(s)",
+			"clockedInAt": "Clocked in at",
+			"shift": "Shift",
+			"assignedPatients": "Assigned Patients",
+			"noClockedInDoctors": "No doctors currently clocked in",
+			"noClockedInNurses": "No nurses currently clocked in",
+			"noCurrentAdmissions": "No patients currently admitted",
+			"doctors": "Doctors",
+			"nurses": "Nurses",
+			"noDoctorsClockedIn": "No doctors clocked in for this patient",
+			"noNursesClockedIn": "No nurses clocked in for this patient",
+			"minutesAgo": "{{minutes}} minute(s) ago",
+			"hoursAgo": "{{hours}}h {{minutes}}m",
+			"daysAgo": "{{days}} day(s) {{hours}}h",
+			"clockedIn": "clocked in",
+			"notClockedIn": "Not clocked in",
+			"noDoctorsAssignedToPatient": "No doctors assigned to this patient",
+			"noNursesAssignedToPatient": "No nurses assigned to this patient"
 		},
 		"help": {
 			"quickCheckInfo": "Quick check admissions don't auto-add services",
@@ -803,7 +841,9 @@
 			"due": "Due",
 			"credit": "Credit",
 			"processing": "Processing...",
-			"quantityExceedsAvailable": "Total quantity exceeds available stock"
+			"quantityExceedsAvailable": "Total quantity exceeds available stock",
+			"loadingStaffStatus": "Loading staff status...",
+			"loadStaffStatusError": "Failed to load staff status"
 		},
 		"printBill": {
 			"unknownItem": "Unknown Item",

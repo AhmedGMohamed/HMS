@@ -10,7 +10,6 @@ const router = Router();
 router.get(
 	"/",
 	verifyToken,
-	checkPermission("manage_insurance"),
 	auditLogger,
 	InsuranceController.getAllInsuranceCompanies
 );

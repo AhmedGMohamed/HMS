@@ -719,6 +719,66 @@ export class PatientModel {
 		return result.rows[0] || null;
 	}
 
+	async getCurrentAdmissionsWithStaff(): Promise<
+		{
+			patient_id: number;
+			patient_name: string;
+			patient_history_id: number;
+			diagnosis: string | null;
+			admission_time: Date;
+			quick_check: boolean;
+			attending_doctor_ids: number[];
+			attending_doctors: string[];
+			doctor_types: string[];
+			attending_nurse_ids: number[];
+			attending_nurses: string[];
+		}[]
+	> {
+		const sql = `
+	      SELECT 
+	        p.patient_id,
+	        p.name as patient_name,
+	        ph.patient_history_id,
+	        ph.diagnosis,
+	        ph.admission_time,
+	        ph.quick_check,
+	        COALESCE(
+	          array_agg(DISTINCT pd.doctor_id) FILTER (WHERE pd.doctor_id IS NOT NULL AND pd.unassigned_at IS NULL), 
+	          '{}'
+	        ) as attending_doctor_ids,
+	        COALESCE(
+	          array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL AND pd.unassigned_at IS NULL), 
+	          '{}'
+	        ) as attending_doctors,
+	        COALESCE(
+	          array_agg(DISTINCT d.doctor_type) FILTER (WHERE d.doctor_type IS NOT NULL AND pd.unassigned_at IS NULL), 
+	          '{}'
+	        ) as doctor_types,
+	        COALESCE(
+	          array_agg(DISTINCT pn.nurse_id) FILTER (WHERE pn.nurse_id IS NOT NULL AND pn.unassigned_at IS NULL), 
+	          '{}'
+	        ) as attending_nurse_ids,
+	        COALESCE(
+	          array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL AND pn.unassigned_at IS NULL), 
+	          '{}'
+	        ) as attending_nurses
+	      FROM Patient p
+	      JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	      LEFT JOIN PatientDoctor pd ON p.patient_id = pd.patient_id
+	      LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id
+	      LEFT JOIN Doctor d ON pd.doctor_id = d.doctor_id
+	      LEFT JOIN PatientNurse pn ON p.patient_id = pn.patient_id
+	      LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id
+	      WHERE p.is_active = true
+	        AND ph.discharge_time IS NULL
+	      GROUP BY p.patient_id, p.name, ph.patient_history_id, ph.diagnosis, ph.admission_time, ph.quick_check
+	      ORDER BY ph.admission_time DESC
+	    `;
+
+		const { rows } = await query(sql);
+		return rows;
+	}
+
 	async getPatientHistory(patientId: number): Promise<PatientHistory[]> {
 		const sql = `
     	    SELECT ph.*,
