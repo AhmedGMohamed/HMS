@@ -534,7 +534,10 @@ class VaultManager {
 							typeof value === "number" &&
 							!key.includes("count") &&
 							!key.includes("records") &&
-							!key.includes("unique")
+							!key.includes("unique") &&
+							!key.includes("quantity") &&
+							!key.includes("total_shipments") &&
+							!key.includes("total_transactions")
 								? i18n.formatCurrency(value)
 								: i18n.formatNumber(value as number, 0)
 						}</h4>
