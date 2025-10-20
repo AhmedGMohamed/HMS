@@ -10,6 +10,7 @@ import {
 } from "../utils/types/patients.js";
 import { Bill, BillDetail } from "../utils/types/billing.js";
 import { Service } from "../utils/types/services.js";
+import { error } from "toastr";
 
 export class PatientModel {
 	async getAllPatients(): Promise<Patient[]> {
@@ -1035,6 +1036,12 @@ export class PatientModel {
 				is_active = false;
 			}
 
+			if (!currentAdmission.pricelist_id) {
+				throw new Error(
+					"No pricelist selected for the current admission"
+				);
+			}
+
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
@@ -1049,32 +1056,25 @@ export class PatientModel {
 				is_active
 			]);
 
-			// Get price based on admission's pricelist_id
 			let priceSql = `
-				SELECT sp.price 
-				FROM ServicePrice sp
-				JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-				WHERE sp.service_id = $1 AND pl.is_default = true
-			`;
-			let priceValues = [serviceId];
-			if (currentAdmission.pricelist_id) {
-				priceSql = `
 					SELECT price FROM ServicePrice
 					WHERE service_id = $1 AND pricelist_id = $2
 				`;
-				priceValues = [serviceId, currentAdmission.pricelist_id];
-			}
-			const priceResult = await query(priceSql, priceValues);
+
+			const priceResult = await query(priceSql, [
+				serviceId,
+				currentAdmission.pricelist_id
+			]);
 			const price = priceResult.rows[0]?.price || 0;
 
 			// Add service to bill
 			const billDetailSql = `
-                INSERT INTO BillDetail (
-                    bill_id, service_id, quantity, unit_price, 
-                    charge_type, sale_type, generated_at
-                ) VALUES ($1, $2, 1, $3, 'service', 'admitted', CURRENT_TIMESTAMP)
-                RETURNING *;
-            `;
+				INSERT INTO BillDetail (
+					bill_id, service_id, quantity, unit_price, 
+					charge_type, sale_type, generated_at
+				) VALUES ($1, $2, 1, $3, 'service', 'admitted', CURRENT_TIMESTAMP)
+				RETURNING *;
+			`;
 			const billDetailResult = await query(billDetailSql, [
 				currentAdmission.bill_id,
 				serviceId,
@@ -1336,15 +1336,24 @@ export class PatientModel {
 		billId: number,
 		userId: number
 	): Promise<void> {
+		const currentAdmission = await this.getCurrentAdmission(patientId);
+		if (!currentAdmission) {
+			throw new Error("Patient is not currently admitted");
+		}
+
+		const pricelistId = currentAdmission.pricelist_id;
+		if (!pricelistId) {
+			return;
+		}
 		// Get services that should be auto-added on admission
 		const autoServicesSql = `
             SELECT s.*, sp.price
             FROM Service s
             JOIN ServicePrice sp ON s.service_id = sp.service_id
             JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-            WHERE s.auto_add_on_admission = true AND pl.is_default = true;
+            WHERE s.auto_add_on_admission = true AND pl.pricelist_id = $1;
         `;
-		const autoServicesResult = await query(autoServicesSql);
+		const autoServicesResult = await query(autoServicesSql, [pricelistId]);
 
 		if (autoServicesResult.rows.length === 0) {
 			return; // No services to auto-add
@@ -1391,6 +1400,16 @@ export class PatientModel {
 		billId: number,
 		userId: number
 	): Promise<void> {
+		const currentAdmission = await this.getCurrentAdmission(patientId);
+		if (!currentAdmission) {
+			throw new Error("Patient is not currently admitted");
+		}
+
+		let pricelistId = currentAdmission.pricelist_id;
+		if (!pricelistId) {
+			return;
+		}
+
 		// Get drugs associated with this service
 		const serviceDrugsSql = `
             SELECT sd.drug_id, dc.*, sp.price as drug_price
@@ -1401,13 +1420,13 @@ export class PatientModel {
                 FROM DrugShipment ds
                 JOIN ShipmentPrice sp ON ds.shipment_id = sp.shipment_id
                 JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-                WHERE pl.is_default = true
+                WHERE pl.pricelist_id = $1
                 ORDER BY ds.expiry_date ASC
                 LIMIT 1
             ) sp ON dc.drug_id = sp.drug_id
-            WHERE sd.service_id = $1;
+            WHERE sd.service_id = $2;
         `;
-		const serviceDrugsResult = await query(serviceDrugsSql, [serviceId]);
+		const serviceDrugsResult = await query(serviceDrugsSql, [pricelistId, serviceId]);
 
 		for (const drugInfo of serviceDrugsResult.rows) {
 			await this.dispenseDrugToPatient(
@@ -1429,16 +1448,26 @@ export class PatientModel {
 		userId: number,
 		chargeType: string = "manual"
 	): Promise<void> {
+		const currentAdmission = await this.getCurrentAdmission(patientId);
+		if (!currentAdmission) {
+			throw new Error("Patient is not currently admitted");
+		}
+
+		let pricelistId = currentAdmission.pricelist_id;
+		if (!pricelistId) {
+			return;
+		}
+
 		// Get available shipments (FIFO - First to expire, first out)
 		const availableShipmentsSql = `
             SELECT ds.*, sp.price
             FROM DrugShipment ds
             JOIN ShipmentPrice sp ON ds.shipment_id = sp.shipment_id
             JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-            WHERE ds.drug_id = $1 AND ds.quantity > 0 AND pl.is_default = true
+            WHERE ds.drug_id = $1 AND ds.quantity > 0 AND pl.pricelist_id = $2
             ORDER BY ds.expiry_date ASC;
         `;
-		const shipmentsResult = await query(availableShipmentsSql, [drugId]);
+		const shipmentsResult = await query(availableShipmentsSql, [drugId, pricelistId]);
 
 		if (shipmentsResult.rows.length === 0) {
 			console.warn(`No available shipments for drug ID: ${drugId}`);
