@@ -2549,7 +2549,8 @@ class PatientManager {
 		container.innerHTML = filteredServices
 			.map((service) => {
 				const price =
-					this.servicePrices.get(service.service_id) ?? service.price;
+					this.servicePrices.get(service.service_id);
+				if (!price) return "";
 				return `
             <div class="available-item" onclick="patientManager.addServiceToPatient(${
 				service.service_id
