@@ -575,7 +575,7 @@ class DoctorManager {
 							"dailyPayDoctor"
 						) as HTMLInputElement
 					).value
-				) || undefined,
+				) ?? undefined,
 			per_patient_pay:
 				parseFloat(
 					(
@@ -583,7 +583,7 @@ class DoctorManager {
 							"perPatientPayDoctor"
 						) as HTMLInputElement
 					).value
-				) || undefined,
+				) ?? undefined,
 			referral_bonus:
 				parseFloat(
 					(
@@ -591,7 +591,7 @@ class DoctorManager {
 							"referralBonus"
 						) as HTMLInputElement
 					).value
-				) || undefined,
+				) ?? undefined,
 			payment_calculation: (
 				document.getElementById(
 					"paymentCalculation"
