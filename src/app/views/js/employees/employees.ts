@@ -906,22 +906,6 @@ class EmployeeManager {
 		this.employeeModal.show();
 	}
 
-	private showPaymentModal(employeeId: number): void {
-		this.resetPaymentForm();
-		(
-			document.getElementById("paymentEmployeeId") as HTMLInputElement
-		).value = employeeId.toString();
-		const modalTitle = document.getElementById("paymentModalLabel")!;
-		const employee = this.employees.get(employeeId);
-		const employeeName = employee
-			? this.escapeHtml(employee.name)
-			: i18n.t("common.loading");
-		modalTitle.textContent = i18n.t("employees.createManualPaymentFor", {
-			name: employeeName
-		});
-		this.paymentModal.show();
-	}
-
 	private populateEmployeeForm(employee: Employee): void {
 		(document.getElementById("employeeId") as HTMLInputElement).value =
 			employee.employee_id.toString();
@@ -980,12 +964,12 @@ class EmployeeManager {
 				parseFloat(
 					(document.getElementById("basePay") as HTMLInputElement)
 						.value
-				) || undefined,
+				) ?? undefined,
 			extra_amount:
 				parseFloat(
 					(document.getElementById("extraAmount") as HTMLInputElement)
 						.value
-				) || undefined,
+				) ?? undefined,
 			shift_type:
 				(document.getElementById("shiftType") as HTMLSelectElement)
 					.value || undefined,
@@ -1079,7 +1063,7 @@ class EmployeeManager {
 							"paymentExtraAmount"
 						) as HTMLInputElement
 					).value
-				) || undefined,
+				) ?? undefined,
 			percentage_scope:
 				(
 					document.getElementById(
