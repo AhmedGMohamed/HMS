@@ -1398,7 +1398,7 @@ class DrugManager {
 		// Set drug ID and unit
 		(document.getElementById("shipmentDrugId") as HTMLInputElement).value =
 			drugId.toString();
-		quantityUnit.textContent = this.currentDrug.unit_conversion.larger;
+		quantityUnit.textContent = this.currentDrug.unit_conversion.smaller;
 
 		if (shipmentId) {
 			modalTitle.textContent = i18n.t("pharmacy.modals.editShipment");
