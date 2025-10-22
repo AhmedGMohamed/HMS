@@ -96,10 +96,6 @@ export class DrugShipmentModel {
 				throw new Error("Warehouse not found");
 			}
 
-			// Convert quantity to smaller units using ratio
-			const unitConversion = drugResult.rows[0].unit_conversion;
-			const quantityInSmallerUnits = data.quantity * unitConversion.ratio;
-
 			const sql = `
                 INSERT INTO DrugShipment (
                     drug_id, warehouse_id, buy_quantity,
@@ -113,8 +109,8 @@ export class DrugShipmentModel {
 			const values = [
 				data.drug_id,
 				data.warehouse_id,
-				quantityInSmallerUnits,
-				quantityInSmallerUnits,
+				data.quantity,
+				data.quantity,
 				data.buy_price,
 				new Date(data.expiry_date),
 				data.received_date ? new Date(data.received_date) : new Date(),
@@ -190,11 +186,8 @@ export class DrugShipmentModel {
 			}
 
 			if (data.quantity !== undefined) {
-				// Convert quantity to smaller units
-				const quantityInSmallerUnits =
-					data.quantity * currentShipment.unit_conversion.ratio;
 				updates.push(`quantity = $${paramCount}`);
-				values.push(quantityInSmallerUnits);
+				values.push(data.quantity);
 				paramCount++;
 			}
 
