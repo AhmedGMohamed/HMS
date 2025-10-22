@@ -622,7 +622,8 @@
 			"quickCheckAdmission": "Quick Check Admission",
 			"leaveReason": "Leave Reason",
 			"dischargeTime": "Discharge Time",
-			"admittedOn": "Admitted on"
+			"admittedOn": "Admitted on",
+			"patient": "Patient"
 		},
 		"table": {
 			"admitted": "Admitted",
@@ -710,7 +711,8 @@
 			"customizeBill": "Customize Bill for Printing",
 			"addItemToBill": "Add Item to Bill",
 			"pastAdmissions": "Past Admissions",
-			"admissionDetails": "Admission Details"
+			"admissionDetails": "Admission Details",
+			"editStaffAssignment": "Edit Staff Assignment"
 		},
 		"print": {
 			"billItems": "Bill Items",
@@ -751,7 +753,8 @@
 		},
 		"help": {
 			"quickCheckInfo": "Quick check admissions don't auto-add services",
-			"dischargeTimeInfo": "Leave empty to use current time"
+			"dischargeTimeInfo": "Leave empty to use current time",
+			"editStaffAssignmentInfo": "Select or deselect staff members to update the patient's care team. Changes will take effect immediately."
 		},
 		"validation": {
 			"nameRequired": "Please enter a valid name (at least 2 characters)",
@@ -843,7 +846,13 @@
 			"processing": "Processing...",
 			"quantityExceedsAvailable": "Total quantity exceeds available stock",
 			"loadingStaffStatus": "Loading staff status...",
-			"loadStaffStatusError": "Failed to load staff status"
+			"loadStaffStatusError": "Failed to load staff status",
+			"noDoctorsAvailable": "No doctors available",
+			"noNursesAvailable": "No nurses available",
+			"patientNotFound": "Patient not found",
+			"loadStaffAssignmentError": "Failed to load staff assignments",
+			"staffAssignmentUpdated": "Staff assignment updated successfully",
+			"staffAssignmentUpdateError": "Failed to update staff assignment"
 		},
 		"printBill": {
 			"unknownItem": "Unknown Item",

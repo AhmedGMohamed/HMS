@@ -180,10 +180,13 @@ class PatientManager {
 	private pastAdmissionsModal: Modal;
 	//@ts-ignore
 	private admissionDetailsModal: Modal;
+	//@ts-ignore
+	private editStaffAssignmentModal: Modal;
 
 	private currentPatient: Patient | null = null;
 	private currentAdmission: PatientHistory | null = null;
 	private currentBill: Bill | null = null;
+	private currentEditingPatient: CurrentAdmission | null = null;
 	private doctors: Doctor[] = [];
 	private nurses: Nurse[] = [];
 	private insuranceCompanies: InsuranceCompany[] = [];
@@ -239,6 +242,11 @@ class PatientManager {
 		//@ts-ignore
 		this.admissionDetailsModal = new bootstrap.Modal(
 			document.getElementById("admissionDetailsModal")!
+		);
+
+		//@ts-ignore
+		this.editStaffAssignmentModal = new bootstrap.Modal(
+			document.getElementById("editStaffAssignmentModal")!
 		);
 
 		this.waitForI18n().then(() => {
@@ -428,6 +436,13 @@ class PatientManager {
 			.getElementById("refreshStaffStatusBtn")
 			?.addEventListener("click", () => {
 				this.loadStaffStatus();
+			});
+
+		// Staff assignment editing
+		document
+			.getElementById("saveStaffAssignmentBtn")
+			?.addEventListener("click", () => {
+				this.saveStaffAssignment();
 			});
 
 		document
@@ -722,9 +737,9 @@ class PatientManager {
 					(doctor) =>
 						`<option value="${
 							doctor.employee_id
-						}">${this.escapeHtml(doctor.name)} (${
-							doctor.doctor_type
-						})</option>`
+						}">${this.escapeHtml(doctor.name)} (${i18n.t(
+							`patients.doctorTypes.${doctor.doctor_type}`
+						)})</option>`
 				)
 				.join("");
 
@@ -740,7 +755,9 @@ class PatientManager {
                 <label class="form-check-label" for="doctor_${
 					doctor.employee_id
 				}">
-                    ${this.escapeHtml(doctor.name)} (${doctor.doctor_type})
+                    ${this.escapeHtml(doctor.name)} (${i18n.t(
+					`patients.doctorTypes.${doctor.doctor_type}`
+				)})
                 </label>
             </div>
         `
@@ -2253,9 +2270,9 @@ class PatientManager {
                                 <label class="form-check-label" for="swal-doctor-${
 									doctor.employee_id
 								}">
-                                    ${this.escapeHtml(doctor.name)} (${
-									doctor.doctor_type
-								})
+									${this.escapeHtml(doctor.name)} (${i18n.t(
+									`patients.doctorTypes.${doctor.doctor_type}`
+								)})
                                 </label>
                             </div>
                         `
@@ -2548,8 +2565,7 @@ class PatientManager {
 
 		container.innerHTML = filteredServices
 			.map((service) => {
-				const price =
-					this.servicePrices.get(service.service_id);
+				const price = this.servicePrices.get(service.service_id);
 				if (!price) return "";
 				return `
             <div class="available-item" onclick="patientManager.addServiceToPatient(${
@@ -3409,8 +3425,9 @@ class PatientManager {
 								doctor.doctor_name
 							)}</span>
                             <span class="detail-value">
-                                <span class="badge bg-primary">${this.escapeHtml(
-									doctor.doctor_type || "Doctor"
+                                <span class="badge bg-primary">${i18n.t(
+									`
+									patients.doctorTypes.${doctor.doctor_type}` || "Doctor"
 								)}</span>
                             </span>
                         </div>
@@ -3899,8 +3916,8 @@ class PatientManager {
           <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
           ${
 				staff.doctor_type
-					? `<div class="staff-member-type">${this.escapeHtml(
-							staff.doctor_type
+					? `<div class="staff-member-type">${i18n.t(
+							`patients.doctorTypes.${staff.doctor_type}`
 					  )}</div>`
 					: ""
 			}
@@ -4023,10 +4040,10 @@ class PatientManager {
 					(id, index) => ({
 						employee_id: id,
 						name: admission.attending_doctors[index],
-						doctor_type: i18n.t(`patients.doctorTypes.${this.parseDoctorType(
+						doctor_type: this.parseDoctorType(
 							admission.doctor_types,
 							index
-						) as string}`),
+						) as string,
 						isClockedIn: clockedInDoctors.some(
 							(d) => d.employee_id === id
 						)
@@ -4090,25 +4107,32 @@ class PatientManager {
 
 		return `
 	    <div class="patient-assignment-card">
-	      <div class="patient-assignment-header">
-	        <div>
-	          <div class="patient-assignment-name">${this.escapeHtml(
+		  <div class="patient-assignment-header">
+		    <div>
+		      <div class="patient-assignment-name">${this.escapeHtml(
 					admission.patient_name
 				)}</div>
-	          ${
+		      ${
 					admission.quick_check
 						? '<span class="badge bg-warning text-dark ms-2">' +
 						  i18n.t("patients.fields.quickCheck") +
 						  "</span>"
 						: ""
 				}
-	        </div>
-	        <button class="btn btn-sm btn-outline-primary" onclick="patientManager.selectPatient(${
-				admission.patient_id
-			})">
-	          <i class="bi bi-eye"></i> ${i18n.t("common.view")}
-	        </button>
-	      </div>
+		    </div>
+		    <div class="btn-group">
+		      <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); patientManager.showEditStaffAssignmentModal(${
+					admission.patient_id
+				})">
+		        <i class="bi bi-pencil"></i> ${i18n.t("common.edit")}
+		      </button>
+		      <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); patientManager.selectPatient(${
+					admission.patient_id
+				})">
+		        <i class="bi bi-eye"></i> ${i18n.t("common.view")}
+		      </button>
+		    </div>
+		  </div>
 			
 	      <div class="patient-assignment-meta">
 	        <span><i class="bi bi-calendar-check"></i> ${i18n.t(
@@ -4148,8 +4172,8 @@ class PatientManager {
 	              ${this.escapeHtml(doctor.name)}
 	              ${
 						doctor.doctor_type
-							? `<small>(${this.escapeHtml(
-									doctor.doctor_type
+							? `<small>(${i18n.t(
+									`patients.doctorTypes.${doctor.doctor_type}`
 							  )})</small>`
 							: ""
 					}
@@ -4210,6 +4234,244 @@ class PatientManager {
 	      </div>
 	    </div>
 	  `;
+	}
+
+	public async showEditStaffAssignmentModal(
+		patientId: number
+	): Promise<void> {
+		try {
+			// Find the admission from our loaded data
+			const response = await fetch("/api/patients/admissions/current", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok) throw new Error("Failed to fetch admissions");
+
+			const admissions: CurrentAdmission[] = await response.json();
+			const admission = admissions.find(
+				(a) => a.patient_id === patientId
+			);
+
+			if (!admission) {
+				this.showError(i18n.t("patients.messages.patientNotFound"));
+				return;
+			}
+
+			this.currentEditingPatient = admission;
+
+			// Update modal title with patient name
+			document.getElementById("editStaffPatientName")!.textContent =
+				admission.patient_name;
+
+			// Populate doctors list
+			this.populateStaffAssignmentList(
+				"editStaffDoctorsList",
+				this.doctors,
+				admission.attending_doctor_ids,
+				"doctor"
+			);
+
+			// Populate nurses list
+			this.populateStaffAssignmentList(
+				"editStaffNursesList",
+				this.nurses,
+				admission.attending_nurse_ids,
+				"nurse"
+			);
+
+			// Update counts
+			this.updateStaffAssignmentCounts();
+
+			// Show modal
+			this.editStaffAssignmentModal.show();
+		} catch (error) {
+			console.error("Error showing staff assignment modal:", error);
+			this.showError(
+				i18n.t("patients.messages.loadStaffAssignmentError")
+			);
+		}
+	}
+
+	private populateStaffAssignmentList(
+		containerId: string,
+		staffList: (Doctor | Nurse)[],
+		assignedIds: number[],
+		type: "doctor" | "nurse"
+	): void {
+		const container = document.getElementById(containerId)!;
+
+		if (staffList.length === 0) {
+			container.innerHTML = `<div class="text-muted text-center py-3">${
+				type === "doctor"
+					? i18n.t("patients.messages.noDoctorsAvailable")
+					: i18n.t("patients.messages.noNursesAvailable")
+			}</div>`;
+			return;
+		}
+
+		container.innerHTML = staffList
+			.map((staff) => {
+				const isAssigned = assignedIds.includes(staff.employee_id);
+				const isClockedIn = this.clockedInStaff.some(
+					(s) => s.employee_id === staff.employee_id
+				);
+				const doctorType =
+					type === "doctor" ? (staff as Doctor).doctor_type : null;
+
+				return `
+			      <div class="form-check d-flex align-items-center">
+			        <input 
+			          class="form-check-input staff-assignment-checkbox" 
+			          type="checkbox" 
+			          value="${staff.employee_id}" 
+			          id="edit-${type}-${staff.employee_id}"
+			          ${isAssigned ? "checked" : ""}
+			          data-type="${type}"
+			          onchange="patientManager.updateStaffAssignmentCounts()"
+			        >
+			        <label class="form-check-label p-x-2" for="edit-${type}-${staff.employee_id}">
+			          <div class="staff-member-info">
+			            <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
+			            ${
+							doctorType
+								? `<div class="staff-member-details">${this.escapeHtml(
+										doctorType
+								  )}</div>`
+								: ""
+						}
+			          </div>
+			          <div class="staff-clocked-in-indicator">
+			            ${
+							isClockedIn
+								? `<i class="bi bi-circle-fill"></i><span class="text-success">${i18n.t(
+										"patients.staffStatus.clockedIn"
+								  )}</span>`
+								: `<i class="bi bi-circle"></i><span class="text-muted">${i18n.t(
+										"patients.staffStatus.notClockedIn"
+								  )}</span>`
+						}
+			          </div>
+			        </label>
+			      </div>
+			    `;
+			})
+			.join("");
+	}
+
+	public updateStaffAssignmentCounts(): void {
+		const doctorCheckboxes = document.querySelectorAll(
+			'#editStaffDoctorsList input[type="checkbox"]:checked'
+		);
+		const nurseCheckboxes = document.querySelectorAll(
+			'#editStaffNursesList input[type="checkbox"]:checked'
+		);
+
+		document.getElementById("assignedDoctorsCount")!.textContent =
+			doctorCheckboxes.length.toString();
+		document.getElementById("assignedNursesCount")!.textContent =
+			nurseCheckboxes.length.toString();
+	}
+
+	private async saveStaffAssignment(): Promise<void> {
+		if (!this.currentEditingPatient) return;
+
+		const saveBtn = document.getElementById(
+			"saveStaffAssignmentBtn"
+		) as HTMLButtonElement;
+
+		try {
+			this.setButtonLoading(saveBtn, true);
+
+			// Get currently selected doctors
+			const selectedDoctorIds = Array.from(
+				document.querySelectorAll(
+					'#editStaffDoctorsList input[type="checkbox"]:checked'
+				)
+			).map((checkbox) => parseInt((checkbox as HTMLInputElement).value));
+
+			// Get currently selected nurses
+			const selectedNurseIds = Array.from(
+				document.querySelectorAll(
+					'#editStaffNursesList input[type="checkbox"]:checked'
+				)
+			).map((checkbox) => parseInt((checkbox as HTMLInputElement).value));
+
+			// Validate at least one doctor is assigned
+			if (selectedDoctorIds.length === 0) {
+				this.showError(
+					i18n.t("patients.validation.attendingDoctorRequired")
+				);
+				return;
+			}
+
+			// Calculate changes
+			const originalDoctorIds =
+				this.currentEditingPatient.attending_doctor_ids;
+			const originalNurseIds =
+				this.currentEditingPatient.attending_nurse_ids;
+
+			const doctorsToAdd = selectedDoctorIds.filter(
+				(id) => !originalDoctorIds.includes(id)
+			);
+			const doctorsToRemove = originalDoctorIds.filter(
+				(id) => !selectedDoctorIds.includes(id)
+			);
+			const nursesToAdd = selectedNurseIds.filter(
+				(id) => !originalNurseIds.includes(id)
+			);
+			const nursesToRemove = originalNurseIds.filter(
+				(id) => !selectedNurseIds.includes(id)
+			);
+
+			// Update patient with new assignments
+			const updateData: any = {
+				attending_doctors: {
+					add: doctorsToAdd,
+					remove: doctorsToRemove
+				},
+				attending_nurses: {
+					add: nursesToAdd,
+					remove: nursesToRemove
+				}
+			};
+
+			const response = await fetch(
+				`/api/patients/${this.currentEditingPatient.patient_id}`,
+				{
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					},
+					body: JSON.stringify(updateData)
+				}
+			);
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(
+					error.error || "Failed to update staff assignment"
+				);
+			}
+
+			this.showSuccess(
+				i18n.t("patients.messages.staffAssignmentUpdated")
+			);
+			this.editStaffAssignmentModal.hide();
+
+			// Refresh the staff status view
+			await this.loadStaffStatus();
+		} catch (error: any) {
+			console.error("Error saving staff assignment:", error);
+			this.showError(
+				error.message ||
+					i18n.t("patients.messages.staffAssignmentUpdateError")
+			);
+		} finally {
+			this.setButtonLoading(saveBtn, false);
+		}
 	}
 
 	private calculateDuration(startDate: Date | string): string {

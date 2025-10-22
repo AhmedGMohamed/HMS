@@ -703,7 +703,6 @@ VALUES
 		'manage_clocking',
 		'Can manage employee clock-in/out'
 	),
-	('manage_insurance', 'Can manage insurance companies'),
 	('view_reports', 'Can view facility reports'),
 	('view_only', 'Can only view records');
 
