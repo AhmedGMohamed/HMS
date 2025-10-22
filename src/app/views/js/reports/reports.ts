@@ -1201,7 +1201,8 @@ class ReportsManager {
 					};
 				},
 				defaultStyle: {
-					font: "Segoe UI"
+					font: "Segoe UI",
+					noWrap: "false"
 				},
 				pageSize: "A4"
 			};
@@ -1312,8 +1313,8 @@ class ReportsManager {
 			content.push({
 				table: {
 					headerRows: 1,
-					widths: patientInfoHeaders.map((_, ind) =>
-						ind === 0 ? "auto" : "*"
+					widths: patientInfoHeaders.map((_, ind, arr) =>
+						ind == 0 ? "*" : "auto"
 					),
 					body: [patientInfoHeaders, patientInfoRow],
 					dontBreakRows: false
@@ -1606,11 +1607,9 @@ class ReportsManager {
 								staffTableBody.push([
 									this.formatDate(day.work_date),
 									day.doctors.length > 0
-										? day.doctors.join("\n")
+										? day.doctors
 										: "N/A",
-									day.nurses.length > 0
-										? day.nurses.join("\n")
-										: "N/A"
+									day.nurses.length > 0 ? day.nurses : "N/A"
 								]);
 							});
 
@@ -1815,8 +1814,8 @@ class ReportsManager {
 				}
 			);
 
-			const tableWidths = patientInfoHeaders.map((_, index) =>
-				index === 0 ? "auto" : "*"
+			const tableWidths = patientInfoHeaders.map((_, index, array) =>
+				index == 0 ? "*" : "auto"
 			);
 
 			// Generate PDF with single admission
@@ -1919,7 +1918,8 @@ class ReportsManager {
 					};
 				},
 				defaultStyle: {
-					font: "Segoe UI"
+					font: "Segoe UI",
+					noWrap: "false"
 				},
 				pageSize: "A4"
 			};
@@ -2130,8 +2130,8 @@ class ReportsManager {
 		dailyStaff.forEach((day: any) => {
 			staffTableBody.push([
 				this.formatDate(day.work_date),
-				day.doctors.length > 0 ? day.doctors.join("\n") : "N/A",
-				day.nurses.length > 0 ? day.nurses.join("\n") : "N/A"
+				day.doctors.length > 0 ? day.doctors : "N/A",
+				day.nurses.length > 0 ? day.nurses : "N/A"
 			]);
 		});
 
@@ -2703,7 +2703,8 @@ class ReportsManager {
 				};
 			},
 			defaultStyle: {
-				font: "Segoe UI"
+				font: "Segoe UI",
+				noWrap: false
 			},
 			pageSize: "A4",
 			pageOrientation: "portrait"
@@ -3115,7 +3116,8 @@ class ReportsManager {
 				};
 			},
 			defaultStyle: {
-				font: "Segoe UI"
+				font: "Segoe UI",
+				noWrap: false
 			},
 			pageSize: "A4"
 		};
@@ -3333,7 +3335,7 @@ class ReportsManager {
 				content.push({
 					table: {
 						headerRows: 1,
-						widths: patientInfoHeaders.map(() => "*"),
+						widths: patientInfoHeaders.map((_, i, a) => i===0 ? "*" : "auto"),
 						body: [patientInfoHeaders, patientInfoRow]
 					},
 					layout: "lightHorizontalLines",
@@ -4127,7 +4129,8 @@ class ReportsManager {
 				};
 			},
 			defaultStyle: {
-				font: "Segoe UI"
+				font: "Segoe UI",
+				noWrap: false
 			},
 			pageSize: "A4"
 		};
@@ -4509,7 +4512,8 @@ class ReportsManager {
 				};
 			},
 			defaultStyle: {
-				font: "Segoe UI"
+				font: "Segoe UI",
+				noWrap: false
 			},
 			pageSize: "A4"
 		};
@@ -6469,7 +6473,7 @@ class ReportsManager {
 							beginAtZero: true,
 							ticks: {
 								callback: (value: number) =>
-									this.formatCurrency(value as number)
+									this.formatCurrency(value as number, true)
 							}
 						}
 					}
@@ -6577,7 +6581,8 @@ class ReportsManager {
 					};
 				},
 				defaultStyle: {
-					font: "Segoe UI"
+					font: "Segoe UI",
+					noWrap: false
 				},
 				pageSize: "A4"
 			};

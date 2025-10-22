@@ -182,7 +182,8 @@ export function generateReport(config: ReportConfig, data?: any) {
 		pageMargins: [40, 60, 40, 60],
 		defaultStyle: {
 			font: "Segoe UI",
-			fontSize: 9
+			fontSize: 9,
+			noWrap: false
 		},
 		pageSize: "A4"
 	};
