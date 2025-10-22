@@ -37,11 +37,18 @@ function reverseArabicText(text: string): string {
 	if (!text || typeof text !== "string") return text;
 	if (!containsArabic(text)) return text;
 
-	// Split by spaces and reverse
-	const words = text.split(" ");
-	const reversed = words.reverse();
+	// Split by newlines
+	const lines = text.split("\n");
 
-	return reversed.join(" ") + " ";
+	// Process each line
+	const reversedLines = lines.map((line) => {
+		// Split by spaces and reverse words
+		const words = line.split(/\s+/).filter((word) => word.length > 0);
+		return words.reverse().join(" ") + " ";
+	});
+
+	// Join lines with newlines
+	return reversedLines.join("\n") + (text.endsWith("\n") ? "\n" : "");
 }
 
 /**
