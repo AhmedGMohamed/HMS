@@ -7,7 +7,20 @@ class DashboardController {
 			const statistics = await DashboardService.getAdminStatistics();
 			res.status(200).json(statistics);
 		} catch (error) {
-			res.status(500).json({error: "Failed to retrieve admin statistics"});
+			res.status(500).json({
+				error: "Failed to retrieve admin statistics"
+			});
+		}
+	}
+
+	async getUserStatistics(_req: Request, res: Response): Promise<void> {
+		try {
+			const statistics = await DashboardService.getUserStatistics();
+			res.status(200).json(statistics);
+		} catch (error) {
+			res.status(500).json({
+				error: "Failed to retrieve admin statistics"
+			});
 		}
 	}
 
@@ -16,7 +29,7 @@ class DashboardController {
 			const chartData = await DashboardService.getChartData();
 			res.status(200).json(chartData);
 		} catch (error) {
-			res.status(500).json({error: "Failed to retrieve chart data"});
+			res.status(500).json({ error: "Failed to retrieve chart data" });
 		}
 	}
 }

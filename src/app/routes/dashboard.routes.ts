@@ -9,6 +9,9 @@ router.get("/admin-statistics", verifyToken, checkPermission("view_dashboard"), 
 	DashboardController.getAdminStatistics(req, res)
 );
 
+router.get("/user-statistics", verifyToken, auditLogger, (req, res) =>
+	DashboardController.getUserStatistics(req, res))
+
 router.get("/chart-data", verifyToken, auditLogger, (req, res) =>
 	DashboardController.getChartData(req, res)
 );

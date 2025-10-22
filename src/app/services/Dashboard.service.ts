@@ -37,6 +37,26 @@ export class DashboardService {
 		}
 	}
 
+	async getUserStatistics(): Promise<Partial<DashboardStatistics>> {
+		try {
+			const [
+				lowStockItemsCount,
+				nearExpiryItemsCount
+			] = await Promise.all([
+				this.getLowStockItemsCount(),
+				this.getNearExpiryItemsCount()
+			]);
+
+			return {
+				lowStockItemsCount,
+				nearExpiryItemsCount
+			};
+		} catch (error) {
+			console.error("Error getting admin statistics:", error);
+			throw new Error("Failed to retrieve admin statistics");
+		}
+	}
+
 	async getChartData(): Promise<ChartDataPoint[]> {
 		try {
 			const last30Days = await this.getLast30DaysData();
