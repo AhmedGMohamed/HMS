@@ -123,7 +123,7 @@ class DashboardManager {
 			}
 
 			await Promise.all([
-				this.loadAdminStatistics(),
+				this.loadStatistics(true),
 				this.initializeCharts()
 			]);
 
@@ -143,7 +143,10 @@ class DashboardManager {
 			}
 
 			// Load and display available navigation links
-			await this.loadAvailableLinks();
+			await Promise.all([
+				this.loadStatistics(false),
+				this.loadAvailableLinks()
+			]);
 		} catch (error) {
 			console.error("Error loading user dashboard:", error);
 			this.showErrorToast(i18n.t("errors.loadDashboardError"));
@@ -277,14 +280,17 @@ class DashboardManager {
 		return translation === sidebarKey ? id : translation;
 	}
 
-	private async loadAdminStatistics(): Promise<void> {
+	private async loadStatistics(isAdmin: boolean): Promise<void> {
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch("/api/dashboard/admin-statistics", {
-				headers: {
-					Authorization: `Bearer ${token}`
+			const response = await fetch(
+				`/api/dashboard/${isAdmin ? "admin" : "user"}-statistics`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
 				}
-			});
+			);
 
 			if (!response.ok) {
 				throw new Error("Failed to load admin statistics");
@@ -293,6 +299,16 @@ class DashboardManager {
 			const stats = await response.json();
 
 			// Safely update statistics with formatted values
+			if (!isAdmin) {
+				this.updateStatElement(
+					"lowStockItemsCountUser",
+					i18n.formatNumber(stats.lowStockItemsCount || 0, 0)
+				);
+				this.updateStatElement(
+					"nearExpiryItemsCountUser",
+					i18n.formatNumber(stats.nearExpiryItemsCount || 0, 0)
+				);
+			}
 			this.updateStatElement(
 				"activePatients",
 				i18n.formatNumber(stats.activePatientsCount || 0, 0)
@@ -682,9 +698,7 @@ class DashboardManager {
 
 	private handleLocaleChange(): void {
 		// Reload statistics with new formatting
-		if (this.isDashboardAdmin) {
-			this.loadAdminStatistics();
-		}
+		this.loadStatistics(this.isDashboardAdmin ? true : false);
 
 		// Recreate charts with new labels
 		if (this.revenueChart && this.distributionChart) {

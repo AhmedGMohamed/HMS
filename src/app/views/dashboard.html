@@ -81,7 +81,7 @@
       <!-- Main Content -->
       <div class="container-fluid">
         <div class="welcome-section mb-4">
-          <h1><span data-i18n="dashboard.welcome" data-i18n-params='{"name":""}'>Welcome back</span>, <span id="welcomeName">User</span>!</h1>
+          <h1><span data-i18n="dashboard.welcome" data-i18n-params='{"name":""}'>Welcome back, </span><span id="welcomeName">User</span>!</h1>
           <p class="text-muted" id="welcomeSubtitle" data-i18n="dashboard.subtitle">Here's what's happening today</p>
         </div>
 
@@ -154,7 +154,6 @@
               </a>
             </div>
 
-            <!-- NEW CARD: Near Expiry Items -->
             <div class="col-md mb-3">
               <a href="/drugs" class="text-decoration-none">
                 <div class="card stat-card">
@@ -238,6 +237,46 @@
 
         <!-- Regular User Dashboard Content -->
         <div id="userDashboard" style="display: none;">
+          <!-- Quick Stats -->
+          <div class="row mb-4">
+            <div class="col-md mb-3">
+              <a href="/drugs" class="text-decoration-none">
+                <div class="card stat-card">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center">
+                      <div class="stat-icon bg-warning">
+                        <i class="bi bi-capsule"></i>
+                      </div>
+                      <div class="ms-3">
+                        <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.lowStockAlerts">Low Stock Items</h6>
+                        <h3 class="card-title mb-0" id="lowStockItemsCountUser">0</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-md mb-3">
+              <a href="/drugs" class="text-decoration-none">
+                <div class="card stat-card">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center">
+                      <div class="stat-icon bg-danger">
+                        <i class="bi bi-calendar-x"></i>
+                      </div>
+                      <div class="ms-3">
+                        <h6 class="card-subtitle mb-1" data-i18n="dashboard.metrics.expiringDrugs">Near Expiry Items</h6>
+                        <h3 class="card-title mb-0" id="nearExpiryItemsCountUser">0</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Available Features -->
           <div class="row">
             <div class="col-12">
               <div class="card">
