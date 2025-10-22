@@ -87,12 +87,13 @@ export class PatientAutoRenewalCron {
                     AND s.auto_renew = true
                     AND s.service_type IN ('hourly', 'daily')
                     AND pl.is_default = true
-                    AND FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) /
-					CASE 
-                        WHEN s.service_type = 'hourly' THEN 3600
-                        WHEN s.service_type = 'daily' THEN 86400
-                        ELSE 0
-                    END) >= 1;
+                    AND (
+                        (s.service_type = 'hourly' AND FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) / 3600) >= 1)
+                        OR 
+                        (s.service_type = 'daily' 
+                         AND EXTRACT(HOUR FROM CURRENT_TIMESTAMP) >= 12
+                         AND COALESCE(aps.last_renewed, aps.start_date) <= (CURRENT_DATE - INTERVAL '1 day' + INTERVAL '12 hours'))
+                    );
             `;
 
 			const renewalServices = await query(renewalServicesSql);
