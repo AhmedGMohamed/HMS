@@ -623,7 +623,8 @@
 			"quickCheckAdmission": "إدخال فحص سريع",
 			"leaveReason": "سبب المغادرة",
 			"dischargeTime": "وقت التسريح",
-			"admittedOn": "تاريخ الإقامة"
+			"admittedOn": "تاريخ الإقامة",
+			"patient": "المريض"
 		},
 		"table": {
 			"admitted": "مُدخل",
@@ -711,7 +712,8 @@
 			"customizeBill": "تخصيص الفاتورة للطباعة",
 			"addItemToBill": "إضافة عنصر للفاتورة",
 			"pastAdmissions": "الإقامات السابقة",
-			"admissionDetails": "تفاصيل الإقامة"
+			"admissionDetails": "تفاصيل الإقامة",
+			"editStaffAssignment": "تعديل تعيين الموظفين"
 		},
 		"print": {
 			"billItems": "بنود الفاتورة",
@@ -752,7 +754,8 @@
 		},
 		"help": {
 			"quickCheckInfo": "إدخالات الفحص السريع لا تضيف الخدمات تلقائياً",
-			"dischargeTimeInfo": "اترك فارغاً لاستخدام الوقت الحالي"
+			"dischargeTimeInfo": "اترك فارغاً لاستخدام الوقت الحالي",
+			"editStaffAssignmentInfo": "حدد أو ألغ تحديد أعضاء الفريق الطبي لتحديث فريق رعاية المريض. ستسري التغييرات على الفور."
 		},
 		"validation": {
 			"nameRequired": "يرجى إدخال اسم صحيح (حرفان على الأقل)",
@@ -844,7 +847,13 @@
 			"processing": "جارٍ المعالجة...",
 			"quantityExceedsAvailable": "الكمية الإجمالية تتجاوز المخزون المتاح",
 			"loadingStaffStatus": "جاري تحميل حالة الموظفين...",
-			"loadStaffStatusError": "فشل تحميل حالة الموظفين"
+			"loadStaffStatusError": "فشل تحميل حالة الموظفين",
+			"noDoctorsAvailable": "لا يوجد أطباء متاحون",
+			"noNursesAvailable": "لا يوجد ممرضون متاحون",
+			"patientNotFound": "المريض غير موجود",
+			"loadStaffAssignmentError": "فشل تحميل تعيينات الموظفين",
+			"staffAssignmentUpdated": "تم تحديث تعيين الموظفين بنجاح",
+			"staffAssignmentUpdateError": "فشل تحديث تعيين الموظفين"
 		},
 		"printBill": {
 			"unknownItem": "عنصر غير معروف",

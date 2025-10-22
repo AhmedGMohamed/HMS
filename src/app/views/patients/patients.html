@@ -1008,6 +1008,72 @@
     </div>
   </div>
 
+  <!-- Edit Staff Assignment Modal -->
+  <div class="modal fade" id="editStaffAssignmentModal" tabindex="-1" aria-labelledby="editStaffAssignmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editStaffAssignmentModalLabel">
+            <i class="bi bi-people"></i>
+            <span data-i18n="patients.modals.editStaffAssignment">Edit Staff Assignment</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <h6 class="text-muted mb-2">
+              <i class="bi bi-person"></i>
+              <span data-i18n="patients.fields.patient">Patient</span>:
+              <span id="editStaffPatientName" class="text-dark fw-bold"></span>
+            </h6>
+          </div>
+
+          <!-- Assigned Doctors Section -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">
+                <i class="bi bi-person-badge"></i>
+                <span data-i18n="patients.fields.attendingDoctors">Attending Doctors</span>
+              </h6>
+              <span class="badge bg-primary" id="assignedDoctorsCount">0</span>
+            </div>
+            <div class="staff-assignment-list" id="editStaffDoctorsList" style="max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
+              <!-- Doctors checkboxes will be populated here -->
+            </div>
+          </div>
+
+          <!-- Assigned Nurses Section -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">
+                <i class="bi bi-person-heart"></i>
+                <span data-i18n="patients.fields.attendingNurses">Attending Nurses</span>
+              </h6>
+              <span class="badge bg-success" id="assignedNursesCount">0</span>
+            </div>
+            <div class="staff-assignment-list" id="editStaffNursesList" style="max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
+              <!-- Nurses checkboxes will be populated here -->
+            </div>
+          </div>
+
+          <div class="alert alert-info d-flex align-items-start">
+            <i class="bi bi-info-circle me-2 mt-1"></i>
+            <small data-i18n="patients.help.editStaffAssignmentInfo">
+              Select or deselect staff members to update the patient's care team. Changes will take effect immediately.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveStaffAssignmentBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text" data-i18n="common.save">Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- jQuery -->
