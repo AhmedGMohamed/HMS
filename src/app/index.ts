@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
+import { createDBIfNotExists } from "./utils/setUpDatabase.js";
 import apiRoutes from "./routes/api.routes.js";
 import pageRoutes from "./routes/page.routes.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
@@ -11,11 +12,15 @@ import EmployeePaymentCron from "./cron/employeePaymentCron.js";
 import PatientAutoRenewalCron from "./cron/patientAutoRenewalCron.js";
 import { Request, Response } from "express";
 
-overridePgDate();
-dotenv.config();
-
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
+
+overridePgDate();
+dotenv.config({
+	path: path.join(__dirname, ".env")
+});
+
+await createDBIfNotExists(process.env.DB_NAME as string || "HMS");
 
 const app = express();
 
@@ -33,7 +38,7 @@ app.use("/health", (_req: Request, res: Response): void => {
 		status: "ok",
 		timestamp: new Date().toISOString(),
 		service: "Hospital Management System",
-		version: "0.3.4.2"
+		version: "0.3.42"
 	});
 });
 

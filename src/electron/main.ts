@@ -12,7 +12,7 @@ let configWindow: BrowserWindow | null;
 function createConfigWindow() {
     configWindow = new BrowserWindow({
         width: 700,
-        height: 700,
+        height: 900,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -45,8 +45,8 @@ function createMainWindow() {
             devTools: isDev(),
             nodeIntegration: false,
             contextIsolation: true,
-            preload: getPreloadPath()
-        },
+			preload: getPreloadPath()
+		},
         autoHideMenuBar: true,
         show: false,
         title: 'Hospital Management System'
@@ -57,8 +57,9 @@ function createMainWindow() {
     // Load the configured server URL
     mainWindow.loadURL(config.serverUrl);
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow?.show();
+	mainWindow.once('ready-to-show', () => {
+		mainWindow.maximize();
+        mainWindow.show();
     });
 
     // Handle failed loads

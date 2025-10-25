@@ -6,6 +6,8 @@
 	],
 	"extraResources": [
 		"dist-electron/electron/preload.cjs",
+		"dist-electron/electron/views/**/*",
+		"dist-electron/electron/utils/**/*",
 		"src/electron/assets/**/*",
 		"src/app/assets/**/*"
 	],
