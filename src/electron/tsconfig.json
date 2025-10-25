@@ -14,7 +14,12 @@
 		"skipLibCheck": true,
 
 		// tell TypeScript to allow downlevelIteration
-		"downlevelIteration": true
+		"downlevelIteration": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"types": ["node"]
 	},
 	"include": ["../**/*.ts", "../**/*.cts"],
 	"exclude": ["**/sweetalert2/**"]

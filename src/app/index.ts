@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
 import EmployeePaymentCron from "./cron/employeePaymentCron.js";
 import PatientAutoRenewalCron from "./cron/patientAutoRenewalCron.js";
+import { Request, Response } from "express";
 
 overridePgDate();
 dotenv.config();
@@ -26,6 +27,15 @@ app.use("/css", express.static(path.join(__dirname, "views/css")));
 app.use("/js", express.static(path.join(__dirname, "views/js")));
 app.use("/utils", express.static(path.join(__dirname, "views/utils")));
 app.use("/locales", express.static(path.join(__dirname, "views/locales")));
+
+app.use("/health", (_req: Request, res: Response): void => {
+	res.status(200).json({
+		status: "ok",
+		timestamp: new Date().toISOString(),
+		service: "Hospital Management System",
+		version: "0.3.4.2"
+	});
+});
 
 // API routes
 app.use("/api", apiRoutes);
@@ -50,4 +60,6 @@ try {
 	console.error("Error starting cron jobs: ", error);
 }
 
-export default app;
+app.listen(3000, () => {
+	console.log("Server started on port 3000");
+});

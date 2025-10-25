@@ -451,7 +451,8 @@ export class VaultModel {
 		const sql = `
             SELECT COALESCE(SUM(total_amount - paid_amount), 0) as total
             FROM Bill
-            WHERE generated_at >= $1 AND generated_at <= $2::DATE + '1 day'::INTERVAL;
+            WHERE generated_at >= $1 AND generated_at <= $2::DATE + '1 day'::INTERVAL
+            AND (total_amount - paid_amount) > 0;
         `;
 
 		const result = await query(sql, [startDate, endDate]);
