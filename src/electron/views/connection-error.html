@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connection Error - HMS</title>
+  <link rel="stylesheet" href="../../app/assets/css/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="../../app/assets/css/bootstrap-icons/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .error-container {
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 120px;
+      color: #fff;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .card {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn {
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="error-container">
+    <div class="error-icon">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <div class="card mt-4">
+      <div class="card-body p-5">
+        <h2 class="text-danger mb-3">Connection Error</h2>
+        <p class="text-muted mb-4">
+          Unable to connect to the Hospital Management System server.
+        </p>
+        <div class="alert alert-warning text-start">
+          <strong><i class="bi bi-exclamation-circle me-2"></i>Possible reasons:</strong>
+          <ul class="mb-0 mt-2">
+            <li>The server is not running</li>
+            <li>The server URL is incorrect</li>
+            <li>Network connectivity issues</li>
+            <li>Firewall blocking the connection</li>
+          </ul>
+        </div>
+        <div class="d-grid gap-2 mt-4">
+          <button class="btn btn-primary btn-lg" id="retryBtn">
+            <i class="bi bi-arrow-clockwise me-2"></i>Retry Connection
+          </button>
+          <button class="btn btn-outline-secondary btn-lg" id="configBtn">
+            <i class="bi bi-gear-fill me-2"></i>Change Server URL
+          </button>
+        </div>
+        <div class="mt-3">
+          <small class="text-muted">
+            <i class="bi bi-keyboard me-1"></i>
+            Or press <kbd>Ctrl+Shift+C</kbd> to open configuration
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../app/assets/js/bootstrap/dist/bootstrap.bundle.min.js"></script>
+  <script src="./js/connection-error.js"></script>
+</body>
+
+</html>

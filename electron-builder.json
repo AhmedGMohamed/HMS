@@ -2,8 +2,7 @@
 	"appId": "com.ahmed-gamal.hms",
 	"files": [
 		"dist-electron/**/*",
-		"src/assets/**/*",
-		"dist-electron/app/tests/**/*"
+		"!dist-electron/app/**/*"
 	],
 	"extraResources": [
 		"dist-electron/electron/preload.cjs",
@@ -20,7 +19,6 @@
 	},
 	"win": {
 		"target": [
-			"portable",
 			"msi"
 		]
 	},
