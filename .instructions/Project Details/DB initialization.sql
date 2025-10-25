@@ -721,3 +721,11 @@ INSERT INTO
 	"User" (username, password_hash, role_id)
 VALUES
 	('admin', 'admin_hash', 1);
+
+INSERT INTO PriceList (name, is_default)
+VALUES
+	('Default', true);
+
+INSERT INTO Warehouse (name, location)
+VALUES
+	('Default', 'Default');

@@ -1,23 +1,15 @@
 import pg from "pg";
 const { Pool } = pg;
 import * as dotenv from "dotenv";
-import { isDev } from "../../../electron/utils/isDev.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
-if (!isDev()) {
-	process.env.NODE_ENV = "prod";
-	process.env.JWT_SECRET = "1234abc#";
-	process.env.DB_USER = "postgres";
-	process.env.DB_HOST = "localhost";
-	process.env.DB_NAME = "HMS";
-	process.env.DB_PASSWORD = "postgres";
-	process.env.DB_PORT = "5432";
-	process.env.DB_USER_TEST = "postgres";
-	process.env.DB_HOST_TEST = "localhost";
-	process.env.DB_NAME_TEST = "HMS_test";
-	process.env.DB_PASSWORD_TEST = "041805";
-	process.env.DB_PORT_TEST = "5432";
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+	path: path.join(__dirname, "../../.env")
+});
 
 let pool: pg.Pool;
 

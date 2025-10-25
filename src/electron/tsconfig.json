@@ -21,6 +21,6 @@
 		"forceConsistentCasingInFileNames": true,
 		"types": ["node"]
 	},
-	"include": ["../**/*.ts", "../**/*.cts"],
+	"include": ["../**/*.ts", "../**/*.cts", "../../dist-electron/electron/views/js/bootstrap/bootstrap.bundle.min.js"],
 	"exclude": ["**/sweetalert2/**"]
 }
