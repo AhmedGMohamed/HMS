@@ -2628,7 +2628,9 @@ class PatientManager {
 				throw new Error(error.error || "Failed to add service");
 			}
 
-			this.addServiceModal.hide();
+
+			let searchTerm = (document.getElementById("serviceSearch") as HTMLInputElement).value.trim();
+			this.filterAndRenderServices(searchTerm || "");
 			this.showSuccess(i18n.t("patients.messages.serviceAdded"));
 
 			// Reload patient data
@@ -2725,43 +2727,54 @@ class PatientManager {
 		let pricelistId = this.currentAdmission?.pricelist_id;
 
 		// Fetch prices for all filtered drugs
-		const drugsWithPrices = await Promise.all(
-			filteredDrugs.map(async (drug) => {
-				try {
-					const url = `/api/pharmacy/drugs/shipments/drug/${drug.drug_id}`;
-					const response = await fetch(url, {
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem(
-								"token"
-							)}`
-						}
-					});
+		// 2. Fetch shipments **in parallel** and keep only drugs that have a price for the current pricelist
+		const drugsWithPrices = (
+			await Promise.all(
+				filteredDrugs.map(async (drug) => {
+					try {
+						const url = `/api/pharmacy/drugs/shipments/drug/${drug.drug_id}`;
+						const response = await fetch(url, {
+							headers: {
+								Authorization: `Bearer ${localStorage.getItem(
+									"token"
+								)}`
+							}
+						});
 
-					if (response.ok) {
-						const shipments = await response.json();
-						if (shipments.length > 0 && shipments[0].prices) {
-							// Find price for the current pricelist
-							const priceInfo = (
-								shipments[0].prices as any[]
-							).find((p: any) => p.pricelist_id == pricelistId);
-							return {
-								...drug,
-								displayPrice: priceInfo?.price || 0
-							};
-						}
+						if (!response.ok) return null; // skip on HTTP error
+
+						const shipments: Array<{
+							prices: Array<{
+								pricelist_id: number;
+								price: number | null;
+							}>;
+						}> = await response.json();
+
+						// Find the first shipment that contains a price for the current pricelist
+						const priceInfo = shipments
+							.flatMap((s) => s.prices ?? [])
+							.find(
+								(p) =>
+									p.pricelist_id == pricelistId &&
+									p.price != null
+							);
+
+						if (!priceInfo) return null; // no price → discard drug
+
+						return {
+							...drug,
+							displayPrice: priceInfo.price ?? 0
+						};
+					} catch (err) {
+						console.error(
+							`Error fetching shipments for drug ${drug.drug_id}:`,
+							err
+						);
+						return null;
 					}
-				} catch (error) {
-					console.error(
-						`Error fetching price for drug ${drug.drug_id}:`,
-						error
-					);
-				}
-				return {
-					...drug,
-					displayPrice: 0
-				};
-			})
-		);
+				})
+			)
+		).filter((drug): drug is NonNullable<typeof drug> => drug !== null);
 
 		container.innerHTML = drugsWithPrices
 			.map(
@@ -2934,7 +2947,8 @@ class PatientManager {
 				throw new Error(error.error || "Failed to add drug");
 			}
 
-			this.addDrugModal.hide();
+			let searchTerm = (document.getElementById("drugSearch") as HTMLInputElement).value.trim();
+			this.filterAndRenderDrugs(searchTerm || "");
 			this.showSuccess(i18n.t("patients.messages.drugAdded"));
 
 			// Reload patient data

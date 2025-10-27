@@ -658,12 +658,12 @@ class DrugManager {
 		                                <strong>${i18n.t(
 											"pharmacy.fields.quantity"
 										)}:</strong> 
-		                                ${quantityInLarger} ${
+		                                ${i18n.formatNumber(quantityInLarger)} ${
 				drug.unit_conversion.larger
 			}
 		                                ${
 											quantityInSmaller > 0
-												? ` + ${quantityInSmaller} ${drug.unit_conversion.smaller}`
+												? ` + ${i18n.formatNumber(quantityInSmaller)} ${drug.unit_conversion.smaller}`
 												: ""
 										}
 		                            </div>
@@ -1292,7 +1292,7 @@ class DrugManager {
                         <input type="number" 
                                class="form-control price-input" 
                                name="price_${priceList.pricelist_id}"
-                               required="${priceList.is_default}"
+                               ${priceList.is_default ? "required" : ""}
                                min="0.01"
                                step="0.01">
                     </div>
