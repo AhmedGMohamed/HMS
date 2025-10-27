@@ -321,7 +321,7 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 	extra_payment_type VARCHAR(50),
 	-- 'none' | 'per_patient' | 'income'
 	payment_type VARCHAR(50) NOT NULL,
-	-- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' 
+	-- 'manual' | 'bonus' | 'overtime' | 'salary' | 'commission' | 'referral'
 	percentage_scope percentage_scope,
 	extra_amount DECIMAL(15, 2),
 	is_paid BOOLEAN DEFAULT false,
@@ -341,7 +341,7 @@ CREATE TABLE IF NOT EXISTS EmployeePaymentPatient (
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	-- Portion of total payment from this patient
 	payment_type VARCHAR(50) NOT NULL,
-	-- 'fixed_per_patient', 'percentage_per_patient'
+	-- 'fixed_per_patient', 'percentage_per_patient', 'referral'
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
