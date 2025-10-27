@@ -512,7 +512,7 @@ class EmployeePaymentCron {
 					(SELECT SUM(dt.quantity * dt.price) 
 					 FROM DrugTransaction dt 
 					 WHERE dt.timestamp >= $1 
-					 AND dt.transaction_type IN ('patient', 'outside')), 0
+					 AND dt.transaction_type = 'outside'), 0
 				) as pharmacy_sales
 			 FROM Bill b 
 			 WHERE b.generated_at >= $1`,

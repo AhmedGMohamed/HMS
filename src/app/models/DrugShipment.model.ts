@@ -355,12 +355,17 @@ export class DrugShipmentModel {
 						SELECT DISTINCT sp.pricelist_id, sp.price, sp.requires_prepayment, sp.prepayment_type, sp.prepayment_amount
 						FROM ShipmentPrice sp
 						WHERE sp.shipment_id = ds.shipment_id
+						AND sp.price IS NOT NULL
 					) t
 				) as prices
                 FROM DrugShipment ds
                 JOIN DrugCard dc ON ds.drug_id = dc.drug_id
                 JOIN Warehouse w ON ds.warehouse_id = w.warehouse_id
                 WHERE ds.drug_id = $1 AND ds.quantity > 0
+				AND EXISTS (
+			    	SELECT 1 FROM ShipmentPrice sp 
+      				WHERE sp.shipment_id = ds.shipment_id AND sp.price IS NOT NULL
+			  	)
                 ORDER BY ds.expiry_date ASC;
             `;
 			const result = await query(sql, [drugId]);
