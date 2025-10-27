@@ -576,6 +576,14 @@ class DoctorManager {
 						) as HTMLInputElement
 					).value
 				) ?? undefined,
+			base_pay:
+				parseFloat(
+					(
+						document.getElementById(
+							"dailyPayDoctor"
+						) as HTMLInputElement
+					).value
+				) ?? undefined,
 			per_patient_pay:
 				parseFloat(
 					(
@@ -592,6 +600,11 @@ class DoctorManager {
 						) as HTMLInputElement
 					).value
 				) ?? undefined,
+			extra_payment_type: (
+				document.getElementById(
+					"paymentCalculation"
+				) as HTMLSelectElement
+			).value,
 			payment_calculation: (
 				document.getElementById(
 					"paymentCalculation"
