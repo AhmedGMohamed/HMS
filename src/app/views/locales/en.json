@@ -423,7 +423,8 @@
 			"bonus": "Bonus",
 			"overtime": "Overtime",
 			"salary": "Salary",
-			"commission": "Commission"
+			"commission": "Commission",
+			"referral": "Referral"
 		},
 		"paymentCalculation": {
 			"fixed": "Fixed",

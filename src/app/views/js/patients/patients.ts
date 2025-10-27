@@ -2628,8 +2628,9 @@ class PatientManager {
 				throw new Error(error.error || "Failed to add service");
 			}
 
-
-			let searchTerm = (document.getElementById("serviceSearch") as HTMLInputElement).value.trim();
+			let searchTerm = (
+				document.getElementById("serviceSearch") as HTMLInputElement
+			).value.trim();
 			this.filterAndRenderServices(searchTerm || "");
 			this.showSuccess(i18n.t("patients.messages.serviceAdded"));
 
@@ -2947,7 +2948,9 @@ class PatientManager {
 				throw new Error(error.error || "Failed to add drug");
 			}
 
-			let searchTerm = (document.getElementById("drugSearch") as HTMLInputElement).value.trim();
+			let searchTerm = (
+				document.getElementById("drugSearch") as HTMLInputElement
+			).value.trim();
 			this.filterAndRenderDrugs(searchTerm || "");
 			this.showSuccess(i18n.t("patients.messages.drugAdded"));
 
@@ -3440,8 +3443,8 @@ class PatientManager {
 							)}</span>
                             <span class="detail-value">
                                 <span class="badge bg-primary">${i18n.t(
-									`
-									patients.doctorTypes.${doctor.doctor_type}` || "Doctor"
+									`patients.doctorTypes.${doctor.doctor_type}` ||
+										"Doctor"
 								)}</span>
                             </span>
                         </div>
@@ -3471,9 +3474,6 @@ class PatientManager {
                             <span class="detail-label">${this.escapeHtml(
 								nurse.nurse_name
 							)}</span>
-                            <span class="detail-value">
-                                <span class="badge bg-success">Nurse</span>
-                            </span>
                         </div>
                     `
 									)
@@ -4345,7 +4345,9 @@ class PatientManager {
 			          data-type="${type}"
 			          onchange="patientManager.updateStaffAssignmentCounts()"
 			        >
-			        <label class="form-check-label p-x-2" for="edit-${type}-${staff.employee_id}">
+			        <label class="form-check-label p-x-2" for="edit-${type}-${
+					staff.employee_id
+				}">
 			          <div class="staff-member-info">
 			            <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
 			            ${

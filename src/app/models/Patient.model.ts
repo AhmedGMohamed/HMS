@@ -11,6 +11,8 @@ import {
 import { Bill, BillDetail } from "../utils/types/billing.js";
 import { Service } from "../utils/types/services.js";
 import { error } from "toastr";
+import EmployeePaymentModel from "./EmployeePayment.model.js";
+import { CreateEmployeePaymentDTO, PaymentPatientAssociation } from "../utils/types/employees.js";
 
 export class PatientModel {
 	async getAllPatients(): Promise<Patient[]> {
@@ -208,37 +210,83 @@ export class PatientModel {
 					data.patient_id
 				);
 				if (currentAdmission) {
-					// Handle staff switches
+					const now = new Date();
+					const today = now.toISOString().split("T")[0];
+
+					// Remove specific doctors if specified
 					if (
 						data.attending_doctors.remove &&
 						data.attending_doctors.remove.length > 0
 					) {
-						await this.handleStaffSwitches(
-							data.patient_id,
-							data.attending_doctors.add || [],
-							data.attending_nurses?.add || [],
-							currentAdmission
-						);
-					} else if (
+						for (const doctorId of data.attending_doctors.remove) {
+							const result = await query(
+								`UPDATE PatientDoctor 
+                				 SET unassigned_at = $1
+                				 WHERE patient_id = $2 AND doctor_id = $3 AND unassigned_at IS NULL
+                				 RETURNING assigned_at`,
+								[now, data.patient_id, doctorId]
+							);
+
+							if (result.rows.length > 0) {
+								const assigned_at = result.rows[0].assigned_at;
+								await query(
+									`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
+                   					VALUES ($1, $2)`,
+									[
+										currentAdmission.patient_history_id,
+										doctorId
+									]
+								);
+
+								let hours = 24.0;
+								const assignedDate = new Date(assigned_at)
+									.toISOString()
+									.split("T")[0];
+								if (assignedDate === today) {
+									hours =
+										(now.getTime() -
+											new Date(assigned_at).getTime()) /
+										3600000;
+								}
+
+								await query(
+									`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+                   					VALUES ($1, $2, $3, $4)
+                   					ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                   					   hours_worked = EXCLUDED.hours_worked`,
+									[doctorId, data.patient_id, today, hours]
+								);
+							}
+						}
+					}
+
+					// Add doctors if specified
+					if (
 						data.attending_doctors.add &&
 						data.attending_doctors.add.length > 0
 					) {
-						// Just adding new staff, no switches
 						for (const doctorId of data.attending_doctors.add) {
+							const doctorCheck = await query(
+								"SELECT doctor_id FROM Doctor WHERE doctor_id = $1 AND is_active = true",
+								[doctorId]
+							);
+							if (doctorCheck.rows.length === 0) {
+								throw new Error(
+									`Doctor with ID ${doctorId} not found`
+								);
+							}
+
 							await query(
 								`INSERT INTO PatientDoctor (patient_id, doctor_id, assigned_at) 
                     			VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
 								[data.patient_id, doctorId]
 							);
 
-							// Create daily assignment
-							const today = new Date()
-								.toISOString()
-								.split("T")[0];
 							await query(
 								`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-                     			VALUES ($1, $2, $3, 1.0)
-                     			ON CONFLICT (employee_id, patient_id, work_date) DO NOTHING`,
+                 				VALUES ($1, $2, $3, 1.0)
+                 				ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                 				   hours_worked = GREATEST(DailyStaffAssignment.hours_worked, 1.0)`,
 								[doctorId, data.patient_id, today]
 							);
 						}
@@ -252,19 +300,54 @@ export class PatientModel {
 					data.patient_id
 				);
 				if (currentAdmission) {
-					// Remove nurses if specified
+					const now = new Date();
+					const today = now.toISOString().split("T")[0];
+
+					// Remove specific nurses if specified
 					if (
 						data.attending_nurses.remove &&
 						data.attending_nurses.remove.length > 0
 					) {
-						const placeholders = data.attending_nurses.remove
-							.map((_, i) => `$${i + 2}`)
-							.join(",");
-						await query(
-							`DELETE FROM PatientNurse 
-                        	 WHERE patient_id = $1 AND nurse_id IN (${placeholders})`,
-							[data.patient_id, ...data.attending_nurses.remove]
-						);
+						for (const nurseId of data.attending_nurses.remove) {
+							const result = await query(
+								`UPDATE PatientNurse 
+				                SET unassigned_at = $1
+				                WHERE patient_id = $2 AND nurse_id = $3 AND unassigned_at IS NULL
+				                RETURNING assigned_at`,
+								[now, data.patient_id, nurseId]
+							);
+
+							if (result.rows.length > 0) {
+								const assigned_at = result.rows[0].assigned_at;
+								await query(
+									`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
+                   					VALUES ($1, $2)`,
+									[
+										currentAdmission.patient_history_id,
+										nurseId
+									]
+								);
+
+								let hours = 24.0;
+								const assignedDate = new Date(assigned_at)
+									.toISOString()
+									.split("T")[0];
+								if (assignedDate === today) {
+									hours =
+										(now.getTime() -
+											new Date(assigned_at).getTime()) /
+										3600000;
+								}
+
+								await query(
+									`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+                   					VALUES ($1, $2, $3, $4)
+                   					ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                   					   hours_worked = EXCLUDED.hours_worked`,
+									[nurseId, data.patient_id, today, hours]
+								);
+							}
+						}
 					}
 
 					// Add nurses if specified
@@ -286,9 +369,17 @@ export class PatientModel {
 
 							// Add nurse to current admission
 							await query(
-								`INSERT INTO PatientNurse (patient_id, nurse_id) 
-                            	VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+								`INSERT INTO PatientNurse (patient_id, nurse_id, assigned_at) 
+                            	VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
 								[data.patient_id, nurseId]
+							);
+
+							await query(
+								`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+                     			VALUES ($1, $2, $3, 1.0)
+                     			ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                    				hours_worked = GREATEST(DailyStaffAssignment.hours_worked, 1.0)`,
+								[nurseId, data.patient_id, today]
 							);
 						}
 					}
@@ -301,121 +392,6 @@ export class PatientModel {
 		} catch (error) {
 			await query("ROLLBACK");
 			throw error;
-		}
-	}
-
-	private async handleStaffSwitches(
-		patientId: number,
-		newDoctorIds: number[],
-		newNurseIds: number[],
-		currentAdmission: PatientHistory
-	): Promise<void> {
-		const now = new Date();
-		const today = now.toISOString().split("T")[0];
-
-		// Handle doctor switches
-		if (newDoctorIds && newDoctorIds.length > 0) {
-			// End current doctor assignments
-			await query(
-				`UPDATE PatientDoctor 
-             SET unassigned_at = $1
-             WHERE patient_id = $2 AND unassigned_at IS NULL`,
-				[now, patientId]
-			);
-
-			// Move ended assignments to history
-			await query(
-				`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
-             SELECT $1, doctor_id 
-             FROM PatientDoctor 
-             WHERE patient_id = $2 AND unassigned_at = $3`,
-				[currentAdmission.patient_history_id, patientId, now]
-			);
-
-			// Create daily assignment records for switched-out doctors
-			await query(
-				`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-             SELECT pd.doctor_id, $1, $2, 
-                    CASE 
-                        WHEN pd.assigned_at::date = $2 THEN 
-                            EXTRACT(EPOCH FROM ($3 - pd.assigned_at)) / 3600.0
-                        ELSE 24.0 
-                    END
-             FROM PatientDoctor pd
-             WHERE pd.patient_id = $1 AND pd.unassigned_at = $3
-             ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-                hours_worked = EXCLUDED.hours_worked`,
-				[patientId, today, now]
-			);
-
-			// Add new doctor assignments
-			for (const doctorId of newDoctorIds) {
-				await query(
-					`INSERT INTO PatientDoctor (patient_id, doctor_id, assigned_at)
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT DO NOTHING`,
-					[patientId, doctorId, now]
-				);
-
-				// Create daily assignment record for new doctor
-				await query(
-					`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-                    hours_worked = GREATEST(DailyStaffAssignment.hours_worked, 1.0)`,
-					[doctorId, patientId, today, 1.0] // Minimum 1 hour for new assignment
-				);
-			}
-		}
-
-		// Handle nurse switches (similar logic)
-		if (newNurseIds && newNurseIds.length > 0) {
-			await query(
-				`UPDATE PatientNurse 
-            	 SET unassigned_at = $1
-            	 WHERE patient_id = $2 AND unassigned_at IS NULL`,
-				[now, patientId]
-			);
-
-			await query(
-				`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
-            	 SELECT $1, nurse_id 
-            	 FROM PatientNurse 
-            	 WHERE patient_id = $2 AND unassigned_at = $3`,
-				[currentAdmission.patient_history_id, patientId, now]
-			);
-
-			await query(
-				`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-            	 SELECT pn.nurse_id, $1, $2, 
-            	        CASE 
-            	            WHEN pn.assigned_at::date = $2 THEN 
-            	                EXTRACT(EPOCH FROM ($3 - pn.assigned_at)) / 3600.0
-            	            ELSE 24.0 
-            	        END
-            	 FROM PatientNurse pn
-            	 WHERE pn.patient_id = $1 AND pn.unassigned_at = $3
-            	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-            	    hours_worked = EXCLUDED.hours_worked`,
-				[patientId, today, now]
-			);
-
-			for (const nurseId of newNurseIds) {
-				await query(
-					`INSERT INTO PatientNurse (patient_id, nurse_id, assigned_at)
-                 	VALUES ($1, $2, $3)
-                 	ON CONFLICT DO NOTHING`,
-					[patientId, nurseId, now]
-				);
-
-				await query(
-					`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-                 	VALUES ($1, $2, $3, $4)
-                	ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-                    hours_worked = GREATEST(DailyStaffAssignment.hours_worked, 1.0)`,
-					[nurseId, patientId, today, 1.0]
-				);
-			}
 		}
 	}
 
@@ -540,6 +516,57 @@ export class PatientModel {
 					bill.bill_id,
 					userId
 				);
+			}
+
+			if (patient.referring_doctor_id) {
+				const referringDoctorId = patient.referring_doctor_id;
+				const doctorResult = await query(
+					`SELECT d.doctor_id, d.referral_bonus, d.payment_calculation, e.extra_payment_type, 
+					        e.percentage_scope, e.employee_type
+					 FROM Doctor d 
+					 JOIN Employee e ON d.doctor_id = e.employee_id
+					 WHERE d.doctor_id = $1 AND d.doctor_type = 'referring' AND d.referral_bonus > 0`,
+					[referringDoctorId]
+				);
+
+				if (doctorResult.rows.length > 0) {
+					const doctor = doctorResult.rows[0];
+					const paymentAmount = doctor.referral_bonus;
+
+					if (paymentAmount > 0) {
+						const payment: CreateEmployeePaymentDTO = {
+							employee_id: doctor.doctor_id,
+							payment_amount: paymentAmount,
+							payment_type: "referral",
+							extra_payment_type:
+								doctor.extra_payment_type || "per_patient",
+							extra_amount: paymentAmount,
+							percentage_scope: doctor.percentage_scope,
+							paid_by_user_id: null
+						};
+
+						const workDate = new Date(admission.admission_time)
+							.toISOString()
+							.split("T")[0];
+
+						const associations: PaymentPatientAssociation[] = [
+							{
+								patient_id: data.patient_id,
+								patient_history_id:
+									admission.patient_history_id,
+								work_date: workDate,
+								hours_worked: 0.0,
+								payment_amount: paymentAmount,
+								payment_type: "referral"
+							}
+						];
+
+						await EmployeePaymentModel.createPaymentWithPatients(
+							payment,
+							associations
+						);
+					}
+				}
 			}
 
 			await query("COMMIT");
@@ -1426,7 +1453,10 @@ export class PatientModel {
             ) sp ON dc.drug_id = sp.drug_id
             WHERE sd.service_id = $2;
         `;
-		const serviceDrugsResult = await query(serviceDrugsSql, [pricelistId, serviceId]);
+		const serviceDrugsResult = await query(serviceDrugsSql, [
+			pricelistId,
+			serviceId
+		]);
 
 		for (const drugInfo of serviceDrugsResult.rows) {
 			await this.dispenseDrugToPatient(
@@ -1467,7 +1497,10 @@ export class PatientModel {
             WHERE ds.drug_id = $1 AND ds.quantity > 0 AND pl.pricelist_id = $2
             ORDER BY ds.expiry_date ASC;
         `;
-		const shipmentsResult = await query(availableShipmentsSql, [drugId, pricelistId]);
+		const shipmentsResult = await query(availableShipmentsSql, [
+			drugId,
+			pricelistId
+		]);
 
 		if (shipmentsResult.rows.length === 0) {
 			console.warn(`No available shipments for drug ID: ${drugId}`);

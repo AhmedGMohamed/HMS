@@ -428,7 +428,8 @@
 			"bonus": "مكافأة",
 			"overtime": "عمل إضافي",
 			"salary": "راتب",
-			"commission": "عمولة"
+			"commission": "عمولة",
+			"referral": "تحويل"
 		},
 		"paymentCalculation": {
 			"fixed": "ثابت",
