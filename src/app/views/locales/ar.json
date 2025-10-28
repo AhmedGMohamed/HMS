@@ -429,7 +429,8 @@
 			"overtime": "عمل إضافي",
 			"salary": "راتب",
 			"commission": "عمولة",
-			"referral": "تحويل"
+			"referral": "تحويل",
+			"supervising_doctor_assignment": "اشراف علي المريض"
 		},
 		"paymentCalculation": {
 			"fixed": "ثابت",
