@@ -720,7 +720,8 @@ VALUES
 INSERT INTO
 	"User" (username, password_hash, role_id)
 VALUES
-	('admin', 'admin_hash', 1);
+	('admin', '$2a$10$5wtO8QuMZ3X62mmnwXzyXu3ZPKeSxJsafylPqLVLQG8dpTOxR0PdO', 1),
+	('system', '$2a$10$yYxnEDZ6MLLzxXHn/T.ba.mm/F.9drU/l0E6QbPi/l72KSp7dciuS', 1);
 
 INSERT INTO PriceList (name, is_default)
 VALUES
