@@ -424,7 +424,8 @@
 			"overtime": "Overtime",
 			"salary": "Salary",
 			"commission": "Commission",
-			"referral": "Referral"
+			"referral": "Referral",
+			"supervising_doctor_assignment": "Supervising Doctor Commission"
 		},
 		"paymentCalculation": {
 			"fixed": "Fixed",
