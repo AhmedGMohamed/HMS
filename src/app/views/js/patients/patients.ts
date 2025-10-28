@@ -182,6 +182,8 @@ class PatientManager {
 	private admissionDetailsModal: Modal;
 	//@ts-ignore
 	private editStaffAssignmentModal: Modal;
+	//@ts-ignore
+	private settleBillModal: Modal;
 
 	private currentPatient: Patient | null = null;
 	private currentAdmission: PatientHistory | null = null;
@@ -199,6 +201,7 @@ class PatientManager {
 	private clockedInStaff: ClockedInEmployee[] = [];
 	private staffAssignments: Map<number, StaffAssignment[]> = new Map();
 	private staffStatusInterval: NodeJS.Timeout | null = null;
+	private currentSettlementBill: Bill | null = null;
 
 	private searchTimeout: NodeJS.Timeout | null = null;
 	private allPatients: Patient[] = [];
@@ -247,6 +250,11 @@ class PatientManager {
 		//@ts-ignore
 		this.editStaffAssignmentModal = new bootstrap.Modal(
 			document.getElementById("editStaffAssignmentModal")!
+		);
+
+		//@ts-ignore
+		this.settleBillModal = new bootstrap.Modal(
+			document.getElementById("settleBillModal")!
 		);
 
 		this.waitForI18n().then(() => {
@@ -443,6 +451,19 @@ class PatientManager {
 			.getElementById("saveStaffAssignmentBtn")
 			?.addEventListener("click", () => {
 				this.saveStaffAssignment();
+			});
+
+		document
+			.getElementById("confirmSettleBillBtn")
+			?.addEventListener("click", () => {
+				this.settleBill();
+			});
+
+		// Add real-time balance calculation
+		document
+			.getElementById("settleNewPaidAmount")
+			?.addEventListener("input", () => {
+				this.updateSettleBalancePreview();
 			});
 
 		document
@@ -3419,6 +3440,16 @@ class PatientManager {
                             </strong>
                         </span>
                     </div>
+					<div class="detail-row mt-3">
+					    <div class="col-12">
+					        <button class="btn btn-success btn-sm w-100" onclick="patientManager.showSettleBillModal(${
+								admission.bill_id
+							})">
+					            <i class="bi bi-cash-coin"></i> 
+					            ${i18n.t("patients.buttons.settleBill")}
+					        </button>
+					    </div>
+					</div>
                 </div>
             </div>
         </div>
@@ -3627,6 +3658,200 @@ class PatientManager {
             </div>
         </div>
     `;
+	}
+
+	public async showSettleBillModal(billId?: number): Promise<void> {
+		if (!billId && this.currentAdmissionDetails?.bill_id) {
+			billId = this.currentAdmissionDetails.bill_id;
+		}
+
+		if (!billId) {
+			this.showError(i18n.t("patients.messages.noBillSelected"));
+			return;
+		}
+
+		try {
+			// Fetch the latest bill data
+			const response = await fetch(`/api/bills/${billId}`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch bill data");
+			}
+
+			const billData = await response.json();
+
+			// Store bill data for settlement
+			this.currentSettlementBill = billData;
+
+			// Populate modal fields
+			const totalAmount = parseFloat(billData.total_amount || 0);
+			const currentPaid = parseFloat(billData.paid_amount || 0);
+			const currentBalance = totalAmount - currentPaid;
+
+			document.getElementById("settleTotalAmount")!.textContent =
+				i18n.formatCurrency(totalAmount);
+			document.getElementById("settleCurrentPaid")!.textContent =
+				i18n.formatCurrency(currentPaid);
+			document.getElementById("settleCurrentBalance")!.textContent =
+				i18n.formatCurrency(currentBalance);
+			document.getElementById("settleAdmissionId")!.textContent =
+				this.currentAdmissionDetails?.patient_history_id || "-";
+
+			// Set current paid amount as default value
+			(
+				document.getElementById(
+					"settleNewPaidAmount"
+				) as HTMLInputElement
+			).value = currentPaid.toFixed(2);
+
+			// Update preview
+			this.updateSettleBalancePreview();
+
+			// Show modal
+			this.settleBillModal.show();
+		} catch (error) {
+			console.error("Error loading bill for settlement:", error);
+			this.showError(i18n.t("patients.messages.loadBillError"));
+		}
+	}
+
+	private updateSettleBalancePreview(): void {
+		if (!this.currentSettlementBill) return;
+
+		const totalAmount = Number(
+			this.currentSettlementBill.total_amount || 0
+		);
+		const currentPaid = Number(
+			this.currentSettlementBill.paid_amount || 0
+		);
+		const newPaidAmount =
+			parseFloat(
+				(
+					document.getElementById(
+						"settleNewPaidAmount"
+					) as HTMLInputElement
+				).value
+			) || 0;
+
+		const newBalance = totalAmount - newPaidAmount;
+		const difference = newPaidAmount - currentPaid;
+
+		// Update preview fields
+		const newBalanceEl = document.getElementById("settleNewBalance")!;
+		const differenceEl = document.getElementById("settleDifference")!;
+
+		newBalanceEl.textContent = i18n.formatCurrency(Math.abs(newBalance));
+		differenceEl.textContent = i18n.formatCurrency(Math.abs(difference));
+
+		// Update colors based on positive/negative
+		newBalanceEl.className =
+			newBalance > 0 ? "fw-bold text-danger" : "fw-bold text-success";
+		differenceEl.className =
+			difference >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+	}
+
+	private async settleBill(): Promise<void> {
+		const form = document.getElementById(
+			"settleBillForm"
+		) as HTMLFormElement;
+
+		if (!form.checkValidity()) {
+			form.classList.add("was-validated");
+			return;
+		}
+
+		if (!this.currentSettlementBill) {
+			this.showError(i18n.t("patients.messages.noBillSelected"));
+			return;
+		}
+
+		const newPaidAmount = parseFloat(
+			(document.getElementById("settleNewPaidAmount") as HTMLInputElement)
+				.value
+		);
+
+		if (isNaN(newPaidAmount) || newPaidAmount < 0) {
+			this.showError(i18n.t("patients.validation.invalidAmount"));
+			return;
+		}
+
+		const totalAmount =
+			Number(this.currentSettlementBill.total_amount || 0);
+
+		// Optional: Confirm if paid amount exceeds total
+		if (newPaidAmount > totalAmount) {
+			const confirmed = await Swal.fire({
+				title: i18n.t("common.warning"),
+				text: i18n.t("patients.messages.paidExceedsTotal"),
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonText: i18n.t("common.confirm"),
+				cancelButtonText: i18n.t("common.cancel")
+			});
+
+			if (!confirmed.isConfirmed) {
+				return;
+			}
+		}
+
+		const confirmBtn = document.getElementById("confirmSettleBillBtn")!;
+		const spinner = confirmBtn.querySelector(".spinner-border")!;
+
+		try {
+			// Show loading state
+			spinner.classList.remove("d-none");
+			(confirmBtn as HTMLButtonElement).disabled = true;
+
+			const response = await fetch(
+				`/api/bills/${this.currentSettlementBill.bill_id}`,
+				{
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					},
+					body: JSON.stringify({
+						paid_amount: newPaidAmount
+					})
+				}
+			);
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.message || "Failed to settle bill");
+			}
+
+			this.showSuccess(i18n.t("patients.messages.billSettled"));
+
+			// Close modal
+			this.settleBillModal.hide();
+			form.classList.remove("was-validated");
+
+			// Refresh admission details if currently viewing
+			if (this.currentAdmissionDetails?.patient_history_id) {
+				await this.showAdmissionDetails(
+					this.currentAdmissionDetails.patient_history_id
+				);
+			}
+
+			// Refresh past admissions list
+			await this.showPastAdmissionsModal();
+		} catch (error) {
+			console.error("Error settling bill:", error);
+			this.showError(
+				error instanceof Error
+					? error.message
+					: i18n.t("patients.messages.settleBillError")
+			);
+		} finally {
+			// Hide loading state
+			spinner.classList.add("d-none");
+			(confirmBtn as HTMLButtonElement).disabled = false;
+		}
 	}
 
 	private async printAdmissionBill(): Promise<void> {

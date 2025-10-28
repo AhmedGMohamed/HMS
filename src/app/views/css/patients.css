@@ -882,6 +882,29 @@
   padding: 2rem;
 }
 
+/* Settle Bill Modal Styles */
+#settleBillModal .card {
+  border: 1px solid #dee2e6;
+}
+
+#settleBillModal .bg-light {
+  background-color: #f8f9fa !important;
+}
+
+#settleNewBalance, #settleDifference {
+  font-size: 1.1rem;
+}
+
+/* Admission card settle button */
+.admission-card .btn-settle {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.admission-card:hover .btn-settle {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
 	.admission-summary {
 		grid-template-columns: 1fr;
