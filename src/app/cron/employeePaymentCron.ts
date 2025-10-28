@@ -7,6 +7,7 @@ import {
 	PaymentPatientAssociation
 } from "../utils/types/employees.js";
 import { query } from "../models/database/connection.js";
+import DoctorModel from "../models/Doctor.model.js";
 
 // Initialize cron jobs for employee payments
 class EmployeePaymentCron {
@@ -35,7 +36,7 @@ class EmployeePaymentCron {
 
 		// Run at 8 AM daily to create daily assignments (start of work day)
 		this.dailyAssignmentJob = new CronJob(
-			"0 0 8 * * *",
+			"0 0 * * * *",
 			this.createDailyAssignments.bind(this),
 			null,
 			true,
@@ -68,6 +69,13 @@ class EmployeePaymentCron {
 			const activeEmployees = employees.filter((emp) => emp.is_active);
 
 			for (const employee of activeEmployees) {
+				// Check if employee is a supervising doctor
+				const doctor = await DoctorModel.getDoctorById(
+					employee.employee_id
+				);
+				if (doctor?.doctor_type === "supervising") {
+					continue;
+				}
 				await this.processDailyEmployeePayment(employee);
 			}
 
@@ -130,11 +138,11 @@ class EmployeePaymentCron {
 		}
 
 		// Create payment record if there's any amount to pay
-		const totalPayment = basePayment - totalDeductions + extraAmount;
-		if (totalPayment > 0 || totalDeductions > 0) {
+		const remainingBasePayment = basePayment - totalDeductions;
+		if (remainingBasePayment > 0 || extraAmount > 0) {
 			const payment: CreateEmployeePaymentDTO = {
 				employee_id: employee.employee_id,
-				payment_amount: Math.max(0, totalPayment),
+				payment_amount: Math.max(0, remainingBasePayment),
 				payment_type: "salary",
 				extra_payment_type: extraPaymentType,
 				extra_amount: extraAmount,
@@ -204,7 +212,6 @@ class EmployeePaymentCron {
 			 WHERE pd.doctor_id = $1
 			 AND p.is_active = true
 			 AND pd.unassigned_at IS NULL
-			 AND ph.discharge_time IS NULL
 			 AND NOT EXISTS (
 				 SELECT 1 FROM EmployeePaymentPatient epp
 				 JOIN EmployeePayment ep ON epp.payment_id = ep.payment_id
@@ -242,7 +249,7 @@ class EmployeePaymentCron {
 		// Create payment record
 		const payment: CreateEmployeePaymentDTO = {
 			employee_id: doctor.doctor_id,
-			payment_amount: totalPayment,
+			payment_amount: 0.0,
 			payment_type: "supervising_doctor_assignment",
 			extra_payment_type: "per_patient",
 			extra_amount: totalPayment,
@@ -515,7 +522,9 @@ class EmployeePaymentCron {
 					 AND dt.transaction_type = 'outside'), 0
 				) as pharmacy_sales
 			 FROM Bill b 
-			 WHERE b.generated_at >= $1`,
+			 JOIN PatientHistory ph ON b.bill_id = ph.bill_id
+			 WHERE ph.discharge_time >= $1
+			 AND ph.discharge_time < NOW()`,
 			[past24HoursStart.toISOString()]
 		);
 
@@ -529,16 +538,9 @@ class EmployeePaymentCron {
 		if (employee.percentage_scope === "after_deductions") {
 			const deductionsResult = await query(
 				`SELECT 
-					COALESCE(SUM(ep.payment_amount), 0) as employee_costs,
-					COALESCE(
-						(SELECT SUM(ds.buy_quantity * ds.buy_price) 
-						 FROM DrugShipment ds 
-						 WHERE ds.received_date >= $1::date), 0
-					) as drug_costs,
-					COALESCE(SUM(b.administrative_expenses), 0) as admin_expenses
-				 FROM Bill b
-				 LEFT JOIN EmployeePayment ep ON ep.issued_timestamp >= $1
-				 WHERE b.generated_at >= $1`,
+					COALESCE( (SELECT SUM(ep.payment_amount) FROM EmployeePayment ep WHERE ep.issued_timestamp >= $1), 0) as employee_costs,
+					COALESCE( (SELECT SUM(ds.buy_quantity * ds.buy_price) FROM DrugShipment ds WHERE ds.received_date >= $1::date), 0) as drug_costs,
+					COALESCE( (SELECT SUM(b.administrative_expenses) FROM Bill b WHERE b.generated_at >= $1), 0) as admin_expenses`,
 				[past24HoursStart.toISOString()]
 			);
 
@@ -706,13 +708,21 @@ class EmployeePaymentCron {
         	        e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
         	        e.shift_end_time, e.shift_start_time, e.shift_type,
         	        d.per_patient_pay, d.payment_calculation, d.doctor_type, 
-        	        dsa.work_date, SUM(dsa.hours_worked) as total_hours_worked
+        	        MIN(dsa.work_date) as min_work_date, SUM(dsa.hours_worked) as total_hours_worked
         	 FROM DailyStaffAssignment dsa
         	 JOIN Employee e ON dsa.employee_id = e.employee_id
         	 LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
         	 WHERE dsa.patient_id = $1
         	 AND dsa.payment_processed = FALSE
         	 AND dsa.hours_worked > 0
+			 AND NOT EXISTS (
+				 SELECT 1 FROM EmployeePaymentPatient epp
+				 JOIN EmployeePayment ep ON epp.payment_id = ep.payment_id
+				 WHERE ep.employee_id = dsa.employee_id
+				 AND epp.patient_history_id = $2
+				 AND ep.is_void = false
+				 AND ep.extra_payment_type IN ('per_patient', 'both')
+			 )
         	 AND (
         	    (e.extra_payment_type = 'per_patient' AND e.per_patient_payment_type = 'percentage')
         	    OR
@@ -726,8 +736,8 @@ class EmployeePaymentCron {
         	 GROUP BY dsa.employee_id, e.extra_amount, e.percentage_scope,
         	          e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
         	          e.shift_end_time, e.shift_start_time, e.shift_type,
-        	          d.per_patient_pay, d.payment_calculation, d.doctor_type, dsa.work_date`,
-			[patient_id]
+        	          d.per_patient_pay, d.payment_calculation, d.doctor_type`,
+			[patient_id, patient_history_id]
 		);
 
 		for (const staff of staffResult.rows) {
@@ -737,7 +747,7 @@ class EmployeePaymentCron {
 				const [hours, minutes] = staff.shift_end_time.split(":");
 
 				// Calculate shift end time for the work date
-				const shiftEndTime = new Date(staff.work_date);
+				const shiftEndTime = new Date(staff.min_work_date);
 				shiftEndTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
 				// If it's a night shift and end time is before start time, add a day
@@ -767,101 +777,71 @@ class EmployeePaymentCron {
 				}
 			}
 
-			// Check if already paid for this dismissal
-			const existingPayment = await query(
-				`SELECT payment_id FROM EmployeePayment 
-            	 WHERE employee_id = $1 
-            	 AND extra_payment_type IN ('per_patient', 'both')
-            	 AND issued_timestamp >= $2::timestamp - INTERVAL '2 hours'`,
-				[staff.employee_id, discharge_time]
-			);
+			const percentageRate =
+				staff.extra_amount || staff.per_patient_pay || 0;
 
-			if (existingPayment.rows.length === 0) {
-				const percentageRate =
-					staff.extra_amount || staff.per_patient_pay || 0;
+			let baseAmount = parseFloat(paid_amount);
 
-				let baseAmount = parseFloat(paid_amount);
-
-				// Apply work time proportionally if worked less than full admission
-				const admissionResult = await query(
+			// Calculate deductions if percentage_scope is 'after_deductions'
+			if (staff.percentage_scope === "after_deductions") {
+				const deductionsResult = await query(
 					`SELECT 
-						EXTRACT(EPOCH FROM (ph.discharge_time - ph.admission_time)) / 3600.0 as total_admission_hours
-					 FROM PatientHistory ph
-					 WHERE ph.patient_history_id = $1`,
-					[patient_history_id]
+	                	    COALESCE(b.administrative_expenses, 0) as admin_expenses,
+	                	    COALESCE(b.discount, 0) as discount
+	                	 FROM Bill b 
+	                	 WHERE b.bill_id = $1`,
+					[bill_id]
 				);
 
-				const totalAdmissionHours = parseFloat(
-					admissionResult.rows[0].total_admission_hours
+				const { admin_expenses, discount } = deductionsResult.rows[0];
+				baseAmount = Math.max(
+					0,
+					baseAmount -
+						parseFloat(admin_expenses) -
+						parseFloat(discount)
 				);
-				const workRatio = Math.min(
-					staff.total_hours_worked / totalAdmissionHours,
-					1.0
-				);
-				baseAmount = baseAmount * workRatio;
+			}
 
-				// Calculate deductions if percentage_scope is 'after_deductions'
-				if (staff.percentage_scope === "after_deductions") {
-					const deductionsResult = await query(
-						`SELECT 
-                    	    COALESCE(b.administrative_expenses, 0) as admin_expenses,
-                    	    COALESCE(b.discount, 0) as discount
-                    	 FROM Bill b 
-                    	 WHERE b.bill_id = $1`,
-						[bill_id]
-					);
+			const paymentAmount = (baseAmount * percentageRate) / 100;
 
-					const { admin_expenses, discount } =
-						deductionsResult.rows[0];
-					baseAmount = Math.max(
-						0,
-						baseAmount -
-							parseFloat(admin_expenses) -
-							parseFloat(discount)
-					);
-				}
+			if (paymentAmount > 0) {
+				const payment: CreateEmployeePaymentDTO = {
+					employee_id: staff.employee_id,
+					payment_amount: 0.0,
+					payment_type: "commission",
+					extra_payment_type:
+						staff.extra_payment_type === "both"
+							? "both"
+							: "per_patient",
+					extra_amount: paymentAmount,
+					percentage_scope: staff.percentage_scope,
+					paid_by_user_id: null
+				};
 
-				const paymentAmount = (baseAmount * percentageRate) / 100;
-
-				if (paymentAmount > 0) {
-					const payment: CreateEmployeePaymentDTO = {
-						employee_id: staff.employee_id,
+				// Create patient association
+				const associations: PaymentPatientAssociation[] = [
+					{
+						patient_id: patient_id,
+						patient_history_id: patient_history_id,
+						work_date: staff.min_work_date,
+						hours_worked: staff.total_hours_worked,
 						payment_amount: paymentAmount,
-						payment_type: "commission",
-						extra_payment_type:
-							staff.extra_payment_type === "both"
-								? "both"
-								: "per_patient",
-						extra_amount: paymentAmount,
-						percentage_scope: staff.percentage_scope,
-						paid_by_user_id: null
-					};
+						payment_type: "percentage_per_patient"
+					}
+				];
 
-					// Create patient association
-					const associations: PaymentPatientAssociation[] = [
-						{
-							patient_id: patient_id,
-							patient_history_id: patient_history_id,
-							work_date: staff.work_date,
-							hours_worked: staff.total_hours_worked,
-							payment_amount: paymentAmount,
-							payment_type: "percentage_per_patient"
-						}
-					];
+				await EmployeePaymentModel.createPaymentWithPatients(
+					payment,
+					associations
+				);
 
-					await EmployeePaymentModel.createPaymentWithPatients(
-						payment,
-						associations
-					);
-
-					// Mark this staff assignment as payment processed
-					await query(
-						`UPDATE DailyStaffAssignment 
-                    	 SET payment_processed = TRUE 
-                    	 WHERE employee_id = $1 AND patient_id = $2`,
-						[staff.employee_id, patient_id]
-					);
-				}
+				// Mark this staff assignment as payment processed
+				await query(
+					`UPDATE DailyStaffAssignment 
+                	 SET payment_processed = TRUE 
+                	 WHERE employee_id = $1 AND patient_id = $2`,
+					[staff.employee_id, patient_id]
+				);
 			}
 		}
 	}
