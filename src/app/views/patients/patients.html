@@ -1074,6 +1074,97 @@
     </div>
   </div>
 
+  <!-- Settle Bill Modal -->
+  <div class="modal fade" id="settleBillModal" tabindex="-1" aria-labelledby="settleBillModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settleBillModalLabel">
+            <i class="bi bi-cash-coin"></i>
+            <span data-i18n="patients.modals.settleBill">Settle Bill</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info d-flex align-items-start mb-3">
+            <i class="bi bi-info-circle me-2 mt-1"></i>
+            <small data-i18n="patients.help.settleBillInfo">
+              Update the paid amount for this past admission. This will adjust the balance accordingly.
+            </small>
+          </div>
+
+          <!-- Bill Summary -->
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="row g-2">
+                <div class="col-6">
+                  <small class="text-muted" data-i18n="patients.billing.totalAmount">Total Amount:</small>
+                  <div class="fw-bold" id="settleTotalAmount">$0.00</div>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted" data-i18n="patients.billing.currentPaid">Current Paid:</small>
+                  <div class="fw-bold text-success" id="settleCurrentPaid">$0.00</div>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted" data-i18n="patients.billing.currentBalance">Current Balance:</small>
+                  <div class="fw-bold text-danger" id="settleCurrentBalance">$0.00</div>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted" data-i18n="patients.messages.admissionId">Admission ID:</small>
+                  <div class="fw-bold" id="settleAdmissionId">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form id="settleBillForm" novalidate>
+            <div class="mb-3">
+              <label for="settleNewPaidAmount" class="form-label">
+                <span data-i18n="patients.billing.newPaidAmount">New Paid Amount</span> *
+              </label>
+              <div class="input-group">
+                <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                <input type="number" class="form-control" id="settleNewPaidAmount" min="0" step="0.01" required data-i18n-placeholder="patients.placeholders.enterAmount" placeholder="Enter amount">
+              </div>
+              <div class="invalid-feedback" data-i18n="patients.validation.paidAmountRequired">
+                Please enter a valid amount
+              </div>
+              <div class="form-text">
+                <span data-i18n="patients.help.settleBillAmountInfo">
+                  Enter the total amount that has been paid for this admission (not just the additional payment)
+                </span>
+              </div>
+            </div>
+
+            <!-- New Balance Preview -->
+            <div class="card bg-light">
+              <div class="card-body">
+                <div class="row g-2">
+                  <div class="col-6">
+                    <small class="text-muted" data-i18n="patients.billing.newBalance">New Balance:</small>
+                    <div class="fw-bold" id="settleNewBalance">$0.00</div>
+                  </div>
+                  <div class="col-6">
+                    <small class="text-muted" data-i18n="patients.billing.difference">Difference:</small>
+                    <div class="fw-bold" id="settleDifference">$0.00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-success" id="confirmSettleBillBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <i class="bi bi-check-circle"></i>
+            <span class="btn-text" data-i18n="patients.buttons.settleBill">Settle Bill</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap Bundle with Popper -->
   <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
   <!-- jQuery -->

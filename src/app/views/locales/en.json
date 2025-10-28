@@ -587,7 +587,8 @@
 			"generatePdf": "Generate PDF",
 			"stop": "Stop",
 			"remove": "Remove",
-			"administer": "Administer"
+			"administer": "Administer",
+			"settleBill": "Settle Bill"
 		},
 		"sections": {
 			"basicInfo": "Basic Information",
@@ -658,7 +659,12 @@
 			"subtotal": "Subtotal",
 			"vatAmount": "VAT Amount",
 			"totalAmount": "Total Amount",
-			"balance": "Balance"
+			"balance": "Balance",
+			"newPaidAmount": "New Paid Amount",
+			"currentPaid": "Current Paid",
+			"currentBalance": "Current Balance",
+			"newBalance": "New Balance",
+			"difference": "Difference"
 		},
 		"gender": {
 			"male": "Male",
@@ -701,7 +707,8 @@
 			"selectReason": "Select Reason",
 			"searchServices": "Search services...",
 			"searchDrugs": "Search drugs...",
-			"default": "Default"
+			"default": "Default",
+			"enterAmount": "Enter amount"
 		},
 		"modals": {
 			"registerPatient": "Register New Patient",
@@ -713,7 +720,8 @@
 			"addItemToBill": "Add Item to Bill",
 			"pastAdmissions": "Past Admissions",
 			"admissionDetails": "Admission Details",
-			"editStaffAssignment": "Edit Staff Assignment"
+			"editStaffAssignment": "Edit Staff Assignment",
+			"settleBill": "Settle Bill"
 		},
 		"print": {
 			"billItems": "Bill Items",
@@ -755,7 +763,9 @@
 		"help": {
 			"quickCheckInfo": "Quick check admissions don't auto-add services",
 			"dischargeTimeInfo": "Leave empty to use current time",
-			"editStaffAssignmentInfo": "Select or deselect staff members to update the patient's care team. Changes will take effect immediately."
+			"editStaffAssignmentInfo": "Select or deselect staff members to update the patient's care team. Changes will take effect immediately.",
+			"settleBillInfo": "Update the paid amount for this past admission. This will adjust the balance accordingly.",
+			"settleBillAmountInfo": "Enter the total amount that has been paid for this admission (not just the additional payment)"
 		},
 		"validation": {
 			"nameRequired": "Please enter a valid name (at least 2 characters)",
@@ -765,7 +775,9 @@
 			"leaveReasonRequired": "Please select a leave reason",
 			"diagnosisRequired": "Please enter a diagnosis for admission",
 			"attendingDoctorRequired": "Please select at least one attending doctor",
-			"nurseRequired": "Please select at least one nurse"
+			"nurseRequired": "Please select at least one nurse",
+			"paidAmountRequired": "Please enter a valid amount",
+			"invalidAmount": "Please enter a valid amount"
 		},
 		"messages": {
 			"loadInitialDataError": "Failed to load initial data",
@@ -853,7 +865,11 @@
 			"patientNotFound": "Patient not found",
 			"loadStaffAssignmentError": "Failed to load staff assignments",
 			"staffAssignmentUpdated": "Staff assignment updated successfully",
-			"staffAssignmentUpdateError": "Failed to update staff assignment"
+			"staffAssignmentUpdateError": "Failed to update staff assignment",
+			"billSettled": "Bill settled successfully",
+			"settleBillError": "Failed to settle bill",
+			"paidExceedsTotal": "The paid amount exceeds the total amount. Do you want to continue?",
+			"loadBillError": "Failed to load bill data"
 		},
 		"printBill": {
 			"unknownItem": "Unknown Item",

@@ -588,7 +588,8 @@
 			"generatePdf": "إنشاء PDF",
 			"stop": "إيقاف",
 			"remove": "إزالة",
-			"administer": "إعطاء"
+			"administer": "إعطاء",
+			"settleBill": "تسوية الفاتورة"
 		},
 		"sections": {
 			"basicInfo": "المعلومات الأساسية",
@@ -659,7 +660,12 @@
 			"subtotal": "المجموع الفرعي",
 			"vatAmount": "مبلغ ضريبة القيمة المضافة",
 			"totalAmount": "المبلغ الإجمالي",
-			"balance": "الرصيد"
+			"balance": "الرصيد",
+			"newPaidAmount": "المبلغ المدفوع الجديد",
+			"currentPaid": "المدفوع الحالي",
+			"currentBalance": "الرصيد الحالي",
+			"newBalance": "الرصيد الجديد",
+			"difference": "الفرق"
 		},
 		"gender": {
 			"male": "ذكر",
@@ -702,7 +708,8 @@
 			"selectReason": "اختر السبب",
 			"searchServices": "البحث عن خدمات...",
 			"searchDrugs": "البحث عن أدوية...",
-			"default": "افتراضي"
+			"default": "افتراضي",
+			"enterAmount": "أدخل المبلغ"
 		},
 		"modals": {
 			"registerPatient": "تسجيل مريض جديد",
@@ -714,7 +721,8 @@
 			"addItemToBill": "إضافة عنصر للفاتورة",
 			"pastAdmissions": "الإقامات السابقة",
 			"admissionDetails": "تفاصيل الإقامة",
-			"editStaffAssignment": "تعديل تعيين الموظفين"
+			"editStaffAssignment": "تعديل تعيين الموظفين",
+			"settleBill": "تسوية الفاتورة"
 		},
 		"print": {
 			"billItems": "بنود الفاتورة",
@@ -756,7 +764,9 @@
 		"help": {
 			"quickCheckInfo": "إدخالات الفحص السريع لا تضيف الخدمات تلقائياً",
 			"dischargeTimeInfo": "اترك فارغاً لاستخدام الوقت الحالي",
-			"editStaffAssignmentInfo": "حدد أو ألغ تحديد أعضاء الفريق الطبي لتحديث فريق رعاية المريض. ستسري التغييرات على الفور."
+			"editStaffAssignmentInfo": "حدد أو ألغ تحديد أعضاء الفريق الطبي لتحديث فريق رعاية المريض. ستسري التغييرات على الفور.",
+			"settleBillInfo": "تحديث المبلغ المدفوع لهذا الإدخال السابق. سيتم تعديل الرصيد وفقًا لذلك.",
+			"settleBillAmountInfo": "أدخل المبلغ الإجمالي المدفوع لهذا الإدخال (وليس فقط الدفعة الإضافية)"
 		},
 		"validation": {
 			"nameRequired": "يرجى إدخال اسم صحيح (حرفان على الأقل)",
@@ -766,7 +776,9 @@
 			"leaveReasonRequired": "يرجى اختيار سبب المغادرة",
 			"diagnosisRequired": "يرجى إدخال التشخيص للإدخال",
 			"attendingDoctorRequired": "يرجى اختيار طبيب معالج واحد على الأقل",
-			"nurseRequired": "يرجى اختيار ممرضة واحدة على الأقل"
+			"nurseRequired": "يرجى اختيار ممرضة واحدة على الأقل",
+			"paidAmountRequired": "الرجاء إدخال مبلغ صحيح",
+			"invalidAmount": "الرجاء إدخال مبلغ صحيح"
 		},
 		"messages": {
 			"loadInitialDataError": "فشل تحميل البيانات الأولية",
@@ -854,7 +866,11 @@
 			"patientNotFound": "المريض غير موجود",
 			"loadStaffAssignmentError": "فشل تحميل تعيينات الموظفين",
 			"staffAssignmentUpdated": "تم تحديث تعيين الموظفين بنجاح",
-			"staffAssignmentUpdateError": "فشل تحديث تعيين الموظفين"
+			"staffAssignmentUpdateError": "فشل تحديث تعيين الموظفين",
+			"billSettled": "تم تسوية الفاتورة بنجاح",
+			"settleBillError": "فشل في تسوية الفاتورة",
+			"paidExceedsTotal": "المبلغ المدفوع يتجاوز المبلغ الإجمالي. هل تريد المتابعة؟",
+			"loadBillError": "فشل في تحميل بيانات الفاتورة"
 		},
 		"printBill": {
 			"unknownItem": "عنصر غير معروف",
