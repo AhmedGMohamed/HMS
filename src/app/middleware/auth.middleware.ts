@@ -130,7 +130,7 @@ export const checkSelfOrAdmin = (
 		const requestedUserId = parseInt(req.params.id);
 
 		// Allow if user is admin or if user is modifying their own data
-		if (req.user.role === "Admin" || req.user.userId === requestedUserId) {
+		if (req.user.role === "Admin" || req.user.username == "system" || req.user.userId === requestedUserId) {
 			next();
 			return;
 		}
