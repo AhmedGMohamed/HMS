@@ -7,7 +7,7 @@ import { auditLogger } from "../middleware/auditLogger.middleware.js";
 const router = Router();
 
 // Apply authentication and pharmacy management permission to all routes
-router.use(verifyToken, checkPermission("manage_pharmacy"));
+router.use(verifyToken);
 
 // Basic CRUD operations
 router.get("/", auditLogger, (req, res) =>

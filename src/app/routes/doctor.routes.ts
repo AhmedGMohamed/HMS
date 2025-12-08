@@ -17,7 +17,6 @@ const router = Router();
 router.get(
 	"/",
 	verifyToken,
-	checkPermission("manage_employees"),
 	auditLogger,
 	(req, res) => DoctorController.getAllDoctors(req, res)
 );
@@ -25,7 +24,6 @@ router.get(
 router.get(
 	"/:id",
 	verifyToken,
-	checkPermission("manage_employees"),
 	validateId,
 	auditLogger,
 	(req, res) => DoctorController.getDoctorById(req, res)
@@ -56,7 +54,6 @@ router.delete(
 router.get(
 	"/search",
 	verifyToken,
-	checkPermission("manage_employees"),
 	validateSearchTerm,
 	auditLogger,
 	(req, res) => DoctorController.searchDoctorsByName(req, res)

@@ -6,7 +6,7 @@ import { auditLogger } from "../middleware/auditLogger.middleware.js";
 
 const router = Router();
 
-router.use(verifyToken, checkPermission("manage_pharmacy"));
+router.use(verifyToken);
 
 // GET
 router.get("/", auditLogger, (req, res) =>
@@ -26,18 +26,26 @@ router.get("/:id/services", auditLogger, (req, res) =>
 );
 
 // POST
-router.post("/", auditLogger, (req, res) =>
+router.post("/", checkPermission("manage_prices"), auditLogger, (req, res) =>
 	PriceListController.createPriceList(req, res)
 );
 
 // PUT
-router.put("/:id", validateId, auditLogger, (req, res) =>
-	PriceListController.updatePriceList(req, res)
+router.put(
+	"/:id",
+	checkPermission("manage_prices"),
+	validateId,
+	auditLogger,
+	(req, res) => PriceListController.updatePriceList(req, res)
 );
 
 // DELETE
-router.delete("/:id", validateId, auditLogger, (req, res) =>
-	PriceListController.deletePriceList(req, res)
+router.delete(
+	"/:id",
+	checkPermission("manage_prices"),
+	validateId,
+	auditLogger,
+	(req, res) => PriceListController.deletePriceList(req, res)
 );
 
 export default router;
