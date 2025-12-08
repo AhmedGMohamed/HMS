@@ -54,4 +54,13 @@ router.put(
 	(req, res) => EmployeeClockInController.updateClockIn(req, res)
 );
 
+router.delete(
+	"/:id",
+	verifyToken,
+	checkPermission("manage_clocking"),
+	validateId,
+	auditLogger,
+	(req, res) => EmployeeClockInController.deleteClockIn(req, res)
+)
+
 export default router;
