@@ -260,6 +260,7 @@ async function initDB() {
 		CREATE TABLE IF NOT EXISTS BillDetail (
 			bill_detail_id SERIAL PRIMARY KEY,
 			bill_id INTEGER REFERENCES Bill(bill_id),
+			active_service_id INTEGER REFERENCES ActivePatientService(active_service_id),
 			service_id INTEGER REFERENCES Service(service_id),
 			drug_shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
 			quantity INTEGER NOT NULL,
@@ -269,10 +270,12 @@ async function initDB() {
 			generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP CHECK (
 				(
 					service_id IS NOT NULL
+					AND active_service_id IS NOT NULL
 					AND drug_shipment_id IS NULL
 				)
 				OR (
 					service_id IS NULL
+					AND active_service_id IS NULL
 					AND drug_shipment_id IS NOT NULL
 				)
 			)
