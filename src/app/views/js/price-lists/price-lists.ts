@@ -466,13 +466,22 @@ class PriceListManager {
 
 		container.innerHTML = this.filteredDrugShipments
 			.map((shipment) => {
-				const existingPrice = shipment.prices.find(
-					(price) => price.pricelist_id === this.currentPriceListId
-				);
-				const hasExistingPrice =
-					existingPrice && existingPrice.price !== undefined;
-				const hasPrepayment =
-					hasExistingPrice && existingPrice.requires_prepayment;
+				let existingPrice = undefined,
+					hasExistingPrice = false,
+					hasPrepayment = false;
+				if (shipment.prices) {
+					existingPrice = shipment.prices.find(
+						(price) =>
+							price.pricelist_id === this.currentPriceListId
+					);
+					hasExistingPrice = existingPrice
+						? true
+						: false && existingPrice.price !== undefined;
+
+					hasPrepayment = hasExistingPrice
+						? true
+						: false && existingPrice?.requires_prepayment;
+				}
 
 				return `
 		        <div class="card mb-3 ${hasExistingPrice ? "border-primary" : ""}">
@@ -525,7 +534,7 @@ class PriceListManager {
 		                                       min="0"
 		                                       value="${
 													hasExistingPrice
-														? existingPrice.price
+														? existingPrice?.price
 														: ""
 												}">
 		                            </div>
@@ -564,7 +573,7 @@ class PriceListManager {
 										}">
 		                                    <option value="fixed" ${
 												hasPrepayment &&
-												existingPrice.prepayment_type ===
+												existingPrice?.prepayment_type ===
 													"fixed"
 													? "selected"
 													: ""
@@ -573,7 +582,7 @@ class PriceListManager {
 				)}</option>
 		                                    <option value="percentage" ${
 												hasPrepayment &&
-												existingPrice.prepayment_type ===
+												existingPrice?.prepayment_type ===
 													"percentage"
 													? "selected"
 													: ""
@@ -596,7 +605,7 @@ class PriceListManager {
 		                                       min="0"
 		                                       value="${
 													hasPrepayment &&
-													existingPrice.prepayment_amount
+													existingPrice?.prepayment_amount
 														? existingPrice.prepayment_amount
 														: ""
 												}">
