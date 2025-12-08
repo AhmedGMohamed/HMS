@@ -2,10 +2,10 @@
 import { query } from "./database/connection.js";
 import {
 	EmployeeClockIn,
-	CreateEmployeeClockInDTO,
-	ShiftType
+	CreateEmployeeClockInDTO
 } from "../utils/types/employees.js";
 import EmployeeModel from "./Employee.model.js";
+import { TimeLike } from "original-fs";
 
 export default class EmployeeClockInModel {
 	static async getAllClockIns(): Promise<EmployeeClockIn[]> {
@@ -108,12 +108,9 @@ export default class EmployeeClockInModel {
 	static async calculatePayDeduction(
 		employee_id: number,
 		clock_in: string,
-		shift_type: ShiftType
+		shift_start_time: TimeLike
 	): Promise<number> {
-		const shiftStart = shift_type === "morning" ? "08:00:00" : "20:00:00";
-		const shiftStartTime = new Date(
-			`${clock_in.split("T")[0]}T${shiftStart}`
-		);
+		const shiftStartTime = new Date(shift_start_time);
 		const clockInTime = new Date(clock_in);
 		const diffHours =
 			(clockInTime.getTime() - shiftStartTime.getTime()) /
@@ -128,5 +125,10 @@ export default class EmployeeClockInModel {
 			return employee.base_pay / 2; // Half deduction
 		}
 		return 0;
+	}
+
+	static async deleteClockIn(clock_id: number): Promise<void> {
+		const sql = "DELETE FROM EmployeeClockIn WHERE clock_id = $1";
+		await query(sql, [clock_id]);
 	}
 }
