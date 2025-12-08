@@ -10,7 +10,7 @@ export class PatientAutoRenewalCron {
 	constructor() {
 		// Run service renewal every hour
 		this.serviceRenewalJob = new CronJob(
-			"0 * * * *", // Every hour at minute 0
+			"0 * * * * *", // Every minute
 			this.processServiceRenewals.bind(this),
 			null,
 			false,
@@ -45,55 +45,57 @@ export class PatientAutoRenewalCron {
 
 			// Get services that need renewal
 			const renewalServicesSql = `
-                SELECT 
-                    aps.active_service_id,
-                    aps.patient_id,
-                    aps.service_id,
-                    aps.start_date,
-                    aps.last_renewed,
-                    COALESCE(aps.last_renewed, aps.start_date) AS effective_last,
-                    s.name as service_name,
-                    s.service_type,
-                    s.auto_renew,
-                    ph.bill_id,
-                    sp.price,
-                    CASE 
-                        WHEN s.service_type = 'hourly' THEN 3600
-                        WHEN s.service_type = 'daily' THEN 86400
-                        ELSE 0
-                    END AS seconds_per_period,
-                    CASE 
-                        WHEN s.service_type = 'hourly' THEN INTERVAL '1 hour'
-                        WHEN s.service_type = 'daily' THEN INTERVAL '1 day'
-                        ELSE INTERVAL '0'
-                    END AS interval_period,
-                    FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) /
-					CASE 
-                        WHEN s.service_type = 'hourly' THEN 3600
-                        WHEN s.service_type = 'daily' THEN 86400
-                        ELSE 0
-                    END)
-					AS number_of_periods
-                FROM ActivePatientService aps
-                JOIN Service s ON aps.service_id = s.service_id
-                JOIN Patient p ON aps.patient_id = p.patient_id
-                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
-                    AND ph.discharge_time IS NULL
-                JOIN ServicePrice sp ON s.service_id = sp.service_id
-                JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-                WHERE 
-                    aps.is_active = true
-                    AND p.is_active = true
-                    AND s.auto_renew = true
-                    AND s.service_type IN ('hourly', 'daily')
-                    AND pl.is_default = true
-                    AND (
-                        (s.service_type = 'hourly' AND FLOOR(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) / 3600) >= 1)
-                        OR 
-                        (s.service_type = 'daily' 
-                         AND EXTRACT(HOUR FROM CURRENT_TIMESTAMP) >= 12
-                         AND COALESCE(aps.last_renewed, aps.start_date) <= (CURRENT_DATE - INTERVAL '1 day' + INTERVAL '12 hours'))
-                    );
+				SELECT 
+				    aps.active_service_id,
+				    aps.patient_id,
+				    aps.service_id,
+				    aps.start_date,
+				    aps.last_renewed,
+				    COALESCE(aps.last_renewed, aps.start_date) AS effective_last,
+				    s.name as service_name,
+				    s.service_type,
+				    s.auto_renew,
+				    ph.bill_id,
+				    sp.price,
+				    CASE 
+				        WHEN s.service_type = 'hourly' THEN 3600
+				        WHEN s.service_type = 'daily' THEN 86400
+				        ELSE 0
+				    END AS seconds_per_period,
+				    CASE 
+				        WHEN s.service_type = 'hourly' THEN INTERVAL '1 hour'
+				        WHEN s.service_type = 'daily' THEN INTERVAL '1 day'
+				        ELSE INTERVAL '0'
+				    END AS interval_period,
+				    CASE
+				        WHEN s.service_type = 'hourly' THEN 
+				            FLOOR(EXTRACT(EPOCH FROM ((CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo')::TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) / 3600)
+				        WHEN s.service_type = 'daily' THEN 
+				            CASE 
+				                WHEN DATE(CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo') = DATE(COALESCE(aps.last_renewed, aps.start_date)) THEN 1
+				                ELSE ((CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo')::DATE - DATE(COALESCE(aps.last_renewed, aps.start_date)))::INTEGER
+				            END
+				        ELSE 0
+				    END AS number_of_periods
+				FROM ActivePatientService aps
+				JOIN Service s ON aps.service_id = s.service_id
+				JOIN Patient p ON aps.patient_id = p.patient_id
+				JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+				    AND ph.discharge_time IS NULL
+				JOIN ServicePrice sp ON s.service_id = sp.service_id
+				    AND sp.pricelist_id = ph.pricelist_id
+				WHERE 
+				    aps.is_active = true
+				    AND p.is_active = true
+				    AND s.auto_renew = true
+				    AND s.service_type IN ('hourly', 'daily')
+				    AND (
+				        (s.service_type = 'hourly' AND FLOOR(EXTRACT(EPOCH FROM ((CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo')::TIMESTAMP - COALESCE(aps.last_renewed, aps.start_date))) / 3600) >= 1)
+				        OR 
+				        (s.service_type = 'daily' 
+				         AND EXTRACT(HOUR FROM (CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo')) >= 12
+				         AND COALESCE(aps.last_renewed, aps.start_date) < ((CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Cairo')::DATE + INTERVAL '12 hours')::TIMESTAMP)
+				    );
             `;
 
 			const renewalServices = await query(renewalServicesSql);
@@ -117,15 +119,17 @@ export class PatientAutoRenewalCron {
 			// Add new bill detail for the renewed service
 			const billDetailSql = `
                 INSERT INTO BillDetail (
-                    bill_id, service_id, quantity, unit_price, 
+                    bill_id, active_service_id, service_id, quantity, unit_price, 
                     charge_type, sale_type, generated_at
-                ) VALUES ($1, $2, 1, $3, 'auto_renewal', 'admitted', CURRENT_TIMESTAMP)
+                ) VALUES ($1, $2, $3, $4, $5, 'auto_renewal', 'admitted', CURRENT_TIMESTAMP)
                 RETURNING *;
             `;
 
 			await query(billDetailSql, [
 				serviceInfo.bill_id,
+				serviceInfo.active_service_id,
 				serviceInfo.service_id,
+				serviceInfo.number_of_periods,
 				serviceInfo.price
 			]);
 
@@ -376,8 +380,8 @@ export class PatientAutoRenewalCron {
 				// Create new drug usage record
 				await query(
 					`INSERT INTO DrugUsage (
-						patient_id, drug_id, transaction_id, patient_history_id, remaining_quantity
-					) VALUES ($1, $2, $3, $4, $5)`,
+						patient_id, drug_id, transaction_id, patient_history_id, remaining_quantity, last_administered
+					) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
 					[
 						drugInfo.patient_id,
 						drugInfo.drug_id,
