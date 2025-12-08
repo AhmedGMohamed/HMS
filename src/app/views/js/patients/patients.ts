@@ -1132,7 +1132,7 @@ class PatientManager {
 		if (patient.is_active) {
 			statusElement.innerHTML = `<span class="badge bg-success">${i18n.t(
 				"patients.status.admitted"
-			)}</span>`;
+			)} - ${i18n.formatDateTime(admission?.admission_time!)}</span>`;
 		} else {
 			statusElement.innerHTML = `<span class="badge bg-secondary">${i18n.t(
 				"patients.status.notAdmitted"
@@ -1262,7 +1262,7 @@ class PatientManager {
     		        <div class="assigned-item-actions">
     		            <button class="btn btn-sm btn-outline-danger"
     		                    onclick="patientManager.removeService(${
-									service.service_id
+									service.active_service_id
 								})">
     		                <i class="bi bi-trash"></i> ${i18n.t(
 								"patients.buttons.remove"
@@ -3725,9 +3725,7 @@ class PatientManager {
 		const totalAmount = Number(
 			this.currentSettlementBill.total_amount || 0
 		);
-		const currentPaid = Number(
-			this.currentSettlementBill.paid_amount || 0
-		);
+		const currentPaid = Number(this.currentSettlementBill.paid_amount || 0);
 		const newPaidAmount =
 			parseFloat(
 				(
@@ -3779,8 +3777,9 @@ class PatientManager {
 			return;
 		}
 
-		const totalAmount =
-			Number(this.currentSettlementBill.total_amount || 0);
+		const totalAmount = Number(
+			this.currentSettlementBill.total_amount || 0
+		);
 
 		// Optional: Confirm if paid amount exceeds total
 		if (newPaidAmount > totalAmount) {
@@ -4276,13 +4275,13 @@ class PatientManager {
 
 				// Get all assigned doctors (even if not clocked in)
 				const allAssignedDoctors = admission.attending_doctor_ids.map(
-					(id, index) => ({
+					(id) => ({
 						employee_id: id,
-						name: admission.attending_doctors[index],
-						doctor_type: this.parseDoctorType(
-							admission.doctor_types,
-							index
-						) as string,
+						name: this.doctors.find(
+							(d) => d.employee_id === id)!.name,
+						doctor_type: this.doctors.find(
+							(d) => d.employee_id === id
+						)!.doctor_type,
 						isClockedIn: clockedInDoctors.some(
 							(d) => d.employee_id === id
 						)
@@ -4577,8 +4576,8 @@ class PatientManager {
 			            <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
 			            ${
 							doctorType
-								? `<div class="staff-member-details">${this.escapeHtml(
-										doctorType
+								? `<div class="staff-member-details">${i18n.t(
+										`patients.doctorTypes.${doctorType}`
 								  )}</div>`
 								: ""
 						}
