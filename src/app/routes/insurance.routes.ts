@@ -17,7 +17,6 @@ router.get(
 router.get(
 	"/:id",
 	verifyToken,
-	checkPermission("manage_insurance"),
 	auditLogger,
 	InsuranceController.getInsuranceCompanyById
 );
@@ -50,7 +49,6 @@ router.delete(
 router.get(
 	"/:id/patients",
 	verifyToken,
-	checkPermission("manage_insurance"),
 	auditLogger,
 	InsuranceController.getPatientsByInsurance
 );

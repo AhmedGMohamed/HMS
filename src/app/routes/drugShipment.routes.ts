@@ -8,7 +8,7 @@ import { auditLogger } from "../middleware/auditLogger.middleware.js";
 const router = Router();
 
 // Apply authentication and pharmacy management permission to all routes
-router.use(verifyToken, checkPermission("manage_pharmacy"));
+router.use(verifyToken);
 
 // Basic CRUD operations
 router.get("/", auditLogger, (req, res) =>
@@ -19,16 +19,24 @@ router.get("/:id", validateId, (req, res) =>
 	DrugShipmentController.getShipmentById(req, res)
 );
 
-router.post("/", auditLogger, (req, res) =>
+router.post("/", checkPermission("manage_pharmacy"), auditLogger, (req, res) =>
 	DrugShipmentController.createShipment(req, res)
 );
 
-router.put("/:id", validateId, auditLogger, (req, res) =>
-	DrugShipmentController.updateShipment(req, res)
+router.put(
+	"/:id",
+	checkPermission("manage_pharmacy"),
+	validateId,
+	auditLogger,
+	(req, res) => DrugShipmentController.updateShipment(req, res)
 );
 
-router.delete("/:id", validateId, auditLogger, (req, res) =>
-	DrugShipmentController.deleteShipment(req, res)
+router.delete(
+	"/:id",
+	checkPermission("manage_pharmacy"),
+	validateId,
+	auditLogger,
+	(req, res) => DrugShipmentController.deleteShipment(req, res)
 );
 
 // Drug-specific shipments

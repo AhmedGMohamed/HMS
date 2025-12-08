@@ -233,4 +233,46 @@ router.get(
 	(req, res) => ReportController.getReportSummary(req, res)
 );
 
+// ==================== EMPLOYEE CLOCK-IN REPORTS ====================
+
+router.get(
+	"/employees/clock-ins",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportController.getEmployeeClockInReports(req, res)
+);
+
+router.get(
+	"/employees/clock-ins/chart",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportController.getEmployeeClockInReportsWithChart(req, res)
+);
+
+router.get(
+	"/employees/:employeeId/clock-ins",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportController.getEmployeeClockInReportById(req, res)
+);
+
+router.get(
+	"/statistics/clock-ins",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportController.getClockInStatistics(req, res)
+);
+
+router.get(
+	"/statistics/clock-ins/chart",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportController.getClockInStatisticsWithChart(req, res)
+);
+
 export default router;
