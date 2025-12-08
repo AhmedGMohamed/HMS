@@ -131,7 +131,7 @@ router.put(
 router.post(
 	"/:id/admit",
 	verifyToken,
-	checkPermission("manage_admissions"),
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.admitPatient(req, res)
@@ -141,7 +141,7 @@ router.post(
 router.post(
 	"/:id/discharge",
 	verifyToken,
-	checkPermission("manage_admissions"),
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.dischargePatient(req, res)
@@ -161,7 +161,7 @@ router.put(
 router.post(
 	"/:id/services",
 	verifyToken,
-	checkPermission("manage_patient_services"),
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.addServiceToPatient(req, res)
@@ -181,7 +181,7 @@ router.post(
 router.patch(
 	"/:id/services/:serviceId/stop",
 	verifyToken,
-	checkPermission("manage_patient_services"),
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.stopServiceForPatient(req, res)
@@ -191,7 +191,7 @@ router.patch(
 router.delete(
 	"/:id/services/:serviceId",
 	verifyToken,
-	checkPermission("manage_patient_services"),
+	checkPermission("manage_patients"),
 	validateId,
 	auditLogger,
 	(req, res) => PatientController.removeServiceFromPatient(req, res)

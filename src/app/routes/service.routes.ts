@@ -10,7 +10,7 @@ import { auditLogger } from "../middleware/auditLogger.middleware.js";
 
 const router = Router();
 
-router.use(verifyToken, checkPermission("manage_services"));
+router.use(verifyToken);
 
 // Service routes
 // GET
@@ -31,18 +31,26 @@ router.get("/suggestions", validatePrefix, (req, res) =>
 );
 
 // POST
-router.post("/", auditLogger, (req, res) =>
+router.post("/", checkPermission("manage_services"), auditLogger, (req, res) =>
 	ServiceController.createService(req, res)
 );
 
 // PUT
-router.put("/:id", validateId, auditLogger, (req, res) =>
-	ServiceController.updateService(req, res)
+router.put(
+	"/:id",
+	checkPermission("manage_services"),
+	validateId,
+	auditLogger,
+	(req, res) => ServiceController.updateService(req, res)
 );
 
 // DELETE
-router.delete("/:id", validateId, auditLogger, (req, res) =>
-	ServiceController.deleteService(req, res)
+router.delete(
+	"/:id",
+	checkPermission("manage_services"),
+	validateId,
+	auditLogger,
+	(req, res) => ServiceController.deleteService(req, res)
 );
 
 export default router;
