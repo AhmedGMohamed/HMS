@@ -526,7 +526,7 @@ export class PrintBillManager {
 
 						const shipment = drugShipments[0];
 
-						const sellingPrice = shipment.prices.find(
+						const sellingPrice = shipment.prices?.find(
 							(p: any) =>
 								p.pricelist_id ==
 								this.currentAdmission?.pricelist_id
