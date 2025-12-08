@@ -671,30 +671,61 @@ export default class ReportModel {
 
 		const result = await query(itemsSql, [billId]);
 
-		// Group by date
-		const groupedByDate = new Map<string, any[]>();
+		// Group by date and then by item
+		const groupedByDate = new Map<string, Map<string, any>>();
 
 		result.rows.forEach((row) => {
-			const dateKey = row.service_date;
-			if (!groupedByDate.has(dateKey)) {
-				groupedByDate.set(dateKey, []);
+			let dateKey: string;
+			if (row.service_date instanceof Date) {
+				dateKey = row.service_date.toISOString().slice(0, 10);
+			} else if (typeof row.service_date === "string") {
+				dateKey = row.service_date.trim(); // Trim to handle any whitespace issues
+			} else {
+				return; // Skip invalid dates
 			}
 
-			groupedByDate.get(dateKey)!.push({
-				item_name: row.item_name,
-				item_type: row.item_type,
-				quantity: parseInt(row.quantity),
-				unit_price: parseFloat(row.unit_price),
-				total_price: parseFloat(row.total_price)
-			});
+			if (!groupedByDate.has(dateKey)) {
+				groupedByDate.set(dateKey, new Map<string, any>());
+			}
+
+			const dateMap = groupedByDate.get(dateKey)!;
+			const itemKey = `${row.item_type}:${row.item_name}`;
+
+			if (!dateMap.has(itemKey)) {
+				dateMap.set(itemKey, {
+					item_name: row.item_name,
+					item_type: row.item_type,
+					quantity: 0,
+					unit_price: row.unit_price,
+					total_price: 0
+				});
+			}
+
+			const item = dateMap.get(itemKey)!;
+			item.quantity += parseInt(row.quantity);
+			item.total_price += parseFloat(row.total_price);
 		});
 
 		// Convert to array format
-		return Array.from(groupedByDate.entries()).map(([date, items]) => ({
-			service_date: date,
-			items: items,
-			date_total: items.reduce((sum, item) => sum + item.total_price, 0)
-		}));
+		return Array.from(groupedByDate.entries())
+			.sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+			.map(([date, itemMap]) => {
+				const items = Array.from(itemMap.values())
+					.sort(
+						(a, b) =>
+							a.item_type.localeCompare(b.item_type) ||
+							a.item_name.localeCompare(b.item_name)
+					);
+
+				return {
+					service_date: date,
+					items: items,
+					date_total: items.reduce(
+						(sum, item) => sum + item.total_price,
+						0
+					)
+				};
+			});
 	}
 
 	// ==================== DOCTOR REPORTS ====================
@@ -1802,7 +1833,7 @@ export default class ReportModel {
         WHERE EXISTS (
             SELECT 1 FROM EmployeePayment ep
             WHERE ep.employee_id = e.employee_id
-            AND ep.issued_timestamp BETWEEN $1 AND $2
+            AND ep.issued_timestamp BETWEEN $1 AND $2::DATE + INTERVAL '1 day'
         )
         ${employeeCondition}
         ORDER BY e.name
@@ -2042,7 +2073,7 @@ export default class ReportModel {
 	            AND ep.issued_timestamp BETWEEN $2 AND $3::DATE + INTERVAL '1 day'
 	            AND ep.is_void = false
 	        LEFT JOIN DailyStaffAssignment dsa ON e.employee_id = dsa.employee_id
-	            AND dsa.work_date BETWEEN $2::date AND $3::date
+	            AND dsa.work_date BETWEEN $2::date AND $3::date + INTERVAL '1 day'
 	        WHERE e.employee_id = $1
 	        GROUP BY e.employee_id, e.name, e.employee_type, e.base_pay, e.extra_amount, 
 	                 e.extra_payment_type, e.per_patient_payment_type, e.percentage_scope,
@@ -2133,6 +2164,650 @@ export default class ReportModel {
 					? (totalBasePay + totalExtraPay) / totalPayments
 					: 0
 		};
+	}
+
+	// ==================== EMPLOYEE CLOCK-IN REPORTS ====================
+
+	/**
+	 * Get clock-in records for a specific employee
+	 */
+	static async getEmployeeClockInReports(
+		dateRange: ReportDateRange,
+		employeeType?: EmployeeTypeFilter,
+		employeeId?: number
+	): Promise<any> {
+		let employeeCondition = "";
+		const params: any[] = [];
+		let paramIndex = 1;
+
+		if (employeeType && employeeType !== "all") {
+			employeeCondition += ` AND e.employee_type = $${paramIndex}`;
+			params.push(employeeType);
+			paramIndex++;
+		}
+
+		if (employeeId) {
+			employeeCondition += ` AND e.employee_id = $${paramIndex}`;
+			params.push(employeeId);
+			paramIndex++;
+		}
+
+		const sql = `
+		SELECT DISTINCT
+			e.employee_id,
+			e.name as employee_name,
+			e.employee_type,
+			e.shift_type,
+			e.shift_start_time,
+			e.shift_end_time
+		FROM Employee e
+		WHERE e.need_clock_in = true
+		AND e.is_active = true
+		${employeeCondition}
+		ORDER BY e.name
+	`;
+
+		const employeesResult = await query(sql, params);
+		const reports: any[] = [];
+
+		for (const employee of employeesResult.rows) {
+			// Get ALL clock-in records including missing dates
+			const clockInRecords =
+				await this.getEmployeeClockInRecordsWithMissingDates(
+					employee.employee_id,
+					dateRange
+				);
+
+			const attendanceSummary =
+				this.calculateAttendanceSummary(clockInRecords);
+
+			// Calculate total hours and clock-ins (excluding missing days)
+			const actualClockIns = clockInRecords.filter((r) => !r.is_missing);
+			const totalHoursWorked = actualClockIns.reduce(
+				(sum, record) => sum + record.hours_worked,
+				0
+			);
+
+			const totalClockIns = actualClockIns.length;
+
+			const totalDeductions = actualClockIns.reduce(
+				(sum, record) => sum + record.pay_deduction,
+				0
+			);
+
+			reports.push({
+				employee_id: employee.employee_id,
+				employee_name: employee.employee_name,
+				employee_type: employee.employee_type,
+				shift_type: employee.shift_type,
+				shift_start_time: employee.shift_start_time,
+				shift_end_time: employee.shift_end_time,
+				total_clock_ins: totalClockIns,
+				total_hours_worked: totalHoursWorked,
+				total_deductions: totalDeductions,
+				avg_hours_per_day:
+					totalClockIns > 0 ? totalHoursWorked / totalClockIns : 0,
+				clock_in_records: clockInRecords,
+				attendance_summary: attendanceSummary
+			});
+		}
+
+		return reports;
+	}
+
+	/**
+	 * Get clock-in records for a specific employee INCLUDING missing dates
+	 */
+	private static async getEmployeeClockInRecordsWithMissingDates(
+		employeeId: number,
+		dateRange: ReportDateRange
+	): Promise<any[]> {
+		// First, get the employee details
+		const employeeSql = `
+		SELECT 
+			employee_id,
+			shift_start_time,
+			shift_end_time,
+			need_clock_in,
+			employee_type
+		FROM Employee
+		WHERE employee_id = $1
+	`;
+		const employeeResult = await query(employeeSql, [employeeId]);
+
+		if (employeeResult.rows.length === 0) {
+			return [];
+		}
+
+		const employee = employeeResult.rows[0];
+
+		// Get actual clock-in records
+		const clockInSql = `
+		SELECT 
+			ec.clock_id,
+			ec.clock_in,
+			ec.clock_out,
+			ec.pay_deduction,
+			TO_CHAR(ec.clock_in::date, 'YYYY-MM-DD') as clock_in_date,
+			CASE 
+				WHEN ec.clock_out IS NOT NULL 
+				THEN EXTRACT(EPOCH FROM (ec.clock_out - ec.clock_in)) / 3600.0
+				ELSE 0
+			END as hours_worked
+		FROM EmployeeClockIn ec
+		WHERE ec.employee_id = $1
+		AND ec.clock_in::date BETWEEN $2::date AND $3::date
+		ORDER BY ec.clock_in DESC
+	`;
+
+		const result = await query(clockInSql, [
+			employeeId,
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		// Create a map of dates that have clock-in records
+		const clockInsByDate = new Map<string, any>();
+		result.rows.forEach((row) => {
+			const date = row.clock_in_date;
+			clockInsByDate.set(date, {
+				clock_id: row.clock_id,
+				clock_in: row.clock_in,
+				clock_out: row.clock_out,
+				hours_worked: parseFloat(row.hours_worked) || 0,
+				pay_deduction: parseFloat(row.pay_deduction) || 0,
+				shift_start_time: employee.shift_start_time,
+				shift_end_time: employee.shift_end_time
+			});
+		});
+
+		// Get patient assignments for all dates in range
+		const patientAssignmentsSql = `
+		SELECT 
+			dsa.work_date,
+			dsa.patient_id,
+			p.name as patient_name,
+			p.payment_type,
+			dsa.hours_worked as patient_hours,
+			ph.diagnosis,
+			ph.admission_time,
+			ph.discharge_time
+		FROM DailyStaffAssignment dsa
+		JOIN Patient p ON dsa.patient_id = p.patient_id
+		LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+			AND dsa.work_date BETWEEN ph.admission_time::date 
+			AND COALESCE(ph.discharge_time::date, CURRENT_DATE)
+		WHERE dsa.employee_id = $1
+		AND dsa.work_date BETWEEN $2::date AND $3::date + INTERVAL '1 day'
+		ORDER BY dsa.work_date DESC, p.name
+	`;
+
+		const patientAssignmentsResult = await query(patientAssignmentsSql, [
+			employeeId,
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		// Group patient assignments by date
+		const patientsByDate = new Map<string, any[]>();
+		patientAssignmentsResult.rows.forEach((row) => {
+			const dateStr = row.work_date;
+			if (!patientsByDate.has(dateStr)) {
+				patientsByDate.set(dateStr, []);
+			}
+			patientsByDate.get(dateStr)!.push({
+				patient_id: row.patient_id,
+				patient_name: row.patient_name,
+				payment_type: row.payment_type,
+				hours_worked: parseFloat(row.patient_hours) || 0,
+				diagnosis: row.diagnosis,
+				admission_time: row.admission_time,
+				discharge_time: row.discharge_time
+			});
+		});
+
+		// Generate all dates in the range
+		const allDates = this.generateDateRange(
+			dateRange.start_date,
+			dateRange.end_date
+		);
+
+		// Create records for all dates
+		const allRecords: any[] = [];
+
+		allDates.forEach((date) => {
+			const patients = patientsByDate.get(date) || [];
+
+			if (clockInsByDate.has(date)) {
+				// Has clock-in record
+				const record = clockInsByDate.get(date)!;
+				const status = this.determineClockInStatus(
+					record.clock_in,
+					record.clock_out,
+					record.shift_start_time,
+					record.shift_end_time,
+					record.pay_deduction
+				);
+
+				allRecords.push({
+					clock_id: record.clock_id,
+					clock_in: record.clock_in,
+					clock_out: record.clock_out,
+					hours_worked: record.hours_worked,
+					pay_deduction: record.pay_deduction,
+					status: status,
+					is_missing: false,
+					date: date,
+					patients: patients,
+					patient_count: patients.length,
+					notes: this.generateClockInNotes(
+						status,
+						record.clock_in,
+						record.clock_out,
+						record.shift_start_time,
+						record.shift_end_time
+					)
+				});
+			} else {
+				// Missing clock-in record
+				allRecords.push({
+					clock_id: null,
+					clock_in: null,
+					clock_out: null,
+					hours_worked: 0,
+					pay_deduction: 0,
+					status: "missing",
+					is_missing: true,
+					date: date,
+					patients: patients,
+					patient_count: patients.length,
+					notes: "No clock-in record for this date"
+				});
+			}
+		});
+
+		// Sort by date (most recent first)
+		allRecords.sort((a, b) => {
+			const dateA = new Date(a.date).getTime();
+			const dateB = new Date(b.date).getTime();
+			return dateB - dateA;
+		});
+
+		return allRecords;
+	}
+	/**
+	 * Generate array of date strings between start and end date
+	 */ private static generateDateRange(
+		startDate: string,
+		endDate: string
+	): string[] {
+		const dates: string[] = [];
+		const start = new Date(startDate);
+		const end = new Date(endDate);
+
+		// Normalize to UTC midnight to avoid timezone issues
+		start.setUTCHours(0, 0, 0, 0);
+		end.setUTCHours(0, 0, 0, 0);
+
+		const currentDate = new Date(start);
+
+		while (currentDate <= end) {
+			// Format as YYYY-MM-DD
+			const year = currentDate.getUTCFullYear();
+			const month = String(currentDate.getUTCMonth() + 1).padStart(
+				2,
+				"0"
+			);
+			const day = String(currentDate.getUTCDate()).padStart(2, "0");
+			dates.push(`${year}-${month}-${day}`);
+
+			currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+		}
+
+		return dates;
+	}
+
+	/**
+	 * Determine clock-in status based on time and deductions
+	 */
+	private static determineClockInStatus(
+		clockIn: string,
+		clockOut: string | null,
+		shiftStartTime: string | null,
+		shiftEndTime: string | null,
+		payDeduction: number
+	): string {
+		if (!clockIn) {
+			return "missing";
+		}
+
+		if (!clockOut) {
+			return "incomplete";
+		}
+
+		if (payDeduction > 0) {
+			// Check if late or early based on shift times
+			if (shiftStartTime && shiftEndTime) {
+				const clockInTime = new Date(clockIn);
+				const clockOutTime = new Date(clockOut);
+
+				const shiftStart = this.parseTimeToDate(
+					clockInTime,
+					shiftStartTime
+				);
+				const shiftEnd = this.parseTimeToDate(
+					clockOutTime,
+					shiftEndTime
+				);
+
+				const lateMinutes =
+					(clockInTime.getTime() - shiftStart.getTime()) /
+					(1000 * 60);
+				const earlyMinutes =
+					(shiftEnd.getTime() - clockOutTime.getTime()) / (1000 * 60);
+
+				if (lateMinutes > 30) {
+					return "late";
+				}
+				if (earlyMinutes > 30) {
+					return "early";
+				}
+			}
+			return "late"; // Default if we can't determine
+		}
+
+		return "on_time";
+	}
+
+	/**
+	 * Parse time string and combine with date
+	 */
+	private static parseTimeToDate(baseDate: Date, timeString: string): Date {
+		const [hours, minutes, seconds] = timeString.split(":").map(Number);
+		const result = new Date(baseDate);
+		result.setHours(hours, minutes, seconds || 0, 0);
+		return result;
+	}
+
+	/**
+	 * Generate notes for clock-in record
+	 */
+	private static generateClockInNotes(
+		status: string,
+		clockIn: string,
+		clockOut: string | null,
+		shiftStartTime: string | null,
+		shiftEndTime: string | null
+	): string {
+		if (status === "missing") {
+			return "No clock-in record for this date";
+		}
+
+		if (status === "incomplete") {
+			return "Clock-out not recorded";
+		}
+
+		if (status === "on_time") {
+			return "On time";
+		}
+
+		if (!shiftStartTime || !shiftEndTime) {
+			return status === "late" ? "Late clock-in or early clock-out" : "";
+		}
+
+		const clockInTime = new Date(clockIn);
+		const clockOutTime = clockOut ? new Date(clockOut) : null;
+
+		const shiftStart = this.parseTimeToDate(clockInTime, shiftStartTime);
+		const shiftEnd = clockOutTime
+			? this.parseTimeToDate(clockOutTime, shiftEndTime)
+			: null;
+
+		if (status === "late") {
+			const lateMinutes = Math.round(
+				(clockInTime.getTime() - shiftStart.getTime()) / (1000 * 60)
+			);
+			if (lateMinutes > 0) {
+				return `Late by ${lateMinutes} minute${
+					lateMinutes > 1 ? "s" : ""
+				}`;
+			}
+		}
+
+		if (status === "early" && clockOutTime && shiftEnd) {
+			const earlyMinutes = Math.round(
+				(shiftEnd.getTime() - clockOutTime.getTime()) / (1000 * 60)
+			);
+			if (earlyMinutes > 0) {
+				return `Left ${earlyMinutes} minute${
+					earlyMinutes > 1 ? "s" : ""
+				} early`;
+			}
+		}
+
+		return "";
+	}
+
+	/**
+	 * Calculate attendance summary from clock-in records
+	 */
+	private static calculateAttendanceSummary(records: any[]): any {
+		const totalDays = records.length;
+		const missingDays = records.filter(
+			(r) => r.is_missing === true || r.status === "missing"
+		).length;
+		const incompleteDays = records.filter(
+			(r) => !r.is_missing && r.status === "incomplete"
+		).length;
+		const lateDays = records.filter(
+			(r) => !r.is_missing && r.status === "late"
+		).length;
+		const earlyDays = records.filter(
+			(r) => !r.is_missing && r.status === "early"
+		).length;
+		const onTimeDays = records.filter(
+			(r) => !r.is_missing && r.status === "on_time"
+		).length;
+		const completeDays = records.filter(
+			(r) => !r.is_missing && r.status !== "incomplete"
+		).length;
+
+		// Calculate punctuality rate (excluding missing days)
+		const workingDays = totalDays - missingDays;
+		const punctualityRate =
+			workingDays > 0 ? (onTimeDays / workingDays) * 100 : 0;
+
+		return {
+			total_days: totalDays,
+			complete_days: completeDays,
+			incomplete_days: incompleteDays,
+			late_days: lateDays,
+			early_days: earlyDays,
+			on_time_days: onTimeDays,
+			missing_days: missingDays,
+			punctuality_rate: punctualityRate
+		};
+	}
+
+	/**
+	 * Get clock-in statistics
+	 */
+	static async getClockInStatistics(
+		dateRange: ReportDateRange,
+		timeGrouping: TimeGrouping
+	): Promise<any> {
+		// Get overall statistics
+		const statsSql = `
+		SELECT 
+			COUNT(DISTINCT ec.employee_id) as total_employees,
+			COUNT(ec.clock_id) as total_clock_ins,
+			COALESCE(SUM(
+				CASE 
+					WHEN ec.clock_out IS NOT NULL 
+					THEN EXTRACT(EPOCH FROM (ec.clock_out - ec.clock_in)) / 3600.0
+					ELSE 0
+				END
+			), 0) as total_hours_worked,
+			COALESCE(SUM(ec.pay_deduction), 0) as total_deductions
+		FROM EmployeeClockIn ec
+		JOIN Employee e ON ec.employee_id = e.employee_id
+		WHERE e.need_clock_in = true
+		AND e.is_active = true
+		AND ec.clock_in BETWEEN $1 AND $2::DATE + INTERVAL '1 day'
+	`;
+
+		const statsResult = await query(statsSql, [
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+		const stats = statsResult.rows[0];
+
+		// Get statistics by employee type
+		const byTypeSql = `
+		SELECT 
+			e.employee_type,
+			COUNT(DISTINCT ec.employee_id) as employee_count,
+			COALESCE(SUM(
+				CASE 
+					WHEN ec.clock_out IS NOT NULL 
+					THEN EXTRACT(EPOCH FROM (ec.clock_out - ec.clock_in)) / 3600.0
+					ELSE 0
+				END
+			), 0) as total_hours,
+			COALESCE(SUM(ec.pay_deduction), 0) as total_deductions
+		FROM EmployeeClockIn ec
+		JOIN Employee e ON ec.employee_id = e.employee_id
+		WHERE e.need_clock_in = true
+		AND e.is_active = true
+		AND ec.clock_in BETWEEN $1 AND $2::DATE + INTERVAL '1 day'
+		GROUP BY e.employee_type
+		ORDER BY e.employee_type
+	`;
+
+		const byTypeResult = await query(byTypeSql, [
+			dateRange.start_date,
+			dateRange.end_date
+		]);
+
+		const byEmployeeType: any = {};
+		byTypeResult.rows.forEach((row) => {
+			byEmployeeType[row.employee_type] = {
+				employee_count: parseInt(row.employee_count),
+				total_hours: parseFloat(row.total_hours),
+				total_deductions: parseFloat(row.total_deductions)
+			};
+		});
+
+		// Get time-grouped data
+		const timeGroupedData = await this.getTimeGroupedClockInData(
+			dateRange,
+			timeGrouping
+		);
+
+		const totalEmployees = parseInt(stats.total_employees) || 1; // Avoid division by zero
+
+		return {
+			total_employees: parseInt(stats.total_employees) || 0,
+			total_clock_ins: parseInt(stats.total_clock_ins) || 0,
+			total_hours_worked: parseFloat(stats.total_hours_worked) || 0,
+			total_deductions: parseFloat(stats.total_deductions) || 0,
+			avg_hours_per_employee:
+				parseFloat(stats.total_hours_worked) / totalEmployees || 0,
+			by_employee_type: byEmployeeType,
+			time_grouped: timeGroupedData
+		};
+	}
+
+	/**
+	 * Get time-grouped clock-in data
+	 */
+	private static async getTimeGroupedClockInData(
+		dateRange: ReportDateRange,
+		timeGrouping: TimeGrouping
+	): Promise<any[]> {
+		let periodFormat: string;
+		let dateSeriesInterval: string;
+
+		switch (timeGrouping) {
+			case "year":
+				periodFormat = "YYYY";
+				dateSeriesInterval = "1 year";
+				break;
+			case "month":
+				periodFormat = "YYYY-MM";
+				dateSeriesInterval = "1 month";
+				break;
+			case "day":
+				periodFormat = "YYYY-MM-DD";
+				dateSeriesInterval = "1 day";
+				break;
+		}
+
+		const sql = `
+		WITH date_series AS (
+			SELECT generate_series(
+				$1::date,
+				$2::date + '1 day'::interval,
+				$3::interval
+			)::date as period_date
+		),
+		period_series AS (
+			SELECT 
+				period_date,
+				TO_CHAR(period_date, $4) as period
+			FROM date_series
+		),
+		clock_data AS (
+			SELECT 
+				TO_CHAR(ec.clock_in::date, $4) as period,
+				COUNT(ec.clock_id) as total_clock_ins,
+				COUNT(DISTINCT ec.employee_id) as employee_count,
+				COALESCE(SUM(
+					CASE 
+						WHEN ec.clock_out IS NOT NULL 
+						THEN EXTRACT(EPOCH FROM (ec.clock_out - ec.clock_in)) / 3600.0
+						ELSE 0
+					END
+				), 0) as total_hours_worked,
+				COALESCE(SUM(ec.pay_deduction), 0) as total_deductions
+			FROM EmployeeClockIn ec
+			JOIN Employee e ON ec.employee_id = e.employee_id
+			WHERE e.need_clock_in = true
+			AND e.is_active = true
+			AND ec.clock_in BETWEEN $1 AND $2::DATE + INTERVAL '1 day'
+			GROUP BY TO_CHAR(ec.clock_in::date, $4)
+		)
+		SELECT 
+			ps.period,
+			COALESCE(cd.total_clock_ins, 0) as total_clock_ins,
+			COALESCE(cd.employee_count, 0) as employee_count,
+			COALESCE(cd.total_hours_worked, 0) as total_hours_worked,
+			COALESCE(cd.total_deductions, 0) as total_deductions
+		FROM period_series ps
+		LEFT JOIN clock_data cd ON ps.period = cd.period
+		ORDER BY ps.period_date
+	`;
+
+		const result = await query(sql, [
+			dateRange.start_date,
+			dateRange.end_date,
+			dateSeriesInterval,
+			periodFormat
+		]);
+
+		return result.rows.map((row) => {
+			const parsed = this.parsePeriodFromString(row.period, timeGrouping);
+			return {
+				period: row.period,
+				year: parsed.year,
+				month: parsed.month,
+				day: parsed.day,
+				total_clock_ins: parseInt(row.total_clock_ins) || 0,
+				employee_count: parseInt(row.employee_count) || 0,
+				total_hours_worked: parseFloat(row.total_hours_worked) || 0,
+				total_deductions: parseFloat(row.total_deductions) || 0
+			};
+		});
 	}
 
 	// ==================== CHART DATA GENERATION ====================
@@ -2324,6 +2999,109 @@ export default class ReportModel {
 						"rgba(220, 53, 69, 1)",
 						"rgba(13, 202, 240, 1)"
 					],
+					borderWidth: 2
+				}
+			]
+		};
+	}
+
+	/**
+	 * Generate chart data for clock-in reports
+	 */
+	static generateClockInHoursChart(reports: any[]): ChartData {
+		return {
+			labels: reports.map((r) => r.employee_name),
+			datasets: [
+				{
+					label: "Total Hours Worked",
+					data: reports.map((r) => r.total_hours_worked),
+					backgroundColor: "rgba(13, 110, 253, 0.5)",
+					borderColor: "rgba(13, 110, 253, 1)",
+					borderWidth: 2
+				},
+				{
+					label: "Deductions",
+					data: reports.map((r) => r.total_deductions),
+					backgroundColor: "rgba(220, 53, 69, 0.5)",
+					borderColor: "rgba(220, 53, 69, 1)",
+					borderWidth: 2
+				}
+			]
+		};
+	}
+
+	/**
+	 * Generate chart data for attendance status distribution
+	 */
+	static generateAttendanceStatusChart(reports: any[]): ChartData {
+		const totalOnTime = reports.reduce(
+			(sum, r) => sum + r.attendance_summary.on_time_days,
+			0
+		);
+		const totalLate = reports.reduce(
+			(sum, r) => sum + r.attendance_summary.late_days,
+			0
+		);
+		const totalEarly = reports.reduce(
+			(sum, r) => sum + r.attendance_summary.early_days,
+			0
+		);
+		const totalIncomplete = reports.reduce(
+			(sum, r) => sum + r.attendance_summary.incomplete_days,
+			0
+		);
+
+		return {
+			labels: ["On Time", "Late", "Early", "Incomplete"],
+			datasets: [
+				{
+					label: "Attendance Status",
+					data: [totalOnTime, totalLate, totalEarly, totalIncomplete],
+					backgroundColor: [
+						"rgba(40, 167, 69, 0.7)",
+						"rgba(255, 193, 7, 0.7)",
+						"rgba(255, 133, 27, 0.7)",
+						"rgba(220, 53, 69, 0.7)"
+					],
+					borderColor: [
+						"rgba(40, 167, 69, 1)",
+						"rgba(255, 193, 7, 1)",
+						"rgba(255, 133, 27, 1)",
+						"rgba(220, 53, 69, 1)"
+					],
+					borderWidth: 2
+				}
+			]
+		};
+	}
+
+	/**
+	 * Generate chart data for clock-in statistics over time
+	 */
+	static generateClockInStatisticsChart(statistics: any): ChartData {
+		if (!statistics.time_grouped) {
+			return { labels: [], datasets: [] };
+		}
+
+		return {
+			labels: statistics.time_grouped.map((tg: any) => tg.period),
+			datasets: [
+				{
+					label: "Total Clock-ins",
+					data: statistics.time_grouped.map(
+						(tg: any) => tg.total_clock_ins
+					),
+					backgroundColor: "rgba(13, 110, 253, 0.5)",
+					borderColor: "rgba(13, 110, 253, 1)",
+					borderWidth: 2
+				},
+				{
+					label: "Hours Worked",
+					data: statistics.time_grouped.map(
+						(tg: any) => tg.total_hours_worked
+					),
+					backgroundColor: "rgba(40, 167, 69, 0.5)",
+					borderColor: "rgba(40, 167, 69, 1)",
 					borderWidth: 2
 				}
 			]
