@@ -5,7 +5,6 @@ import {
 	CreateEmployeeClockInDTO
 } from "../utils/types/employees.js";
 import EmployeeModel from "./Employee.model.js";
-import { TimeLike } from "original-fs";
 
 export default class EmployeeClockInModel {
 	static async getAllClockIns(): Promise<EmployeeClockIn[]> {
@@ -108,7 +107,7 @@ export default class EmployeeClockInModel {
 	static async calculatePayDeduction(
 		employee_id: number,
 		clock_in: string,
-		shift_start_time: TimeLike
+		shift_start_time: string | number | Date
 	): Promise<number> {
 		const shiftStartTime = new Date(shift_start_time);
 		const clockInTime = new Date(clock_in);

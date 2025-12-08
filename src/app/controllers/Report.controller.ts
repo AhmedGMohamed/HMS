@@ -1106,4 +1106,252 @@ export default class ReportController {
 			});
 		}
 	}
+
+	// ==================== EMPLOYEE CLOCK-IN REPORTS ====================
+
+	/**
+	 * Get clock-in reports for all employees
+	 */
+	static async getEmployeeClockInReports(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, employee_type, employee_id } =
+				req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const employeeTypeFilter =
+				(employee_type as EmployeeTypeFilter) || "all";
+			const employeeIdNum = employee_id
+				? parseInt(employee_id as string)
+				: undefined;
+
+			const reports = await ReportModel.getEmployeeClockInReports(
+				dateRange,
+				employeeTypeFilter,
+				employeeIdNum
+			);
+
+			res.status(200).json(reports);
+		} catch (error: any) {
+			console.error("Error fetching employee clock-in reports:", error);
+			res.status(500).json({
+				error:
+					error.message || "Failed to fetch employee clock-in reports"
+			});
+		}
+	}
+
+	/**
+	 * Get clock-in report for a specific employee
+	 */
+	static async getEmployeeClockInReportById(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const employeeId = parseInt(req.params.employeeId);
+			const { start_date, end_date } = req.query;
+
+			if (isNaN(employeeId)) {
+				res.status(400).json({ error: "Invalid employee ID" });
+				return;
+			}
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const reports = await ReportModel.getEmployeeClockInReports(
+				dateRange,
+				"all",
+				employeeId
+			);
+
+			if (reports.length === 0) {
+				res.status(404).json({
+					error: "Employee not found or no clock-in records in date range"
+				});
+				return;
+			}
+
+			res.status(200).json(reports[0]);
+		} catch (error: any) {
+			console.error("Error fetching employee clock-in report:", error);
+			res.status(500).json({
+				error:
+					error.message || "Failed to fetch employee clock-in report"
+			});
+		}
+	}
+
+	/**
+	 * Get clock-in reports with chart data
+	 */
+	static async getEmployeeClockInReportsWithChart(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, employee_type, employee_id } =
+				req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const employeeTypeFilter =
+				(employee_type as EmployeeTypeFilter) || "all";
+			const employeeIdNum = employee_id
+				? parseInt(employee_id as string)
+				: undefined;
+
+			const reports = await ReportModel.getEmployeeClockInReports(
+				dateRange,
+				employeeTypeFilter,
+				employeeIdNum
+			);
+
+			// Generate chart data
+			const hoursChartData =
+				ReportModel.generateClockInHoursChart(reports);
+			const statusChartData =
+				ReportModel.generateAttendanceStatusChart(reports);
+
+			res.status(200).json({
+				data: reports,
+				hoursChartData: hoursChartData,
+				statusChartData: statusChartData,
+				chartTypes: {
+					hours: "bar",
+					status: "doughnut"
+				}
+			});
+		} catch (error: any) {
+			console.error(
+				"Error fetching employee clock-in reports with chart:",
+				error
+			);
+			res.status(500).json({
+				error:
+					error.message ||
+					"Failed to fetch employee clock-in reports with chart"
+			});
+		}
+	}
+
+	/**
+	 * Get clock-in statistics
+	 */
+	static async getClockInStatistics(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+			const statistics = await ReportModel.getClockInStatistics(
+				dateRange,
+				timeGrouping
+			);
+
+			res.status(200).json(statistics);
+		} catch (error: any) {
+			console.error("Error fetching clock-in statistics:", error);
+			res.status(500).json({
+				error: error.message || "Failed to fetch clock-in statistics"
+			});
+		}
+	}
+
+	/**
+	 * Get clock-in statistics with chart data
+	 */
+	static async getClockInStatisticsWithChart(
+		req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const { start_date, end_date, grouping } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const dateRange: ReportDateRange = {
+				start_date: start_date as string,
+				end_date: end_date as string
+			};
+
+			const timeGrouping = (grouping as TimeGrouping) || "day";
+			const statistics = await ReportModel.getClockInStatistics(
+				dateRange,
+				timeGrouping
+			);
+
+			// Generate chart data
+			const chartData =
+				ReportModel.generateClockInStatisticsChart(statistics);
+
+			res.status(200).json({
+				data: statistics,
+				chartData: chartData,
+				chartType: "line"
+			});
+		} catch (error: any) {
+			console.error(
+				"Error fetching clock-in statistics with chart:",
+				error
+			);
+			res.status(500).json({
+				error:
+					error.message ||
+					"Failed to fetch clock-in statistics with chart"
+			});
+		}
+	}
 }
