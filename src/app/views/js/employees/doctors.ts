@@ -30,6 +30,7 @@ interface Payment {
 	payment_amount: number;
 	payment_type: string;
 	extra_payment_type: string;
+	extra_amount: number;
 	issued_timestamp: string;
 	is_paid: boolean;
 	is_void: boolean;
@@ -362,8 +363,14 @@ class DoctorManager {
                           <tr>
                             <td>${payment.payment_id}</td>
                             <td>${i18n.formatCurrency(
-								Number(payment.payment_amount)
-							)}</td>
+								Number(payment.payment_amount) +
+									Number(payment.extra_amount || 0)
+							)}<small class="d-block text-muted">(${i18n.formatCurrency(
+									payment.payment_amount
+								)} + ${i18n.formatCurrency(
+									payment.extra_amount || 0
+								)})</small>
+							</td>
                             <td>${
 								payment.extra_payment_type &&
 								payment.extra_payment_type !== "none"
