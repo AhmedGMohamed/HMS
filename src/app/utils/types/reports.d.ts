@@ -255,3 +255,88 @@ export interface ReportWithChart {
 	chartData: ChartData;
 	chartType: "pie" | "bar" | "line" | "doughnut";
 }
+
+// ==================== EMPLOYEE CLOCK-IN REPORTS ====================
+
+export interface EmployeeClockInReport {
+	employee_id: number;
+	employee_name: string;
+	employee_type: string;
+	shift_type?: string;
+	shift_start_time?: string;
+	shift_end_time?: string;
+	total_clock_ins: number;
+	total_hours_worked: number;
+	total_deductions: number;
+	avg_hours_per_day: number;
+	clock_in_records: ClockInRecord[];
+	attendance_summary: AttendanceSummary;
+}
+
+export interface ClockInRecord {
+	clock_id: number | null;
+	clock_in: string | null;
+	clock_out?: string | null;
+	hours_worked: number;
+	pay_deduction: number;
+	status:
+		| "complete"
+		| "incomplete"
+		| "late"
+		| "early"
+		| "on_time"
+		| "missing";
+	is_missing?: boolean;
+	date?: string;
+	notes?: string;
+	patients?: ClockInPatient[];
+	patient_count?: number;
+}
+
+export interface ClockInPatient {
+	patient_id: number;
+	patient_name: string;
+	payment_type: string;
+	hours_worked: number;
+	diagnosis?: string;
+	admission_time?: string;
+	discharge_time?: string;
+}
+
+export interface AttendanceSummary {
+	total_days: number;
+	complete_days: number;
+	incomplete_days: number;
+	late_days: number;
+	early_days: number;
+	on_time_days: number;
+	missing_days: number;
+	punctuality_rate: number; // Percentage
+}
+
+export interface ClockInStatistics {
+	total_employees: number;
+	total_clock_ins: number;
+	total_hours_worked: number;
+	total_deductions: number;
+	avg_hours_per_employee: number;
+	by_employee_type: {
+		[key: string]: {
+			employee_count: number;
+			total_hours: number;
+			total_deductions: number;
+		};
+	};
+	time_grouped?: ClockInTimeGroupedData[];
+}
+
+export interface ClockInTimeGroupedData {
+	period: string;
+	year?: number;
+	month?: number;
+	day?: number;
+	total_clock_ins: number;
+	total_hours_worked: number;
+	total_deductions: number;
+	employee_count: number;
+}
