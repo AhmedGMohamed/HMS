@@ -2,9 +2,7 @@
 import { Request, Response } from "express";
 import EmployeeClockInModel from "../models/EmployeeClockIn.model.js";
 import EmployeeModel from "../models/Employee.model.js";
-import {
-	CreateEmployeeClockInDTO
-} from "../utils/types/employees.js";
+import { CreateEmployeeClockInDTO } from "../utils/types/employees.js";
 
 export default class EmployeeClockInController {
 	static async getAllClockIns(_req: Request, res: Response): Promise<void> {
@@ -69,11 +67,11 @@ export default class EmployeeClockInController {
 			}
 
 			const pay_deduction =
-				employee.employee_type === "nurse" && employee.shift_type
+				employee.need_clock_in && employee.shift_start_time
 					? await EmployeeClockInModel.calculatePayDeduction(
 							employee_id,
 							req.body.clock_in,
-							employee.shift_type
+							employee.shift_start_time
 					  )
 					: 0;
 
@@ -105,6 +103,16 @@ export default class EmployeeClockInController {
 			res.status(200).json(clockIn);
 		} catch (error) {
 			res.status(500).json({ error: "Failed to update clock-in" });
+		}
+	}
+
+	static async deleteClockIn(req: Request, res: Response): Promise<void> {
+		try {
+			const clock_id = parseInt(req.params.id);
+			await EmployeeClockInModel.deleteClockIn(clock_id);
+			res.status(204).send();
+		} catch (error) {
+			res.status(500).json({ error: "Failed to delete clock-in" });
 		}
 	}
 }
