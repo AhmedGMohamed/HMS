@@ -7,7 +7,6 @@ import {
 	DischargePatientDTO
 } from "../utils/types/patients.js";
 import DrugUsageModel from "../models/DrugUsage.model.js";
-import { error } from "toastr";
 
 export class PatientController {
 	async getAllPatients(_req: Request, res: Response) {

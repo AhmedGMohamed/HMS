@@ -10,9 +10,11 @@ import {
 } from "../utils/types/patients.js";
 import { Bill, BillDetail } from "../utils/types/billing.js";
 import { Service } from "../utils/types/services.js";
-import { error } from "toastr";
 import EmployeePaymentModel from "./EmployeePayment.model.js";
-import { CreateEmployeePaymentDTO, PaymentPatientAssociation } from "../utils/types/employees.js";
+import {
+	CreateEmployeePaymentDTO,
+	PaymentPatientAssociation
+} from "../utils/types/employees.js";
 
 export class PatientModel {
 	async getAllPatients(): Promise<Patient[]> {
@@ -231,7 +233,7 @@ export class PatientModel {
 								const assigned_at = result.rows[0].assigned_at;
 								await query(
 									`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
-                   					VALUES ($1, $2)`,
+                   					VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 									[
 										currentAdmission.patient_history_id,
 										doctorId
@@ -278,8 +280,15 @@ export class PatientModel {
 
 							await query(
 								`INSERT INTO PatientDoctor (patient_id, doctor_id, assigned_at) 
-                    			VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
+                    			VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (patient_id, doctor_id) DO UPDATE SET
+								   unassigned_at = NULL`,
 								[data.patient_id, doctorId]
+							);
+
+							await query(
+								`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
+				 				VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+								[currentAdmission.patient_history_id, doctorId]
 							);
 
 							await query(
@@ -321,7 +330,7 @@ export class PatientModel {
 								const assigned_at = result.rows[0].assigned_at;
 								await query(
 									`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
-                   					VALUES ($1, $2)`,
+                   					VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 									[
 										currentAdmission.patient_history_id,
 										nurseId
@@ -370,8 +379,15 @@ export class PatientModel {
 							// Add nurse to current admission
 							await query(
 								`INSERT INTO PatientNurse (patient_id, nurse_id, assigned_at) 
-                            	VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
+                            	VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (patient_id, nurse_id) DO UPDATE SET
+									unassigned_at = NULL`,
 								[data.patient_id, nurseId]
+							);
+
+							await query(
+								`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
+					 			VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+								[currentAdmission.patient_history_id, nurseId]
 							);
 
 							await query(
@@ -485,11 +501,22 @@ export class PatientModel {
 			]);
 			const admission = historyResult.rows[0];
 
+			const today = new Date().toISOString().split("T")[0];
+			const now = new Date();
+
 			// Add attending doctors to PatientDoctor
 			for (const doctorId of data.attending_doctors) {
 				await query(
 					"INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
 					[data.patient_id, doctorId]
+				);
+
+				await query(
+					`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+                 	VALUES ($1, $2, $3, 1.0)
+                 	ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                 	   hours_worked = GREATEST(DailyStaffAssignment.hours_worked, EXCLUDED.hours_worked)`,
+					[doctorId, data.patient_id, today]
 				);
 			}
 
@@ -499,6 +526,26 @@ export class PatientModel {
 					await query(
 						"INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
 						[data.patient_id, nurseId]
+					);
+
+					const admissionTime = new Date(admission.admission_time);
+					let hoursWorked = 1.0;
+
+					if (admissionTime.toISOString().split("T")[0] < today) {
+						hoursWorked = 24.0;
+					} else {
+						hoursWorked = Math.max(
+							1.0,
+							(now.getTime() - admissionTime.getTime()) / 3600000
+						);
+					}
+
+					await query(
+						`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
+                     	VALUES ($1, $2, $3, 1.0)
+                     	ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+                     	   hours_worked = GREATEST(DailyStaffAssignment.hours_worked, EXCLUDED.hours_worked)`,
+						[nurseId, data.patient_id, today]
 					);
 				}
 			}
@@ -525,7 +572,7 @@ export class PatientModel {
 					        e.percentage_scope, e.employee_type
 					 FROM Doctor d 
 					 JOIN Employee e ON d.doctor_id = e.employee_id
-					 WHERE d.doctor_id = $1 AND d.doctor_type = 'referring' AND d.referral_bonus > 0`,
+					 WHERE d.doctor_id = $1 AND d.referral_bonus > 0`,
 					[referringDoctorId]
 				);
 
@@ -536,7 +583,7 @@ export class PatientModel {
 					if (paymentAmount > 0) {
 						const payment: CreateEmployeePaymentDTO = {
 							employee_id: doctor.doctor_id,
-							payment_amount: paymentAmount,
+							payment_amount: 0.0,
 							payment_type: "referral",
 							extra_payment_type:
 								doctor.extra_payment_type || "per_patient",
@@ -614,26 +661,28 @@ export class PatientModel {
 			// Archive doctors
 			await query(
 				`INSERT INTO DoctorPatientHistory (patient_history_id, doctor_id)
-             SELECT $1, doctor_id FROM PatientDoctor WHERE patient_id = $2`,
+             SELECT $1, doctor_id FROM PatientDoctor WHERE patient_id = $2 ON CONFLICT DO NOTHING`,
 				[currentAdmission.patient_history_id, data.patient_id]
 			);
 
 			// Archive nurses
 			await query(
 				`INSERT INTO NursePatientHistory (patient_history_id, nurse_id)
-             SELECT $1, nurse_id FROM PatientNurse WHERE patient_id = $2`,
+             SELECT $1, nurse_id FROM PatientNurse WHERE patient_id = $2 ON CONFLICT DO NOTHING`,
 				[currentAdmission.patient_history_id, data.patient_id]
 			);
 
 			// Clear current doctors
-			await query(`DELETE FROM PatientDoctor WHERE patient_id = $1`, [
-				data.patient_id
-			]);
+			await query(
+				`UPDATE PatientDoctor SET unassigned_at = CURRENT_TIMESTAMP WHERE patient_id = $1`,
+				[data.patient_id]
+			);
 
 			// Clear current nurses
-			await query(`DELETE FROM PatientNurse WHERE patient_id = $1`, [
-				data.patient_id
-			]);
+			await query(
+				`UPDATE PatientNurse SET unassigned_at = CURRENT_TIMESTAMP WHERE patient_id = $1`,
+				[data.patient_id]
+			);
 
 			// Mark patient as inactive
 			await query(
@@ -691,6 +740,7 @@ export class PatientModel {
 			[now, patientId]
 		);
 
+		/*
 		// Create final daily assignment records
 		await query(
 			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
@@ -720,7 +770,7 @@ export class PatientModel {
         	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
         	    hours_worked = EXCLUDED.hours_worked`,
 			[patientId, today, now]
-		);
+		);*/
 	}
 
 	async getCurrentAdmission(
@@ -734,9 +784,9 @@ export class PatientModel {
     	           array_agg(DISTINCT pn.nurse_id) FILTER (WHERE pn.nurse_id IS NOT NULL) as attending_nurse_ids
     	    FROM PatientHistory ph
     	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id
-    	    LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id
+    	    LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id AND pd.unassigned_at IS NULL
     	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id
-			LEFT JOIN PatientNurse pn ON ph.patient_id = pn.patient_id
+			LEFT JOIN PatientNurse pn ON ph.patient_id = pn.patient_id AND pn.unassigned_at IS NULL
     	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
     	    GROUP BY ph.patient_history_id
@@ -1097,13 +1147,14 @@ export class PatientModel {
 			// Add service to bill
 			const billDetailSql = `
 				INSERT INTO BillDetail (
-					bill_id, service_id, quantity, unit_price, 
+					bill_id, active_service_id, service_id, quantity, unit_price, 
 					charge_type, sale_type, generated_at
-				) VALUES ($1, $2, 1, $3, 'service', 'admitted', CURRENT_TIMESTAMP)
+				) VALUES ($1, $2, $3, 1, $4, 'service', 'admitted', CURRENT_TIMESTAMP)
 				RETURNING *;
 			`;
 			const billDetailResult = await query(billDetailSql, [
 				currentAdmission.bill_id,
+				activeServiceResult.rows[0].active_service_id,
 				serviceId,
 				price
 			]);
@@ -1170,7 +1221,7 @@ export class PatientModel {
 	// New method: Completely remove service and its billing
 	async removeServiceFromPatient(
 		patientId: number,
-		serviceId: number
+		activeServiceId: number
 	): Promise<any> {
 		await query("BEGIN");
 		try {
@@ -1183,16 +1234,23 @@ export class PatientModel {
 			// Find active service
 			const activeServiceSql = `
                 SELECT * FROM ActivePatientService 
-                WHERE patient_id = $1 AND service_id = $2;
+                WHERE patient_id = $1 AND active_service_id = $2;
             `;
 			const serviceResult = await query(activeServiceSql, [
 				patientId,
-				serviceId
+				activeServiceId
 			]);
 
 			if (serviceResult.rows.length === 0) {
 				throw new Error("Patient service not found");
 			}
+
+			// Remove service charges from bill
+			await query(
+				`DELETE FROM BillDetail 
+				 WHERE bill_id = $1 AND active_service_id = $2`,
+				[currentAdmission.bill_id, activeServiceId]
+			);
 
 			// Remove service from ActivePatientService
 			await query(
@@ -1201,19 +1259,13 @@ export class PatientModel {
 				[serviceResult.rows[0].active_service_id]
 			);
 
-			// Remove service charges from bill
-			await query(
-				`DELETE FROM BillDetail 
-                 WHERE bill_id = $1 AND service_id = $2`,
-				[currentAdmission.bill_id, serviceId]
-			);
-
+			// TODO: Implement proper service drug linking for accurate removal
 			// Handle removing service drugs if any
-			await this.removeServiceDrugsFromPatient(
+			/*await this.removeServiceDrugsFromPatient(
 				patientId,
 				serviceId,
 				currentAdmission.bill_id!
-			);
+			);*/
 
 			// Update bill total
 			await this.updateBillTotal(currentAdmission.bill_id!);
@@ -1226,7 +1278,8 @@ export class PatientModel {
 		}
 	}
 
-	private async removeServiceDrugsFromPatient(
+	// TODO: Implement proper service drug linking for accurate removal
+	/**	private async removeServiceDrugsFromPatient(
 		patientId: number,
 		serviceId: number,
 		billId: number
@@ -1242,51 +1295,64 @@ export class PatientModel {
 		for (const drugInfo of serviceDrugsResult.rows) {
 			// Remove drug usages for this service
 			const drugUsagesSql = `
-				SELECT du.*, dt.shipment_id, dt.transaction_id
+				SELECT du.*, dt.shipment_id, dt.transaction_id, dt.quantity
 				FROM DrugUsage du
 				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
 				JOIN BillDetail bd ON dt.shipment_id = bd.drug_shipment_id
 				WHERE du.patient_id = $1 AND du.drug_id = $2 AND bd.bill_id = $3
-				AND bd.charge_type = 'service';
+				AND bd.charge_type = 'service'
+				ORDER BY dt.timestamp DESC
+				LIMIT 1;
 			`;
 			const drugUsagesResult = await query(drugUsagesSql, [
 				patientId,
 				drugInfo.drug_id,
 				billId
 			]);
+			const usage = drugUsagesResult.rows[0];
 
-			for (const usage of drugUsagesResult.rows) {
-				// Return quantity to shipment
-				await query(
-					`UPDATE DrugShipment 
+			if (!usage) {
+				continue;
+			}
+
+			// Return quantity to shipment
+			await query(
+				`UPDATE DrugShipment 
 					 SET quantity = quantity + $1 
 					 WHERE shipment_id = $2`,
-					[usage.remaining_quantity, usage.shipment_id]
-				);
+				[usage.quantity, usage.shipment_id]
+			);
 
-				// Remove drug transaction
-				await query(
-					`DELETE FROM DrugTransaction 
-					 WHERE transaction_id = $1`,
-					[usage.transaction_id]
-				);
-
-				// Remove drug usage
-				await query(
-					`DELETE FROM DrugUsage 
+			// Remove drug usage
+			await query(
+				`DELETE FROM DrugUsage 
 					 WHERE usage_id = $1`,
-					[usage.usage_id]
-				);
+				[usage.usage_id]
+			);
 
-				// Remove from bill details
-				await query(
-					`DELETE FROM BillDetail 
-					 WHERE bill_id = $1 AND drug_shipment_id = $2 AND charge_type = 'service'`,
-					[billId, usage.shipment_id]
-				);
-			}
+			// Remove drug transaction
+			await query(
+				`DELETE FROM DrugTransaction 
+					 WHERE transaction_id = $1`,
+				[usage.transaction_id]
+			);
+
+			// Remove from bill details
+			await query(
+				`DELETE FROM BillDetail
+				 WHERE bill_detail_id = (
+				 	SELECT bill_detail_id
+					FROM BillDetail
+					WHERE bill_id = $1 AND drug_shipment_id = $2
+					AND charge_type = 'service'
+					AND quantity = $3
+					LIMIT 1
+				)`,
+				[billId, usage.shipment_id, usage.quantity]
+			);
 		}
 	}
+	*/
 
 	async removeDrugFromPatient(
 		patientId: number,
@@ -1317,6 +1383,7 @@ export class PatientModel {
 			}
 
 			const usage = drugUsageResult.rows[0];
+			console.log(usage);
 
 			// Return the original transaction quantity to shipment
 			await query(
@@ -1326,13 +1393,6 @@ export class PatientModel {
 				[usage.transaction_quantity, usage.shipment_id]
 			);
 
-			// Remove drug transaction
-			await query(
-				`DELETE FROM DrugTransaction 
-				 WHERE transaction_id = $1`,
-				[usage.transaction_id]
-			);
-
 			// Remove drug usage
 			await query(
 				`DELETE FROM DrugUsage 
@@ -1340,11 +1400,28 @@ export class PatientModel {
 				[drugUsageId]
 			);
 
+			// Remove drug transaction
+			await query(
+				`DELETE FROM DrugTransaction 
+				 WHERE transaction_id = $1`,
+				[usage.transaction_id]
+			);
+
 			// Remove from bill details
 			await query(
-				`DELETE FROM BillDetail 
-				 WHERE bill_id = $1 AND drug_shipment_id = $2`,
-				[currentAdmission.bill_id, usage.shipment_id]
+				`DELETE FROM BillDetail
+				 WHERE bill_detail_id = (
+				 	SELECT bill_detail_id
+					FROM BillDetail
+					WHERE bill_id = $1 AND drug_shipment_id = $2
+					AND quantity = $3
+					LIMIT 1
+				 )`,
+				[
+					currentAdmission.bill_id,
+					usage.shipment_id,
+					usage.transaction_quantity
+				]
 			);
 
 			// Update bill total
@@ -1389,23 +1466,30 @@ export class PatientModel {
 		for (const service of autoServicesResult.rows) {
 			// Add to active patient services
 			const isOnce = service.service_type === "once";
-			await query(
+			const insertedServiceResult = await query(
 				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${
 					isOnce ? " end_date," : ""
 				} is_active, last_renewed) 
                  	 VALUES ($1, $2, CURRENT_TIMESTAMP,${
 							isOnce ? " CURRENT_TIMESTAMP," : ""
-						} ${isOnce ? "false," : "true,"} NULL)`,
+						} ${isOnce ? "false," : "true,"} NULL) RETURNING *`,
 				[patientId, service.service_id]
 			);
+
+			const insertedService = insertedServiceResult.rows[0];
 
 			// Add to bill details
 			await query(
 				`INSERT INTO BillDetail (
-                    bill_id, service_id, quantity, unit_price, 
+                    bill_id, active_service_id, service_id, quantity, unit_price, 
                     charge_type, sale_type, generated_at
-                ) VALUES ($1, $2, 1, $3, 'auto_service', 'admitted', CURRENT_TIMESTAMP)`,
-				[billId, service.service_id, service.price]
+                ) VALUES ($1, $2, $3, 1, $4, 'auto_service', 'admitted', CURRENT_TIMESTAMP)`,
+				[
+					billId,
+					insertedService.active_service_id,
+					service.service_id,
+					service.price
+				]
 			);
 
 			// Handle service drugs

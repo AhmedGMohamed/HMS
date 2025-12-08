@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS DailyStaffAssignment (
 	employee_id INTEGER REFERENCES Employee(employee_id),
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	work_date DATE NOT NULL,
-	hours_worked DECIMAL(4, 2) DEFAULT 24.0,
+	hours_worked DECIMAL(4, 2) DEFAULT 1.0,
 	payment_processed BOOLEAN DEFAULT FALSE,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	UNIQUE(employee_id, patient_id, work_date)
@@ -239,6 +239,7 @@ CREATE TABLE IF NOT EXISTS DailyStaffAssignment (
 CREATE TABLE IF NOT EXISTS BillDetail (
 	bill_detail_id SERIAL PRIMARY KEY,
 	bill_id INTEGER REFERENCES Bill(bill_id),
+	active_service_id INTEGER REFERENCES ActivePatientService(active_service_id),
 	service_id INTEGER REFERENCES Service(service_id),
 	drug_shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
 	quantity INTEGER NOT NULL,
@@ -248,10 +249,12 @@ CREATE TABLE IF NOT EXISTS BillDetail (
 	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP CHECK (
 		(
 			service_id IS NOT NULL
+			AND active_service_id IS NOT NULL
 			AND drug_shipment_id IS NULL
 		)
 		OR (
 			service_id IS NULL
+			AND active_service_id IS NULL
 			AND drug_shipment_id IS NOT NULL
 		)
 	)
@@ -725,7 +728,7 @@ VALUES
 
 INSERT INTO PriceList (name, is_default)
 VALUES
-	('Default', true);
+	('Default', TRUE);
 
 INSERT INTO Warehouse (name, location)
 VALUES

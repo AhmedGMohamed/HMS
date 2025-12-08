@@ -93,7 +93,7 @@ export class DrugUsageModel {
 			// Verify shipment exists and belongs to the correct drug
 			const shipmentResult = await query(
 				`
-            	SELECT quantity 
+            	SELECT shipment_id, quantity 
             	FROM DrugShipment 
             	WHERE shipment_id = $1 AND drug_id = $2
         	`,
