@@ -113,6 +113,7 @@ class EmployeePaymentCron {
 				);
 				break;
 			case "per_patient":
+			case "both":
 				if (employee.per_patient_payment_type === "fixed") {
 					const result = await this.calculateFixedPerPatientPayment(
 						employee
@@ -122,7 +123,7 @@ class EmployeePaymentCron {
 				}
 				// Percentage per patient is handled on dismissal
 				break;
-			case "both":
+			/*case "both":
 				// Handle both income and per_patient
 				extraAmount += await this.calculateFacilityIncomePayment(
 					employee
@@ -134,7 +135,7 @@ class EmployeePaymentCron {
 					extraAmount += result.amount;
 					patientAssociations = result.associations;
 				}
-				break;
+				break;*/
 		}
 
 		// Create payment record if there's any amount to pay
@@ -281,7 +282,10 @@ class EmployeePaymentCron {
 			`SELECT clock_in, clock_out, pay_deduction 
 			 FROM EmployeeClockIn 
 			 WHERE employee_id = $1 
-			 AND clock_in >= $2 
+			 AND (
+             	clock_in >= $2
+             	OR (clock_out IS NULL)
+         	 )
 			 ORDER BY clock_in ASC`,
 			[employee.employee_id, past24HoursStart.toISOString()]
 		);
@@ -318,6 +322,31 @@ class EmployeePaymentCron {
 	): Promise<number> {
 		if (!employee.shift_start_time || !employee.shift_end_time) {
 			return 0;
+		}
+
+		// Check for active shift that hasn't been clocked out for more than 24 hours
+		const openClockInResult = await query(
+			`SELECT clock_in 
+			 FROM EmployeeClockIn 
+			 WHERE employee_id = $1 
+			 AND clock_out IS NULL 
+			 ORDER BY clock_in DESC 
+			 LIMIT 1`,
+			[employee.employee_id]
+		);
+
+		if (openClockInResult.rows.length > 0) {
+			const openClockInTime = new Date(
+				openClockInResult.rows[0].clock_in
+			);
+			const hoursSinceClockIn =
+				(new Date().getTime() - openClockInTime.getTime()) /
+				(1000 * 60 * 60);
+
+			if (hoursSinceClockIn > 24) {
+				// Edge case: active shift without clock-out for more than 24 hours - pay in full (no deduction)
+				return 0;
+			}
 		}
 
 		const clockInTime = new Date(clockInRecord.clock_in);
@@ -594,16 +623,29 @@ class EmployeePaymentCron {
 			`SELECT dsa.*, p.name as patient_name, ph.patient_history_id, ph.diagnosis, ph.discharge_time
     	 FROM DailyStaffAssignment dsa
     	 JOIN Patient p ON dsa.patient_id = p.patient_id
-    	 LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
-    	     AND ph.discharge_time IS NULL 
-			 OR (
-    	         ph.admission_time <= $1::date + INTERVAL '1 day' 
-    	         AND (ph.discharge_time IS NULL OR ph.discharge_time >= $1::date)
-    	     )
+         LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+             AND (
+                 ph.discharge_time IS NULL 
+                 OR (
+                     ph.admission_time <= $1::date + INTERVAL '1 day' 
+                     AND (ph.discharge_time IS NULL OR ph.discharge_time >= $1::date)
+                 )
+             )
     	 WHERE dsa.employee_id = $2 
     	 AND dsa.work_date = $1
     	 AND dsa.payment_processed = FALSE
     	 AND dsa.hours_worked > 0
+         AND NOT EXISTS (
+             SELECT 1 FROM EmployeePaymentPatient epp
+             JOIN EmployeePayment ep ON epp.payment_id = ep.payment_id
+             WHERE ep.employee_id = $2
+             AND epp.patient_id = dsa.patient_id
+             AND epp.patient_history_id = ph.patient_history_id
+             AND epp.work_date = $1
+             AND ep.is_void = false
+             AND ep.payment_type IN ('salary', 'commission')
+             AND ep.extra_payment_type IN ('per_patient', 'both')
+         )
 		 -- Only include if nurse has shift_end_time defined and patient discharged after shift end, OR still admitted
     	 AND ($3::timestamp IS NULL OR ph.discharge_time IS NULL OR ph.discharge_time >= $3::timestamp)
     	 ORDER BY dsa.patient_id`,
@@ -636,8 +678,8 @@ class EmployeePaymentCron {
 		if (totalPayment > 0) {
 			await query(
 				`UPDATE DailyStaffAssignment 
-    	     SET payment_processed = TRUE 
-    	     WHERE employee_id = $1 AND work_date = $2 AND payment_processed = FALSE`,
+    	     	SET payment_processed = TRUE 
+    	     	WHERE employee_id = $1 AND work_date = $2 AND payment_processed = FALSE`,
 				[employee.employee_id, yesterdayStr]
 			);
 		}
@@ -701,43 +743,54 @@ class EmployeePaymentCron {
 
 		if (patientInfoResult.rows.length === 0) return;
 
-		// Get all staff assignments for this patient that haven't been paid percentage
-		// EXCLUDE nurses whose shift ended before the patient was discharged
+		const patientInfo = patientInfoResult.rows[0];
+		const admissionDate = new Date(patientInfo.admission_time)
+			.toISOString()
+			.split("T")[0];
+		const dischargeDate = new Date(patientInfo.discharge_time)
+			.toISOString()
+			.split("T")[0];
+
+		// Get all staff assignments for this patient ONLY within this admission period
 		const staffResult = await query(
 			`SELECT DISTINCT dsa.employee_id, e.extra_amount, e.percentage_scope,
-        	        e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
-        	        e.shift_end_time, e.shift_start_time, e.shift_type,
-        	        d.per_patient_pay, d.payment_calculation, d.doctor_type, 
-        	        MIN(dsa.work_date) as min_work_date, SUM(dsa.hours_worked) as total_hours_worked
-        	 FROM DailyStaffAssignment dsa
-        	 JOIN Employee e ON dsa.employee_id = e.employee_id
-        	 LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
-        	 WHERE dsa.patient_id = $1
-        	 AND dsa.payment_processed = FALSE
-        	 AND dsa.hours_worked > 0
-			 AND NOT EXISTS (
-				 SELECT 1 FROM EmployeePaymentPatient epp
-				 JOIN EmployeePayment ep ON epp.payment_id = ep.payment_id
-				 WHERE ep.employee_id = dsa.employee_id
-				 AND epp.patient_history_id = $2
-				 AND ep.is_void = false
-				 AND ep.extra_payment_type IN ('per_patient', 'both')
-			 )
-        	 AND (
-        	    (e.extra_payment_type = 'per_patient' AND e.per_patient_payment_type = 'percentage')
-        	    OR
-        	    (e.extra_payment_type = 'both' AND e.per_patient_payment_type = 'percentage')
-        	    OR
-        	    (d.doctor_id IS NOT NULL 
-        	     AND d.payment_calculation IN ('per_patient', 'both') 
-        	     AND d.per_patient_pay > 0
-        	     AND d.doctor_type != 'supervising')
-        	 )
-        	 GROUP BY dsa.employee_id, e.extra_amount, e.percentage_scope,
-        	          e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
-        	          e.shift_end_time, e.shift_start_time, e.shift_type,
-        	          d.per_patient_pay, d.payment_calculation, d.doctor_type`,
-			[patient_id, patient_history_id]
+	                e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
+	                e.shift_end_time, e.shift_start_time, e.shift_type,
+	                d.per_patient_pay, d.payment_calculation, d.doctor_type, 
+	                MIN(dsa.work_date) as min_work_date, 
+	                MAX(dsa.work_date) as max_work_date,
+	                SUM(dsa.hours_worked) as total_hours_worked
+	         FROM DailyStaffAssignment dsa
+	         JOIN Employee e ON dsa.employee_id = e.employee_id
+	         LEFT JOIN Doctor d ON e.employee_id = d.doctor_id
+	         WHERE dsa.patient_id = $1
+	         AND dsa.work_date >= $3::date
+	         AND dsa.work_date <= $4::date
+	         AND dsa.payment_processed = FALSE
+	         AND dsa.hours_worked > 0
+	         AND NOT EXISTS (
+	             SELECT 1 FROM EmployeePaymentPatient epp
+	             JOIN EmployeePayment ep ON epp.payment_id = ep.payment_id
+	             WHERE ep.employee_id = dsa.employee_id
+	             AND epp.patient_history_id = $2
+	             AND ep.is_void = false
+	             AND ep.extra_payment_type IN ('per_patient', 'both')
+	         )
+	         AND (
+	            (e.extra_payment_type = 'per_patient' AND e.per_patient_payment_type = 'percentage')
+	            OR
+	            (e.extra_payment_type = 'both' AND e.per_patient_payment_type = 'percentage')
+	            OR
+	            (d.doctor_id IS NOT NULL 
+	             AND d.payment_calculation IN ('per_patient', 'both') 
+	             AND d.per_patient_pay > 0
+	             AND d.doctor_type != 'supervising')
+	         )
+	         GROUP BY dsa.employee_id, e.extra_amount, e.percentage_scope,
+	                  e.per_patient_payment_type, e.extra_payment_type, e.employee_type,
+	                  e.shift_end_time, e.shift_start_time, e.shift_type,
+	                  d.per_patient_pay, d.payment_calculation, d.doctor_type`,
+			[patient_id, patient_history_id, admissionDate, dischargeDate]
 		);
 
 		for (const staff of staffResult.rows) {
@@ -747,7 +800,7 @@ class EmployeePaymentCron {
 				const [hours, minutes] = staff.shift_end_time.split(":");
 
 				// Calculate shift end time for the work date
-				const shiftEndTime = new Date(staff.min_work_date);
+				const shiftEndTime = new Date(staff.max_work_date);
 				shiftEndTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
 				// If it's a night shift and end time is before start time, add a day
@@ -770,8 +823,18 @@ class EmployeePaymentCron {
 					await query(
 						`UPDATE DailyStaffAssignment 
 						 SET payment_processed = TRUE 
-						 WHERE employee_id = $1 AND patient_id = $2`,
-						[staff.employee_id, patient_id]
+						 WHERE employee_id = $1
+						 AND patient_id = $2
+						 AND patient_history_id = $3
+						 AND work_date >= $4::date
+						 AND work_date <= $5::date`,
+						[
+							staff.employee_id,
+							patient_id,
+							patient_history_id,
+							admissionDate,
+							dischargeDate
+						]
 					);
 					continue;
 				}
@@ -839,8 +902,16 @@ class EmployeePaymentCron {
 				await query(
 					`UPDATE DailyStaffAssignment 
                 	 SET payment_processed = TRUE 
-                	 WHERE employee_id = $1 AND patient_id = $2`,
-					[staff.employee_id, patient_id]
+                	 WHERE employee_id = $1
+					 AND patient_id = $2,
+					 AND work_date >= $3::date
+					 AND work_date <= $4::date`,
+					[
+						staff.employee_id,
+						patient_id,
+						admissionDate,
+						dischargeDate
+					]
 				);
 			}
 		}
