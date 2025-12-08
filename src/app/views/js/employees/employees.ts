@@ -742,39 +742,59 @@ class EmployeeManager {
 			Array.from(this.employees).map(([id, e]) => [id, e.name])
 		);
 
-		// Group payments by employee_id
-		const paymentsByEmployee = Array.from(this.payments.values())
+		// Read date filters (same approach as Employees tab)
+		const startDate = this.pendingPaymentStartDate?.value
+			? new Date(this.pendingPaymentStartDate.value).getTime()
+			: null;
+		const endDate = this.pendingPaymentEndDate?.value
+			? new Date(this.pendingPaymentEndDate.value).getTime()
+			: null;
+
+		// Filter pending and non-void payments within the selected date range
+		const filtered = Array.from(this.payments.values())
 			.filter((p) => this.employees.has(p.employee_id))
-			.reduce((acc, payment) => {
-				if (!acc[payment.employee_id]) {
-					acc[payment.employee_id] = [];
-				}
-				acc[payment.employee_id].push(payment);
-				return acc;
-			}, {} as Record<number, Payment[]>);
+			.filter((p) => !p.is_paid && !p.is_void)
+			.filter((p) => {
+				const issuedTime = new Date(p.issued_timestamp).getTime();
+				if (startDate && issuedTime < startDate) return false;
+				if (endDate && issuedTime > endDate) return false;
+				return true;
+			});
+
+		// Group payments by employee_id
+		const paymentsByEmployee = filtered.reduce((acc, payment) => {
+			if (!acc[payment.employee_id]) acc[payment.employee_id] = [];
+			acc[payment.employee_id].push(payment);
+			return acc;
+		}, {} as Record<number, Payment[]>);
 
 		if (Object.keys(paymentsByEmployee).length === 0) {
 			tbody.innerHTML = `
-				<tr>
-					<td colspan="6" class="text-center text-muted">
-						${i18n.t("common.noData")}
-					</td>
-				</tr>
-			`;
+			<tr>
+				<td colspan="6" class="text-center text-muted">
+					${i18n.t("common.noData")}
+				</td>
+			</tr>
+		`;
 			return;
 		}
 
 		tbody.innerHTML = Object.entries(paymentsByEmployee)
 			.map(([employeeId, payments]) => {
 				const totalAmount = payments.reduce(
-					(sum, p) => sum + Number(p.payment_amount),
+					(sum, p) =>
+						sum +
+						Number(p.payment_amount) +
+						Number(p.extra_amount || 0),
 					0
 				);
+
 				const paymentType = payments[0]?.extra_payment_type
 					? i18n.t(
 							`employees.paymentTypes.${payments[0].extra_payment_type}`
 					  )
 					: i18n.t("employees.paymentTypes.none");
+
 				const dateRange =
 					payments.length > 0
 						? `${i18n.formatDate(
@@ -799,96 +819,101 @@ class EmployeeManager {
 								)
 						  )}`
 						: "-";
+
 				const collapseId = `paymentDetails${employeeId}`;
+
 				return `
-          <tr>
-            <td>
-              <button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                <i class="bi bi-chevron-down"></i>
-              </button>
-            </td>
-            <td>${this.escapeHtml(
-				employeeNames.get(Number(employeeId)) || "Unknown"
-			)}</td>
-            <td>${i18n.formatCurrency(totalAmount)}</td>
-            <td>${paymentType}</td>
-            <td>${dateRange}</td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markAllPaymentsPaid(${employeeId})">
-                  <i class="bi bi-check-circle"></i> ${i18n.t(
-						"employees.buttons.markAllPaid"
-					)}
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidAllPayments(${employeeId})">
-                  <i class="bi bi-x-circle"></i> ${i18n.t(
-						"employees.buttons.voidAll"
-					)}
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr class="collapse" id="${collapseId}">
-            <td colspan="6">
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>${i18n.t("employees.table.paymentId")}</th>
-                      <th>${i18n.t("employees.table.amount")}</th>
-                      <th>${i18n.t("employees.table.type")}</th>
-                      <th>${i18n.t("employees.table.issued")}</th>
-                      <th>${i18n.t("common.actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${payments
-						.map(
-							(payment) => `
-                        <tr>
-                          <td>${payment.payment_id}</td>
-                          <td>${i18n.formatCurrency(
-								payment.payment_amount
-							)}</td>
-                          <td>${
-								payment.extra_payment_type &&
-								payment.extra_payment_type !== "none"
-									? i18n.t(
-											`employees.paymentTypes.${payment.extra_payment_type}`
-									  )
-									: i18n.t("employees.paymentTypes.none")
-							}</td>
-                          <td>${i18n.formatDateTime(
-								new Date(payment.issued_timestamp)
-							)}</td>
-                          <td>
-                            <div class="action-buttons">
-                              <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
-									payment.payment_id
-								})">
-                                <i class="bi bi-check-circle"></i> ${i18n.t(
-									"employees.buttons.markPaid"
-								)}
-                              </button>
-                              <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
-									payment.payment_id
-								})">
-                                <i class="bi bi-x-circle"></i> ${i18n.t(
-									"employees.buttons.void"
-								)}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      `
-						)
-						.join("")}
-                  </tbody>
-                </table>
-              </div>
-            </td>
-          </tr>
-        `;
+				<tr>
+					<td>
+						<button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+							<i class="bi bi-chevron-down"></i>
+						</button>
+					</td>
+					<td>${this.escapeHtml(employeeNames.get(Number(employeeId)) || "Unknown")}</td>
+					<td>${i18n.formatCurrency(totalAmount)}</td>
+					<td>${paymentType}</td>
+					<td>${dateRange}</td>
+					<td>
+						<div class="action-buttons">
+							<button class="btn btn-sm btn-outline-success" onclick="employeeManager.markAllPaymentsPaid(${employeeId})">
+								<i class="bi bi-check-circle"></i> ${i18n.t("employees.buttons.markAllPaid")}
+							</button>
+							<button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidAllPayments(${employeeId})">
+								<i class="bi bi-x-circle"></i> ${i18n.t("employees.buttons.voidAll")}
+							</button>
+						</div>
+					</td>
+				</tr>
+				<tr class="collapse" id="${collapseId}">
+					<td colspan="6">
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>${i18n.t("employees.table.paymentId")}</th>
+										<th>${i18n.t("employees.table.amount")}</th>
+										<th>${i18n.t("employees.table.type")}</th>
+										<th>${i18n.t("employees.table.issued")}</th>
+										<th>${i18n.t("common.actions")}</th>
+									</tr>
+								</thead>
+								<tbody>
+									${payments
+										.map(
+											(payment) => `
+												<tr>
+													<td>${payment.payment_id}</td>
+													<td>${i18n.formatCurrency(
+														Number(
+															payment.payment_amount
+														) +
+															Number(
+																payment.extra_amount ||
+																	0
+															)
+													)}
+													<small class="d-block text-muted">
+														(${i18n.formatCurrency(payment.payment_amount)} + ${i18n.formatCurrency(
+												payment.extra_amount || 0
+											)})
+													</small>
+													</td>
+													<td>${
+														payment.extra_payment_type &&
+														payment.extra_payment_type !==
+															"none"
+															? i18n.t(
+																	`employees.paymentTypes.${payment.extra_payment_type}`
+															  )
+															: i18n.t(
+																	"employees.paymentTypes.none"
+															  )
+													}</td>
+													<td>${i18n.formatDateTime(new Date(payment.issued_timestamp))}</td>
+													<td>
+														<div class="action-buttons">
+															<button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
+																payment.payment_id
+															})">
+																<i class="bi bi-check-circle"></i> ${i18n.t("employees.buttons.markPaid")}
+															</button>
+															<button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
+																payment.payment_id
+															})">
+																<i class="bi bi-x-circle"></i> ${i18n.t("employees.buttons.void")}
+															</button>
+														</div>
+													</td>
+												</tr>
+											`
+										)
+										.join("")}
+								</tbody>
+							</table>
+						</div>
+					</td>
+				</tr>
+			`;
 			})
 			.join("");
 	}
@@ -1189,10 +1214,8 @@ class EmployeeManager {
 
 		if (result.isConfirmed) {
 			try {
-				const payments = Array.from(this.payments.values()).filter(
-					(p) =>
-						p.employee_id === employeeId && !p.is_paid && !p.is_void
-				);
+				const payments =
+					this.getFilteredPaymentsForEmployee(employeeId);
 				for (const payment of payments) {
 					const response = await fetch(
 						`/api/employee-payments/${payment.payment_id}/paid`,
@@ -1271,10 +1294,8 @@ class EmployeeManager {
 
 		if (result.isConfirmed) {
 			try {
-				const payments = Array.from(this.payments.values()).filter(
-					(p) =>
-						p.employee_id === employeeId && !p.is_paid && !p.is_void
-				);
+				const payments =
+					this.getFilteredPaymentsForEmployee(employeeId);
 				for (const payment of payments) {
 					const response = await fetch(
 						`/api/employee-payments/${payment.payment_id}/void`,
@@ -1299,6 +1320,26 @@ class EmployeeManager {
 				this.showError(i18n.t("employees.messages.voidAllError"));
 			}
 		}
+	}
+
+	private getFilteredPaymentsForEmployee(employeeId: number): Payment[] {
+		const startDate = this.pendingPaymentStartDate?.value
+			? new Date(this.pendingPaymentStartDate.value).getTime()
+			: null;
+		const endDate = this.pendingPaymentEndDate?.value
+			? new Date(this.pendingPaymentEndDate.value).getTime()
+			: null;
+
+		return Array.from(this.payments.values())
+			.filter(
+				(p) => p.employee_id === employeeId && !p.is_paid && !p.is_void
+			)
+			.filter((p) => {
+				const issuedTime = new Date(p.issued_timestamp).getTime();
+				if (startDate && issuedTime < startDate) return false;
+				if (endDate && issuedTime > endDate) return false;
+				return true;
+			});
 	}
 
 	private validateEmployeeForm(): boolean {
