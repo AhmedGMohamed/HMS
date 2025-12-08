@@ -843,7 +843,7 @@ class DrugManager {
 		).checked = drug.is_obligatory_continuous;
 		(document.getElementById("frequency") as HTMLInputElement).value =
 			drug.frequency?.hours.toString()
-				? drug.frequency!.hours.toString() + " hours"
+				? drug.frequency!.hours.toString()
 				: "";
 
 		this.updateUnitConversionPreview();
@@ -2017,7 +2017,7 @@ class DrugManager {
 		const priceListId = parseInt(
 			(document.getElementById("priceList") as HTMLSelectElement).value
 		);
-		const price = this.currentShipment.prices.find(
+		const price = this.currentShipment.prices?.find(
 			(p) => p.pricelist_id === priceListId
 		);
 
