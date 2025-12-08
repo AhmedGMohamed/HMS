@@ -51,7 +51,8 @@
 		"page": "صفحة",
 		"of": "من",
 		"units": "وحدات",
-		"unknown": "غير معروف"
+		"unknown": "غير معروف",
+		"discharged": "تم الخروج"
 	},
 	"sidebar": {
 		"dashboard": "لوحة القيادة",
@@ -1501,7 +1502,8 @@
 			"doctorReports": "تقارير الأطباء",
 			"nurseReports": "تقارير الممرضين",
 			"statistics": "الإحصائيات",
-			"employeePayments": "مدفوعات الموظفين"
+			"employeePayments": "مدفوعات الموظفين",
+			"clockInReports": "تقارير الحضور والانصراف"
 		},
 		"filters": {
 			"title": "مرشحات التقرير",
@@ -1690,6 +1692,60 @@
 			"clockInDeductions": "خصومات الحضور",
 			"totalDeductions": "إجمالي الخصومات"
 		},
+		"clockInReports": {
+			"filterTitle": "فلاتر تقرير الحضور والانصراف",
+			"employeeType": "نوع الموظف",
+			"selectEmployee": "موظف محدد (اختياري)",
+			"allEmployees": "جميع الموظفين بحضور",
+			"title": "تفاصيل حضور الموظفين",
+			"stats": {
+				"totalEmployees": "إجمالي الموظفين",
+				"totalHours": "إجمالي الساعات",
+				"avgHoursPerEmployee": "متوسط الساعات/موظف",
+				"totalDeductions": "إجمالي الخصومات"
+			},
+			"charts": {
+				"hoursWorked": "ساعات العمل حسب الموظف",
+				"attendanceStatus": "توزيع حالة الحضور"
+			}
+		},
+		"clockInCard": {
+			"clockIns": "تسجيلات حضور",
+			"totalDays": "إجمالي الأيام",
+			"onTime": "في الوقت المحدد",
+			"late": "متأخر",
+			"early": "مبكر",
+			"punctualityRate": "معدل الالتزام بالمواعيد",
+			"incompleteDays": "يوم غير مكتمل",
+			"totalDeductions": "إجمالي الخصومات",
+			"clockInRecords": "سجلات الحضور والانصراف",
+			"avgPerDay": "متوسط/يوم",
+			"patient": "مريض",
+			"patients": "مرضى",
+			"missing": "غائب",
+			"missingDaysAlert": "يوم بدون سجلات حضور",
+			"incomplete": "غير مكتمل",
+			"patientsWorkedOn": "المرضى الذين تم العمل معهم"
+		},
+		"clockInTable": {
+			"clockIn": "وقت الحضور",
+			"clockOut": "وقت الانصراف",
+			"hoursWorked": "ساعات العمل",
+			"status": "الحالة",
+			"deduction": "الخصم",
+			"notes": "ملاحظات",
+			"date": "التاريخ"
+		},
+		"clockInStatus": {
+			"onTime": "في الوقت المحدد",
+			"late": "متأخر",
+			"early": "مبكر",
+			"incomplete": "غير مكتمل",
+			"pending": "معلق",
+			"missing": "غائب",
+			"noRecord": "لا يوجد سجل",
+			"noClockInRecord": "لا يوجد سجل حضور لهذا التاريخ"
+		},
 		"table": {
 			"patientName": "اسم المريض",
 			"nationalId": "الرقم القومي",
@@ -1712,7 +1768,8 @@
 			"clockIn": "تسجيل الدخول",
 			"clockOut": "تسجيل الخروج",
 			"status": "الحالة",
-			"deduction": "الخصم"
+			"deduction": "الخصم",
+			"admissionStatus": "حالة الدخول"
 		},
 		"units": {
 			"hours": "س"
@@ -1733,7 +1790,8 @@
 			"noEmployeePaymentsDescription": "لم يتم العثور على مدفوعات موظفين للمعايير المحددة",
 			"noPatientsForDoctor": "لم يتم العثور على مرضى لهذا الطبيب",
 			"noPatientsForNurse": "لم يتم العثور على مرضى لهذا الممرض",
-			"noPaymentDetails": "لا توجد تفاصيل دفع متاحة"
+			"noPaymentDetails": "لا توجد تفاصيل دفع متاحة",
+			"noClockInDataDescription": "لم يتم العثور على سجلات حضور للفلاتر والفترة الزمنية المحددة"
 		},
 		"validation": {
 			"selectDates": "يرجى تحديد تاريخ البداية والنهاية",
@@ -1750,7 +1808,9 @@
 			"statisticsSuccess": "تم تحميل الإحصائيات بنجاح",
 			"statisticsError": "فشل تحميل الإحصائيات",
 			"employeePaymentSuccess": "تم إنشاء تقرير مدفوعات الموظفين بنجاح",
-			"employeePaymentError": "فشل تحميل تقرير مدفوعات الموظفين"
+			"employeePaymentError": "فشل تحميل تقرير مدفوعات الموظفين",
+			"clockInReportSuccess": "تم إنشاء تقرير الحضور بنجاح",
+			"clockInReportError": "فشل في إنشاء تقرير الحضور"
 		},
 		"loading": {
 			"title": "جاري إنشاء التقرير...",

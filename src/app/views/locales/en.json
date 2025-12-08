@@ -51,7 +51,8 @@
 		"page": "Page",
 		"of": "of",
 		"units": "units",
-		"unknown": "Unknown"
+		"unknown": "Unknown",
+		"discharged": "Discharged"
 	},
 	"sidebar": {
 		"dashboard": "Dashboard",
@@ -1502,7 +1503,8 @@
 			"doctorReports": "Doctor Reports",
 			"nurseReports": "Nurse Reports",
 			"statistics": "Statistics",
-			"employeePayments": "Employee Payments"
+			"employeePayments": "Employee Payments",
+			"clockInReports": "Clock-In Reports"
 		},
 		"filters": {
 			"title": "Report Filters",
@@ -1691,6 +1693,60 @@
 			"clockInDeductions": "Clock-In Deductions",
 			"totalDeductions": "Total Deductions"
 		},
+		"clockInReports": {
+			"filterTitle": "Clock-In Report Filters",
+			"employeeType": "Employee Type",
+			"selectEmployee": "Specific Employee (Optional)",
+			"allEmployees": "All Employees with Clock-In",
+			"title": "Employee Clock-In Details",
+			"stats": {
+				"totalEmployees": "Total Employees",
+				"totalHours": "Total Hours",
+				"avgHoursPerEmployee": "Avg Hours/Employee",
+				"totalDeductions": "Total Deductions"
+			},
+			"charts": {
+				"hoursWorked": "Hours Worked by Employee",
+				"attendanceStatus": "Attendance Status Distribution"
+			}
+		},
+		"clockInCard": {
+			"clockIns": "clock-ins",
+			"totalDays": "Total Days",
+			"onTime": "On Time",
+			"late": "Late",
+			"early": "Early",
+			"punctualityRate": "Punctuality Rate",
+			"incompleteDays": "incomplete clock-in day(s)",
+			"totalDeductions": "Total Deductions",
+			"clockInRecords": "Clock-In Records",
+			"avgPerDay": "avg/day",
+			"patient": "patient",
+			"patients": "patients",
+			"missing": "Missing",
+			"missingDaysAlert": "day(s) with no clock-in records",
+			"incomplete": "Incomplete",
+			"patientsWorkedOn": "Patients Worked On"
+		},
+		"clockInTable": {
+			"clockIn": "Clock In",
+			"clockOut": "Clock Out",
+			"hoursWorked": "Hours Worked",
+			"status": "Status",
+			"deduction": "Deduction",
+			"notes": "Notes",
+			"date": "Date"
+		},
+		"clockInStatus": {
+			"onTime": "On Time",
+			"late": "Late",
+			"early": "Early",
+			"incomplete": "Incomplete",
+			"pending": "Pending",
+			"missing": "Missing",
+			"noRecord": "No Record",
+			"noClockInRecord": "No clock-in record for this date"
+		},
 		"table": {
 			"patientName": "Patient Name",
 			"nationalId": "National ID",
@@ -1713,7 +1769,8 @@
 			"clockIn": "Clock In",
 			"clockOut": "Clock Out",
 			"status": "Status",
-			"deduction": "Deduction"
+			"deduction": "Deduction",
+			"admissionStatus": "Admission Status"
 		},
 		"units": {
 			"hours": "h"
@@ -1734,7 +1791,8 @@
 			"noEmployeePaymentsDescription": "No employee payments found for the selected criteria",
 			"noPatientsForDoctor": "No patients found for this doctor",
 			"noPatientsForNurse": "No patients found for this nurse",
-			"noPaymentDetails": "No payment details available"
+			"noPaymentDetails": "No payment details available",
+			"noClockInDataDescription": "No clock-in records found for the selected filters and date range"
 		},
 		"validation": {
 			"selectDates": "Please select both start and end dates",
@@ -1751,7 +1809,9 @@
 			"statisticsSuccess": "Statistics loaded successfully",
 			"statisticsError": "Failed to load statistics",
 			"employeePaymentSuccess": "Employee payment report generated successfully",
-			"employeePaymentError": "Failed to load employee payment report"
+			"employeePaymentError": "Failed to load employee payment report",
+			"clockInReportSuccess": "Clock-in report generated successfully",
+			"clockInReportError": "Failed to generate clock-in report"
 		},
 		"loading": {
 			"title": "Generating Report...",
