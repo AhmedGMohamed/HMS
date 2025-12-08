@@ -43,13 +43,16 @@ class ReportsManager {
 	private admissionDischargeChart: any = null;
 	private topServicesChart: any = null;
 	private topDrugsChart: any = null;
-	private staffUtilizationChart: any = null;
+	private staffUtilizationChart: any = null; // Chart instances (add these to existing chart properties)
+	private clockInHoursChart: any = null;
+	private clockInStatusChart: any = null;
 
 	// Data caches
 	private insuranceCompanies: InsuranceCompany[] = [];
 	private doctors: Doctor[] = [];
 	private nurses: Employee[] = [];
 	private employees: Employee[] = [];
+	private clockInEmployees: Employee[] = [];
 
 	// Current statistics data
 	private currentStatistics: any = null;
@@ -128,6 +131,14 @@ class ReportsManager {
 		document
 			.getElementById("doctorReportType")
 			?.addEventListener("change", (e) => {
+				this.populateDoctorSelect(
+					(e.target as HTMLSelectElement).value as
+						| "specific-referred"
+						| "specific-attending"
+						| "specific-supervising"
+						| "all-referred"
+						| "all-attending"
+				);
 				this.toggleDoctorSelect((e.target as HTMLSelectElement).value);
 			});
 
@@ -198,6 +209,25 @@ class ReportsManager {
 			.getElementById("printEmployeePaymentReportBtn")
 			?.addEventListener("click", () => {
 				this.printEmployeePaymentReport();
+			});
+
+		// Clock in reports
+		document
+			.getElementById("clockInEmployeeType")
+			?.addEventListener("change", () => {
+				this.loadClockInEmployeesByType();
+			});
+
+		document
+			.getElementById("loadClockInReportBtn")
+			?.addEventListener("click", () => {
+				this.loadClockInReport();
+			});
+
+		document
+			.getElementById("printClockInReportBtn")
+			?.addEventListener("click", () => {
+				this.printClockInReport();
 			});
 	}
 
@@ -284,6 +314,8 @@ class ReportsManager {
 			await this.loadNurses();
 			// Load all employees
 			await this.loadAllEmployees();
+			// Load clock-in reports
+			await this.loadClockInEmployees();
 		} catch (error) {
 			console.error("Error loading initial data:", error);
 			this.showError("Failed to load initial data");
@@ -341,7 +373,14 @@ class ReportsManager {
 		}
 	}
 
-	private populateDoctorSelect(): void {
+	private populateDoctorSelect(
+		specificDoctorType?:
+			| "specific-referred"
+			| "specific-attending"
+			| "specific-supervising"
+			| "all-referred"
+			| "all-attending"
+	): void {
 		const select = document.getElementById(
 			"doctorSelect"
 		) as HTMLSelectElement;
@@ -349,6 +388,23 @@ class ReportsManager {
 
 		select.innerHTML = '<option value="">Select a doctor</option>';
 		this.doctors.forEach((doctor) => {
+			if (specificDoctorType) {
+				switch (specificDoctorType) {
+					case "specific-referred":
+						if (doctor.doctor_type !== "referring") return;
+						break;
+					case "specific-attending":
+						if (
+							doctor.doctor_type !== "attending" &&
+							doctor.doctor_type !== "outside"
+						)
+							return;
+						break;
+					case "specific-supervising":
+						if (doctor.doctor_type !== "supervising") return;
+						break;
+				}
+			}
 			const option = document.createElement("option");
 			option.value = doctor.employee_id.toString();
 			option.textContent = `${doctor.name} (${doctor.doctor_type})`;
@@ -420,6 +476,51 @@ class ReportsManager {
 			employeeType === "all"
 				? this.employees
 				: this.employees.filter(
+						(e) => e.employee_type === employeeType
+				  );
+
+		filtered.forEach((employee) => {
+			const option = document.createElement("option");
+			option.value = employee.employee_id.toString();
+			option.textContent = `${employee.name} (${employee.employee_type})`;
+			select.appendChild(option);
+		});
+	}
+
+	private async loadClockInEmployees(): Promise<void> {
+		try {
+			const response = await fetch("/api/employees?need_clock_in=true", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok)
+				throw new Error("Failed to fetch clock-in employees");
+
+			this.clockInEmployees = await response.json();
+		} catch (error) {
+			console.error("Error loading clock-in employees:", error);
+		}
+	}
+
+	private async loadClockInEmployeesByType(): Promise<void> {
+		const employeeType = (
+			document.getElementById("clockInEmployeeType") as HTMLSelectElement
+		).value;
+		const select = document.getElementById(
+			"clockInEmployeeSelect"
+		) as HTMLSelectElement;
+
+		if (!select) return;
+
+		select.innerHTML =
+			'<option value="">All Employees with Clock-In</option>';
+
+		const filtered =
+			employeeType === "all"
+				? this.clockInEmployees
+				: this.clockInEmployees.filter(
 						(e) => e.employee_type === employeeType
 				  );
 
@@ -1941,7 +2042,10 @@ class ReportsManager {
 	/**
 	 * Generate admission items table for PDF
 	 */
-	private generateAdmissionItemsTable(admission: any): any[] {
+	private generateAdmissionItemsTable(
+		admission: any,
+		includeFinances = true
+	): any[] {
 		const itemsTableBody = [];
 
 		// Header
@@ -1978,14 +2082,30 @@ class ReportsManager {
 						this.capitalizeFirst(item.item_type),
 						this.formatDate(dateGroup.service_date),
 						{ text: item.quantity.toString(), alignment: "center" },
-						{
-							text: this.formatCurrency(item.unit_price, true),
-							alignment: "right"
-						},
-						{
-							text: this.formatCurrency(item.total_price, true),
-							alignment: "right"
-						}
+						includeFinances
+							? {
+									text: this.formatCurrency(
+										item.unit_price,
+										true
+									),
+									alignment: "right"
+							  }
+							: {
+									text: "-",
+									alignment: "center"
+							  },
+						includeFinances
+							? {
+									text: this.formatCurrency(
+										item.total_price,
+										true
+									),
+									alignment: "right"
+							  }
+							: {
+									text: "-",
+									alignment: "center"
+							  }
 					]);
 				});
 			});
@@ -2009,65 +2129,67 @@ class ReportsManager {
 		const outstandingAmount =
 			admission.total_amount - admission.paid_amount;
 
-		// Add summary rows
-		itemsTableBody.push([
-			{
-				text: "Total Charges:",
-				colSpan: 5,
-				bold: true,
-				fillColor: "#f8f9fa"
-			},
-			{},
-			{},
-			{},
-			{},
-			{
-				text: this.formatCurrency(admission.total_amount, true),
-				bold: true,
-				alignment: "right",
-				fillColor: "#f8f9fa"
-			}
-		]);
+		if (includeFinances) {
+			// Add summary rows
+			itemsTableBody.push([
+				{
+					text: "Total Charges:",
+					colSpan: 5,
+					bold: true,
+					fillColor: "#f8f9fa"
+				},
+				{},
+				{},
+				{},
+				{},
+				{
+					text: this.formatCurrency(admission.total_amount, true),
+					bold: true,
+					alignment: "right",
+					fillColor: "#f8f9fa"
+				}
+			]);
 
-		itemsTableBody.push([
-			{
-				text: "Patient Paid:",
-				colSpan: 5,
-				bold: true,
-				fillColor: "#f8f9fa"
-			},
-			{},
-			{},
-			{},
-			{},
-			{
-				text: this.formatCurrency(admission.paid_amount, true),
-				bold: true,
-				alignment: "right",
-				fillColor: "#f8f9fa",
-				color: "#28a745"
-			}
-		]);
+			itemsTableBody.push([
+				{
+					text: "Patient Paid:",
+					colSpan: 5,
+					bold: true,
+					fillColor: "#f8f9fa"
+				},
+				{},
+				{},
+				{},
+				{},
+				{
+					text: this.formatCurrency(admission.paid_amount, true),
+					bold: true,
+					alignment: "right",
+					fillColor: "#f8f9fa",
+					color: "#28a745"
+				}
+			]);
 
-		itemsTableBody.push([
-			{
-				text: "Outstanding Amount:",
-				colSpan: 5,
-				bold: true,
-				fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff"
-			},
-			{},
-			{},
-			{},
-			{},
-			{
-				text: this.formatCurrency(outstandingAmount, true),
-				bold: true,
-				alignment: "right",
-				fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
-				color: outstandingAmount > 0 ? "#856404" : "#0c5460"
-			}
-		]);
+			itemsTableBody.push([
+				{
+					text: "Outstanding Amount:",
+					colSpan: 5,
+					bold: true,
+					fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff"
+				},
+				{},
+				{},
+				{},
+				{},
+				{
+					text: this.formatCurrency(outstandingAmount, true),
+					bold: true,
+					alignment: "right",
+					fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
+					color: outstandingAmount > 0 ? "#856404" : "#0c5460"
+				}
+			]);
+		}
 
 		return [
 			{
@@ -3152,7 +3274,7 @@ class ReportsManager {
 				bold: true,
 				fillColor: "#f0f0f0",
 				alignment: "center"
-			},
+			} /*,
 			{
 				text: "Total Billed",
 				bold: true,
@@ -3164,7 +3286,7 @@ class ReportsManager {
 				bold: true,
 				fillColor: "#f0f0f0",
 				alignment: "right"
-			}
+			}*/
 		]);
 
 		patients.forEach((patient: any) => {
@@ -3180,7 +3302,7 @@ class ReportsManager {
 				{
 					text: patient.admission_count.toString(),
 					alignment: "center"
-				},
+				} /*,
 				{
 					text: this.formatCurrency(patient.total_billed, true),
 					alignment: "right"
@@ -3189,10 +3311,11 @@ class ReportsManager {
 					text: this.formatCurrency(patient.total_paid, true),
 					alignment: "right",
 					color: "#28a745"
-				}
+				}*/
 			]);
 		});
 
+		/*
 		// Add totals
 		const totalAdmissions = patients.reduce(
 			(sum, p) => sum + p.admission_count,
@@ -3229,7 +3352,7 @@ class ReportsManager {
 				fillColor: "#f0f0f0",
 				color: "#28a745"
 			}
-		]);
+		]);*/
 
 		content.push({
 			text: "Patient Summary",
@@ -3245,9 +3368,9 @@ class ReportsManager {
 					"auto",
 					"auto",
 					"auto",
+					"auto" /*,
 					"auto",
-					"auto",
-					"auto"
+					"auto"*/
 				],
 				body: summaryTableBody
 			},
@@ -3335,7 +3458,9 @@ class ReportsManager {
 				content.push({
 					table: {
 						headerRows: 1,
-						widths: patientInfoHeaders.map((_, i, a) => i===0 ? "*" : "auto"),
+						widths: patientInfoHeaders.map((_, i, a) =>
+							i === 0 ? "*" : "auto"
+						),
 						body: [patientInfoHeaders, patientInfoRow]
 					},
 					layout: "lightHorizontalLines",
@@ -3395,7 +3520,10 @@ class ReportsManager {
 
 							// Services and Drugs table
 							content.push(
-								...this.generateAdmissionItemsTable(admission)
+								...this.generateAdmissionItemsTable(
+									admission,
+									false
+								)
 							);
 
 							// Daily Staff table
@@ -7290,6 +7418,1470 @@ class ReportsManager {
 		return content;
 	}
 
+	// ==================== CLOCK-IN REPORTS ====================
+	private async loadClockInReport(): Promise<void> {
+		const filters = this.getReportFilters();
+
+		if (!filters.start_date || !filters.end_date) {
+			this.showError("reports.validation.selectDates");
+			return;
+		}
+
+		const employeeType = (
+			document.getElementById("clockInEmployeeType") as HTMLSelectElement
+		).value;
+		const employeeId = (
+			document.getElementById(
+				"clockInEmployeeSelect"
+			) as HTMLSelectElement
+		).value;
+
+		try {
+			await this.showLoading();
+
+			// Build URL with filters
+			let url = `/api/reports/employees/clock-ins?start_date=${filters.start_date}&end_date=${filters.end_date}`;
+
+			if (employeeType && employeeType !== "all") {
+				url += `&employee_type=${employeeType}`;
+			}
+
+			if (employeeId) {
+				url += `&employee_id=${employeeId}`;
+			}
+
+			// Fetch report data
+			const response = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!response.ok)
+				throw new Error("Failed to fetch clock-in report");
+
+			const data = await response.json();
+
+			// Fetch chart data separately
+			let chartUrl = `/api/reports/employees/clock-ins/chart?start_date=${filters.start_date}&end_date=${filters.end_date}`;
+
+			if (employeeType && employeeType !== "all") {
+				chartUrl += `&employee_type=${employeeType}`;
+			}
+
+			if (employeeId) {
+				chartUrl += `&employee_id=${employeeId}`;
+			}
+
+			const chartResponse = await fetch(chartUrl, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!chartResponse.ok)
+				throw new Error("Failed to fetch clock-in charts");
+
+			const chartData = await chartResponse.json();
+
+			this.currentReportData = { data, chartData };
+			this.currentReportType = "clock-in";
+
+			this.displayClockInReport(data, chartData);
+			this.enablePrintButton("printClockInReportBtn");
+
+			this.showSuccess("reports.messages.clockInReportSuccess");
+		} catch (error: any) {
+			console.error("Error loading clock-in report:", error);
+			this.showError("reports.messages.clockInReportError");
+		} finally {
+			this.hideLoading();
+		}
+	}
+
+	/**
+	 * Display clock-in report
+	 */
+	private displayClockInReport(data: any[], chartData: any): void {
+		const container = document.getElementById("clockInReportContent");
+		if (!container) return;
+
+		if (data.length === 0) {
+			container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+                <h5 class="mt-3 text-muted">${i18n.t(
+					"reports.emptyState.noDataFound"
+				)}</h5>
+                <p class="text-muted">${i18n.t(
+					"reports.emptyState.noClockInDataDescription"
+				)}</p>
+            </div>
+        `;
+			this.hideClockInSummary();
+			return;
+		}
+
+		// Calculate summary statistics
+		const totalEmployees = data.length;
+		const totalHours = data.reduce(
+			(sum, emp) => sum + emp.total_hours_worked,
+			0
+		);
+		const totalDeductions = data.reduce(
+			(sum, emp) => sum + emp.total_deductions,
+			0
+		);
+		const avgHours = totalHours / totalEmployees;
+
+		// Update summary cards
+		this.updateClockInSummary(
+			totalEmployees,
+			totalHours,
+			avgHours,
+			totalDeductions
+		);
+
+		// Render charts
+		this.renderClockInCharts(chartData);
+
+		// Render detailed employee records
+		container.innerHTML = data
+			.map((employee) => this.renderClockInEmployeeCard(employee))
+			.join("");
+	}
+
+	/**
+	 * Update clock-in summary statistics cards
+	 */
+	private updateClockInSummary(
+		totalEmployees: number,
+		totalHours: number,
+		avgHours: number,
+		totalDeductions: number
+	): void {
+		const summaryContainer = document.getElementById("clockInSummaryCards");
+		if (summaryContainer) {
+			summaryContainer.style.display = "flex";
+		}
+
+		const totalEmployeesEl = document.getElementById(
+			"clockInStatTotalEmployees"
+		);
+		const totalHoursEl = document.getElementById("clockInStatTotalHours");
+		const avgHoursEl = document.getElementById("clockInStatAvgHours");
+		const totalDeductionsEl = document.getElementById(
+			"clockInStatTotalDeductions"
+		);
+
+		if (totalEmployeesEl)
+			totalEmployeesEl.textContent = i18n.formatNumber(totalEmployees, 0);
+		if (totalHoursEl)
+			totalHoursEl.textContent =
+				i18n.formatNumber(totalHours, 1) +
+				i18n.t("reports.units.hours");
+		if (avgHoursEl)
+			avgHoursEl.textContent =
+				i18n.formatNumber(avgHours, 1) + i18n.t("reports.units.hours");
+		if (totalDeductionsEl)
+			totalDeductionsEl.textContent =
+				this.formatCurrency(totalDeductions);
+	}
+
+	/**
+	 * Hide clock-in summary cards
+	 */
+	private hideClockInSummary(): void {
+		const summaryContainer = document.getElementById("clockInSummaryCards");
+		if (summaryContainer) {
+			summaryContainer.style.display = "none";
+		}
+
+		const hoursChartContainer = document.getElementById(
+			"clockInHoursChartContainer"
+		);
+		const statusChartContainer = document.getElementById(
+			"clockInStatusChartContainer"
+		);
+
+		if (hoursChartContainer) hoursChartContainer.style.display = "none";
+		if (statusChartContainer) statusChartContainer.style.display = "none";
+	}
+
+	/**
+	 * Render clock-in charts
+	 */
+	private renderClockInCharts(chartData: any): void {
+		// Show chart containers
+		const hoursChartContainer = document.getElementById(
+			"clockInHoursChartContainer"
+		);
+		const statusChartContainer = document.getElementById(
+			"clockInStatusChartContainer"
+		);
+
+		if (hoursChartContainer) hoursChartContainer.style.display = "block";
+		if (statusChartContainer) statusChartContainer.style.display = "block";
+
+		// Render hours worked chart
+		this.renderClockInHoursChart(chartData.hoursChartData);
+
+		// Render attendance status chart
+		this.renderClockInStatusChart(chartData.statusChartData);
+	}
+
+	/**
+	 * Render hours worked chart
+	 */
+	private renderClockInHoursChart(chartData: any): void {
+		const canvas = document.getElementById(
+			"clockInHoursChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		// Destroy existing chart
+		if (this.clockInHoursChart) {
+			this.clockInHoursChart.destroy();
+		}
+
+		// Create new chart
+		// @ts-ignore
+		this.clockInHoursChart = new Chart(ctx, {
+			type: "bar",
+			data: chartData,
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						position: "top"
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								let label = context.dataset.label || "";
+								if (label) {
+									label += ": ";
+								}
+								if (context.parsed.y !== null) {
+									if (context.datasetIndex === 0) {
+										// Hours
+										label +=
+											context.parsed.y.toFixed(1) + "h";
+									} else {
+										// Deductions
+										label +=
+											"$" +
+											context.parsed.y.toLocaleString(
+												"en-US",
+												{
+													minimumFractionDigits: 2,
+													maximumFractionDigits: 2
+												}
+											);
+									}
+								}
+								return label;
+							}
+						}
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							callback: function (value: any) {
+								return value.toFixed(0);
+							}
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render attendance status chart
+	 */
+	private renderClockInStatusChart(chartData: any): void {
+		const canvas = document.getElementById(
+			"clockInStatusChart"
+		) as HTMLCanvasElement;
+		if (!canvas) return;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		// Destroy existing chart
+		if (this.clockInStatusChart) {
+			this.clockInStatusChart.destroy();
+		}
+
+		// Create new chart
+		// @ts-ignore
+		this.clockInStatusChart = new Chart(ctx, {
+			type: "doughnut",
+			data: chartData,
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						position: "bottom"
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context: any) {
+								const label = context.label || "";
+								const value = context.parsed || 0;
+								const total = context.dataset.data.reduce(
+									(a: number, b: number) => a + b,
+									0
+								);
+								const percentage =
+									total > 0
+										? ((value / total) * 100).toFixed(1)
+										: "0";
+								return `${label}: ${value} (${percentage}%)`;
+							}
+						}
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Render individual employee clock-in card
+	 */
+	private renderClockInEmployeeCard(employee: any): string {
+		const attendanceSummary = employee.attendance_summary;
+		const punctualityColor =
+			attendanceSummary.punctuality_rate >= 90
+				? "success"
+				: attendanceSummary.punctuality_rate >= 75
+				? "warning"
+				: "danger";
+
+		return `
+	        <div class="card mb-3">
+	            <div class="card-header">
+	                <div class="d-flex justify-content-between align-items-center">
+	                    <div>
+	                        <h5 class="mb-0">${this.escapeHtml(
+								employee.employee_name
+							)}</h5>
+	                        <small class="text-muted">
+	                            ${i18n
+									.t(
+										`employees.types.${employee.employee_type}`
+									)
+									.toUpperCase()}
+	                            ${
+									employee.shift_start_time &&
+									employee.shift_end_time
+										? ` (${employee.shift_start_time.substring(
+												0,
+												5
+										  )} - ${employee.shift_end_time.substring(
+												0,
+												5
+										  )})`
+										: ""
+								}
+	                        </small>
+	                    </div>
+	                    <div class="text-end">
+	                        <h4 class="mb-0">${
+								i18n.formatNumber(
+									employee.total_hours_worked,
+									1
+								) + i18n.t("reports.units.hours")
+							}</h4>
+	                        <small class="text-muted">
+	                            ${i18n.formatNumber(
+									employee.total_clock_ins,
+									0
+								)} ${i18n.t("reports.clockInCard.clockIns")}
+	                        </small>
+	                    </div>
+	                </div>
+	            </div>
+	            <div class="card-body">
+	                <!-- Attendance Summary -->
+	                <div class="row g-3 mb-4">
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-primary">
+	                            <h6>${i18n.t("reports.clockInCard.totalDays")}</h6>
+	                            <div class="value">${i18n.formatNumber(
+									attendanceSummary.total_days,
+									0
+								)}</div>
+	                        </div>
+	                    </div>
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-success">
+	                            <h6>${i18n.t("reports.clockInCard.onTime")}</h6>
+	                            <div class="value">${i18n.formatNumber(
+									attendanceSummary.on_time_days,
+									0
+								)}</div>
+	                        </div>
+	                    </div>
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-warning">
+	                            <h6>${i18n.t("reports.clockInCard.late")}</h6>
+	                            <div class="value">${i18n.formatNumber(
+									attendanceSummary.late_days,
+									0
+								)}</div>
+	                        </div>
+	                    </div>
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-danger">
+	                            <h6>${i18n.t("reports.clockInCard.missing")}</h6>
+	                            <div class="value text-danger">${i18n.formatNumber(
+									attendanceSummary.missing_days || 0,
+									0
+								)}</div>
+	                        </div>
+	                    </div>
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-info">
+	                            <h6>${i18n.t("reports.clockInCard.incomplete")}</h6>
+	                            <div class="value">${i18n.formatNumber(
+									attendanceSummary.incomplete_days,
+									0
+								)}</div>
+	                        </div>
+	                    </div>
+	                    <div class="col-md-2">
+	                        <div class="summary-card border-start-${punctualityColor}">
+	                            <h6>${i18n.t(
+									"reports.clockInCard.punctualityRate"
+								)}</h6>
+	                            <div class="value">${i18n.formatNumber(
+									attendanceSummary.punctuality_rate,
+									1
+								)}%</div>
+	                        </div>
+	                    </div>
+	                </div>
+							
+	                ${
+						attendanceSummary.missing_days > 0
+							? `
+	                    <div class="alert alert-danger">
+	                        <i class="bi bi-exclamation-octagon me-2"></i>
+	                        <strong>${
+								attendanceSummary.missing_days
+							}</strong> ${i18n.t(
+									"reports.clockInCard.missingDaysAlert"
+							  )}
+	                    </div>
+	                `
+							: ""
+					}
+						  
+	                ${
+						attendanceSummary.incomplete_days > 0
+							? `
+	                    <div class="alert alert-warning">
+	                        <i class="bi bi-exclamation-triangle me-2"></i>
+	                        ${attendanceSummary.incomplete_days} ${i18n.t(
+									"reports.clockInCard.incompleteDays"
+							  )}
+	                    </div>
+	                `
+							: ""
+					}
+						  
+	                ${
+						employee.total_deductions > 0
+							? `
+	                    <div class="alert alert-danger">
+	                        <i class="bi bi-exclamation-circle me-2"></i>
+	                        ${i18n.t(
+								"reports.clockInCard.totalDeductions"
+							)}: <strong>${this.formatCurrency(
+									employee.total_deductions
+							  )}</strong>
+	                    </div>
+	                `
+							: ""
+					}
+						  
+	                <!-- Clock-In Records Table -->
+	                <h6 class="mb-3"><i class="bi bi-clock-history me-2"></i>${i18n.t(
+						"reports.clockInCard.clockInRecords"
+					)}</h6>
+	                <div class="table-responsive">
+	                    <table class="table table-hover report-table clock-in-records-table">
+	                        <thead>
+	                            <tr>
+	                                <th>${i18n.t("reports.clockInTable.date")}</th>
+	                                <th>${i18n.t(
+										"reports.clockInTable.clockIn"
+									)}</th>
+	                                <th>${i18n.t(
+										"reports.clockInTable.clockOut"
+									)}</th>
+	                                <th class="text-center">${i18n.t(
+										"reports.clockInTable.hoursWorked"
+									)}</th>
+	                                <th class="text-center">${i18n.t(
+										"reports.clockInTable.status"
+									)}</th>
+	                                <th class="text-end">${i18n.t(
+										"reports.clockInTable.deduction"
+									)}</th>
+	                                <th>${i18n.t("reports.clockInTable.notes")}</th>
+	                            </tr>
+	                        </thead>
+	                        <tbody>
+	                            ${employee.clock_in_records
+									.map((record: any) =>
+										this.renderClockInRecordRow(record)
+									)
+									.join("")}
+	                        </tbody>
+	                        <tfoot>
+	                            <tr class="totals-row">
+	                                <td colspan="3" class="text-end"><strong>${i18n.t(
+										"common.total"
+									)}:</strong></td>
+	                                <td class="text-center"><strong>${
+										i18n.formatNumber(
+											employee.total_hours_worked,
+											1
+										) + i18n.t("reports.units.hours")
+									}</strong></td>
+	                                <td class="text-center">
+	                                    <span class="badge bg-info">${
+											i18n.formatNumber(
+												employee.avg_hours_per_day,
+												1
+											) + i18n.t("reports.units.hours")
+										} ${i18n.t(
+			"reports.clockInCard.avgPerDay"
+		)}</span>
+	                                </td>
+	                                <td class="text-end"><strong>${this.formatCurrency(
+										employee.total_deductions
+									)}</strong></td>
+	                                <td></td>
+	                            </tr>
+	                        </tfoot>
+	                    </table>
+	                </div>
+	            </div>
+	        </div>
+	    `;
+	}
+
+	private renderClockInRecordRow(record: any): string {
+		if (!record) {
+			return "";
+		}
+
+		const patients = record.patients || [];
+		const hasPatients = patients.length > 0;
+
+		// Handle missing clock-in
+		if (record.is_missing || record.status === "missing") {
+			const dateToDisplay =
+				record.date || record.clock_in || new Date().toISOString();
+			return `
+            <tr class="table-danger missing-clock-in-row">
+                <td class="fw-bold">${i18n.formatDate(dateToDisplay)}</td>
+                <td colspan="2" class="text-center">
+                    <span class="badge bg-danger">
+                        <i class="bi bi-exclamation-octagon me-1"></i>${i18n.t(
+							"reports.clockInStatus.missing"
+						)}
+                    </span>
+                </td>
+                <td class="text-center">-</td>
+                <td class="text-center">
+                    <span class="badge bg-danger">
+                        <i class="bi bi-x-circle me-1"></i>${i18n.t(
+							"reports.clockInStatus.noRecord"
+						)}
+                    </span>
+                </td>
+                <td class="text-end">-</td>
+                <td>
+                    <small class="text-danger fw-bold">${i18n.t(
+						"reports.clockInStatus.noClockInRecord"
+					)}</small>
+                    ${
+						hasPatients
+							? `
+                        <button class="btn btn-sm btn-outline-info ms-2" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#patients-missing-${record.date.replace(
+									/-/g,
+									""
+								)}" 
+                                aria-expanded="false">
+                            <i class="bi bi-people"></i> ${
+								patients.length
+							} ${i18n.t("reports.clockInCard.patients")}
+                        </button>
+                    `
+							: ""
+					}
+                </td>
+            </tr>
+            ${
+				hasPatients
+					? this.renderPatientAssignmentsRow(record, "missing")
+					: ""
+			}
+        `;
+		}
+
+		const statusConfig = {
+			on_time: {
+				class: "success",
+				icon: "check-circle",
+				label: i18n.t("reports.clockInStatus.onTime")
+			},
+			late: {
+				class: "warning",
+				icon: "exclamation-circle",
+				label: i18n.t("reports.clockInStatus.late")
+			},
+			early: {
+				class: "info",
+				icon: "arrow-right-circle",
+				label: i18n.t("reports.clockInStatus.early")
+			},
+			incomplete: {
+				class: "danger",
+				icon: "x-circle",
+				label: i18n.t("reports.clockInStatus.incomplete")
+			}
+		};
+
+		const status = statusConfig[
+			record.status as keyof typeof statusConfig
+		] || {
+			class: "secondary",
+			icon: "question-circle",
+			label: record.status || "unknown"
+		};
+
+		const dateToDisplay =
+			record.date || record.clock_in || new Date().toISOString();
+		const hoursWorked = record.hours_worked || 0;
+		const payDeduction = record.pay_deduction || 0;
+		const dateId = (record.date || "").replace(/-/g, "");
+
+		return `
+        <tr class="${record.status === "incomplete" ? "table-warning" : ""}">
+            <td class="fw-bold">${i18n.formatDate(dateToDisplay)}</td>
+            <td>${
+				record.clock_in ? i18n.formatDateTime(record.clock_in) : "-"
+			}</td>
+            <td>${
+				record.clock_out
+					? i18n.formatDateTime(record.clock_out)
+					: `<span class="badge bg-warning">${i18n.t(
+							"reports.clockInStatus.pending"
+					  )}</span>`
+			}</td>
+            <td class="text-center">${
+				hoursWorked > 0 ? i18n.formatNumber(hoursWorked, 2) + "h" : "-"
+			}</td>
+            <td class="text-center">
+                <span class="badge bg-${status.class}">
+                    <i class="bi bi-${status.icon} me-1"></i>${status.label}
+                </span>
+            </td>
+            <td class="text-end ${
+				payDeduction > 0 ? "text-danger fw-bold" : ""
+			}">
+                ${payDeduction > 0 ? this.formatCurrency(payDeduction) : "-"}
+            </td>
+            <td>
+                <small class="text-muted">${this.escapeHtml(
+					record.notes || "-"
+				)}</small>
+                ${
+					hasPatients
+						? `
+                    <button class="btn btn-sm btn-outline-primary ms-2" type="button" 
+                            data-bs-toggle="collapse" data-bs-target="#patients-${dateId}" 
+                            aria-expanded="false">
+                        <i class="bi bi-people"></i> ${
+							patients.length
+						} ${i18n.t("reports.clockInCard.patients")}
+                    </button>
+                `
+						: ""
+				}
+            </td>
+        </tr>
+        ${
+			hasPatients
+				? this.renderPatientAssignmentsRow(record, status.class)
+				: ""
+		}
+    `;
+	}
+
+	private renderPatientAssignmentsRow(
+		record: any,
+		statusClass: string
+	): string {
+		const patients = record.patients || [];
+		const dateId = (record.date || "").replace(/-/g, "");
+		const collapseId = record.is_missing
+			? `patients-missing-${dateId}`
+			: `patients-${dateId}`;
+
+		return `
+        <tr class="patient-assignments-row">
+            <td colspan="7" class="p-0">
+                <div class="collapse" id="${collapseId}">
+                    <div class="patient-assignments-container">
+                        <h6 class="mb-3">
+                            <i class="bi bi-people-fill me-2"></i>
+                            ${i18n.t(
+								"reports.clockInCard.patientsWorkedOn"
+							)} - ${i18n.formatDate(record.date)}
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>${i18n.t(
+											"reports.table.patientName"
+										)}</th>
+                                        <th>${i18n.t(
+											"reports.table.paymentType"
+										)}</th>
+                                        <th>${i18n.t(
+											"reports.table.diagnosis"
+										)}</th>
+                                        <th>${i18n.t(
+											"reports.table.admissionStatus"
+										)}</th>
+                                        <th class="text-center">${i18n.t(
+											"reports.table.hoursWorked"
+										)}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${patients
+										.map(
+											(patient: any) => `
+                                        <tr>
+                                            <td>
+                                                <strong>${this.escapeHtml(
+													patient.patient_name
+												)}</strong>
+                                                <br>
+                                                <small class="text-muted">ID: ${
+													patient.patient_id
+												}</small>
+                                            </td>
+                                            <td>
+                                                <span class="payment-type-badge badge-${
+													patient.payment_type
+												}">
+                                                    ${i18n
+														.t(
+															`reports.paymentTypes.${patient.payment_type}`
+														)
+														.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td>${this.escapeHtml(
+												patient.diagnosis ||
+													i18n.t("common.unknown")
+											)}</td>
+                                            <td>
+                                                ${
+													patient.discharge_time
+														? `<span class="badge bg-secondary">${i18n.t(
+																"common.discharged"
+														  )}</span><br><small>${i18n.formatDate(
+																patient.discharge_time
+														  )}</small>`
+														: `<span class="badge bg-success">${i18n.t(
+																"common.active"
+														  )}</span>`
+												}
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>${i18n.formatNumber(
+													patient.hours_worked,
+													1
+												)}h</strong>
+                                            </td>
+                                        </tr>
+                                    `
+										)
+										.join("")}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <td colspan="4" class="text-end">
+                                            <strong>${i18n.t(
+												"common.total"
+											)}:</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>
+                                                ${i18n.formatNumber(
+													patients.reduce(
+														(sum: number, p: any) =>
+															sum +
+															(p.hours_worked ||
+																0),
+														0
+													),
+													1
+												)}h
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+	}
+
+	/**
+	 * Print clock-in report
+	 */
+	private async printClockInReport(): Promise<void> {
+		if (!this.currentReportData || !this.currentReportData.data) {
+			this.showError("No report data to print");
+			return;
+		}
+
+		try {
+			await this.generateClockInReportPDF(this.currentReportData.data);
+		} catch (error) {
+			console.error("Error printing clock-in report:", error);
+			this.showError("Failed to generate report");
+		}
+	}
+
+	/**
+	 * Generate PDF for clock-in report
+	 */
+	private async generateClockInReportPDF(data: any[]): Promise<void> {
+		const filters = this.getReportFilters();
+
+		// Calculate totals
+		const totalEmployees = data.length;
+		const totalHours = data.reduce(
+			(sum, emp) => sum + emp.total_hours_worked,
+			0
+		);
+		const totalClockIns = data.reduce(
+			(sum, emp) => sum + emp.total_clock_ins,
+			0
+		);
+		const totalDeductions = data.reduce(
+			(sum, emp) => sum + emp.total_deductions,
+			0
+		);
+
+		const docDefinition = {
+			content: [
+				// Title
+				{
+					text: "Employee Clock-In Report",
+					style: "header",
+					alignment: "center"
+				},
+				{
+					text: `Report Period: ${this.formatDate(
+						filters.start_date
+					)} - ${this.formatDate(filters.end_date)}`,
+					alignment: "center",
+					margin: [0, 0, 0, 5]
+				},
+
+				// Summary section
+				{
+					text: "Summary",
+					style: "sectionHeader"
+				},
+				{
+					columns: [
+						{
+							width: "*",
+							stack: [
+								{
+									text: "Total Employees",
+									fontSize: 10,
+									color: "#666"
+								},
+								{
+									text: totalEmployees.toString(),
+									fontSize: 12,
+									bold: true,
+									margin: [0, 0, 0, 5]
+								}
+							]
+						},
+						{
+							width: "*",
+							stack: [
+								{
+									text: "Total Clock-Ins",
+									fontSize: 10,
+									color: "#666"
+								},
+								{
+									text: totalClockIns.toString(),
+									fontSize: 12,
+									bold: true,
+									margin: [0, 0, 0, 5]
+								}
+							]
+						},
+						{
+							width: "*",
+							stack: [
+								{
+									text: "Total Hours",
+									fontSize: 10,
+									color: "#666"
+								},
+								{
+									text: `${totalHours.toFixed(1)}h`,
+									fontSize: 12,
+									bold: true,
+									margin: [0, 0, 0, 5]
+								}
+							]
+						},
+						{
+							width: "*",
+							stack: [
+								{
+									text: "Total Deductions",
+									fontSize: 10,
+									color: "#666"
+								},
+								{
+									text: `$${totalDeductions.toFixed(2)}`,
+									fontSize: 12,
+									bold: true,
+									color:
+										totalDeductions > 0
+											? "#dc3545"
+											: "#000",
+									margin: [0, 0, 0, 5]
+								}
+							]
+						}
+					],
+					margin: [0, 0, 0, 5]
+				},
+
+				// Employee details
+				...this.generateClockInEmployeePages(data)
+			],
+			styles: {
+				header: {
+					fontSize: 15,
+					bold: true,
+					margin: [0, 0, 0, 5]
+				},
+				sectionHeader: {
+					fontSize: 12,
+					bold: true,
+					margin: [0, 5, 0, 5],
+					color: "#0d6efd"
+				},
+				employeeHeader: {
+					fontSize: 10,
+					bold: true,
+					margin: [0, 5, 0, 5]
+				}
+			},
+			pageMargins: [40, 40, 40, 60],
+			footer: function (currentPage: number, pageCount: number) {
+				return {
+					text: `Page ${currentPage} of ${pageCount} - Generated on ${new Date().toLocaleDateString(
+						"en-GB"
+					)}`,
+					alignment: "center",
+					fontSize: 8,
+					margin: [0, 10, 0, 0]
+				};
+			},
+			defaultStyle: {
+				font: "Segoe UI",
+				noWrap: false
+			},
+			pageSize: "A4",
+			pageOrientation: "landscape"
+		};
+
+		//@ts-ignore
+		const pdf = pdfMake.createPdf(docDefinition);
+		pdf.open();
+		this.showSuccess("Report generated successfully");
+	}
+
+	/**
+	 * Generate detailed pages for each employee's clock-in records
+	 */
+	private generateClockInEmployeePages(employees: any[]): any[] {
+		const content: any[] = [];
+
+		employees.forEach((employee, index) => {
+			// Page break before each employee except the first
+			if (index > 0) {
+				content.push({ text: "", pageBreak: "before" });
+			}
+
+			// Employee header
+			content.push({
+				text: `${employee.employee_name}`,
+				style: "employeeHeader"
+			});
+
+			// Employee summary
+			const attendanceSummary = employee.attendance_summary;
+			content.push({
+				columns: [
+					{
+						width: "*",
+						text: `Shift: ${
+							employee.shift_type
+								? `${this.capitalizeFirst(
+										employee.shift_type
+								  )} (${employee.shift_start_time?.substring(
+										0,
+										5
+								  )} - ${employee.shift_end_time?.substring(
+										0,
+										5
+								  )})`
+								: "N/A"
+						}`,
+						fontSize: 9
+					},
+					{
+						width: "*",
+						text: `Total Hours: ${employee.total_hours_worked.toFixed(
+							1
+						)}h`,
+						fontSize: 9,
+						bold: true
+					},
+					{
+						width: "*",
+						text: `Clock-Ins: ${employee.total_clock_ins}`,
+						fontSize: 9
+					},
+					{
+						width: "*",
+						text: `Punctuality: ${attendanceSummary.punctuality_rate.toFixed(
+							1
+						)}%`,
+						fontSize: 9,
+						color:
+							attendanceSummary.punctuality_rate >= 90
+								? "#28a745"
+								: attendanceSummary.punctuality_rate >= 75
+								? "#ffc107"
+								: "#dc3545"
+					}
+				],
+				margin: [0, 5, 0, 10]
+			});
+
+			// Attendance summary boxes
+			content.push({
+				columns: [
+					{
+						width: "*",
+						stack: [
+							{
+								text: "On Time",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: attendanceSummary.on_time_days.toString(),
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color: "#28a745"
+							}
+						]
+					},
+					{
+						width: "*",
+						stack: [
+							{
+								text: "Late",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: attendanceSummary.late_days.toString(),
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color: "#ffc107"
+							}
+						]
+					},
+					{
+						width: "*",
+						stack: [
+							{
+								text: "Early",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: attendanceSummary.early_days.toString(),
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color: "#17a2b8"
+							}
+						]
+					},
+					{
+						width: "*",
+						stack: [
+							{
+								text: "Missing",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: (
+									attendanceSummary.missing_days || 0
+								).toString(),
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color: "#dc3545"
+							}
+						]
+					},
+					{
+						width: "*",
+						stack: [
+							{
+								text: "Incomplete",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: attendanceSummary.incomplete_days.toString(),
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color: "#dc3545"
+							}
+						]
+					},
+					{
+						width: "*",
+						stack: [
+							{
+								text: "Deductions",
+								fontSize: 8,
+								color: "#666",
+								alignment: "center"
+							},
+							{
+								text: `$${employee.total_deductions.toFixed(
+									2
+								)}`,
+								fontSize: 12,
+								bold: true,
+								alignment: "center",
+								color:
+									employee.total_deductions > 0
+										? "#dc3545"
+										: "#28a745"
+							}
+						]
+					}
+				],
+				margin: [0, 0, 0, 15]
+			});
+
+			// Clock-in records table
+			const tableBody: any[] = [];
+
+			// Header
+			tableBody.push([
+				{
+					text: "Date",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8
+				},
+				{
+					text: "Clock In",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8
+				},
+				{
+					text: "Clock Out",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8
+				},
+				{
+					text: "Hours",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					alignment: "center"
+				},
+				{
+					text: "Status",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					alignment: "center"
+				},
+				{
+					text: "Patients",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8
+				},
+				{
+					text: "Deduction",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					alignment: "right"
+				}
+			]);
+
+			// Data rows
+			employee.clock_in_records.forEach((record: any) => {
+				const patients = record.patients || [];
+				const patientNames =
+					patients.length > 0
+						? patients.map((p: any) => p.patient_name).join(", ")
+						: "-";
+				// Handle missing clock-in
+				if (record.is_missing || record.status === "missing") {
+					tableBody.push([
+						{
+							text: this.formatDate(record.date),
+							fontSize: 7,
+							bold: true
+						},
+						{
+							text: "NO RECORD",
+							fontSize: 7,
+							alignment: "center",
+							color: "#dc3545",
+							bold: true,
+							colSpan: 2
+						},
+						{},
+						{
+							text: "-",
+							fontSize: 7,
+							alignment: "center"
+						},
+						{
+							text: "Missing",
+							fontSize: 7,
+							alignment: "center",
+							color: "#dc3545",
+							bold: true
+						},
+						{
+							text: patientNames,
+							fontSize: 6,
+							color: patients.length > 0 ? "#000" : "#999",
+							italics: patients.length === 0
+						},
+						{
+							text: "-",
+							fontSize: 7,
+							alignment: "right"
+						}
+					]);
+					return;
+				}
+
+				const statusColor =
+					record.status === "on_time"
+						? "#28a745"
+						: record.status === "late"
+						? "#ffc107"
+						: record.status === "early"
+						? "#17a2b8"
+						: "#dc3545";
+
+				tableBody.push([
+					{
+						text: this.formatDate(record.date || record.clock_in),
+						fontSize: 7
+					},
+					{
+						text: record.clock_in
+							? this.formatDateTime(record.clock_in)
+							: "-",
+						fontSize: 7
+					},
+					{
+						text: record.clock_out
+							? this.formatDateTime(record.clock_out)
+							: "Pending",
+						fontSize: 7,
+						color: record.clock_out ? "#000" : "#ffc107"
+					},
+					{
+						text:
+							record.hours_worked > 0
+								? `${record.hours_worked.toFixed(2)}h`
+								: "-",
+						fontSize: 7,
+						alignment: "center"
+					},
+					{
+						text: this.capitalizeFirst(
+							record.status.replace("_", " ")
+						),
+						fontSize: 7,
+						alignment: "center",
+						color: statusColor,
+						bold: record.status !== "on_time"
+					},
+					{
+						text: patientNames,
+						fontSize: 6,
+						color: patients.length > 0 ? "#000" : "#999",
+						italics: patients.length === 0
+					},
+					{
+						text:
+							record.pay_deduction > 0
+								? `$${record.pay_deduction.toFixed(2)}`
+								: "-",
+						fontSize: 7,
+						alignment: "right",
+						color: record.pay_deduction > 0 ? "#dc3545" : "#000",
+						bold: record.pay_deduction > 0
+					}
+				]);
+			});
+
+			// Total row
+			tableBody.push([
+				{
+					text: "TOTAL",
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					colSpan: 3
+				},
+				{},
+				{},
+				{
+					text: `${employee.total_hours_worked.toFixed(1)}h`,
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					alignment: "center"
+				},
+				{
+					text: `Avg: ${employee.avg_hours_per_day.toFixed(1)}h/day`,
+					fillColor: "#f0f0f0",
+					fontSize: 7,
+					alignment: "center"
+				},
+				{
+					text: "",
+					fillColor: "#f0f0f0"
+				},
+				{
+					text: `$${employee.total_deductions.toFixed(2)}`,
+					bold: true,
+					fillColor: "#f0f0f0",
+					fontSize: 8,
+					alignment: "right",
+					color: employee.total_deductions > 0 ? "#dc3545" : "#000"
+				}
+			]);
+
+			content.push({
+				table: {
+					headerRows: 1,
+					widths: [
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"*",
+						"auto"
+					],
+					body: tableBody
+				},
+				layout: {
+					fillColor: function (rowIndex: number, node: any) {
+						if (
+							rowIndex === 0 ||
+							rowIndex === node.table.body.length - 1
+						) {
+							return "#f0f0f0";
+						}
+						// Highlight missing records
+						const record = employee.clock_in_records[rowIndex - 1];
+						if (
+							record &&
+							(record.is_missing || record.status === "missing")
+						) {
+							return "#ffe5e5";
+						}
+						return rowIndex % 2 === 0 ? "#f9f9f9" : null;
+					},
+					hLineWidth: function (i: number, node: any) {
+						if (i === 0 || i === node.table.body.length) return 1;
+						if (i === node.table.body.length - 1) return 2;
+						return 0.5;
+					},
+					vLineWidth: function () {
+						return 0.5;
+					}
+				},
+				margin: [0, 0, 0, 20]
+			});
+		});
+
+		return content;
+	}
+
 	// ==================== HELPER METHODS ====================
 
 	private refreshCurrentReport(): void {
@@ -7315,6 +8907,12 @@ class ReportsManager {
 				break;
 			case "employee-payments":
 				this.displayEmployeePaymentReport(this.currentReportData.data);
+				break;
+			case "clock-in":
+				this.displayClockInReport(
+					this.currentReportData.data,
+					this.currentReportData.chartData
+				);
 				break;
 		}
 
