@@ -6,6 +6,7 @@ import PatientModel from "../models/Patient.model.js";
 export class PatientAutoRenewalCron {
 	private serviceRenewalJob: CronJob;
 	private drugAdministrationJob: CronJob;
+	private medicalSupplyAdministrationJob: CronJob;
 
 	constructor() {
 		// Run service renewal every hour
@@ -25,18 +26,29 @@ export class PatientAutoRenewalCron {
 			false,
 			"system"
 		);
+
+		// Run medical supply administration check every minute
+		this.medicalSupplyAdministrationJob = new CronJob(
+			"0 * * * * *", // Every minute
+			this.processMedicalSupplyAdministrations.bind(this),
+			null,
+			false,
+			"system"
+		);
 	}
 
 	start() {
 		console.log("Starting patient auto-renewal cron jobs...");
 		this.serviceRenewalJob.start();
 		this.drugAdministrationJob.start();
+		this.medicalSupplyAdministrationJob.start();
 	}
 
 	stop() {
 		console.log("Stopping patient auto-renewal cron jobs...");
 		this.serviceRenewalJob.stop();
 		this.drugAdministrationJob.stop();
+		this.medicalSupplyAdministrationJob.stop();
 	}
 
 	private async processServiceRenewals(): Promise<void> {
@@ -267,7 +279,7 @@ export class PatientAutoRenewalCron {
 		try {
 			// Get drugs that need replenishment (remaining quantity <= 0 and patient still active)
 			const replenishmentSql = `
-                SELECT 
+                SELECT DISTINCT ON (du.patient_id, du.drug_id)
                     du.usage_id,
                     du.patient_id,
                     du.drug_id,
@@ -293,7 +305,8 @@ export class PatientAutoRenewalCron {
 				        WHERE du2.patient_history_id = du.patient_history_id 
 				            AND du2.drug_id = du.drug_id 
 				            AND du2.remaining_quantity > 0
-				    );
+				    )
+				ORDER BY du.patient_id, du.drug_id, du.usage_id DESC;
             `;
 
 			const replenishmentDrugs = await query(replenishmentSql);
@@ -428,10 +441,8 @@ export class PatientAutoRenewalCron {
 			);
 
 			console.log(
-				`Replenished ${
-					drugInfo.sale_quantity - remainingQuantity
-				} units of ${drugInfo.drug_name} for patient ${
-					drugInfo.patient_name
+				`Replenished ${drugInfo.sale_quantity - remainingQuantity
+				} units of ${drugInfo.drug_name} for patient ${drugInfo.patient_name
 				}`
 			);
 
@@ -623,6 +634,270 @@ export class PatientAutoRenewalCron {
 		const systemUserId = userResult.rows[0].user_id;
 
 		return systemUserId;
+	}
+
+	// Medical Supply Administration Methods
+	private async processMedicalSupplyAdministrations(): Promise<void> {
+		try {
+			console.log("Processing medical supply administrations...");
+
+			// Get medical supplies that need administration
+			const pendingSuppliesSql = `
+                SELECT 
+                    msu.usage_id,
+                    msu.patient_id,
+                    msu.supply_id,
+                    msu.remaining_quantity,
+                    msu.last_administered,
+                    ms.name as supply_name,
+                    ms.frequency,
+                    ms.is_obligatory_continuous,
+                    ms.sale_quantity,
+                    ph.bill_id,
+                    p.name as patient_name,
+                    COALESCE(
+                        msu.last_administered + ms.frequency::interval,
+                        CURRENT_TIMESTAMP
+                    ) as next_administration
+                FROM MedicalSupplyUsage msu
+                JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
+                JOIN Patient p ON msu.patient_id = p.patient_id
+                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+                    AND ph.discharge_time IS NULL
+					AND msu.patient_history_id = ph.patient_history_id
+                WHERE 
+                    msu.remaining_quantity > 0
+                    AND p.is_active = true
+                    AND ms.frequency IS NOT NULL
+                    AND (
+                        msu.last_administered IS NULL
+                        OR CURRENT_TIMESTAMP >= msu.last_administered + ms.frequency::interval
+                    );
+            `;
+
+			const pendingSupplies = await query(pendingSuppliesSql);
+
+			for (const supplyUsage of pendingSupplies.rows) {
+				await this.administerMedicalSupply(supplyUsage);
+			}
+
+			// Check for medical supplies that need replenishment
+			await this.checkMedicalSupplyReplenishment();
+
+			console.log(
+				`Processed ${pendingSupplies.rows.length} medical supply administrations`
+			);
+		} catch (error) {
+			console.error("Error processing medical supply administrations:", error);
+		}
+	}
+
+	private async administerMedicalSupply(supplyUsage: any): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Update last administered time and reduce remaining quantity by 1
+			await query(
+				`UPDATE MedicalSupplyUsage 
+                 SET last_administered = CURRENT_TIMESTAMP,
+                     remaining_quantity = remaining_quantity - 1
+                 WHERE usage_id = $1`,
+				[supplyUsage.usage_id]
+			);
+
+			console.log(
+				`Administered ${supplyUsage.supply_name} to patient ${supplyUsage.patient_name}`
+			);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error administering medical supply ${supplyUsage.supply_name} to patient ${supplyUsage.patient_id}:`,
+				error
+			);
+		}
+	}
+
+	private async checkMedicalSupplyReplenishment(): Promise<void> {
+		try {
+			// Get medical supplies that need replenishment (remaining quantity <= 0 and patient still active)
+			const replenishmentSql = `
+                SELECT DISTINCT ON (msu.patient_id, msu.supply_id)
+                    msu.usage_id,
+                    msu.patient_id,
+                    msu.supply_id,
+                    msu.remaining_quantity,
+                    ms.name as supply_name,
+                    ms.sale_quantity,
+                    ms.is_obligatory_continuous,
+                    ph.bill_id,
+                    p.name as patient_name
+                FROM MedicalSupplyUsage msu
+                JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
+                JOIN Patient p ON msu.patient_id = p.patient_id
+                JOIN PatientHistory ph ON p.patient_id = ph.patient_id 
+                    AND ph.discharge_time IS NULL
+					AND msu.patient_history_id = ph.patient_history_id
+                WHERE 
+                    msu.remaining_quantity <= 0
+                    AND p.is_active = true
+                    AND ms.is_obligatory_continuous = true
+					AND NOT EXISTS (
+				        SELECT 1 
+				        FROM MedicalSupplyUsage msu2 
+				        WHERE msu2.patient_history_id = msu.patient_history_id 
+				            AND msu2.supply_id = msu.supply_id 
+				            AND msu2.remaining_quantity > 0
+				    )
+                ORDER BY msu.patient_id, msu.supply_id, msu.usage_id DESC;
+            `;
+
+			const replenishmentSupplies = await query(replenishmentSql);
+
+			for (const supplyInfo of replenishmentSupplies.rows) {
+				await this.replenishMedicalSupply(supplyInfo);
+			}
+
+			if (replenishmentSupplies.rows.length > 0) {
+				console.log(
+					`Replenished ${replenishmentSupplies.rows.length} medical supplies`
+				);
+			}
+		} catch (error) {
+			console.error("Error checking medical supply replenishment:", error);
+		}
+	}
+
+	private async replenishMedicalSupply(supplyInfo: any): Promise<void> {
+		try {
+			await query("BEGIN");
+
+			// Get system user ID
+			const systemUserId = await this.getSystemUserId();
+			if (!systemUserId) {
+				throw new Error("System user not found");
+			}
+
+			// Get available shipments (FIFO - First to expire, first out)
+			const availableShipmentsSql = `
+        	    SELECT mss.*, mssp.price
+        	    FROM MedicalSupplyShipment mss
+        	    JOIN MedicalSupplyShipmentPrice mssp ON mss.shipment_id = mssp.shipment_id
+        	    JOIN PriceList pl ON mssp.pricelist_id = pl.pricelist_id
+        	    WHERE mss.supply_id = $1 AND mss.quantity > 0 AND pl.is_default = true
+        	    ORDER BY mss.expiry_date ASC NULLS LAST;
+        	`;
+			const shipmentsResult = await query(availableShipmentsSql, [
+				supplyInfo.supply_id
+			]);
+
+			if (shipmentsResult.rows.length === 0) {
+				console.warn(
+					`No available shipments for medical supply ${supplyInfo.supply_name} - patient ${supplyInfo.patient_id}`
+				);
+				await query("ROLLBACK");
+				return;
+			}
+
+			let remainingQuantity = supplyInfo.sale_quantity;
+
+			for (const shipment of shipmentsResult.rows) {
+				if (remainingQuantity <= 0) break;
+
+				const quantityToDispense = Math.min(
+					remainingQuantity,
+					shipment.quantity
+				);
+
+				// Create medical supply transaction
+				const transactionSql = `
+            	    INSERT INTO MedicalSupplyTransaction (
+            	        shipment_id, transaction_type, quantity, price, created_by_user_id
+            	    ) VALUES ($1, 'patient', $2, $3, $4)
+            	    RETURNING transaction_id;
+				`;
+				const transactionResult = await query(transactionSql, [
+					shipment.shipment_id,
+					quantityToDispense,
+					shipment.price,
+					systemUserId
+				]);
+
+				// Update shipment quantity
+				await query(
+					"UPDATE MedicalSupplyShipment SET quantity = quantity - $1 WHERE shipment_id = $2",
+					[quantityToDispense, shipment.shipment_id]
+				);
+
+				const currentAdmission = await PatientModel.getCurrentAdmission(
+					supplyInfo.patient_id
+				);
+
+				// Create new medical supply usage record
+				await query(
+					`INSERT INTO MedicalSupplyUsage (
+						patient_id, supply_id, transaction_id, patient_history_id, remaining_quantity, last_administered
+					) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+					[
+						supplyInfo.patient_id,
+						supplyInfo.supply_id,
+						transactionResult.rows[0].transaction_id,
+						currentAdmission!.patient_history_id,
+						quantityToDispense
+					]
+				);
+
+				// Add to bill details
+				await query(
+					`INSERT INTO BillDetail (
+                	    bill_id, medical_supply_shipment_id, quantity, unit_price, 
+                	    charge_type, sale_type, generated_at
+                	) VALUES ($1, $2, $3, $4, 'auto_supply_replenishment', 'admitted', CURRENT_TIMESTAMP)`,
+					[
+						supplyInfo.bill_id,
+						shipment.shipment_id,
+						quantityToDispense,
+						shipment.price
+					]
+				);
+
+				remainingQuantity -= quantityToDispense;
+			}
+
+			if (remainingQuantity > 0) {
+				console.warn(
+					`Could not fully replenish ${supplyInfo.supply_name} for patient ${supplyInfo.patient_name} - short by ${remainingQuantity} units`
+				);
+			}
+
+			// Update bill total
+			await query(
+				`UPDATE Bill 
+            	 SET total_amount = (
+            	     SELECT COALESCE(SUM(quantity * unit_price), 0)
+            	     FROM BillDetail 
+            	     WHERE bill_id = $1
+            	 ),
+            	 updated_at = CURRENT_TIMESTAMP
+            	 WHERE bill_id = $1`,
+				[supplyInfo.bill_id]
+			);
+
+			console.log(
+				`Replenished ${supplyInfo.sale_quantity - remainingQuantity
+				} units of ${supplyInfo.supply_name} for patient ${supplyInfo.patient_name
+				}`
+			);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			console.error(
+				`Error replenishing medical supply ${supplyInfo.supply_name} for patient ${supplyInfo.patient_id}:`,
+				error
+			);
+		}
 	}
 }
 

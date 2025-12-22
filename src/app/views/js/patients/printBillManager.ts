@@ -5,11 +5,13 @@ import { i18n } from "../utils/i18n.js";
 
 interface PrintBillItem {
 	id: string;
-	type: "service" | "drug";
+	type: "service" | "drug" | "supply";
 	service_id?: number;
 	service_name?: string;
 	drug_shipment_id?: number;
 	drug_name?: string;
+	medical_supply_shipment_id?: number;
+	medical_supply_name?: string;
 	description: string;
 	quantity: number;
 	unit_price: number;
@@ -176,22 +178,31 @@ export class PrintBillManager {
 		billDetails.forEach((detail) => {
 			const key = detail.service_id
 				? `service_${detail.service_id}`
-				: `drug_${detail.drug_shipment_id}`;
+				: detail.drug_shipment_id
+					? `drug_${detail.drug_shipment_id}`
+					: `supply_${detail.medical_supply_shipment_id}`;
 
 			if (grouped.has(key)) {
 				const existing = grouped.get(key)!;
 				existing.quantity += detail.quantity;
 			} else {
+				let type: "service" | "drug" | "supply" = "supply";
+				if (detail.service_id) type = "service";
+				else if (detail.drug_shipment_id) type = "drug";
+
 				grouped.set(key, {
 					id: key,
-					type: detail.service_id ? "service" : "drug",
+					type: type,
 					service_id: detail.service_id,
 					service_name: detail.service_name,
 					drug_shipment_id: detail.drug_shipment_id,
 					drug_name: detail.drug_name,
+					medical_supply_shipment_id: detail.medical_supply_shipment_id,
+					medical_supply_name: detail.medical_supply_name,
 					description:
 						detail.service_name ||
 						detail.drug_name ||
+						detail.medical_supply_name ||
 						i18n.t("patients.printBill.unknownItem"),
 					quantity: detail.quantity,
 					unit_price: detail.unit_price
@@ -263,11 +274,12 @@ export class PrintBillManager {
             <tr>
                 <td>
                     <div class="fw-medium">${this.escapeHtml(
-						item.description
-					)}</div>
-                    <small class="text-muted">${
-						item.type === "service"
-							? i18n.t("patients.printBill.itemTypes.service")
+					item.description
+				)}</div>
+                    <small class="text-muted">${item.type === "service"
+						? i18n.t("patients.printBill.itemTypes.service")
+						: item.type === "supply"
+							? i18n.t("patients.printBill.itemTypes.supply")
 							: i18n.t("patients.printBill.itemTypes.drug")
 					}</small>
                 </td>
@@ -282,8 +294,8 @@ export class PrintBillManager {
                            onchange="window.printBillManager.updatePrintItemPrice(${index}, this.value)">
                 </td>
                 <td class="fw-bold">${i18n.formatCurrency(
-					item.quantity * item.unit_price
-				)}</td>
+						item.quantity * item.unit_price
+					)}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-danger" 
                             onclick="window.printBillManager.removePrintItem(${index})"
@@ -322,9 +334,10 @@ export class PrintBillManager {
 	}
 
 	private calculatePrintBilling(): void {
-		// Calculate services and drugs totals separately
+		// Calculate services, drugs, and supplies totals separately
 		let servicesTotal = 0;
 		let drugsTotal = 0;
+		let suppliesTotal = 0;
 
 		this.customBillItems.forEach((item) => {
 			const lineTotal = item.quantity * item.unit_price;
@@ -332,10 +345,12 @@ export class PrintBillManager {
 				servicesTotal += lineTotal;
 			} else if (item.type === "drug") {
 				drugsTotal += lineTotal;
+			} else if (item.type === "supply") {
+				suppliesTotal += lineTotal; // Separate total for supplies
 			}
 		});
 
-		const subtotal = servicesTotal + drugsTotal;
+		const subtotal = servicesTotal + drugsTotal + suppliesTotal;
 
 		// Get form values
 		const includeDiscount = (
@@ -382,6 +397,8 @@ export class PrintBillManager {
 		const totalAfterDiscount = subtotal - discountAmount;
 
 		// Calculate VAT based on scope (matching the patients file logic)
+		// Calculate VAT based on scope (matching the patients file logic)
+		// User requirement: VAT will be calculated on both the drugs and supplies totals grouped together
 		let vatBase = 0;
 		if (subtotal > 0) {
 			// Avoid division by zero
@@ -392,8 +409,10 @@ export class PrintBillManager {
 						discountAmount * (servicesTotal / subtotal);
 					break;
 				case "drugs":
+					// Include supplies in "drugs" scope
 					vatBase =
-						drugsTotal - discountAmount * (drugsTotal / subtotal);
+						(drugsTotal + suppliesTotal) -
+						discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
 					break;
 				case "both":
 				default:
@@ -417,6 +436,8 @@ export class PrintBillManager {
 			i18n.formatCurrency(servicesTotal);
 		document.getElementById("printDrugsTotal")!.textContent =
 			i18n.formatCurrency(drugsTotal);
+		document.getElementById("printSuppliesTotal")!.textContent =
+			i18n.formatCurrency(suppliesTotal);
 		document.getElementById("printDiscountAmount")!.textContent =
 			i18n.formatCurrency(discountAmount);
 		document.getElementById("printVatAmount")!.textContent =
@@ -474,31 +495,29 @@ export class PrintBillManager {
 					service.price ||
 					0;
 				return `
-				<div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${
-					service.service_id
-				})">
+				<div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${service.service_id
+					})">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="print-item-name">${this.escapeHtml(
-								service.name
-							)}</div>
+						service.name
+					)}</div>
                             <div class="print-item-details">
                                 ${i18n.t(
-									"patients.printBill.type"
-								)}: ${this.formatServiceType(
-					service.service_type
-				)}
-                                ${
-									service.auto_renew
-										? " • " +
-										  i18n.t("patients.printBill.autoRenew")
-										: ""
-								}
+						"patients.printBill.type"
+					)}: ${this.formatServiceType(
+						service.service_type
+					)}
+                                ${service.auto_renew
+						? " • " +
+						i18n.t("patients.printBill.autoRenew")
+						: ""
+					}
                             </div>
                         </div>
                         <div class="print-item-price">${i18n.formatCurrency(
-							price
-						)}</div>
+						price
+					)}</div>
                     </div>
                 </div>
             `;
@@ -533,31 +552,27 @@ export class PrintBillManager {
 						)!.price;
 
 						return `
-			            <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${
-							drug.drug_id
-						}, ${sellingPrice})">
+			            <div class="print-item-row" onclick="window.printBillManager.addPrintItem('drug', ${drug.drug_id
+							}, ${sellingPrice})">
 			                <div class="d-flex justify-content-between align-items-center">
 			                    <div>
 			                        <div class="print-item-name">${this.escapeHtml(
-										drug.name
-									)}</div>
+								drug.name
+							)}</div>
 			                        <div class="print-item-details">
-			                            ${i18n.t("patients.printBill.available")}: ${
-							drug.available_quantity
-						} ${
-							drug.unit_conversion?.smaller ||
+			                            ${i18n.t("patients.printBill.available")}: ${drug.available_quantity
+							} ${drug.unit_conversion?.smaller ||
 							i18n.t("common.units")
-						}
-			                            ${
-											drug.manufacturer
-												? ` • ${drug.manufacturer}`
-												: ""
-										}
+							}
+			                            ${drug.manufacturer
+								? ` • ${drug.manufacturer}`
+								: ""
+							}
 			                        </div>
 			                    </div>
 			                    <div class="print-item-price">${i18n.formatCurrency(
-									sellingPrice || 0
-								)}</div>
+								sellingPrice || 0
+							)}</div>
 			                </div>
 			            </div>
 			        `;
@@ -612,31 +627,29 @@ export class PrintBillManager {
 					service.price ||
 					0;
 				return `
-                <div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${
-					service.service_id
-				})">
+                <div class="print-item-row" onclick="window.printBillManager.addPrintItem('service', ${service.service_id
+					})">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="print-item-name">${this.escapeHtml(
-								service.name
-							)}</div>
+						service.name
+					)}</div>
                             <div class="print-item-details">
                                 ${i18n.t(
-									"patients.printBill.type"
-								)}: ${this.formatServiceType(
-					service.service_type
-				)}
-                                ${
-									service.auto_renew
-										? " • " +
-										  i18n.t("patients.printBill.autoRenew")
-										: ""
-								}
+						"patients.printBill.type"
+					)}: ${this.formatServiceType(
+						service.service_type
+					)}
+                                ${service.auto_renew
+						? " • " +
+						i18n.t("patients.printBill.autoRenew")
+						: ""
+					}
                             </div>
                         </div>
                         <div class="print-item-price">${i18n.formatCurrency(
-							price
-						)}</div>
+						price
+					)}</div>
                     </div>
                 </div>
             `;
@@ -773,21 +786,30 @@ export class PrintBillManager {
 			// Calculate totals
 			let servicesTotal = 0;
 			let drugsTotal = 0;
+			let suppliesTotal = 0;
 			this.customBillItems.forEach((item) => {
 				const lineTotal = item.quantity * item.unit_price;
 				if (item.type === "service") {
 					servicesTotal += lineTotal;
 				} else if (item.type === "drug") {
 					drugsTotal += lineTotal;
+				} else if (item.type === "supply") {
+					suppliesTotal += lineTotal;
 				}
 			});
 
-			const subtotal = servicesTotal + drugsTotal;
+			const subtotal = servicesTotal + drugsTotal + suppliesTotal;
+
 			const discountAmount = includeDiscount
 				? isDiscountPercentage
 					? (subtotal * discount) / 100
 					: discount
 				: 0;
+
+			const totalAfterDiscount = subtotal - discountAmount;
+
+			// Calculate VAT based on scope
+			// Include supplies with drugs for VAT calculation as requested
 			let vatBase = 0;
 			if (subtotal > 0) {
 				switch (vatScope) {
@@ -798,19 +820,19 @@ export class PrintBillManager {
 						break;
 					case "drugs":
 						vatBase =
-							drugsTotal -
-							discountAmount * (drugsTotal / subtotal);
+							(drugsTotal + suppliesTotal) -
+							discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
 						break;
 					case "both":
 					default:
-						vatBase = subtotal - discountAmount;
+						vatBase = totalAfterDiscount;
 						break;
 				}
 			}
 
 			const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
 			const totalAmount =
-				subtotal - discountAmount + vatAmount + adminExpenses;
+				totalAfterDiscount + vatAmount + adminExpenses;
 
 			// Create custom bill object
 			const customBill = {
@@ -818,9 +840,14 @@ export class PrintBillManager {
 				discount: includeDiscount ? discountAmount : 0,
 				discount_type: isDiscountPercentage ? "percentage" : "fixed",
 				vat_percentage: vatPercentage,
+				vat_amount: vatAmount, // Pass calculated VAT amount
 				administrative_expenses: adminExpenses,
 				total_amount: totalAmount,
-				show_discount: includeDiscount
+				show_discount: includeDiscount,
+				vat_scope: vatScope || "both",
+				servicesTotal,
+				drugsTotal,
+				suppliesTotal
 			};
 
 			// Generate PDF with custom data

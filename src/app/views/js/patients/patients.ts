@@ -103,6 +103,13 @@ interface DrugPrice {
 	prepayment_type: string;
 }
 
+interface PriceList {
+	pricelist_id: number;
+	name: string;
+	is_default: boolean;
+	rounding_rule: string;
+}
+
 interface BillDetail {
 	bill_id: number;
 	bill_detail_id: number;
@@ -110,11 +117,25 @@ interface BillDetail {
 	service_name: string | null;
 	drug_shipment_id: number | null;
 	drug_name: string | null;
+	medical_supply_shipment_id: number | null;
+	medical_supply_name: string | null;
+	supply_id: number | null;
 	quantity: number;
 	unit_price: number;
 	charge_type: string;
 	sale_type: string;
 	generated_at: Date;
+}
+
+interface MedicalSupply {
+	supply_id: number;
+	name: string;
+	manufacturer: string | null;
+	provider: string | null;
+	is_obligatory_continuous: boolean;
+	sale_quantity: number;
+	frequency: { minutes: number } | null;
+	min_stock_alert: number | null;
 }
 
 interface Bill {
@@ -184,6 +205,8 @@ class PatientManager {
 	private editStaffAssignmentModal: Modal;
 	//@ts-ignore
 	private settleBillModal: Modal;
+	//@ts-ignore
+	private addSupplyModal: Modal;
 
 	private currentPatient: Patient | null = null;
 	private currentAdmission: PatientHistory | null = null;
@@ -197,6 +220,8 @@ class PatientManager {
 	private availableDrugs: Drug[] = [];
 	private assignedServices: any[] = [];
 	private assignedDrugs: any[] = [];
+	private assignedSupplies: any[] = [];
+	private availableSupplies: MedicalSupply[] = [];
 	private servicePrices: Map<number, number> = new Map();
 	private clockedInStaff: ClockedInEmployee[] = [];
 	private staffAssignments: Map<number, StaffAssignment[]> = new Map();
@@ -255,6 +280,11 @@ class PatientManager {
 		//@ts-ignore
 		this.settleBillModal = new bootstrap.Modal(
 			document.getElementById("settleBillModal")!
+		);
+
+		//@ts-ignore
+		this.addSupplyModal = new bootstrap.Modal(
+			document.getElementById("addSupplyModal")!
 		);
 
 		this.waitForI18n().then(() => {
@@ -349,6 +379,23 @@ class PatientManager {
 
 		document.getElementById("addDrugBtn")?.addEventListener("click", () => {
 			this.showAddDrugModal();
+		});
+
+		document.getElementById("addSupplyBtn")?.addEventListener("click", () => {
+			this.showAddSupplyModal();
+		});
+
+		document.getElementById("addPrintSupplyBtn")?.addEventListener("click", () => {
+			this.showAddSupplyModal();
+		});
+
+		// Supply search
+		const supplySearchInput = document.getElementById(
+			"supplySearch"
+		) as HTMLInputElement;
+		supplySearchInput?.addEventListener("input", (e) => {
+			const searchTerm = (e.target as HTMLInputElement).value;
+			this.handleSupplySearch(searchTerm);
 		});
 
 		// Billing calculations
@@ -493,7 +540,7 @@ class PatientManager {
 				if (
 					!this.currentPatient ||
 					document.getElementById("patientContent")!.style.display ===
-						"none"
+					"none"
 				) {
 					document.getElementById(
 						"patientListContainer"
@@ -568,20 +615,19 @@ class PatientManager {
 		patients.forEach((patient) => {
 			const admitted = patient.is_active
 				? `<span class="badge bg-success">${i18n.t(
-						"common.yes"
-				  )}</span>`
+					"common.yes"
+				)}</span>`
 				: `<span class="badge bg-secondary">${i18n.t(
-						"common.no"
-				  )}</span>`;
+					"common.no"
+				)}</span>`;
 			const insurance =
 				patient.payment_type === "insurance"
 					? this.insuranceCompanies.find(
-							(c) => c.insurance_id === patient.insurance_id
-					  )?.name || "-"
+						(c) => c.insurance_id === patient.insurance_id
+					)?.name || "-"
 					: "-";
 			tableHtml += `
-				<tr onclick="patientManager.selectPatient(${
-					patient.patient_id
+				<tr onclick="patientManager.selectPatient(${patient.patient_id
 				})" style="cursor: pointer;">
 					<td>${this.escapeHtml(patient.name)}</td>
 					<td>${this.escapeHtml(patient.national_id || "-")}</td>
@@ -756,8 +802,7 @@ class PatientManager {
 			this.doctors
 				.map(
 					(doctor) =>
-						`<option value="${
-							doctor.employee_id
+						`<option value="${doctor.employee_id
 						}">${this.escapeHtml(doctor.name)} (${i18n.t(
 							`patients.doctorTypes.${doctor.doctor_type}`
 						)})</option>`
@@ -770,15 +815,13 @@ class PatientManager {
 				(doctor) => `
             <div class="form-check doctor-checkbox">
                 <input class="form-check-input" type="checkbox" 
-                       value="${doctor.employee_id}" id="doctor_${
-					doctor.employee_id
-				}">
-                <label class="form-check-label" for="doctor_${
-					doctor.employee_id
-				}">
+                       value="${doctor.employee_id}" id="doctor_${doctor.employee_id
+					}">
+                <label class="form-check-label" for="doctor_${doctor.employee_id
+					}">
                     ${this.escapeHtml(doctor.name)} (${i18n.t(
-					`patients.doctorTypes.${doctor.doctor_type}`
-				)})
+						`patients.doctorTypes.${doctor.doctor_type}`
+					)})
                 </label>
             </div>
         `
@@ -797,12 +840,10 @@ class PatientManager {
 				(nurse) => `
             <div class="form-check nurse-checkbox">
                 <input class="form-check-input" type="checkbox" 
-                       value="${nurse.employee_id}" id="nurse_${
-					nurse.employee_id
-				}">
-                <label class="form-check-label" for="nurse_${
-					nurse.employee_id
-				}">
+                       value="${nurse.employee_id}" id="nurse_${nurse.employee_id
+					}">
+                <label class="form-check-label" for="nurse_${nurse.employee_id
+					}">
                     ${this.escapeHtml(nurse.name)}
                 </label>
             </div>
@@ -822,10 +863,8 @@ class PatientManager {
 			this.insuranceCompanies
 				.map(
 					(company) =>
-						`<option value="${
-							company.insurance_id
-						}" data-pricelist-id="${
-							company.pricelist_id || ""
+						`<option value="${company.insurance_id
+						}" data-pricelist-id="${company.pricelist_id || ""
 						}">${this.escapeHtml(company.name)}</option>`
 				)
 				.join("");
@@ -990,11 +1029,13 @@ class PatientManager {
 				await Promise.all([
 					this.loadAssignedServices(patientId),
 					this.loadAssignedDrugs(patientId),
+					this.loadAssignedSupplies(patientId),
 					this.loadCurrentBill(this.currentAdmission.bill_id!)
 				]);
 			} else {
 				this.assignedServices = [];
 				this.assignedDrugs = [];
+				this.assignedSupplies = [];
 				this.currentBill = null;
 			}
 
@@ -1086,6 +1127,25 @@ class PatientManager {
 		} catch (error) {
 			console.error("Error loading assigned drugs:", error);
 			this.assignedDrugs = [];
+		}
+	}
+
+	private async loadAssignedSupplies(patientId: number): Promise<void> {
+		try {
+			const response = await fetch(`/api/pharmacy/medical-supply-usages/patient-history/${patientId}`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (response.ok) {
+				this.assignedSupplies = await response.json();
+			} else {
+				this.assignedSupplies = [];
+			}
+		} catch (error) {
+			console.error("Error loading assigned supplies:", error);
+			this.assignedSupplies = [];
 		}
 	}
 
@@ -1189,6 +1249,7 @@ class PatientManager {
 		// Update assigned services and drugs
 		this.updateAssignedServicesDisplay();
 		this.updateAssignedDrugsDisplay();
+		this.updateAssignedSuppliesDisplay();
 	}
 
 	private getPriceListName(): string {
@@ -1241,8 +1302,8 @@ class PatientManager {
     		    <div class="assigned-item">
     		        <div class="assigned-item-info">
     		            <div class="assigned-item-name">${this.escapeHtml(
-							service.name
-						)}</div>
+					service.name
+				)}</div>
     		            <div class="assigned-item-details">
     		                ${i18n.t("patients.table.type")}: ${this.formatServiceType(
 					service.service_type
@@ -1250,40 +1311,36 @@ class PatientManager {
     		                ${i18n.t("patients.table.started")}: ${i18n.formatDate(
 					service.start_date
 				)}
-    		                ${
-								service.end_date
-									? ` • ${i18n.t(
-											"patients.table.ended"
-									  )}: ${i18n.formatDate(service.end_date)}`
-									: ""
-							}
+    		                ${service.end_date
+						? ` • ${i18n.t(
+							"patients.table.ended"
+						)}: ${i18n.formatDate(service.end_date)}`
+						: ""
+					}
     		            </div>
     		        </div>
     		        <div class="assigned-item-actions">
     		            <button class="btn btn-sm btn-outline-danger"
-    		                    onclick="patientManager.removeService(${
-									service.active_service_id
-								})">
+    		                    onclick="patientManager.removeService(${service.active_service_id
+					})">
     		                <i class="bi bi-trash"></i> ${i18n.t(
-								"patients.buttons.remove"
-							)}
+						"patients.buttons.remove"
+					)}
     		            </button>
-    		            ${
-							service.is_active
-								? `
+    		            ${service.is_active
+						? `
     		                <button class="btn btn-sm btn-outline-warning" 
-    		                        onclick="patientManager.stopService(${
-										service.service_id
-									})">
+    		                        onclick="patientManager.stopService(${service.service_id
+						})">
     		                    <i class="bi bi-pause-circle"></i> ${i18n.t(
-									"patients.buttons.stop"
-								)}
+							"patients.buttons.stop"
+						)}
     		                </button>
     		            `
-								: `<span class="badge bg-secondary align-self-center">${i18n.t(
-										"patients.status.inactive"
-								  )}</span>`
-						}
+						: `<span class="badge bg-secondary align-self-center">${i18n.t(
+							"patients.status.inactive"
+						)}</span>`
+					}
     		        </div>
     		    </div>
     		`
@@ -1348,39 +1405,36 @@ class PatientManager {
     		    <div class="assigned-item">
     		        <div class="assigned-item-info">
     		            <div class="assigned-item-name">${this.escapeHtml(
-							drug.drug_name
-						)}</div>
+					drug.drug_name
+				)}</div>
     		            <div class="assigned-item-details">
-    		                ${i18n.t("patients.table.remaining")}: ${
-					drug.remaining_quantity
-				} ${drug.unit_conversion?.smaller || "units"}
-    		                ${
-								drug.last_administered
-									? ` • ${i18n.t(
-											"patients.table.lastAdministered"
-									  )}: ${i18n.formatDateTime(
-											drug.last_administered
-									  )}`
-									: ` • ${i18n.t(
-											"patients.table.notAdministeredYet"
-									  )}`
-							}
+    		                ${i18n.t("patients.table.remaining")}: ${drug.remaining_quantity
+					} ${drug.unit_conversion?.smaller || "units"}
+    		                ${drug.last_administered
+						? ` • ${i18n.t(
+							"patients.table.lastAdministered"
+						)}: ${i18n.formatDateTime(
+							drug.last_administered
+						)}`
+						: ` • ${i18n.t(
+							"patients.table.notAdministeredYet"
+						)}`
+					}
     		            </div>
     		        </div>
     		        <div class="assigned-item-actions">
     		            <button class="btn btn-sm btn-outline-primary" 
-    		                    onclick="patientManager.administerDrug(${
-									drug.usage_id
-								})">
+    		                    onclick="patientManager.administerDrug(${drug.usage_id
+					})">
     		                <i class="bi bi-capsule"></i> ${i18n.t(
-								"patients.buttons.administer"
-							)}
+						"patients.buttons.administer"
+					)}
     		            </button>
     		            <button class="btn btn-sm btn-outline-danger" 
     		                    onclick="patientManager.removeDrug(${drug.usage_id})">
     		                <i class="bi bi-trash"></i> ${i18n.t(
-								"patients.buttons.remove"
-							)}
+						"patients.buttons.remove"
+					)}
     		            </button>
     		        </div>
     		    </div>
@@ -1435,6 +1489,86 @@ class PatientManager {
 		}
 	}
 
+	private updateAssignedSuppliesDisplay(): void {
+		const container = document.getElementById("assignedSupplies")!;
+
+		if (this.assignedSupplies.length === 0) {
+			container.innerHTML = `<div class="text-muted text-center py-3">${i18n.t(
+				"patients.messages.noSuppliesAssigned"
+			)}</div>`;
+			return;
+		}
+
+		container.innerHTML = this.assignedSupplies
+			.map(
+				(supply) => `
+    		    <div class="assigned-item">
+    		        <div class="assigned-item-info">
+    		            <div class="assigned-item-name">${this.escapeHtml(
+					supply.supply_name
+				)}</div>
+    		            <div class="assigned-item-details">
+    		                ${i18n.t("patients.table.quantity")}: ${supply.remaining_quantity}
+    		                ${supply.created_at
+						? ` • ${i18n.formatDateTime(supply.created_at)}`
+						: ""
+					}
+    		            </div>
+    		        </div>
+    		        <div class="assigned-item-actions">
+    		            <button class="btn btn-sm btn-outline-danger" 
+    		                    onclick="patientManager.removeSupply(${supply.usage_id})">
+    		                <i class="bi bi-trash"></i> ${i18n.t(
+						"patients.buttons.remove"
+					)}
+    		            </button>
+    		        </div>
+    		    </div>
+    		`
+			)
+			.join("");
+	}
+
+	public async removeSupply(usageId: number): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			const result = await Swal.fire({
+				title: i18n.t("patients.messages.removeSupplyTitle"),
+				text: i18n.t("patients.messages.removeSupplyText"),
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonColor: "#dc3545",
+				cancelButtonColor: "#6c757d",
+				confirmButtonText: i18n.t("patients.buttons.remove"),
+				cancelButtonText: i18n.t("common.cancel")
+			});
+
+			if (result.isConfirmed) {
+				const response = await fetch(
+					`/api/pharmacy/medical-supply-usages/patient/${this.currentPatient.patient_id}/${usageId}`,
+					{
+						method: "DELETE",
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
+				);
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || "Failed to remove supply");
+				}
+
+				this.showSuccess(i18n.t("patients.messages.supplyRemoved"));
+				await this.loadPatientData(this.currentPatient.patient_id);
+			}
+		} catch (error: any) {
+			console.error("Error removing supply:", error);
+			this.showError(error.message || "Failed to remove supply");
+		}
+	}
+
 	private updateBillingDisplay(): void {
 		if (!this.currentBill) {
 			// Reset all billing fields
@@ -1455,6 +1589,28 @@ class PatientManager {
 					servicesTotal += lineTotal;
 				} else if (detail.drug_shipment_id) {
 					drugsTotal += lineTotal;
+				} else if (detail.medical_supply_shipment_id) {
+					drugsTotal += 0; // Don't add to drugs total
+					// We'll calculate supplies total separately or add here
+					// Actually, I should track suppliesTotal separately
+				}
+			});
+		}
+
+		// Recalculate everything including supplies
+		servicesTotal = 0;
+		drugsTotal = 0;
+		let suppliesTotal = 0;
+
+		if (bill.bill_details) {
+			bill.bill_details.forEach((detail) => {
+				const lineTotal = detail.quantity * detail.unit_price;
+				if (detail.service_id) {
+					servicesTotal += lineTotal;
+				} else if (detail.drug_shipment_id) {
+					drugsTotal += lineTotal;
+				} else if (detail.medical_supply_shipment_id) {
+					suppliesTotal += lineTotal;
 				}
 			});
 		}
@@ -1464,6 +1620,8 @@ class PatientManager {
 			parseFloat(servicesTotal.toString()).toFixed(2);
 		(document.getElementById("drugsTotal") as HTMLInputElement).value =
 			parseFloat(drugsTotal.toString()).toFixed(2);
+		(document.getElementById("suppliesTotal") as HTMLInputElement).value =
+			parseFloat(suppliesTotal.toString()).toFixed(2);
 		(document.getElementById("paidAmount") as HTMLInputElement).value =
 			bill.paid_amount.toString();
 
@@ -1525,6 +1683,11 @@ class PatientManager {
 				(document.getElementById("drugsTotal") as HTMLInputElement)
 					.value
 			) || 0;
+		const suppliesTotal =
+			parseFloat(
+				(document.getElementById("suppliesTotal") as HTMLInputElement)
+					.value
+			) || 0;
 		const paidAmount =
 			parseFloat(
 				(document.getElementById("paidAmount") as HTMLInputElement)
@@ -1554,7 +1717,7 @@ class PatientManager {
 				).value
 			) || 0;
 
-		const subtotal = servicesTotal + drugsTotal;
+		const subtotal = servicesTotal + drugsTotal + suppliesTotal;
 
 		// Calculate discount
 		let discountAmount = 0;
@@ -1574,7 +1737,8 @@ class PatientManager {
 					servicesTotal - discountAmount * (servicesTotal / subtotal);
 				break;
 			case "drugs":
-				vatBase = drugsTotal - discountAmount * (drugsTotal / subtotal);
+				// Group supplies with drugs for VAT calculation
+				vatBase = (drugsTotal + suppliesTotal) - discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
 				break;
 			case "both":
 			default:
@@ -1963,15 +2127,15 @@ class PatientManager {
 
 			const guardianInfo =
 				guardianName ||
-				guardianPhone ||
-				guardianNationalId ||
-				guardianAddress
+					guardianPhone ||
+					guardianNationalId ||
+					guardianAddress
 					? {
-							name: guardianName,
-							phone: guardianPhone,
-							national_id: guardianNationalId,
-							address: guardianAddress
-					  }
+						name: guardianName,
+						phone: guardianPhone,
+						national_id: guardianNationalId,
+						address: guardianAddress
+					}
 					: null;
 
 			const patientData: any = {
@@ -2204,7 +2368,7 @@ class PatientManager {
 				const error = await response.json();
 				throw new Error(
 					error.error ||
-						`Failed to ${isEdit ? "update" : "create"} patient`
+					`Failed to ${isEdit ? "update" : "create"} patient`
 				);
 			}
 
@@ -2214,10 +2378,10 @@ class PatientManager {
 			const successMessage = isEdit
 				? i18n.t("patients.messages.patientUpdated")
 				: admitPatient
-				? `${i18n.t("patients.messages.patientCreated")} ${i18n.t(
+					? `${i18n.t("patients.messages.patientCreated")} ${i18n.t(
 						"patients.messages.patientAdmitted"
-				  )}`
-				: i18n.t("patients.messages.patientCreated");
+					)}`
+					: i18n.t("patients.messages.patientCreated");
 
 			this.showSuccess(successMessage);
 
@@ -2259,11 +2423,11 @@ class PatientManager {
 			html: `
                 <div class="mb-3">
                     <label for="swal-diagnosis" class="form-label">${i18n.t(
-						"patients.fields.diagnosis"
-					)}</label>
+				"patients.fields.diagnosis"
+			)}</label>
                     <textarea id="swal-diagnosis" class="form-control" rows="3" placeholder="${i18n.t(
-						"patients.fields.diagnosis"
-					)}"></textarea>
+				"patients.fields.diagnosis"
+			)}"></textarea>
                 </div>
 				<div class="mb-3">
                   <div class="form-check">
@@ -2272,33 +2436,31 @@ class PatientManager {
                       ${i18n.t("patients.fields.quickCheckAdmission")}
                     </label>
                     <div class="form-text">${i18n.t(
-						"patients.help.quickCheckInfo"
-					)}</div>
+				"patients.help.quickCheckInfo"
+			)}</div>
                   </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">${i18n.t(
-						"patients.fields.attendingDoctors"
-					)}</label>
+				"patients.fields.attendingDoctors"
+			)}</label>
                     <div class="doctors-selection" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
                         ${this.doctors
-							.map(
-								(doctor) => `
+					.map(
+						(doctor) => `
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="${
-									doctor.employee_id
-								}" id="swal-doctor-${doctor.employee_id}">
-                                <label class="form-check-label" for="swal-doctor-${
-									doctor.employee_id
-								}">
+                                <input class="form-check-input" type="checkbox" value="${doctor.employee_id
+							}" id="swal-doctor-${doctor.employee_id}">
+                                <label class="form-check-label" for="swal-doctor-${doctor.employee_id
+							}">
 									${this.escapeHtml(doctor.name)} (${i18n.t(
-									`patients.doctorTypes.${doctor.doctor_type}`
-								)})
+								`patients.doctorTypes.${doctor.doctor_type}`
+							)})
                                 </label>
                             </div>
                         `
-							)
-							.join("")}
+					)
+					.join("")}
                     </div>
                 </div>
 				<div class="mb-3">
@@ -2307,21 +2469,19 @@ class PatientManager {
 					)}</label>
 				    <div class="nurses-selection" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem;">
 				        ${this.nurses
-							.map(
-								(nurse) => `
+					.map(
+						(nurse) => `
 				            <div class="form-check">
-				                <input class="form-check-input" type="checkbox" value="${
-									nurse.employee_id
-								}" id="swal-nurse-${nurse.employee_id}">
-				                <label class="form-check-label" for="swal-nurse-${
-									nurse.employee_id
-								}">
+				                <input class="form-check-input" type="checkbox" value="${nurse.employee_id
+							}" id="swal-nurse-${nurse.employee_id}">
+				                <label class="form-check-label" for="swal-nurse-${nurse.employee_id
+							}">
 				                    ${this.escapeHtml(nurse.name)}
 				                </label>
 				            </div>
 				        `
-							)
-							.join("")}
+					)
+					.join("")}
 				    </div>
 				</div>
 				<div class="mb-3">
@@ -2330,16 +2490,15 @@ class PatientManager {
 					)}</label>
                     <select id="swal-pricelist" class="form-select">
                         <option value="">${i18n.t(
-							"patients.placeholders.default"
-						)}</option>
+						"patients.placeholders.default"
+					)}</option>
                         ${this.priceLists
-							.map(
-								(list) =>
-									`<option value="${
-										list.pricelist_id
-									}">${this.escapeHtml(list.name)}</option>`
-							)
-							.join("")}
+					.map(
+						(list) =>
+							`<option value="${list.pricelist_id
+							}">${this.escapeHtml(list.name)}</option>`
+					)
+					.join("")}
                     </select>
                 </div>
             `,
@@ -2531,7 +2690,7 @@ class PatientManager {
 			console.error("Error discharging patient:", error);
 			this.showError(
 				error.message ||
-					i18n.t("patients.messages.dischargePatientError")
+				i18n.t("patients.messages.dischargePatientError")
 			);
 		} finally {
 			this.setButtonLoading(dischargeBtn, false);
@@ -2589,27 +2748,25 @@ class PatientManager {
 				const price = this.servicePrices.get(service.service_id);
 				if (!price) return "";
 				return `
-            <div class="available-item" onclick="patientManager.addServiceToPatient(${
-				service.service_id
-			})">
+            <div class="available-item" onclick="patientManager.addServiceToPatient(${service.service_id
+					})">
                 <div class="available-item-info">
                     <div class="available-item-name">${this.escapeHtml(
 						service.name
 					)}</div>
                     <div class="available-item-details">
                         ${i18n.t(
-							"patients.table.type"
-						)}: ${this.formatServiceType(service.service_type)}
-                        ${
-							service.auto_renew
-								? ` • ${i18n.t("services.table.autoRenew")}`
-								: ""
-						}
+						"patients.table.type"
+					)}: ${this.formatServiceType(service.service_type)}
+                        ${service.auto_renew
+						? ` • ${i18n.t("services.table.autoRenew")}`
+						: ""
+					}
                     </div>
                 </div>
                 <div class="available-item-price">${i18n.formatCurrency(
-					+price || 0
-				)}</div>
+						+price || 0
+					)}</div>
                 <div class="available-item-actions">
                     <button class="btn btn-primary">${i18n.t(
 						"patients.buttons.addService"
@@ -2801,21 +2958,19 @@ class PatientManager {
 		container.innerHTML = drugsWithPrices
 			.map(
 				(drug) => `
-			<div class="available-item" onclick="patientManager.showAddDrugQuantityModal(${
-				drug.drug_id
-			})">
+			<div class="available-item" onclick="patientManager.showAddDrugQuantityModal(${drug.drug_id
+					})">
 				<div class="available-item-info">
 					<div class="available-item-name">${this.escapeHtml(drug.name)}</div>
 					<div class="available-item-details">
-						${i18n.t("patients.table.available")}: ${drug.available_quantity} ${
-					drug.unit_conversion?.smaller || "units"
-				}
+						${i18n.t("patients.table.available")}: ${drug.available_quantity} ${drug.unit_conversion?.smaller || "units"
+					}
 						${drug.manufacturer ? ` • ${this.escapeHtml(drug.manufacturer)}` : ""}
 					</div>
 				</div>
 				<div class="available-item-price">${i18n.formatCurrency(
-					drug.displayPrice
-				)}</div>
+						drug.displayPrice
+					)}</div>
 				<div class="available-item-actions">
 					<button class="btn btn-primary">${i18n.t("patients.buttons.addDrug")}</button>
 				</div>
@@ -2840,33 +2995,33 @@ class PatientManager {
 			html: `
 				<div class="mb-3">
 					<label for="swal-quantity-larger" class="form-label">${i18n.t(
-						"patients.messages.quantityLabel",
-						{
-							unit:
-								drug.unit_conversion?.larger ||
-								i18n.t("common.units")
-						}
-					)}</label>
+				"patients.messages.quantityLabel",
+				{
+					unit:
+						drug.unit_conversion?.larger ||
+						i18n.t("common.units")
+				}
+			)}</label>
 					<input type="number" id="swal-quantity-larger" class="form-control" min="0" max="${maxLargerUnit}" value="0">
 					<div class="form-text">${i18n.t("patients.messages.availableQuantity", {
-						quantity: maxLargerUnit,
-						unit: drug.unit_conversion?.larger || "units"
-					})}</div>
+				quantity: maxLargerUnit,
+				unit: drug.unit_conversion?.larger || "units"
+			})}</div>
 				</div>
 				<div class="mb-3">
 					<label for="swal-quantity-smaller" class="form-label">${i18n.t(
-						"patients.messages.quantityLabel",
-						{
-							unit:
-								drug.unit_conversion?.smaller ||
-								i18n.t("common.units")
-						}
-					)}</label>
+				"patients.messages.quantityLabel",
+				{
+					unit:
+						drug.unit_conversion?.smaller ||
+						i18n.t("common.units")
+				}
+			)}</label>
 					<input type="number" id="swal-quantity-smaller" class="form-control" min="0" max="${maxSmallerUnit}" value="0">
 					<div class="form-text">${i18n.t("patients.messages.availableQuantity", {
-						quantity: maxSmallerUnit,
-						unit: drug.unit_conversion?.smaller || "units"
-					})}</div>
+				quantity: maxSmallerUnit,
+				unit: drug.unit_conversion?.smaller || "units"
+			})}</div>
 				</div>
 			`,
 			showCancelButton: true,
@@ -3115,8 +3270,8 @@ class PatientManager {
             <div class="text-center text-muted py-5">
                 <i class="bi bi-clock-history" style="font-size: 3rem;"></i>
                 <h5 class="mt-3">${i18n.t(
-					"patients.messages.noPastAdmissions"
-				)}</h5>
+				"patients.messages.noPastAdmissions"
+			)}</h5>
                 <p>${i18n.t("patients.messages.noPastAdmissionsText")}</p>
             </div>
         `;
@@ -3145,20 +3300,18 @@ class PatientManager {
 		const nurses = admission.assigned_nurses || [];
 
 		return `
-        <div class="admission-card" onclick="patientManager.showAdmissionDetails(${
-			admission.patient_history_id
-		})">
+        <div class="admission-card" onclick="patientManager.showAdmissionDetails(${admission.patient_history_id
+			})">
             <div class="admission-card-header">
                 <div class="admission-date-range">
                     ${admissionDate} - ${dismissalDate}
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted">${i18n.t(
-						"patients.messages.admissionId"
-					)}: ${admission.patient_history_id}</small>
-                    <span class="dismissal-reason-badge dismissal-reason-${
-						admission.leave_reason
-					}">
+				"patients.messages.admissionId"
+			)}: ${admission.patient_history_id}</small>
+                    <span class="dismissal-reason-badge dismissal-reason-${admission.leave_reason
+			}">
                         ${this.formatDismissalReason(admission.leave_reason)}
                     </span>
                 </div>
@@ -3167,36 +3320,34 @@ class PatientManager {
                 <div class="admission-summary">
                     <div class="admission-summary-item">
                         <span class="admission-summary-label">${i18n.t(
-							"patients.messages.servicesUsed"
-						)}</span>
+				"patients.messages.servicesUsed"
+			)}</span>
                         <span class="admission-summary-value">${totalServices}</span>
                     </div>
                     <div class="admission-summary-item">
                         <span class="admission-summary-label">${i18n.t(
-							"patients.messages.drugsUsed"
-						)}</span>
+				"patients.messages.drugsUsed"
+			)}</span>
                         <span class="admission-summary-value">${totalDrugs}</span>
                     </div>
                     <div class="admission-summary-item">
                         <span class="admission-summary-label">${i18n.t(
-							"patients.messages.totalOwed"
-						)}</span>
+				"patients.messages.totalOwed"
+			)}</span>
                         <span class="admission-summary-value">${i18n.formatCurrency(
-							totalOwed
-						)}</span>
+				totalOwed
+			)}</span>
                     </div>
                     <div class="admission-summary-item">
                         <span class="admission-summary-label">${i18n.t(
-							"patients.billing.balance"
-						)}</span>
-                        <span class="admission-summary-value ${
-							balance > 0 ? "text-danger" : "text-success"
-						}">
-                            ${i18n.formatCurrency(Math.abs(balance))} ${
-			balance > 0
+				"patients.billing.balance"
+			)}</span>
+                        <span class="admission-summary-value ${balance > 0 ? "text-danger" : "text-success"
+			}">
+                            ${i18n.formatCurrency(Math.abs(balance))} ${balance > 0
 				? i18n.t("patients.messages.due")
 				: i18n.t("patients.messages.credit")
-		}
+			}
                         </span>
                     </div>
                 </div>
@@ -3204,55 +3355,52 @@ class PatientManager {
                 <div class="admission-staff-list">
                     <div class="mb-2">
                         <strong class="text-muted">${i18n.t(
-							"patients.messages.assignedDoctors"
-						)}:</strong>
-                        ${
-							doctors.length > 0
-								? doctors
-										.map(
-											(doctor: any) =>
-												`<span class="admission-staff-item">${this.escapeHtml(
-													doctor
-												)}</span>`
-										)
-										.join("")
-								: `<span class="text-muted">${i18n.t(
-										"patients.messages.noDoctorsAssigned"
-								  )}</span>`
-						}
+				"patients.messages.assignedDoctors"
+			)}:</strong>
+                        ${doctors.length > 0
+				? doctors
+					.map(
+						(doctor: any) =>
+							`<span class="admission-staff-item">${this.escapeHtml(
+								doctor
+							)}</span>`
+					)
+					.join("")
+				: `<span class="text-muted">${i18n.t(
+					"patients.messages.noDoctorsAssigned"
+				)}</span>`
+			}
                     </div>
                     <div>
                         <strong class="text-muted">${i18n.t(
-							"patients.messages.assignedNurses"
-						)}:</strong>
-                        ${
-							nurses.length > 0
-								? nurses
-										.map(
-											(nurse: any) =>
-												`<span class="admission-staff-item">${this.escapeHtml(
-													nurse
-												)}</span>`
-										)
-										.join("")
-								: `<span class="text-muted">${i18n.t(
-										"patients.messages.noNursesAssigned"
-								  )}</span>`
-						}
+				"patients.messages.assignedNurses"
+			)}:</strong>
+                        ${nurses.length > 0
+				? nurses
+					.map(
+						(nurse: any) =>
+							`<span class="admission-staff-item">${this.escapeHtml(
+								nurse
+							)}</span>`
+					)
+					.join("")
+				: `<span class="text-muted">${i18n.t(
+					"patients.messages.noNursesAssigned"
+				)}</span>`
+			}
                     </div>
                 </div>
                 
-                ${
-					admission.diagnosis
-						? `
+                ${admission.diagnosis
+				? `
                     <div class="admission-diagnosis">
                         <strong>${i18n.t(
-							"patients.messages.finalDiagnosis"
-						)}:</strong> ${this.escapeHtml(admission.diagnosis)}
+					"patients.messages.finalDiagnosis"
+				)}:</strong> ${this.escapeHtml(admission.diagnosis)}
                     </div>
                 `
-						: ""
-				}
+				: ""
+			}
             </div>
         </div>
     `;
@@ -3304,6 +3452,7 @@ class PatientManager {
 			admission.services || []
 		);
 		const drugs = this.groupDrugsByDrugId(admission.drugs || []);
+		const supplies = this.groupSuppliesBySupplyId(admission.supplies || []);
 
 		container.innerHTML = `
         <!-- Admission Overview -->
@@ -3311,50 +3460,48 @@ class PatientManager {
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-calendar-event me-2"></i>${i18n.t(
-						"patients.sections.admissionInfo"
-					)}
+			"patients.sections.admissionInfo"
+		)}
                 </div>
                 <div class="admission-details-section-body">
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.messages.admissionId"
-						)}:</span>
-                        <span class="detail-value">${
-							admission.patient_history_id
-						}</span>
+			"patients.messages.admissionId"
+		)}:</span>
+                        <span class="detail-value">${admission.patient_history_id
+			}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.messages.admissionDate"
-						)}:</span>
+				"patients.messages.admissionDate"
+			)}:</span>
                         <span class="detail-value">${admissionDate}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.messages.dischargeDate"
-						)}:</span>
+				"patients.messages.dischargeDate"
+			)}:</span>
                         <span class="detail-value">${dismissalDate}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.messages.lengthOfStay"
-						)}:</span>
+				"patients.messages.lengthOfStay"
+			)}:</span>
                         <span class="detail-value">${this.calculateLengthOfStay(
-							admission.admission_time,
-							admission.discharge_time
-						)}</span>
+				admission.admission_time,
+				admission.discharge_time
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.messages.dismissalReason"
-						)}:</span>
+				"patients.messages.dismissalReason"
+			)}:</span>
                         <span class="detail-value">
-                            <span class="dismissal-reason-badge dismissal-reason-${
-								admission.leave_reason
-							}">
+                            <span class="dismissal-reason-badge dismissal-reason-${admission.leave_reason
+			}">
                                 ${this.formatDismissalReason(
-									admission.leave_reason
-								)}
+				admission.leave_reason
+			)}
                             </span>
                         </span>
                     </div>
@@ -3364,87 +3511,91 @@ class PatientManager {
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-currency-dollar me-2"></i>${i18n.t(
-						"patients.messages.financialSummary"
-					)}
+				"patients.messages.financialSummary"
+			)}
                 </div>
                 <div class="admission-details-section-body">
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.servicesTotal"
-						)}:</span>
+				"patients.billing.servicesTotal"
+			)}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
-							admission.services_total || 0
-						)}</span>
+				admission.services_total || 0
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.drugsTotal"
-						)}:</span>
+				"patients.billing.drugsTotal"
+			)}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
-							admission.drugs_total || 0
-						)}</span>
+				admission.drugs_total || 0
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.discount"
-						)}:</span>
+				"patients.billing.suppliesTotal"
+			) || "Supplies Total"}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
-							parseFloat(admission.discount || 0)
-						)}</span>
+				admission.supplies_total || 0
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.vatPercentage"
-						)}:</span>
-                        <span class="detail-value">${
-							admission.vat_percentage || 0
-						}%</span>
+				"patients.billing.discount"
+			)}:</span>
+                        <span class="detail-value">${i18n.formatCurrency(
+				parseFloat(admission.discount || 0)
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.adminExpenses"
-						)}:</span>
+				"patients.billing.vatPercentage"
+			)}:</span>
+                        <span class="detail-value">${admission.vat_percentage || 0
+			}%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">${i18n.t(
+				"patients.billing.adminExpenses"
+			)}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
-							admission.administrative_expenses || 0
-						)}</span>
+				admission.administrative_expenses || 0
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label"><strong>${i18n.t(
-							"patients.billing.totalAmount"
-						)}:</strong></span>
+				"patients.billing.totalAmount"
+			)}:</strong></span>
                         <span class="detail-value"><strong>${i18n.formatCurrency(
-							totalAmount
-						)}</strong></span>
+				totalAmount
+			)}</strong></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
-							"patients.billing.paidAmount"
-						)}:</span>
+				"patients.billing.paidAmount"
+			)}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
-							paidAmount
-						)}</span>
+				paidAmount
+			)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label"><strong>${i18n.t(
-							"patients.billing.balance"
-						)}:</strong></span>
+				"patients.billing.balance"
+			)}:</strong></span>
                         <span class="detail-value">
-                            <strong class="${
-								balance > 0 ? "text-danger" : "text-success"
-							}">
-                                ${i18n.formatCurrency(Math.abs(balance))} ${
-			balance > 0
+                            <strong class="${balance > 0 ? "text-danger" : "text-success"
+			}">
+                                ${i18n.formatCurrency(Math.abs(balance))} ${balance > 0
 				? i18n.t("patients.messages.due")
 				: i18n.t("patients.messages.credit")
-		}
+			}
                             </strong>
                         </span>
                     </div>
 					<div class="detail-row mt-3">
 					    <div class="col-12">
-					        <button class="btn btn-success btn-sm w-100" onclick="patientManager.showSettleBillModal(${
-								admission.bill_id
-							})">
+					        <button class="btn btn-success btn-sm w-100" onclick="patientManager.showSettleBillModal(${admission.bill_id
+			})">
 					            <i class="bi bi-cash-coin"></i> 
 					            ${i18n.t("patients.buttons.settleBill")}
 					        </button>
@@ -3459,73 +3610,70 @@ class PatientManager {
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-people me-2"></i>${i18n.t(
-						"patients.messages.assignedDoctors"
-					)}
+				"patients.messages.assignedDoctors"
+			)}
                 </div>
                 <div class="admission-details-section-body">
-                    ${
-						doctors.length > 0
-							? doctors
-									.map(
-										(doctor: any) => `
+                    ${doctors.length > 0
+				? doctors
+					.map(
+						(doctor: any) => `
                         <div class="detail-row">
                             <span class="detail-label">${this.escapeHtml(
-								doctor.doctor_name
-							)}</span>
+							doctor.doctor_name
+						)}</span>
                             <span class="detail-value">
                                 <span class="badge bg-primary">${i18n.t(
-									`patients.doctorTypes.${doctor.doctor_type}` ||
-										"Doctor"
-								)}</span>
+							`patients.doctorTypes.${doctor.doctor_type}` ||
+							"Doctor"
+						)}</span>
                             </span>
                         </div>
                     `
-									)
-									.join("")
-							: `<p class="text-muted">${i18n.t(
-									"patients.messages.noDoctorsAssigned"
-							  )}</p>`
-					}
+					)
+					.join("")
+				: `<p class="text-muted">${i18n.t(
+					"patients.messages.noDoctorsAssigned"
+				)}</p>`
+			}
                 </div>
             </div>
 
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-person-heart me-2"></i>${i18n.t(
-						"patients.messages.assignedNurses"
-					)}
+				"patients.messages.assignedNurses"
+			)}
                 </div>
                 <div class="admission-details-section-body">
-                    ${
-						nurses.length > 0
-							? nurses
-									.map(
-										(nurse: any) => `
+                    ${nurses.length > 0
+				? nurses
+					.map(
+						(nurse: any) => `
                         <div class="detail-row">
                             <span class="detail-label">${this.escapeHtml(
-								nurse.nurse_name
-							)}</span>
+							nurse.nurse_name
+						)}</span>
                         </div>
                     `
-									)
-									.join("")
-							: `<p class="text-muted">${i18n.t(
-									"patients.messages.noNursesAssigned"
-							  )}</p>`
-					}
+					)
+					.join("")
+				: `<p class="text-muted">${i18n.t(
+					"patients.messages.noNursesAssigned"
+				)}</p>`
+			}
                 </div>
             </div>
         </div>
 
         <!-- Diagnosis -->
-        ${
-			admission.diagnosis
+        ${admission.diagnosis
 				? `
             <div class="admission-details-section mb-4">
                 <div class="admission-details-section-header">
                     <i class="bi bi-clipboard2-pulse me-2"></i>${i18n.t(
-						"patients.messages.finalDiagnosis"
-					)}
+					"patients.messages.finalDiagnosis"
+				)}
                 </div>
                 <div class="admission-details-section-body">
                     <p class="mb-0">${this.escapeHtml(admission.diagnosis)}</p>
@@ -3533,127 +3681,180 @@ class PatientManager {
             </div>
         `
 				: ""
-		}
+			}
 
         <!-- Services and Drugs -->
         <div class="services-drugs-grid">
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-clipboard2-pulse me-2"></i>${i18n.t(
-						"patients.messages.servicesUsed"
-					)} (${services.length})
+				"patients.messages.servicesUsed"
+			)} (${services.length})
                 </div>
                 <div class="admission-details-section-body">
-                    ${
-						services.length > 0
-							? `
+                    ${services.length > 0
+				? `
                         <table class="items-table">
                             <thead>
                                 <tr>
                                     <th>${i18n.t("sidebar.services")}</th>
                                     <th>${i18n.t("patients.table.type")}</th>
                                     <th>${i18n.t(
-										"patients.table.quantity"
-									)}</th>
+					"patients.table.quantity"
+				)}</th>
                                     <th>${i18n.t(
-										"patients.table.unitPrice"
-									)}</th>
+					"patients.table.unitPrice"
+				)}</th>
                                     <th>${i18n.t("common.total")}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${services
-									.map(
-										(service: any) => `
+					.map(
+						(service: any) => `
                                     <tr>
                                         <td>${this.escapeHtml(
-											service.service_name
-										)}</td>
+							service.service_name
+						)}</td>
                                         <td>${this.formatServiceType(
-											service.service_type || "once"
-										)}</td>
+							service.service_type || "once"
+						)}</td>
                                         <td>${service.quantity}</td>
                                         <td>${i18n.formatCurrency(
-											parseFloat(service.unit_price)
-										)}</td>
+							parseFloat(service.unit_price)
+						)}</td>
                                         <td>${i18n.formatCurrency(
-											service.total_cost
-												? parseFloat(service.total_cost)
-												: service.quantity *
-														service.unit_price
-										)}</td>
+							service.total_cost
+								? parseFloat(service.total_cost)
+								: service.quantity *
+								service.unit_price
+						)}</td>
                                     </tr>
                                 `
-									)
-									.join("")}
+					)
+					.join("")}
                             </tbody>
                         </table>
                     `
-							: `<p class="text-muted">${i18n.t(
-									"patients.messages.noServicesUsed"
-							  )}</p>`
-					}
+				: `<p class="text-muted">${i18n.t(
+					"patients.messages.noServicesUsed"
+				)}</p>`
+			}
                 </div>
             </div>
 
             <div class="admission-details-section">
                 <div class="admission-details-section-header">
                     <i class="bi bi-capsule me-2"></i>${i18n.t(
-						"patients.messages.drugsUsed"
-					)} (${drugs.length})
+				"patients.messages.drugsUsed"
+			)} (${drugs.length})
                 </div>
                 <div class="admission-details-section-body">
-                    ${
-						drugs.length > 0
-							? `
+                    ${drugs.length > 0
+				? `
                         <table class="items-table">
                             <thead>
                                 <tr>
                                     <th>${i18n.t("sidebar.drugs")}</th>
                                     <th>${i18n.t(
-										"pharmacy.fields.manufacturer"
-									)}</th>
+					"pharmacy.fields.manufacturer"
+				)}</th>
                                     <th>${i18n.t(
-										"patients.table.quantity"
-									)}</th>
+					"patients.table.quantity"
+				)}</th>
                                     <th>${i18n.t(
-										"patients.table.unitPrice"
-									)}</th>
+					"patients.table.unitPrice"
+				)}</th>
                                     <th>${i18n.t("common.total")}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${drugs
-									.map(
-										(drug: any) => `
+					.map(
+						(drug: any) => `
                                     <tr>
                                         <td>${this.escapeHtml(
-											drug.drug_name
-										)}</td>
+							drug.drug_name
+						)}</td>
                                         <td>${this.escapeHtml(
-											drug.manufacturer || "N/A"
-										)}</td>
+							drug.manufacturer || "N/A"
+						)}</td>
                                         <td>${drug.quantity}</td>
                                         <td>${i18n.formatCurrency(
-											parseFloat(drug.unit_price)
-										)}</td>
+							parseFloat(drug.unit_price)
+						)}</td>
                                         <td>${i18n.formatCurrency(
-											drug.total_cost
-												? parseFloat(drug.total_cost)
-												: drug.quantity *
-														drug.unit_price
-										)}</td>
+							drug.total_cost
+								? parseFloat(drug.total_cost)
+								: drug.quantity *
+								drug.unit_price
+						)}</td>
                                     </tr>
                                 `
-									)
-									.join("")}
+					)
+					.join("")}
                             </tbody>
                         </table>
                     `
-							: `<p class="text-muted">${i18n.t(
-									"patients.messages.noDrugsUsed"
-							  )}</p>`
-					}
+				: `<p class="text-muted">${i18n.t(
+					"patients.messages.noDrugsUsed"
+				)}</p>`
+			}
+                </div>
+            </div>
+        </div>
+
+             <div class="admission-details-section mt-4">
+                <div class="admission-details-section-header">
+                    <i class="bi bi-box-seam me-2"></i>${i18n.t(
+				"patients.messages.suppliesUsed"
+			) || "Supplies Used"} (${supplies.length})
+                </div>
+                <div class="admission-details-section-body">
+                    ${supplies.length > 0
+				? `
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>${i18n.t("sidebar.medicalSupplies") || "Supply"}</th>
+                                    <th>${i18n.t("pharmacy.fields.manufacturer")}</th>
+                                    <th>${i18n.t("patients.table.quantity")}</th>
+                                    <th>${i18n.t("patients.table.unitPrice")}</th>
+                                    <th>${i18n.t("common.total")}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${supplies
+					.map(
+						(supply: any) => `
+                                    <tr>
+                                        <td>${this.escapeHtml(
+							supply.medical_supply_name
+						)}</td>
+                                        <td>${this.escapeHtml(
+							supply.manufacturer || "N/A"
+						)}</td>
+                                        <td>${supply.quantity}</td>
+                                        <td>${i18n.formatCurrency(
+							parseFloat(supply.unit_price)
+						)}</td>
+                                        <td>${i18n.formatCurrency(
+							supply.total_cost
+								? parseFloat(supply.total_cost)
+								: supply.quantity *
+								supply.unit_price
+						)}</td>
+                                    </tr>
+                                `
+					)
+					.join("")}
+                            </tbody>
+                        </table>
+                    `
+				: `<p class="text-muted">${i18n.t(
+					"patients.messages.noSuppliesUsed"
+				) || "No supplies used"}</p>`
+			}
                 </div>
             </div>
         </div>
@@ -3921,9 +4122,8 @@ class PatientManager {
 		);
 		groupedServices.forEach((service: any) => {
 			billDetails.push({
-				bill_detail_id: `service_${
-					service.service_id
-				}_${Math.random()}`,
+				bill_detail_id: `service_${service.service_id
+					}_${Math.random()}`,
 				bill_id: admission.bill_id,
 				service_id: service.service_id,
 				service_name: service.service_name,
@@ -3952,6 +4152,28 @@ class PatientManager {
 				charge_type: drug.charge_type,
 				sale_type: "admitted",
 				generated_at: drug.generated_at
+			});
+		});
+
+		// Use grouped supplies for bill details
+		const groupedSupplies = this.groupSuppliesBySupplyId(
+			admission.supplies || []
+		);
+		groupedSupplies.forEach((supply: any) => {
+			billDetails.push({
+				bill_detail_id: `supply_${supply.supply_id}_${Math.random()}`,
+				bill_id: admission.bill_id,
+				service_id: null,
+				service_name: null,
+				drug_shipment_id: null,
+				drug_name: null,
+				medical_supply_shipment_id: supply.shipment_ids[0], // Use first shipment ID
+				medical_supply_name: supply.medical_supply_name,
+				quantity: supply.quantity,
+				unit_price: supply.unit_price,
+				charge_type: supply.charge_type,
+				sale_type: "admitted",
+				generated_at: supply.generated_at
 			});
 		});
 
@@ -4006,8 +4228,8 @@ class PatientManager {
 						employee_type: doctor
 							? "doctor"
 							: nurse
-							? "nurse"
-							: "other",
+								? "nurse"
+								: "other",
 						doctor_type: doctor?.doctor_type
 					};
 				})
@@ -4141,8 +4363,8 @@ class PatientManager {
 		const statusText = isAvailable
 			? i18n.t("patients.staffStatus.available")
 			: i18n.t("patients.staffStatus.assignedToPatients", {
-					count: assignments.length
-			  });
+				count: assignments.length
+			});
 
 		const clockInTime = i18n.formatTime(staff.clock_in);
 		const clockedInDuration = this.calculateDuration(staff.clock_in);
@@ -4152,20 +4374,17 @@ class PatientManager {
       <div class="staff-member-header">
         <div>
           <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
-          ${
-				staff.doctor_type
-					? `<div class="staff-member-type">${i18n.t(
-							`patients.doctorTypes.${staff.doctor_type}`
-					  )}</div>`
-					: ""
+          ${staff.doctor_type
+				? `<div class="staff-member-type">${i18n.t(
+					`patients.doctorTypes.${staff.doctor_type}`
+				)}</div>`
+				: ""
 			}
         </div>
         <div class="staff-member-status">
-          <span class="status-indicator ${
-				isAvailable ? "available" : "busy"
+          <span class="status-indicator ${isAvailable ? "available" : "busy"
 			}"></span>
-          <span class="badge bg-${
-				isAvailable ? "success" : "warning"
+          <span class="badge bg-${isAvailable ? "success" : "warning"
 			}">${statusText}</span>
         </div>
       </div>
@@ -4181,49 +4400,45 @@ class PatientManager {
           <i class="bi bi-hourglass-split"></i>
           <span>${clockedInDuration}</span>
         </div>
-        ${
-			staff.shift_start_time && staff.shift_end_time
+        ${staff.shift_start_time && staff.shift_end_time
 				? `
           <div class="clock-in-info-item">
             <i class="bi bi-calendar2-week"></i>
-            <span>${i18n.t("patients.staffStatus.shift")}: ${
-						staff.shift_start_time
-				  } - ${staff.shift_end_time}</span>
+            <span>${i18n.t("patients.staffStatus.shift")}: ${staff.shift_start_time
+				} - ${staff.shift_end_time}</span>
           </div>
         `
 				: ""
-		}
+			}
       </div>
       
-      ${
-			assignments.length > 0
+      ${assignments.length > 0
 				? `
         <div class="assigned-patients-list">
           <div class="assigned-patients-title">
             <i class="bi bi-people"></i> ${i18n.t(
-				"patients.staffStatus.assignedPatients"
-			)}:
+					"patients.staffStatus.assignedPatients"
+				)}:
           </div>
           ${assignments
-				.map(
-					(patient) => `
-            <div class="assigned-patient-item" onclick="patientManager.selectPatient(${
-				patient.patient_id
-			})">
+					.map(
+						(patient) => `
+            <div class="assigned-patient-item" onclick="patientManager.selectPatient(${patient.patient_id
+							})">
               <span class="assigned-patient-name">${this.escapeHtml(
-					patient.patient_name
-				)}</span>
+								patient.patient_name
+							)}</span>
               <span class="assigned-patient-duration">${this.calculateDuration(
-					patient.admission_time
-				)}</span>
+								patient.admission_time
+							)}</span>
             </div>
           `
-				)
-				.join("")}
+					)
+					.join("")}
         </div>
       `
 				: ""
-		}
+			}
     </div>
   `;
 	}
@@ -4348,25 +4563,22 @@ class PatientManager {
 		  <div class="patient-assignment-header">
 		    <div>
 		      <div class="patient-assignment-name">${this.escapeHtml(
-					admission.patient_name
-				)}</div>
-		      ${
-					admission.quick_check
-						? '<span class="badge bg-warning text-dark ms-2">' +
-						  i18n.t("patients.fields.quickCheck") +
-						  "</span>"
-						: ""
-				}
+			admission.patient_name
+		)}</div>
+		      ${admission.quick_check
+				? '<span class="badge bg-warning text-dark ms-2">' +
+				i18n.t("patients.fields.quickCheck") +
+				"</span>"
+				: ""
+			}
 		    </div>
 		    <div class="btn-group">
-		      <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); patientManager.showEditStaffAssignmentModal(${
-					admission.patient_id
-				})">
+		      <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); patientManager.showEditStaffAssignmentModal(${admission.patient_id
+			})">
 		        <i class="bi bi-pencil"></i> ${i18n.t("common.edit")}
 		      </button>
-		      <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); patientManager.selectPatient(${
-					admission.patient_id
-				})">
+		      <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); patientManager.selectPatient(${admission.patient_id
+			})">
 		        <i class="bi bi-eye"></i> ${i18n.t("common.view")}
 		      </button>
 		    </div>
@@ -4377,12 +4589,11 @@ class PatientManager {
 				"patients.fields.admittedOn"
 			)}: ${admissionDate}</span>
 	        <span><i class="bi bi-hourglass-split"></i> ${admissionDuration}</span>
-	        ${
-				admission.diagnosis
-					? `<span><i class="bi bi-clipboard-pulse"></i> ${this.escapeHtml(
-							admission.diagnosis
-					  )}</span>`
-					: ""
+	        ${admission.diagnosis
+				? `<span><i class="bi bi-clipboard-pulse"></i> ${this.escapeHtml(
+					admission.diagnosis
+				)}</span>`
+				: ""
 			}
 	      </div>
 				  
@@ -4392,44 +4603,39 @@ class PatientManager {
 	            <i class="bi bi-person-badge"></i>
 	            ${i18n.t("patients.staffStatus.doctors")} 
 	            (${clockedInDoctorCount}/${assignedDoctors.length} ${i18n.t(
-			"patients.staffStatus.clockedIn"
-		)})
+				"patients.staffStatus.clockedIn"
+			)})
 	          </div>
-	          ${
-					assignedDoctors.length > 0
-						? assignedDoctors
-								.map(
-									(doctor) => `
-	            <span class="staff-member-chip doctor ${
-					doctor.isClockedIn ? "" : "not-clocked-in"
-				}">
+	          ${assignedDoctors.length > 0
+				? assignedDoctors
+					.map(
+						(doctor) => `
+	            <span class="staff-member-chip doctor ${doctor.isClockedIn ? "" : "not-clocked-in"
+							}">
 	              <i class="bi bi-${doctor.isClockedIn ? "circle-fill" : "circle"}" 
-	                 style="font-size: 0.5rem; color: ${
-							doctor.isClockedIn ? "#28a745" : "#dc3545"
-						};"></i>
+	                 style="font-size: 0.5rem; color: ${doctor.isClockedIn ? "#28a745" : "#dc3545"
+							};"></i>
 	              ${this.escapeHtml(doctor.name)}
-	              ${
-						doctor.doctor_type
-							? `<small>(${i18n.t(
+	              ${doctor.doctor_type
+								? `<small>(${i18n.t(
 									`patients.doctorTypes.${doctor.doctor_type}`
-							  )})</small>`
-							: ""
-					}
-	              ${
-						!doctor.isClockedIn
-							? `<small class="text-muted ms-1">${i18n.t(
+								)})</small>`
+								: ""
+							}
+	              ${!doctor.isClockedIn
+								? `<small class="text-muted ms-1">${i18n.t(
 									"patients.staffStatus.notClockedIn"
-							  )}</small>`
-							: ""
-					}
+								)}</small>`
+								: ""
+							}
 	            </span>
 	          `
-								)
-								.join("")
-						: `<span class="text-muted">${i18n.t(
-								"patients.staffStatus.noDoctorsAssignedToPatient"
-						  )}</span>`
-				}
+					)
+					.join("")
+				: `<span class="text-muted">${i18n.t(
+					"patients.staffStatus.noDoctorsAssignedToPatient"
+				)}</span>`
+			}
 	        </div>
 					  
 	        <div class="staff-group">
@@ -4437,37 +4643,33 @@ class PatientManager {
 	            <i class="bi bi-person-heart"></i>
 	            ${i18n.t("patients.staffStatus.nurses")} 
 	            (${clockedInNurseCount}/${assignedNurses.length} ${i18n.t(
-			"patients.staffStatus.clockedIn"
-		)})
+				"patients.staffStatus.clockedIn"
+			)})
 	          </div>
-	          ${
-					assignedNurses.length > 0
-						? assignedNurses
-								.map(
-									(nurse) => `
-	            <span class="staff-member-chip nurse ${
-					nurse.isClockedIn ? "" : "not-clocked-in"
-				}">
+	          ${assignedNurses.length > 0
+				? assignedNurses
+					.map(
+						(nurse) => `
+	            <span class="staff-member-chip nurse ${nurse.isClockedIn ? "" : "not-clocked-in"
+							}">
 	              <i class="bi bi-${nurse.isClockedIn ? "circle-fill" : "circle"}" 
-	                 style="font-size: 0.5rem; color: ${
-							nurse.isClockedIn ? "#28a745" : "#dc3545"
-						};"></i>
+	                 style="font-size: 0.5rem; color: ${nurse.isClockedIn ? "#28a745" : "#dc3545"
+							};"></i>
 	              ${this.escapeHtml(nurse.name)}
-	              ${
-						!nurse.isClockedIn
-							? `<small class="text-muted ms-1">${i18n.t(
+	              ${!nurse.isClockedIn
+								? `<small class="text-muted ms-1">${i18n.t(
 									"patients.staffStatus.notClockedIn"
-							  )}</small>`
-							: ""
-					}
+								)}</small>`
+								: ""
+							}
 	            </span>
 	          `
-								)
-								.join("")
-						: `<span class="text-muted">${i18n.t(
-								"patients.staffStatus.noNursesAssignedToPatient"
-						  )}</span>`
-				}
+					)
+					.join("")
+				: `<span class="text-muted">${i18n.t(
+					"patients.staffStatus.noNursesAssignedToPatient"
+				)}</span>`
+			}
 	        </div>
 	      </div>
 	    </div>
@@ -4541,11 +4743,10 @@ class PatientManager {
 		const container = document.getElementById(containerId)!;
 
 		if (staffList.length === 0) {
-			container.innerHTML = `<div class="text-muted text-center py-3">${
-				type === "doctor"
-					? i18n.t("patients.messages.noDoctorsAvailable")
-					: i18n.t("patients.messages.noNursesAvailable")
-			}</div>`;
+			container.innerHTML = `<div class="text-muted text-center py-3">${type === "doctor"
+				? i18n.t("patients.messages.noDoctorsAvailable")
+				: i18n.t("patients.messages.noNursesAvailable")
+				}</div>`;
 			return;
 		}
 
@@ -4569,29 +4770,26 @@ class PatientManager {
 			          data-type="${type}"
 			          onchange="patientManager.updateStaffAssignmentCounts()"
 			        >
-			        <label class="form-check-label p-x-2" for="edit-${type}-${
-					staff.employee_id
-				}">
+			        <label class="form-check-label p-x-2" for="edit-${type}-${staff.employee_id
+					}">
 			          <div class="staff-member-info">
 			            <div class="staff-member-name">${this.escapeHtml(staff.name)}</div>
-			            ${
-							doctorType
-								? `<div class="staff-member-details">${i18n.t(
-										`patients.doctorTypes.${doctorType}`
-								  )}</div>`
-								: ""
-						}
+			            ${doctorType
+						? `<div class="staff-member-details">${i18n.t(
+							`patients.doctorTypes.${doctorType}`
+						)}</div>`
+						: ""
+					}
 			          </div>
 			          <div class="staff-clocked-in-indicator">
-			            ${
-							isClockedIn
-								? `<i class="bi bi-circle-fill"></i><span class="text-success">${i18n.t(
-										"patients.staffStatus.clockedIn"
-								  )}</span>`
-								: `<i class="bi bi-circle"></i><span class="text-muted">${i18n.t(
-										"patients.staffStatus.notClockedIn"
-								  )}</span>`
-						}
+			            ${isClockedIn
+						? `<i class="bi bi-circle-fill"></i><span class="text-success">${i18n.t(
+							"patients.staffStatus.clockedIn"
+						)}</span>`
+						: `<i class="bi bi-circle"></i><span class="text-muted">${i18n.t(
+							"patients.staffStatus.notClockedIn"
+						)}</span>`
+					}
 			          </div>
 			        </label>
 			      </div>
@@ -4707,7 +4905,7 @@ class PatientManager {
 			console.error("Error saving staff assignment:", error);
 			this.showError(
 				error.message ||
-					i18n.t("patients.messages.staffAssignmentUpdateError")
+				i18n.t("patients.messages.staffAssignmentUpdateError")
 			);
 		} finally {
 			this.setButtonLoading(saveBtn, false);
@@ -4786,6 +4984,173 @@ class PatientManager {
 	}
 
 	// Utility methods
+
+	private async showAddSupplyModal(): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			// Load supplies if not loaded
+			if (this.availableSupplies.length === 0) {
+				const response = await fetch("/api/pharmacy/medical-supplies");
+				if (!response.ok) throw new Error("Failed to load supplies");
+				this.availableSupplies = await response.json();
+			}
+
+			this.displayAvailableSupplies(this.availableSupplies);
+			this.addSupplyModal.show();
+		} catch (error) {
+			console.error("Error loading supplies:", error);
+			this.showError(i18n.t("patients.messages.loadSuppliesError"));
+		}
+	}
+
+	private displayAvailableSupplies(supplies: MedicalSupply[]): void {
+		const container = document.getElementById("availableSuppliesList")!;
+		container.innerHTML = "";
+
+		if (supplies.length === 0) {
+			container.innerHTML = `<div class="text-center text-muted p-3">${i18n.t("patients.messages.noSuppliesFound")}</div>`;
+			return;
+		}
+
+		supplies.forEach((supply) => {
+			const item = document.createElement("div");
+			item.className = "list-group-item d-flex justify-content-between align-items-center";
+			item.innerHTML = `
+				<div>
+					<h6 class="mb-0">${this.escapeHtml(supply.name)}</h6>
+				</div>
+				<button class="btn btn-sm btn-outline-primary add-supply-btn">
+					<i class="bi bi-plus"></i> ${i18n.t("common.add")}
+				</button>
+			`;
+
+			item.querySelector(".add-supply-btn")?.addEventListener("click", () => {
+				this.addSupplyToPatient(supply);
+			});
+
+			container.appendChild(item);
+		});
+	}
+
+	private handleSupplySearch(searchTerm: string): void {
+		const term = searchTerm.toLowerCase();
+		const filtered = this.availableSupplies.filter((supply) =>
+			supply.name.toLowerCase().includes(term)
+		);
+		this.displayAvailableSupplies(filtered);
+	}
+
+	private async addSupplyToPatient(supply: MedicalSupply): Promise<void> {
+		if (!this.currentPatient) return;
+
+		try {
+			// 1. Check for available shipments (batches)
+			const shipmentsResponse = await fetch(
+				`/api/pharmacy/medical-supply-usages/available-shipments/${supply.supply_id}`
+			);
+			if (!shipmentsResponse.ok) throw new Error("Failed to fetch shipments");
+			const shipments = await shipmentsResponse.json();
+
+			if (shipments.length === 0) {
+				this.showError(i18n.t("patients.messages.outOfStock"));
+				return;
+			}
+
+			// 2. Ask for Quantity and Batch
+			// Simplified: If 1 batch, just ask quantity. If multiple, ask user to pick.
+			// For this iteration, I'll auto-pick the first batch (FIFO usually if sorted by expiry)
+			// But user might want to pick.
+			// I'll use SweetAlert input with select for batch if multiple, or just number if 1.
+
+			let shipmentId = shipments[0].shipment_id;
+			let maxQuantity = shipments[0].quantity;
+			let price = 0;
+
+			// Determine Price based on current admission's price list
+			const targetPricelistId = this.currentAdmission?.pricelist_id;
+			const prices = shipments[0].prices || [];
+			let priceObj = null;
+
+			if (targetPricelistId) {
+				priceObj = prices.find((p: any) => p.pricelist_id === targetPricelistId);
+			}
+
+			if (!priceObj) {
+				// Try finding default pricelist
+				const defaultPricelist = this.priceLists.find(pl => pl.is_default);
+				if (defaultPricelist) {
+					priceObj = prices.find((p: any) => p.pricelist_id === defaultPricelist.pricelist_id);
+				}
+			}
+
+			// Fallback to first available price
+			if (!priceObj && prices.length > 0) {
+				priceObj = prices[0];
+			}
+
+			if (priceObj) {
+				price = parseFloat(priceObj.price);
+			}
+
+			if (shipments.length > 1) {
+				// TODO: Implement batch selection UI. For now, picking first one.
+				// (Or I can create a complex Swal).
+			}
+
+			const { value: quantity } = await Swal.fire({
+				title: i18n.t("patients.modals.addSupply"),
+				input: "number",
+				inputLabel: `${i18n.t("common.quantity")} (Max: ${maxQuantity})`,
+				inputAttributes: {
+					min: "1",
+					max: maxQuantity.toString(),
+					step: "1"
+				},
+				inputValue: 1,
+				showCancelButton: true,
+				confirmButtonText: i18n.t("common.add")
+			});
+
+			if (!quantity) return;
+
+			this.addSupplyModal.hide();
+
+			// 3. Create Usage
+			const response = await fetch(
+				`/api/pharmacy/medical-supply-usages/patient/${this.currentPatient.patient_id}`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					},
+					body: JSON.stringify({
+						supplyId: supply.supply_id,
+						shipmentId: shipmentId,
+						quantity: parseInt(quantity),
+						patientHistoryId: this.currentAdmission?.patient_history_id,
+						price: price
+					})
+				}
+			);
+
+			if (!response.ok) {
+				const err = await response.json();
+				throw new Error(err.error || "Failed to add supply");
+			}
+
+			this.showSuccess(i18n.t("patients.messages.supplyAdded"));
+			await this.loadAssignedSupplies(this.currentPatient.patient_id);
+			this.updateAssignedSuppliesDisplay();
+			await this.loadCurrentBill(this.currentBill!.bill_id);
+			this.updateBillingDisplay();
+
+		} catch (error: any) {
+			console.error("Error adding supply:", error);
+			this.showError(error.message);
+		}
+	}
 
 	private groupServicesByServiceId(services: any[]): any[] {
 		const grouped = new Map<number, any>();
@@ -4868,6 +5233,49 @@ class PatientManager {
 			unit_price: drug.total_cost / drug.quantity, // Recalculate average price
 			shipment_ids: Array.from(drug.shipment_ids),
 			instances_count: drug.bill_details.length
+		}));
+	}
+
+	private groupSuppliesBySupplyId(supplies: any[]): any[] {
+		const grouped = new Map<number, any>();
+
+		supplies.forEach((supply) => {
+			const supplyId = supply.supply_id;
+
+			if (grouped.has(supplyId)) {
+				const existing = grouped.get(supplyId);
+				existing.quantity += supply.quantity;
+				existing.total_cost += parseFloat(supply.total_cost || 0);
+				existing.charge_types.add(supply.charge_type);
+				existing.shipment_ids.add(supply.medical_supply_shipment_id);
+				existing.bill_details.push(supply);
+				// Keep the earliest date
+				if (supply.generated_at < existing.generated_at) {
+					existing.generated_at = supply.generated_at;
+				}
+			} else {
+				grouped.set(supplyId, {
+					supply_id: supplyId,
+					medical_supply_name: supply.medical_supply_name,
+					manufacturer: supply.manufacturer,
+					quantity: supply.quantity,
+					unit_price: supply.unit_price,
+					total_cost: parseFloat(supply.total_cost || 0),
+					charge_types: new Set([supply.charge_type]),
+					shipment_ids: new Set([supply.medical_supply_shipment_id]),
+					generated_at: supply.generated_at,
+					bill_details: [supply]
+				});
+			}
+		});
+
+		// Convert Sets to arrays/strings and calculate average unit price
+		return Array.from(grouped.values()).map((supply) => ({
+			...supply,
+			charge_type: Array.from(supply.charge_types).join(", "),
+			unit_price: supply.total_cost / supply.quantity, // Recalculate average price
+			shipment_ids: Array.from(supply.shipment_ids),
+			instances_count: supply.bill_details.length
 		}));
 	}
 	private formatGender(gender: string): string {

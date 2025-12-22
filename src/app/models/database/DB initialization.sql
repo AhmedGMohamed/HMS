@@ -1,51 +1,34 @@
 -- Create Enum Types First
 CREATE TYPE gender_type AS ENUM ('male', 'female', 'other');
-
 CREATE TYPE payment_type AS ENUM ('cash', 'credit', 'insurance');
-
 CREATE TYPE leave_reason_type AS ENUM ('death', 'improvement', 'transfer', 'as_desired');
-
 CREATE TYPE discount_type AS ENUM ('fixed', 'percentage');
-
 CREATE TYPE sale_type AS ENUM ('outside', 'medical_check', 'admitted');
-
 CREATE TYPE service_type AS ENUM ('once', 'hourly', 'daily');
-
 CREATE TYPE transaction_type AS ENUM ('patient', 'check', 'outside');
-
 CREATE TYPE employee_type AS ENUM ('doctor', 'nurse', 'other');
-
 CREATE TYPE payment_calculation AS ENUM ('fixed', 'per_patient', 'both');
-
 CREATE TYPE doctor_type AS ENUM (
 	'attending',
 	'supervising',
 	'outside',
 	'referring'
 );
-
 CREATE TYPE prepayment_type AS ENUM ('fixed', 'percentage');
-
 CREATE TYPE percentage_scope AS ENUM ('before_deductions', 'after_deductions');
-
 CREATE TYPE shift_type AS ENUM ('morning', 'night');
-
 CREATE TYPE vat_scope_type AS ENUM ('services', 'drugs', 'both');
-
 CREATE TYPE vault_manual_payment_type AS ENUM ('addition', 'deduction');
-
 -- Core tables
 CREATE TABLE IF NOT EXISTS Role (
 	role_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL
 );
-
 CREATE TABLE IF NOT EXISTS Permission (
 	permission_id SERIAL PRIMARY KEY,
 	feature_name VARCHAR(255) NOT NULL,
 	description TEXT
 );
-
 CREATE TABLE IF NOT EXISTS "User" (
 	user_id SERIAL PRIMARY KEY,
 	username VARCHAR(255) UNIQUE NOT NULL,
@@ -53,20 +36,17 @@ CREATE TABLE IF NOT EXISTS "User" (
 	role_id INTEGER REFERENCES Role(role_id),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE IF NOT EXISTS RolePermission (
 	role_id INTEGER REFERENCES Role(role_id),
 	permission_id INTEGER REFERENCES Permission(permission_id),
 	PRIMARY KEY (role_id, permission_id)
 );
-
 -- Inventory and Pricing
 CREATE TABLE IF NOT EXISTS PriceList (
 	pricelist_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
 	is_default BOOLEAN DEFAULT false
 );
-
 -- Employee Management
 CREATE TABLE IF NOT EXISTS Employee (
 	employee_id SERIAL PRIMARY KEY,
@@ -88,7 +68,6 @@ CREATE TABLE IF NOT EXISTS Employee (
 	shift_start_time TIME,
 	shift_end_time TIME
 );
-
 CREATE TABLE IF NOT EXISTS Doctor (
 	doctor_id SERIAL PRIMARY KEY REFERENCES Employee(employee_id),
 	doctor_type doctor_type NOT NULL,
@@ -98,14 +77,12 @@ CREATE TABLE IF NOT EXISTS Doctor (
 	payment_calculation payment_calculation,
 	referral_bonus DECIMAL(15, 2)
 );
-
 -- Pharmacy Management
 CREATE TABLE IF NOT EXISTS Warehouse (
 	warehouse_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
 	location TEXT NOT NULL
 );
-
 CREATE TABLE IF NOT EXISTS DrugCard (
 	drug_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -119,7 +96,6 @@ CREATE TABLE IF NOT EXISTS DrugCard (
 	unit_conversion JSONB NOT NULL,
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 CREATE TABLE IF NOT EXISTS DrugShipment (
 	shipment_id SERIAL PRIMARY KEY,
 	drug_id INTEGER REFERENCES DrugCard(drug_id),
@@ -131,7 +107,6 @@ CREATE TABLE IF NOT EXISTS DrugShipment (
 	received_date DATE DEFAULT CURRENT_DATE,
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 -- Services and Pricing
 CREATE TABLE IF NOT EXISTS Service (
 	service_id SERIAL PRIMARY KEY,
@@ -140,7 +115,6 @@ CREATE TABLE IF NOT EXISTS Service (
 	auto_add_on_admission BOOLEAN DEFAULT false,
 	service_type service_type NOT NULL
 );
-
 -- Patient Related tables
 CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
@@ -149,7 +123,6 @@ CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
 	last_cleared_date DATE DEFAULT CURRENT_DATE
 );
-
 CREATE TABLE IF NOT EXISTS Patient (
 	patient_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -168,7 +141,6 @@ CREATE TABLE IF NOT EXISTS Patient (
 	referring_doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 CREATE TABLE IF NOT EXISTS Bill (
 	bill_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
@@ -183,7 +155,6 @@ CREATE TABLE IF NOT EXISTS Bill (
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	issued_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 CREATE TABLE IF NOT EXISTS PatientHistory (
 	patient_history_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
@@ -195,14 +166,12 @@ CREATE TABLE IF NOT EXISTS PatientHistory (
 	admission_time TIMESTAMP,
 	discharge_time TIMESTAMP
 );
-
 -- Doctor Relationships
 CREATE TABLE IF NOT EXISTS DoctorPatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	PRIMARY KEY (patient_history_id, doctor_id)
 );
-
 CREATE TABLE IF NOT EXISTS PatientDoctor (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	doctor_id INTEGER REFERENCES Doctor(doctor_id),
@@ -210,7 +179,6 @@ CREATE TABLE IF NOT EXISTS PatientDoctor (
 	assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	unassigned_at TIMESTAMP DEFAULT NULL
 );
-
 CREATE TABLE IF NOT EXISTS PatientNurse (
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
@@ -218,13 +186,11 @@ CREATE TABLE IF NOT EXISTS PatientNurse (
 	assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	unassigned_at TIMESTAMP DEFAULT NULL
 );
-
 CREATE TABLE IF NOT EXISTS NursePatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
 	PRIMARY KEY (patient_history_id, nurse_id)
 );
-
 CREATE TABLE IF NOT EXISTS DailyStaffAssignment (
 	assignment_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id),
@@ -235,31 +201,39 @@ CREATE TABLE IF NOT EXISTS DailyStaffAssignment (
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	UNIQUE(employee_id, patient_id, work_date)
 );
-
 CREATE TABLE IF NOT EXISTS BillDetail (
 	bill_detail_id SERIAL PRIMARY KEY,
 	bill_id INTEGER REFERENCES Bill(bill_id),
 	active_service_id INTEGER REFERENCES ActivePatientService(active_service_id),
 	service_id INTEGER REFERENCES Service(service_id),
 	drug_shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
+	medical_supply_shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id),
 	quantity INTEGER NOT NULL,
 	unit_price DECIMAL(15, 2) NOT NULL,
 	charge_type VARCHAR(50),
 	sale_type sale_type NOT NULL,
-	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP CHECK (
+	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT billdetail_check CHECK (
 		(
 			service_id IS NOT NULL
 			AND active_service_id IS NOT NULL
 			AND drug_shipment_id IS NULL
+			AND medical_supply_shipment_id IS NULL
 		)
 		OR (
 			service_id IS NULL
 			AND active_service_id IS NULL
 			AND drug_shipment_id IS NOT NULL
+			AND medical_supply_shipment_id IS NULL
+		)
+		OR (
+			service_id IS NULL
+			AND active_service_id IS NULL
+			AND drug_shipment_id IS NULL
+			AND medical_supply_shipment_id IS NOT NULL
 		)
 	)
 );
-
 CREATE TABLE IF NOT EXISTS DrugTransaction (
 	transaction_id SERIAL PRIMARY KEY,
 	shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
@@ -269,7 +243,6 @@ CREATE TABLE IF NOT EXISTS DrugTransaction (
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 CREATE TABLE IF NOT EXISTS DrugUsage (
 	usage_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
@@ -279,7 +252,6 @@ CREATE TABLE IF NOT EXISTS DrugUsage (
 	remaining_quantity INTEGER NOT NULL,
 	last_administered TIMESTAMP
 );
-
 CREATE TABLE IF NOT EXISTS ActivePatientService (
 	active_service_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
@@ -289,13 +261,11 @@ CREATE TABLE IF NOT EXISTS ActivePatientService (
 	is_active BOOLEAN DEFAULT true,
 	last_renewed TIMESTAMP DEFAULT NULL
 );
-
 CREATE TABLE IF NOT EXISTS ServiceDrug (
 	service_id INTEGER REFERENCES Service(service_id),
 	drug_id INTEGER REFERENCES DrugCard(drug_id),
 	PRIMARY KEY (service_id, drug_id)
 );
-
 CREATE TABLE IF NOT EXISTS ServicePrice (
 	service_price_id SERIAL,
 	service_id INTEGER REFERENCES Service(service_id) ON DELETE CASCADE,
@@ -306,7 +276,6 @@ CREATE TABLE IF NOT EXISTS ServicePrice (
 	prepayment_amount DECIMAL(15, 2),
 	PRIMARY KEY (service_id, pricelist_id)
 );
-
 CREATE TABLE IF NOT EXISTS ShipmentPrice (
 	shipment_id INTEGER REFERENCES DrugShipment(shipment_id) ON DELETE CASCADE,
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id) ON DELETE CASCADE,
@@ -316,7 +285,6 @@ CREATE TABLE IF NOT EXISTS ShipmentPrice (
 	prepayment_amount DECIMAL(15, 2),
 	PRIMARY KEY (shipment_id, pricelist_id)
 );
-
 CREATE TABLE IF NOT EXISTS EmployeePayment (
 	payment_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
@@ -333,7 +301,6 @@ CREATE TABLE IF NOT EXISTS EmployeePayment (
 	paid_timestamp TIMESTAMP,
 	paid_by_user_id INTEGER REFERENCES "User"(user_id)
 );
-
 CREATE TABLE IF NOT EXISTS EmployeePaymentPatient (
 	payment_patient_id SERIAL PRIMARY KEY,
 	payment_id INTEGER REFERENCES EmployeePayment(payment_id) ON DELETE CASCADE,
@@ -347,7 +314,6 @@ CREATE TABLE IF NOT EXISTS EmployeePaymentPatient (
 	-- 'fixed_per_patient', 'percentage_per_patient', 'referral'
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 	clock_id SERIAL PRIMARY KEY,
 	employee_id INTEGER REFERENCES Employee(employee_id) ON DELETE CASCADE,
@@ -355,7 +321,6 @@ CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 	clock_out TIMESTAMP,
 	pay_deduction DECIMAL(15, 2) DEFAULT 0
 );
-
 CREATE TABLE IF NOT EXISTS InsurancePayments (
 	payment_id SERIAL PRIMARY KEY,
 	insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
@@ -365,7 +330,6 @@ CREATE TABLE IF NOT EXISTS InsurancePayments (
 	added_by_user_id INTEGER REFERENCES "User"(user_id),
 	issued_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 -- Audit System
 CREATE TABLE IF NOT EXISTS AuditLog (
 	log_id SERIAL PRIMARY KEY,
@@ -374,7 +338,6 @@ CREATE TABLE IF NOT EXISTS AuditLog (
 	details JSONB,
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE IF NOT EXISTS VaultManualPayment (
 	payment_id SERIAL PRIMARY KEY,
 	payment_amount DECIMAL(15, 2) NOT NULL,
@@ -382,89 +345,142 @@ CREATE TABLE IF NOT EXISTS VaultManualPayment (
 	payment_type vault_manual_payment_type NOT NULL,
 	description TEXT
 );
+-- Create MedicalSupply table (similar to DrugCard but without unit_conversion)
+CREATE TABLE IF NOT EXISTS MedicalSupply (
+	supply_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	manufacturer VARCHAR(255),
+	provider VARCHAR(255),
+	is_obligatory_continuous BOOLEAN DEFAULT false,
+	sale_quantity INTEGER NOT NULL,
+	frequency INTERVAL,
+	min_stock_alert INTEGER,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+-- Create MedicalSupplyShipment table (similar to DrugShipment)
+CREATE TABLE IF NOT EXISTS MedicalSupplyShipment (
+	shipment_id SERIAL PRIMARY KEY,
+	supply_id INTEGER REFERENCES MedicalSupply(supply_id),
+	warehouse_id INTEGER REFERENCES Warehouse(warehouse_id),
+	buy_quantity INTEGER NOT NULL,
+	quantity INTEGER NOT NULL,
+	buy_price DECIMAL(15, 2) NOT NULL,
+	expiry_date DATE,
+	received_date DATE DEFAULT CURRENT_DATE,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+-- Create MedicalSupplyTransaction table (similar to DrugTransaction)
+CREATE TABLE IF NOT EXISTS MedicalSupplyTransaction (
+	transaction_id SERIAL PRIMARY KEY,
+	shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id),
+	transaction_type transaction_type NOT NULL,
+	quantity INTEGER NOT NULL,
+	price DECIMAL(15, 2) NOT NULL,
+	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+-- Create MedicalSupplyUsage table (similar to DrugUsage)
+CREATE TABLE IF NOT EXISTS MedicalSupplyUsage (
+	usage_id SERIAL PRIMARY KEY,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	supply_id INTEGER REFERENCES MedicalSupply(supply_id),
+	transaction_id INTEGER REFERENCES MedicalSupplyTransaction(transaction_id),
+	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	remaining_quantity INTEGER NOT NULL,
+	last_administered TIMESTAMP
+);
+-- Create ShipmentPrice table for MedicalSupplyShipment (similar to DrugShipment pricing)
+CREATE TABLE IF NOT EXISTS MedicalSupplyShipmentPrice (
+	shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id) ON DELETE CASCADE,
+	pricelist_id INTEGER REFERENCES PriceList(pricelist_id) ON DELETE CASCADE,
+	price DECIMAL(15, 2) NOT NULL,
+	requires_prepayment BOOLEAN DEFAULT false,
+	prepayment_type prepayment_type,
+	prepayment_amount DECIMAL(15, 2),
+	PRIMARY KEY (shipment_id, pricelist_id)
+);
+-- Update BillDetail table to include medical_supply_shipment_id
+ALTER TABLE BillDetail 
+ADD COLUMN IF NOT EXISTS medical_supply_shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id);
+-- Drop the existing CHECK constraint on BillDetail
+ALTER TABLE BillDetail DROP CONSTRAINT IF EXISTS billdetail_check;
+ALTER TABLE BillDetail DROP CONSTRAINT IF EXISTS billdetail_generated_at_check;
+-- Add updated CHECK constraint to include medical supplies
+ALTER TABLE BillDetail ADD CONSTRAINT billdetail_check CHECK (
+	(
+		service_id IS NOT NULL
+		AND active_service_id IS NOT NULL
+		AND drug_shipment_id IS NULL
+		AND medical_supply_shipment_id IS NULL
+	)
+	OR (
+		service_id IS NULL
+		AND active_service_id IS NULL
+		AND drug_shipment_id IS NOT NULL
+		AND medical_supply_shipment_id IS NULL
+	)
+	OR (
+		service_id IS NULL
+		AND active_service_id IS NULL
+		AND drug_shipment_id IS NULL
+		AND medical_supply_shipment_id IS NOT NULL
+	)
+);
 
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);
-
 CREATE INDEX IF NOT EXISTS idx_drug_name ON DrugCard(name);
-
 CREATE INDEX IF NOT EXISTS idx_bill_date ON Bill(generated_at);
-
 CREATE INDEX IF NOT EXISTS idx_employee_hire_date ON Employee(hire_date);
-
 -- Additional database schema updates for enhanced patient management
 -- Add indexes for better performance on patient queries
 CREATE INDEX IF NOT EXISTS idx_patient_active ON Patient(is_active);
-
 CREATE INDEX IF NOT EXISTS idx_patient_payment_type ON Patient(payment_type);
-
 CREATE INDEX IF NOT EXISTS idx_patient_insurance ON Patient(insurance_id);
-
 CREATE INDEX IF NOT EXISTS idx_patient_referring_doctor ON Patient(referring_doctor_id);
-
 -- Add indexes for patient history queries
 CREATE INDEX IF NOT EXISTS idx_patient_history_patient ON PatientHistory(patient_id);
-
 CREATE INDEX IF NOT EXISTS idx_patient_history_admission ON PatientHistory(admission_time);
-
 CREATE INDEX IF NOT EXISTS idx_patient_history_discharge ON PatientHistory(discharge_time);
-
 CREATE INDEX IF NOT EXISTS idx_patient_history_active ON PatientHistory(patient_id, discharge_time)
-WHERE
-	discharge_time IS NULL;
-
+WHERE discharge_time IS NULL;
 -- Add indexes for bill queries
 CREATE INDEX IF NOT EXISTS idx_bill_patient ON Bill(patient_id);
-
 CREATE INDEX IF NOT EXISTS idx_bill_generated ON Bill(generated_at);
-
 CREATE INDEX IF NOT EXISTS idx_bill_detail_bill ON BillDetail(bill_id);
-
 CREATE INDEX IF NOT EXISTS idx_bill_detail_service ON BillDetail(service_id);
-
 CREATE INDEX IF NOT EXISTS idx_bill_detail_drug ON BillDetail(drug_shipment_id);
-
 -- Add indexes for active patient services
 CREATE INDEX IF NOT EXISTS idx_active_patient_service_patient ON ActivePatientService(patient_id);
-
 CREATE INDEX IF NOT EXISTS idx_active_patient_service_active ON ActivePatientService(patient_id, is_active)
-WHERE
-	is_active = true;
-
+WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_active_patient_service_service ON ActivePatientService(service_id);
-
 -- Add indexes for drug usage tracking
 CREATE INDEX IF NOT EXISTS idx_drug_usage_patient ON DrugUsage(patient_id);
-
 CREATE INDEX IF NOT EXISTS idx_drug_usage_drug ON DrugUsage(drug_id);
-
 CREATE INDEX IF NOT EXISTS idx_drug_usage_remaining ON DrugUsage(remaining_quantity)
-WHERE
-	remaining_quantity > 0;
-
+WHERE remaining_quantity > 0;
 CREATE INDEX IF NOT EXISTS idx_drug_usage_administered ON DrugUsage(last_administered);
-
 -- Add indexes for doctor patient history
 CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_patient ON DoctorPatientHistory(patient_history_id);
-
 CREATE INDEX IF NOT EXISTS idx_doctor_patient_history_doctor ON DoctorPatientHistory(doctor_id);
-
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_date ON DailyStaffAssignment(work_date, payment_processed);
-
 CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_employee ON DailyStaffAssignment(employee_id, work_date);
-
 -- Add indexes for employee patient payments
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_payment ON EmployeePaymentPatient(payment_id);
-
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_employee_date ON EmployeePaymentPatient(payment_id, work_date);
-
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_patient ON EmployeePaymentPatient(patient_id);
-
+-- Create indexes for Medical Supplies
+CREATE INDEX IF NOT EXISTS idx_medical_supply_name ON MedicalSupply(name);
+CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_patient ON MedicalSupplyUsage(patient_id);
+CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_supply ON MedicalSupplyUsage(supply_id);
+CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_remaining ON MedicalSupplyUsage(remaining_quantity)
+WHERE remaining_quantity > 0;
+CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_administered ON MedicalSupplyUsage(last_administered);
+CREATE INDEX IF NOT EXISTS idx_bill_detail_medical_supply ON BillDetail(medical_supply_shipment_id);
 -- Add a view for currently admitted patients with their details
-CREATE
-OR REPLACE VIEW CurrentAdmissions AS
-SELECT
-	p.patient_id,
+CREATE OR REPLACE VIEW CurrentAdmissions AS
+SELECT p.patient_id,
 	p.name as patient_name,
 	p.gender,
 	p.phone,
@@ -479,18 +495,15 @@ SELECT
 	b.paid_amount,
 	array_agg(DISTINCT e.name) as attending_doctors,
 	array_agg(DISTINCT dph.doctor_id) as attending_doctor_ids
-FROM
-	Patient p
+FROM Patient p
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
 	LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
 	LEFT JOIN Bill b ON ph.bill_id = b.bill_id
 	LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
 	LEFT JOIN Employee e ON dph.doctor_id = e.employee_id
-WHERE
-	p.is_active = true
-GROUP BY
-	p.patient_id,
+WHERE p.is_active = true
+GROUP BY p.patient_id,
 	p.name,
 	p.gender,
 	p.phone,
@@ -503,12 +516,9 @@ GROUP BY
 	ph.bill_id,
 	b.total_amount,
 	b.paid_amount;
-
 -- Add a view for service renewals that are due
-CREATE
-OR REPLACE VIEW ServiceRenewalsDue AS
-SELECT
-	aps.active_service_id,
+CREATE OR REPLACE VIEW ServiceRenewalsDue AS
+SELECT aps.active_service_id,
 	aps.patient_id,
 	p.name as patient_name,
 	aps.service_id,
@@ -523,8 +533,7 @@ SELECT
 			FLOOR(
 				EXTRACT(
 					EPOCH
-					FROM
-						(CURRENT_TIMESTAMP - aps.start_date)
+					FROM (CURRENT_TIMESTAMP - aps.start_date)
 				) / 3600
 			) + 1
 		) * INTERVAL '1 hour'
@@ -532,23 +541,20 @@ SELECT
 			FLOOR(
 				EXTRACT(
 					EPOCH
-					FROM
-						(CURRENT_TIMESTAMP - aps.start_date)
+					FROM (CURRENT_TIMESTAMP - aps.start_date)
 				) / 86400
 			) + 1
 		) * INTERVAL '1 day'
 		ELSE NULL
 	END as next_charge_time
-FROM
-	ActivePatientService aps
+FROM ActivePatientService aps
 	JOIN Service s ON aps.service_id = s.service_id
 	JOIN Patient p ON aps.patient_id = p.patient_id
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
 	JOIN ServicePrice sp ON s.service_id = sp.service_id
 	JOIN PriceList pl ON sp.pricelist_id = pl.pricelist_id
-WHERE
-	aps.is_active = true
+WHERE aps.is_active = true
 	AND p.is_active = true
 	AND s.auto_renew = true
 	AND s.service_type IN ('hourly', 'daily')
@@ -558,8 +564,7 @@ WHERE
 			FLOOR(
 				EXTRACT(
 					EPOCH
-					FROM
-						(CURRENT_TIMESTAMP - aps.start_date)
+					FROM (CURRENT_TIMESTAMP - aps.start_date)
 				) / 3600
 			)
 		) * INTERVAL '1 hour'
@@ -567,19 +572,15 @@ WHERE
 			FLOOR(
 				EXTRACT(
 					EPOCH
-					FROM
-						(CURRENT_TIMESTAMP - aps.start_date)
+					FROM (CURRENT_TIMESTAMP - aps.start_date)
 				) / 86400
 			)
 		) * INTERVAL '1 day'
 		ELSE false
 	END;
-
 -- Add a view for drug administrations that are due
-CREATE
-OR REPLACE VIEW DrugAdministrationsDue AS
-SELECT
-	du.usage_id,
+CREATE OR REPLACE VIEW DrugAdministrationsDue AS
+SELECT du.usage_id,
 	du.patient_id,
 	p.name as patient_name,
 	du.drug_id,
@@ -591,30 +592,25 @@ SELECT
 	dc.sale_quantity,
 	ph.bill_id,
 	COALESCE(
-		du.last_administered + dc.frequency :: interval,
+		du.last_administered + dc.frequency::interval,
 		CURRENT_TIMESTAMP
 	) as next_administration
-FROM
-	DrugUsage du
+FROM DrugUsage du
 	JOIN DrugCard dc ON du.drug_id = dc.drug_id
 	JOIN Patient p ON du.patient_id = p.patient_id
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
-WHERE
-	du.remaining_quantity > 0
+WHERE du.remaining_quantity > 0
 	AND p.is_active = true
 	AND dc.is_obligatory_continuous = true
 	AND dc.frequency IS NOT NULL
 	AND (
 		du.last_administered IS NULL
-		OR CURRENT_TIMESTAMP >= du.last_administered + dc.frequency :: interval
+		OR CURRENT_TIMESTAMP >= du.last_administered + dc.frequency::interval
 	);
-
 -- Add a view for drugs that need replenishment
-CREATE
-OR REPLACE VIEW DrugReplenishmentNeeded AS
-SELECT
-	du.usage_id,
+CREATE OR REPLACE VIEW DrugReplenishmentNeeded AS
+SELECT du.usage_id,
 	du.patient_id,
 	p.name as patient_name,
 	du.drug_id,
@@ -623,58 +619,100 @@ SELECT
 	dc.sale_quantity,
 	dc.is_obligatory_continuous,
 	ph.bill_id
-FROM
-	DrugUsage du
+FROM DrugUsage du
 	JOIN DrugCard dc ON du.drug_id = dc.drug_id
 	JOIN Patient p ON du.patient_id = p.patient_id
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
-WHERE
-	du.remaining_quantity <= 0
+WHERE du.remaining_quantity <= 0
 	AND p.is_active = true
 	AND dc.is_obligatory_continuous = true;
-
 -- Create a function to calculate next service charge time
-CREATE
-OR REPLACE FUNCTION calculate_next_service_charge(
-	start_date TIMESTAMP,
-	service_type service_type
-) RETURNS TIMESTAMP AS $$ BEGIN CASE
-	service_type
-	WHEN 'hourly' THEN RETURN start_date + (
-		FLOOR(
-			EXTRACT(
-				EPOCH
-				FROM
-					(CURRENT_TIMESTAMP - start_date)
-			) / 3600
-		) + 1
-	) * INTERVAL '1 hour';
-
+CREATE OR REPLACE FUNCTION calculate_next_service_charge(
+		start_date TIMESTAMP,
+		service_type service_type
+	) RETURNS TIMESTAMP AS $$ BEGIN CASE
+		service_type
+		WHEN 'hourly' THEN RETURN start_date + (
+			FLOOR(
+				EXTRACT(
+					EPOCH
+					FROM (CURRENT_TIMESTAMP - start_date)
+				) / 3600
+			) + 1
+		) * INTERVAL '1 hour';
 WHEN 'daily' THEN RETURN start_date + (
 	FLOOR(
 		EXTRACT(
 			EPOCH
-			FROM
-				(CURRENT_TIMESTAMP - start_date)
+			FROM (CURRENT_TIMESTAMP - start_date)
 		) / 86400
 	) + 1
 ) * INTERVAL '1 day';
-
 ELSE RETURN NULL;
-
 END CASE
 ;
-
 END;
-
 $$ LANGUAGE plpgsql;
+-- Create view for medical supply administrations that are due
+CREATE OR REPLACE VIEW MedicalSupplyAdministrationsDue AS
+SELECT
+	msu.usage_id,
+	msu.patient_id,
+	p.name as patient_name,
+	msu.supply_id,
+	ms.name as supply_name,
+	msu.remaining_quantity,
+	msu.last_administered,
+	ms.frequency,
+	ms.is_obligatory_continuous,
+	ms.sale_quantity,
+	ph.bill_id,
+	COALESCE(
+		msu.last_administered + ms.frequency :: interval,
+		CURRENT_TIMESTAMP
+	) as next_administration
+FROM
+	MedicalSupplyUsage msu
+	JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
+	JOIN Patient p ON msu.patient_id = p.patient_id
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+WHERE
+	msu.remaining_quantity > 0
+	AND p.is_active = true
+	AND ms.is_obligatory_continuous = true
+	AND ms.frequency IS NOT NULL
+	AND (
+		msu.last_administered IS NULL
+		OR CURRENT_TIMESTAMP >= msu.last_administered + ms.frequency :: interval
+	);
 
+-- Create view for medical supplies that need replenishment
+CREATE OR REPLACE VIEW MedicalSupplyReplenishmentNeeded AS
+SELECT
+	msu.usage_id,
+	msu.patient_id,
+	p.name as patient_name,
+	msu.supply_id,
+	ms.name as supply_name,
+	msu.remaining_quantity,
+	ms.sale_quantity,
+	ms.is_obligatory_continuous,
+	ph.bill_id
+FROM
+	MedicalSupplyUsage msu
+	JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
+	JOIN Patient p ON msu.patient_id = p.patient_id
+	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+	AND ph.discharge_time IS NULL
+WHERE
+	msu.remaining_quantity <= 0
+	AND p.is_active = true
+	AND ms.is_obligatory_continuous = true;
 -- Insert required permissions
-INSERT INTO
-	Permission (feature_name, description)
-VALUES
-	(
+INSERT INTO Permission (feature_name, description)
+VALUES (
 		'view_dashboard',
 		'Can view admin dashboard and statistics'
 	),
@@ -683,6 +721,7 @@ VALUES
 	('manage_services', 'Can manage services'),
 	('manage_billing', 'Can manage billing'),
 	('manage_pharmacy', 'Can manage pharmacy'),
+	('manage_supplies', 'Can manage medical supplies and inventory')
 	('manage_shipments', 'Can manage/edit shipments'),
 	(
 		'manage_insurance',
@@ -708,28 +747,25 @@ VALUES
 	),
 	('view_reports', 'Can view facility reports'),
 	('view_only', 'Can only view records');
-
-INSERT INTO
-	Role (name)
-VALUES
-	('Admin');
-
-INSERT INTO
-	RolePermission (role_id, permission_id)
-VALUES
-	(1, 12),
-	(1, 13);
-
-INSERT INTO
-	"User" (username, password_hash, role_id)
-VALUES
-	('admin', '$2a$10$5wtO8QuMZ3X62mmnwXzyXu3ZPKeSxJsafylPqLVLQG8dpTOxR0PdO', 1),
-	('system', '$2a$10$yYxnEDZ6MLLzxXHn/T.ba.mm/F.9drU/l0E6QbPi/l72KSp7dciuS', 1);
-
+INSERT INTO Role (name)
+VALUES ('Admin');
+INSERT INTO RolePermission (role_id, permission_id)
+VALUES (1, 14),
+	(1, 15);
+INSERT INTO "User" (username, password_hash, role_id)
+VALUES (
+		'admin',
+		'$2a$10$5wtO8QuMZ3X62mmnwXzyXu3ZPKeSxJsafylPqLVLQG8dpTOxR0PdO',
+		1
+	),
+	(
+		'system',
+		'$2a$10$yYxnEDZ6MLLzxXHn/T.ba.mm/F.9drU/l0E6QbPi/l72KSp7dciuS',
+		1
+	);
 INSERT INTO PriceList (name, is_default)
-VALUES
-	('Default', TRUE);
-
+VALUES ('Default', TRUE);
 INSERT INTO Warehouse (name, location)
-VALUES
-	('Default', 'Default');
+VALUES ('Default', 'Default');
+SET timezone TO 'Africa/Cairo';
+SET TIME ZONE 'Africa/Cairo';

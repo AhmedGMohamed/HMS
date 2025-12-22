@@ -66,6 +66,10 @@ router.get(
 	}
 );
 
+router.get("/supplies", verifyToken, checkPermission("manage_pharmacy"), auditLogger, (_req, res) => {
+	res.sendFile("./views/pharmacy/supplies.html", { root: __dirname });
+})
+
 //Employee & Clock-in routes
 router.get(
 	"/employees",

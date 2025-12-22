@@ -10,7 +10,6 @@ import {
 	DrugCard
 } from "../utils/types/drugs.js";
 import { Patient } from "../utils/types/patients.js";
-import PatientModel from "./Patient.model.js";
 
 export class DrugUsageModel {
 	async getAllDrugUsages(): Promise<DrugUsageWithDetails[]> {

@@ -84,7 +84,9 @@ function groupBillDetails(billDetails: BillDetail[]): BillDetail[] {
 		// Create a unique key for grouping
 		const key = detail.service_id
 			? `service_${detail.service_id}`
-			: `drug_${detail.drug_shipment_id}`;
+			: detail.drug_shipment_id
+				? `drug_${detail.drug_shipment_id}`
+				: `supply_${detail.medical_supply_shipment_id}`;
 
 		if (grouped.has(key)) {
 			// Add to existing group
@@ -296,8 +298,8 @@ function buildTable(section: ReportSection, data: any): any {
 				return rowIndex === 0
 					? "#f0f0f0"
 					: rowIndex % 2 === 0
-					? "#f9f9f9"
-					: null;
+						? "#f9f9f9"
+						: null;
 			}
 		}
 	};
@@ -378,13 +380,19 @@ function calculateSummaryValue(field: ReportField, data: any): any {
 				) || 0
 			);
 		case "calculated.vat_amount":
+			// If VAT amount is explicitly provided in the bill object, use it.
+			// This is important when VAT calculation logic involves complex scoping (e.g. services vs drugs vs supplies)
+			// that is handled by the caller (manager).
+			if (data.bill && typeof data.bill.vat_amount === "number") {
+				return data.bill.vat_amount;
+			}
 			const subtotal = calculateSummaryValue(
 				{ key: "calculated.subtotal" } as ReportField,
 				data
 			);
 			return data.bill?.vat_percentage
 				? (subtotal - (data.bill?.discount || 0)) *
-						(data.bill.vat_percentage / 100)
+				(data.bill.vat_percentage / 100)
 				: 0;
 		case "calculated.balance":
 			return (
@@ -473,6 +481,7 @@ export const reportTemplates = {
 							return (
 								item.service_name ||
 								item.drug_name ||
+								item.medical_supply_name ||
 								item.description ||
 								"Unknown Item"
 							);

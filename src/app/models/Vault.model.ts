@@ -11,6 +11,7 @@ export class VaultModel {
 		const [
 			patientServicesTotal,
 			patientDrugsTotal,
+			patientSuppliesTotal,
 			patientPaymentsTotal,
 			patientOutstandingTotal,
 			patientDiscountsTotal,
@@ -18,6 +19,9 @@ export class VaultModel {
 			drugShipmentCostsTotal,
 			drugSalesRevenueTotal,
 			drugSalesProfitTotal,
+			supplyShipmentCostsTotal,
+			supplySalesRevenueTotal,
+			supplySalesProfitTotal,
 			wagesOwedTotal,
 			wagesPaidTotal,
 			insurancePaymentsTotal,
@@ -26,6 +30,7 @@ export class VaultModel {
 		] = await Promise.all([
 			this.getPatientServicesTotalAmount(startDate, endDate),
 			this.getPatientDrugsTotalAmount(startDate, endDate),
+			this.getPatientSuppliesTotalAmount(startDate, endDate),
 			this.getPatientPaymentsTotalAmount(startDate, endDate),
 			this.getPatientOutstandingTotalAmount(startDate, endDate),
 			this.getPatientDiscountsTotalAmount(startDate, endDate),
@@ -33,6 +38,9 @@ export class VaultModel {
 			this.getDrugShipmentCostsTotalAmount(startDate, endDate),
 			this.getDrugSalesRevenueTotalAmount(startDate, endDate),
 			this.getDrugSalesProfitTotalAmount(startDate, endDate),
+			this.getSupplyShipmentCostsTotalAmount(startDate, endDate),
+			this.getSupplySalesRevenueTotalAmount(startDate, endDate),
+			this.getSupplySalesProfitTotalAmount(startDate, endDate),
 			this.getEmployeeWagesOwedTotalAmount(startDate, endDate),
 			this.getEmployeeWagesPaidTotalAmount(startDate, endDate),
 			this.getInsurancePaymentsTotalAmount(startDate, endDate),
@@ -46,10 +54,12 @@ export class VaultModel {
 		const totalRevenue =
 			patientPaymentsTotal +
 			drugSalesRevenueTotal +
+			supplySalesRevenueTotal +
 			manualPaymentTotals.additions +
 			insurancePaymentsTotal;
 		const totalExpenses =
 			drugShipmentCostsTotal +
+			supplyShipmentCostsTotal +
 			wagesPaidTotal +
 			manualPaymentTotals.deductions;
 		const netProfit = totalRevenue - totalExpenses;
@@ -57,6 +67,7 @@ export class VaultModel {
 		return {
 			patient_services_total: patientServicesTotal,
 			patient_drugs_total: patientDrugsTotal,
+			patient_supplies_total: patientSuppliesTotal,
 			patient_payments_total: patientPaymentsTotal,
 			patient_outstanding_total: patientOutstandingTotal,
 			patient_discounts_total: patientDiscountsTotal,
@@ -66,6 +77,9 @@ export class VaultModel {
 			drug_shipment_costs_total: drugShipmentCostsTotal,
 			drug_sales_revenue_total: drugSalesRevenueTotal,
 			drug_sales_profit_total: drugSalesProfitTotal,
+			supply_shipment_costs_total: supplyShipmentCostsTotal,
+			supply_sales_revenue_total: supplySalesRevenueTotal,
+			supply_sales_profit_total: supplySalesProfitTotal,
 			wages_owed_total: wagesOwedTotal,
 			wages_paid_total: wagesPaidTotal,
 			wages_outstanding_total: wagesOutstandingTotal,
@@ -542,6 +556,72 @@ export class VaultModel {
             JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
             WHERE dt.timestamp >= $1 AND dt.timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check');
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	// Medical Supplies Methods
+	private async getPatientSuppliesTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT 
+                COALESCE(SUM(
+                    CASE WHEN bd.medical_supply_shipment_id IS NOT NULL 
+                    THEN bd.quantity * bd.unit_price 
+                    ELSE 0 END
+                ), 0) as total
+            FROM BillDetail bd
+            JOIN Bill b ON bd.bill_id = b.bill_id
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	private async getSupplyShipmentCostsTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(buy_quantity * buy_price), 0) as total
+            FROM MedicalSupplyShipment
+            WHERE received_date >= $1 AND received_date <= $2;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	private async getSupplySalesRevenueTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(quantity * price), 0) as total
+            FROM MedicalSupplyTransaction
+            WHERE timestamp >= $1 AND timestamp <= $2::DATE + '1 day'::INTERVAL
+                AND (transaction_type = 'outside' OR transaction_type = 'check');
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	private async getSupplySalesProfitTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(mst.quantity * (mst.price - mss.buy_price)), 0) as total
+            FROM MedicalSupplyTransaction mst
+            JOIN MedicalSupplyShipment mss ON mst.shipment_id = mss.shipment_id
+            WHERE mst.timestamp >= $1 AND mst.timestamp <= $2::DATE + '1 day'::INTERVAL
+                AND (mst.transaction_type = 'outside' OR mst.transaction_type = 'check');
         `;
 
 		const result = await query(sql, [startDate, endDate]);

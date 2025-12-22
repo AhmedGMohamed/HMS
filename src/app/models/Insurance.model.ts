@@ -234,16 +234,16 @@ class InsuranceModel {
 			registration_date: row.registration_date,
 			current_admission: row.patient_history_id
 				? {
-						patient_history_id: row.patient_history_id,
-						admission_time: row.admission_time,
-						diagnosis: row.diagnosis,
-						bill_id: row.bill_id,
-						total_amount: parseFloat(row.total_amount || 0),
-						paid_amount: parseFloat(row.paid_amount || 0),
-						outstanding_amount: parseFloat(
-							row.outstanding_amount || 0
-						)
-				  }
+					patient_history_id: row.patient_history_id,
+					admission_time: row.admission_time,
+					diagnosis: row.diagnosis,
+					bill_id: row.bill_id,
+					total_amount: parseFloat(row.total_amount || 0),
+					paid_amount: parseFloat(row.paid_amount || 0),
+					outstanding_amount: parseFloat(
+						row.outstanding_amount || 0
+					)
+				}
 				: undefined
 		}));
 	}
@@ -407,6 +407,9 @@ class InsuranceModel {
 			const drugItems = reportItems.filter(
 				(item) => item.item_type === "drug"
 			);
+			const supplyItems = reportItems.filter(
+				(item) => item.item_type === "supply"
+			);
 
 			const totalServicesCost = serviceItems.reduce(
 				(sum, item) => sum + item.total_cost,
@@ -416,7 +419,11 @@ class InsuranceModel {
 				(sum, item) => sum + item.total_cost,
 				0
 			);
-			const totalCost = totalServicesCost + totalDrugsCost;
+			const totalSuppliesCost = supplyItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost;
 
 			// Get total patient payments for these bills
 			const patientPayments =
@@ -443,6 +450,7 @@ class InsuranceModel {
 				last_cleared_date: insuranceCompany.last_cleared_date,
 				total_services_cost: totalServicesCost,
 				total_drugs_cost: totalDrugsCost,
+				total_supplies_cost: totalSuppliesCost,
 				total_cost: totalCost,
 				total_patient_payments: patientPayments,
 				outstanding_amount: outstandingAmount,
@@ -472,9 +480,12 @@ class InsuranceModel {
             s.name as service_name,
             bd.drug_shipment_id,
             dc.name as drug_name,
+            bd.medical_supply_shipment_id,
+            ms.name as medical_supply_name,
             CASE 
                 WHEN bd.service_id IS NOT NULL THEN 'service'
-                ELSE 'drug'
+                WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
+                ELSE 'supply'
             END as item_type,
             SUM(bd.quantity) as quantity,  -- Group and sum quantities
             bd.unit_price,
@@ -490,6 +501,8 @@ class InsuranceModel {
         LEFT JOIN Service s ON bd.service_id = s.service_id
         LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
         LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+        LEFT JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+        LEFT JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
         WHERE p.insurance_id = $1
             AND bd.generated_at >= $2 
             AND bd.generated_at <= $3::DATE + '1 day'::INTERVAL
@@ -520,7 +533,7 @@ class InsuranceModel {
         GROUP BY 
             p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
             ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
-            s.name, bd.drug_shipment_id, dc.name, bd.unit_price, 
+            s.name, bd.drug_shipment_id, dc.name, bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
             DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount
         ORDER BY p.name, DATE(bd.generated_at) DESC
     `;
@@ -644,8 +657,8 @@ class InsuranceModel {
 			payment_coverage_percentage:
 				parseFloat(financialStats.total_billed) > 0
 					? (parseFloat(paymentsStats.total_insurance_payments) /
-							parseFloat(financialStats.total_billed)) *
-					  100
+						parseFloat(financialStats.total_billed)) *
+					100
 					: 0
 		};
 	}
@@ -732,6 +745,9 @@ class InsuranceModel {
 			const drugItems = reportItems.filter(
 				(item) => item.item_type === "drug"
 			);
+			const supplyItems = reportItems.filter(
+				(item) => item.item_type === "supply"
+			);
 
 			const totalServicesCost = serviceItems.reduce(
 				(sum, item) => sum + item.total_cost,
@@ -741,7 +757,11 @@ class InsuranceModel {
 				(sum, item) => sum + item.total_cost,
 				0
 			);
-			const totalCost = totalServicesCost + totalDrugsCost;
+			const totalSuppliesCost = supplyItems.reduce(
+				(sum, item) => sum + item.total_cost,
+				0
+			);
+			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost;
 
 			// Get total patient payments for this patient in the period
 			const patientPayments = await this.getPatientPaymentsByPeriod(
@@ -768,13 +788,14 @@ class InsuranceModel {
 					registration_date: patient.registration_date
 				},
 				report_period: {
-					start_date: startDate.toISOString(),
-					end_date: endDate.toISOString()
+					start_date: filters.start_date,
+					end_date: filters.end_date
 				},
 				last_cleared_date: patient.last_cleared_date,
 				admissions: admissionsData,
 				total_services_cost: totalServicesCost,
 				total_drugs_cost: totalDrugsCost,
+				total_supplies_cost: totalSuppliesCost,
 				total_cost: totalCost,
 				total_patient_payments: patientPayments,
 				outstanding_amount: outstandingAmount,
@@ -821,9 +842,12 @@ class InsuranceModel {
 				s.name as service_name,
 				bd.drug_shipment_id,
 				dc.name as drug_name,
+				bd.medical_supply_shipment_id,
+				ms.name as medical_supply_name,
 				CASE 
 					WHEN bd.service_id IS NOT NULL THEN 'service'
-					ELSE 'drug'
+					WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
+					ELSE 'supply'
 				END as item_type,
 				bd.quantity,
 				bd.unit_price,
@@ -834,6 +858,8 @@ class InsuranceModel {
 			LEFT JOIN Service s ON bd.service_id = s.service_id
 			LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
 			LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+			LEFT JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+			LEFT JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
 			WHERE bd.bill_id = $1
 				AND bd.generated_at >= $2 
 				AND bd.generated_at <= $3::DATE + '1 day'::INTERVAL
@@ -893,9 +919,12 @@ class InsuranceModel {
 			s.name as service_name,
 			bd.drug_shipment_id,
 			dc.name as drug_name,
+			bd.medical_supply_shipment_id,
+			ms.name as medical_supply_name,
 			CASE 
 				WHEN bd.service_id IS NOT NULL THEN 'service'
-				ELSE 'drug'
+				WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
+				ELSE 'supply'
 			END as item_type,
 			bd.quantity,
 			bd.unit_price,
@@ -911,6 +940,8 @@ class InsuranceModel {
 		LEFT JOIN Service s ON bd.service_id = s.service_id
 		LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
 		LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+		LEFT JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+		LEFT JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
 		WHERE p.patient_id = $1
 			AND p.insurance_id = $2
 			AND bd.generated_at >= $3 
@@ -935,7 +966,7 @@ class InsuranceModel {
 			SELECT last_cleared_date 
 			FROM InsuranceCompany 
 			WHERE insurance_id = $2
-		)::DATE + '1 day'::INTERVAL`;
+		)`;
 		}
 
 		sql += " ORDER BY bd.generated_at DESC";

@@ -133,11 +133,11 @@ class ReportsManager {
 			?.addEventListener("change", (e) => {
 				this.populateDoctorSelect(
 					(e.target as HTMLSelectElement).value as
-						| "specific-referred"
-						| "specific-attending"
-						| "specific-supervising"
-						| "all-referred"
-						| "all-attending"
+					| "specific-referred"
+					| "specific-attending"
+					| "specific-supervising"
+					| "all-referred"
+					| "all-attending"
 				);
 				this.toggleDoctorSelect((e.target as HTMLSelectElement).value);
 			});
@@ -476,8 +476,8 @@ class ReportsManager {
 			employeeType === "all"
 				? this.employees
 				: this.employees.filter(
-						(e) => e.employee_type === employeeType
-				  );
+					(e) => e.employee_type === employeeType
+				);
 
 		filtered.forEach((employee) => {
 			const option = document.createElement("option");
@@ -521,8 +521,8 @@ class ReportsManager {
 			employeeType === "all"
 				? this.clockInEmployees
 				: this.clockInEmployees.filter(
-						(e) => e.employee_type === employeeType
-				  );
+					(e) => e.employee_type === employeeType
+				);
 
 		filtered.forEach((employee) => {
 			const option = document.createElement("option");
@@ -629,11 +629,11 @@ class ReportsManager {
 	            <div class="text-center py-5">
 	                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
 	                <h5 class="mt-3 text-muted">${i18n.t(
-						"reports.emptyState.noPatientsFound"
-					)}</h5>
+				"reports.emptyState.noPatientsFound"
+			)}</h5>
 	                <p class="text-muted">${i18n.t(
-						"reports.emptyState.noPatientsDescription"
-					)}</p>
+				"reports.emptyState.noPatientsDescription"
+			)}</p>
 	            </div>
 	        `;
 			return;
@@ -667,9 +667,9 @@ class ReportsManager {
                 <div class="summary-card border-start-primary">
                     <h6>${i18n.t("reports.summary.totalPatients")}</h6>
                     <div class="value">${i18n.formatNumber(
-						patients.length,
-						0
-					)}</div>
+			patients.length,
+			0
+		)}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -682,16 +682,16 @@ class ReportsManager {
                 <div class="summary-card border-start-success">
                     <h6>${i18n.t("reports.summary.totalPaid")}</h6>
                     <div class="value text-success">${i18n.formatCurrency(
-						totalPaid
-					)}</div>
+			totalPaid
+		)}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="summary-card border-start-warning">
                     <h6>${i18n.t("reports.summary.totalOutstanding")}</h6>
                     <div class="value text-warning">${i18n.formatCurrency(
-						totalOutstanding
-					)}</div>
+			totalOutstanding
+		)}</div>
                 </div>
             </div>
         </div>
@@ -715,150 +715,138 @@ class ReportsManager {
 	            <div class="patient-header">
 	                <div>
 	                    <div class="patient-name">${this.escapeHtml(
-							patient.patient_name
-						)}</div>
+			patient.patient_name
+		)}</div>
 	                    <small class="text-muted">
-	                        ${i18n.t("reports.patientCard.id")}: ${
-			patient.patient_id
-		} 
-	                        ${
-								patient.national_id
-									? `| ${i18n.t(
-											"reports.patientCard.nationalId"
-									  )}: ${patient.national_id}`
-									: ""
-							} 
-	                        ${
-								age > 0
-									? `| ${i18n.t(
-											"reports.patientCard.age"
-									  )}: ${i18n.formatNumber(age, 0)} ${i18n.t(
-											"reports.patientCard.years"
-									  )} (${i18n.t(
-											"reports.patientCard.born"
-									  )}: ${birthDate})`
-									: ""
-							}
+	                        ${i18n.t("reports.patientCard.id")}: ${patient.patient_id
+			} 
+	                        ${patient.national_id
+				? `| ${i18n.t(
+					"reports.patientCard.nationalId"
+				)}: ${patient.national_id}`
+				: ""
+			} 
+	                        ${age > 0
+				? `| ${i18n.t(
+					"reports.patientCard.age"
+				)}: ${i18n.formatNumber(age, 0)} ${i18n.t(
+					"reports.patientCard.years"
+				)} (${i18n.t(
+					"reports.patientCard.born"
+				)}: ${birthDate})`
+				: ""
+			}
 	                    </small>
 	                </div>
 	                <div class="text-end">
-	                    <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="window.reportsManager.printSinglePatient(${
-							patient.patient_id
-						})">
+	                    <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="window.reportsManager.printSinglePatient(${patient.patient_id
+			})">
 	                        <i class="bi bi-printer"></i> ${i18n.t(
-								"reports.buttons.printPatientReport"
-							)}
+				"reports.buttons.printPatientReport"
+			)}
 	                    </button>
-	                    <span class="payment-type-badge badge-${
-							patient.payment_type
-						}">${i18n
-			.t(`reports.paymentTypes.${patient.payment_type}`)
-			.toUpperCase()}</span>
-	                    ${
-							patient.gender
-								? `<span class="gender-badge badge-${
-										patient.gender
-								  } ms-2">${i18n
-										.t(
-											`reports.genderTypes.${patient.gender}`
-										)
-										.toUpperCase()}</span>`
-								: ""
-						}
+	                    <span class="payment-type-badge badge-${patient.payment_type
+			}">${i18n
+				.t(`reports.paymentTypes.${patient.payment_type}`)
+				.toUpperCase()}</span>
+	                    ${patient.gender
+				? `<span class="gender-badge badge-${patient.gender
+				} ms-2">${i18n
+					.t(
+						`reports.genderTypes.${patient.gender}`
+					)
+					.toUpperCase()}</span>`
+				: ""
+			}
 	                </div>
 	            </div>
 	            <div class="row g-3 mb-3">
 	                <div class="col-md-6">
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.phone"
-							)}:</span>
-	                        <span class="info-value">${
-								patient.phone || i18n.t("common.unknown")
-							}</span>
+				"reports.patientCard.phone"
+			)}:</span>
+	                        <span class="info-value">${patient.phone || i18n.t("common.unknown")
+			}</span>
 	                    </div>
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.address"
-							)}:</span>
-	                        <span class="info-value">${
-								patient.address || i18n.t("common.unknown")
-							}</span>
+				"reports.patientCard.address"
+			)}:</span>
+	                        <span class="info-value">${patient.address || i18n.t("common.unknown")
+			}</span>
 	                    </div>
-	                    ${
-							patient.insurance_company
-								? `
+	                    ${patient.insurance_company
+				? `
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.insurance"
-							)}:</span>
+					"reports.patientCard.insurance"
+				)}:</span>
 	                        <span class="info-value">${this.escapeHtml(
-								patient.insurance_company
-							)}</span>
+					patient.insurance_company
+				)}</span>
 	                    </div>
 	                    `
-								: ""
-						}
-	                    ${
-							patient.referring_doctor_name
-								? `
+				: ""
+			}
+	                    ${patient.referring_doctor_name
+				? `
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.referringDoctor"
-							)}:</span>
+					"reports.patientCard.referringDoctor"
+				)}:</span>
 	                        <span class="info-value">${this.escapeHtml(
-								patient.referring_doctor_name
-							)}</span>
+					patient.referring_doctor_name
+				)}</span>
 	                    </div>
 	                    `
-								: ""
-						}
+				: ""
+			}
 	                </div>
 	                <div class="col-md-6">
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.totalBill"
-							)}:</span>
+				"reports.patientCard.totalBill"
+			)}:</span>
 	                        <span class="info-value fw-bold">${i18n.formatCurrency(
-								patient.total_bill_amount
-							)}</span>
+				patient.total_bill_amount
+			)}</span>
 	                    </div>
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.totalPaid"
-							)}:</span>
+				"reports.patientCard.totalPaid"
+			)}:</span>
 	                        <span class="info-value text-success fw-bold">${i18n.formatCurrency(
-								patient.total_paid_amount
-							)}</span>
+				patient.total_paid_amount
+			)}</span>
 	                    </div>
 	                    <div class="patient-info-row">
 	                        <span class="info-label">${i18n.t(
-								"reports.patientCard.outstanding"
-							)}:</span>
+				"reports.patientCard.outstanding"
+			)}:</span>
 	                        <span class="info-value text-warning fw-bold">${i18n.formatCurrency(
-								patient.total_outstanding
-							)}</span>
+				patient.total_outstanding
+			)}</span>
 	                    </div>
 	                </div>
 	            </div>
-	            ${
-					hasAdmissions
-						? `
+	            ${hasAdmissions
+				? `
 	            <div class="admission-section">
 	                <h6><i class="bi bi-hospital me-2"></i>${i18n.t(
-						"reports.patientCard.admissionHistory"
-					)} (${patient.admissions.length})</h6>
+					"reports.patientCard.admissionHistory"
+				)} (${patient.admissions.length})</h6>
 	                ${patient.admissions
-						.map((admission: any) =>
-							this.renderAdmissionDetail(admission)
-						)
-						.join("")}
+					.map((admission: any) =>
+						this.renderAdmissionDetail(admission)
+					)
+					.join("")}
 	            </div>
 	            `
-						: `<p class="text-muted">${i18n.t(
-								"reports.patientCard.noAdmissions"
-						  )}</p>`
-				}
+				: `<p class="text-muted">${i18n.t(
+					"reports.patientCard.noAdmissions"
+				)}</p>`
+			}
 	        </div>
 	    `;
 	}
@@ -868,222 +856,242 @@ class ReportsManager {
 	        <div class="admission-item mb-3">
 	            <div class="d-flex justify-content-between align-items-center mb-2">
 	                <div>
-	                    <strong>${i18n.t("reports.admissionCard.admissionId")}: ${
-			admission.patient_history_id
-		}</strong>
+	                    <strong>${i18n.t("reports.admissionCard.admissionId")}: ${admission.patient_history_id
+			}</strong>
 	                </div>
-	                <button type="button" class="btn btn-sm btn-outline-info" onclick="window.reportsManager.printSingleAdmission(${
-						admission.patient_history_id
-					})">
+	                <button type="button" class="btn btn-sm btn-outline-info" onclick="window.reportsManager.printSingleAdmission(${admission.patient_history_id
+			})">
 	                    <i class="bi bi-printer"></i> ${i18n.t(
-							"reports.buttons.printAdmission"
-						)}
+				"reports.buttons.printAdmission"
+			)}
 	                </button>
 	            </div>
 	            <div class="row g-3 mb-2">
 	                <div class="col-md-6">
 	                    <small class="text-muted">${i18n.t(
-							"reports.admissionCard.admission"
-						)}:</small>
+				"reports.admissionCard.admission"
+			)}:</small>
 	                    <div>${i18n.formatDateTime(admission.admission_time)}</div>
 	                </div>
 	                <div class="col-md-6">
 	                    <small class="text-muted">${i18n.t(
-							"reports.admissionCard.discharge"
-						)}:</small>
-	                    <div>${
-							admission.discharge_time
-								? i18n.formatDateTime(admission.discharge_time)
-								: `<span class="badge bg-success">${i18n.t(
-										"common.active"
-								  )}</span>`
-						}</div>
+				"reports.admissionCard.discharge"
+			)}:</small>
+	                    <div>${admission.discharge_time
+				? i18n.formatDateTime(admission.discharge_time)
+				: `<span class="badge bg-success">${i18n.t(
+					"common.active"
+				)}</span>`
+			}</div>
 	                </div>
 	            </div>
-	            ${
-					admission.diagnosis
-						? `
+	            ${admission.diagnosis
+				? `
 	            <div class="mb-2">
 	                <small class="text-muted">${i18n.t(
-						"reports.admissionCard.diagnosis"
-					)}:</small>
+					"reports.admissionCard.diagnosis"
+				)}:</small>
 	                <div>${this.escapeHtml(admission.diagnosis)}</div>
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
 	            <div class="row g-3 mb-2">
 	                <div class="col-md-4">
 	                    <small class="text-muted">${i18n.t("common.total")}:</small>
 	                    <div class="fw-bold">${i18n.formatCurrency(
-							admission.total_amount
-						)}</div>
+				admission.total_amount
+			)}</div>
 	                </div>
 	                <div class="col-md-4">
 	                    <small class="text-muted">${i18n.t(
-							"reports.admissionCard.paid"
-						)}:</small>
+				"reports.admissionCard.paid"
+			)}:</small>
 	                    <div class="fw-bold text-success">${i18n.formatCurrency(
-							admission.paid_amount
-						)}</div>
+				admission.paid_amount
+			)}</div>
 	                </div>
 	                <div class="col-md-4">
 	                    <small class="text-muted">${i18n.t(
-							"reports.admissionCard.discount"
-						)}:</small>
+				"reports.admissionCard.discount"
+			)}:</small>
 	                    <div class="fw-bold text-info">${i18n.formatCurrency(
-							admission.discount
-						)}</div>
+				admission.discount
+			)}</div>
 	                </div>
 	            </div>
-	            ${
-					admission.daily_staff && admission.daily_staff.length > 0
-						? `
+	            ${admission.daily_staff && admission.daily_staff.length > 0
+				? `
 	            <div class="mb-2">
 	                <small class="text-muted">${i18n.t(
-						"reports.admissionCard.dailyStaff"
-					)}:</small>
+					"reports.admissionCard.dailyStaff"
+				)}:</small>
 	                ${admission.daily_staff
-						.map(
-							(day: any) => `
+					.map(
+						(day: any) => `
 	                    <div class="staff-day-item mt-2 p-2 bg-light rounded">
 	                        <strong>${i18n.formatDate(day.work_date)}</strong>
-	                        ${
-								day.doctors.length > 0
-									? `
+	                        ${day.doctors.length > 0
+								? `
 	                        <div class="mt-1">
 	                            <small class="text-muted">${i18n.t(
 									"reports.admissionCard.doctors"
 								)}:</small>
 	                            <div class="staff-grid mt-1">
 	                                ${day.doctors
-										.map(
-											(doc: any) => `
+									.map(
+										(doc: any) => `
 	                                    <div class="staff-item">
 	                                        <div class="staff-name">${this.escapeHtml(
-												doc.employee_name
-											)}</div>
+											doc.employee_name
+										)}</div>
 	                                        <div class="staff-hours">${i18n.formatNumber(
-												doc.hours_worked,
-												1
-											)}${i18n.t(
-												"reports.units.hours"
-											)}</div>
+											doc.hours_worked,
+											1
+										)}${i18n.t(
+											"reports.units.hours"
+										)}</div>
 	                                    </div>
 	                                `
-										)
-										.join("")}
+									)
+									.join("")}
 	                            </div>
 	                        </div>
 	                        `
-									: ""
+								: ""
 							}
-	                        ${
-								day.nurses.length > 0
-									? `
+	                        ${day.nurses.length > 0
+								? `
 	                        <div class="mt-1">
 	                            <small class="text-muted">${i18n.t(
 									"reports.admissionCard.nurses"
 								)}:</small>
 	                            <div class="staff-grid mt-1">
 	                                ${day.nurses
-										.map(
-											(nurse: any) => `
+									.map(
+										(nurse: any) => `
 	                                    <div class="staff-item">
 	                                        <div class="staff-name">${this.escapeHtml(
-												nurse.employee_name
-											)}</div>
+											nurse.employee_name
+										)}</div>
 	                                        <div class="staff-hours">${i18n.formatNumber(
-												nurse.hours_worked,
-												1
-											)}${i18n.t(
-												"reports.units.hours"
-											)}</div>
+											nurse.hours_worked,
+											1
+										)}${i18n.t(
+											"reports.units.hours"
+										)}</div>
 	                                    </div>
 	                                `
-										)
-										.join("")}
+									)
+									.join("")}
 	                            </div>
 	                        </div>
 	                        `
-									: ""
+								: ""
 							}
 	                    </div>
 	                `
-						)
-						.join("")}
+					)
+					.join("")}
 	            </div>
 	            `
-						: ""
-				}
-	            ${
-					admission.services && admission.services.length > 0
-						? `
+				: ""
+			}
+	            ${admission.services && admission.services.length > 0
+				? `
 	            <div class="mb-2">
 	                <small class="text-muted">${i18n.t(
-						"reports.admissionCard.services"
-					)} (${admission.services.length}):</small>
+					"reports.admissionCard.services"
+				)} (${admission.services.length}):</small>
 	                <ul class="item-list mt-1">
 	                    ${admission.services
-							.map(
-								(svc: any) => `
+					.map(
+						(svc: any) => `
 	                        <li class="item-list-item">
 	                            <span class="item-name">${this.escapeHtml(
-									svc.service_name
-								)}</span>
+							svc.service_name
+						)}</span>
 	                            <span class="item-quantity">x${i18n.formatNumber(
-									svc.quantity,
-									0
-								)}</span>
+							svc.quantity,
+							0
+						)}</span>
 	                            <span class="item-price">${i18n.formatCurrency(
-									svc.total_price
-								)}</span>
+							svc.total_price
+						)}</span>
 	                        </li>
 	                    `
-							)
-							.join("")}
+					)
+					.join("")}
 	                </ul>
 	            </div>
 	            `
-						: ""
-				}
-	            ${
-					admission.drugs && admission.drugs.length > 0
-						? `
+				: ""
+			}
+	            ${admission.drugs && admission.drugs.length > 0
+				? `
 	            <div class="mb-2">
 	                <small class="text-muted">${i18n.t(
-						"reports.admissionCard.drugs"
-					)} (${admission.drugs.length}):</small>
+					"reports.admissionCard.drugs"
+				)} (${admission.drugs.length}):</small>
 	                <ul class="item-list mt-1">
 	                    ${admission.drugs
-							.map(
-								(drug: any) => `
+					.map(
+						(drug: any) => `
 	                        <li class="item-list-item">
 	                            <span class="item-name">${this.escapeHtml(
-									drug.drug_name
-								)} ${
-									drug.manufacturer
-										? `(${this.escapeHtml(
-												drug.manufacturer
-										  )})`
-										: ""
-								}</span>
+							drug.drug_name
+						)} ${drug.manufacturer
+							? `(${this.escapeHtml(
+								drug.manufacturer
+							)})`
+							: ""
+							}</span>
 	                            <span class="item-quantity">x${i18n.formatNumber(
-									drug.quantity,
-									0
-								)}</span>
+								drug.quantity,
+								0
+							)}</span>
 	                            <span class="item-price">${i18n.formatCurrency(
-									drug.total_price
-								)}</span>
+								drug.total_price
+							)}</span>
 	                        </li>
 	                    `
-							)
-							.join("")}
+					)
+					.join("")}
 	                </ul>
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
+	            ${admission.supplies && admission.supplies.length > 0
+				? `
+	            <div class="mb-2">
+	                <small class="text-muted">${i18n.t(
+					"reports.admissionCard.supplies"
+				)} (${admission.supplies.length}):</small>
+	                <ul class="item-list mt-1">
+	                    ${admission.supplies
+					.map(
+						(supply: any) => `
+	                        <li class="item-list-item">
+	                            <span class="item-name">${this.escapeHtml(
+							supply.supply_name
+						)}</span>
+	                            <span class="item-quantity">x${i18n.formatNumber(
+							supply.quantity,
+							0
+						)}</span>
+	                            <span class="item-price">${i18n.formatCurrency(
+							supply.total_price
+						)}</span>
+	                        </li>
+	                    `
+					)
+					.join("")}
+	                </ul>
+	            </div>
+	            `
+				: ""
+			}
 	        </div>
 	    `;
 	}
@@ -1258,8 +1266,8 @@ class ReportsManager {
 								return rowIndex === 0
 									? "#f0f0f0"
 									: rowIndex % 2 === 0
-									? "#f9f9f9"
-									: null;
+										? "#f9f9f9"
+										: null;
 							}
 						},
 						margin: [0, 0, 0, 20]
@@ -1455,13 +1463,12 @@ class ReportsManager {
 									width: "*"
 								},
 								{
-									text: `Discharge: ${
-										admission.discharge_time
-											? this.formatDateTime(
-													admission.discharge_time
-											  )
-											: "Active"
-									}`,
+									text: `Discharge: ${admission.discharge_time
+										? this.formatDateTime(
+											admission.discharge_time
+										)
+										: "Active"
+										}`,
 									width: "*"
 								}
 							],
@@ -1731,8 +1738,8 @@ class ReportsManager {
 										return rowIndex === 0
 											? "#f0f0f0"
 											: rowIndex % 2 === 0
-											? "#f9f9f9"
-											: null;
+												? "#f9f9f9"
+												: null;
 									}
 								},
 								margin: [0, 0, 0, 15]
@@ -1838,20 +1845,19 @@ class ReportsManager {
 
 			const patientInfoHeaders: any[] = [
 				{ text: "National ID", bold: true, fillColor: "#f0f0f0" },
-				{ text: "Age", bold: true, fillColor: "#f0f0f0" },
 				{ text: "Gender", bold: true, fillColor: "#f0f0f0" },
+				{ text: "Age", bold: true, fillColor: "#f0f0f0" },
 				{ text: "Payment Type", bold: true, fillColor: "#f0f0f0" }
 			];
 
 			const patientInfoRow: any[] = [
 				{ text: data.national_id || "N/A", alignment: "left" },
-				{ text: data.gender || "N/A", alignment: "left" },
+				{ text: this.capitalizeFirst(data.gender || "N/A"), alignment: "left" },
 				{
-					text: `${
-						data.age
-					} years (Born: ${this.getBirthDateFromNationalId(
-						data.national_id
-					)})`,
+					text: `${data.age
+						} years (Born: ${this.getBirthDateFromNationalId(
+							data.national_id
+						)})`,
 					alignment: "left"
 				},
 				{
@@ -1965,13 +1971,12 @@ class ReportsManager {
 								width: "*"
 							},
 							{
-								text: `Discharge: ${
-									data.admission.discharge_time
-										? this.formatDateTime(
-												data.admission.discharge_time
-										  )
-										: "Currently Admitted"
-								}`,
+								text: `Discharge: ${data.admission.discharge_time
+									? this.formatDateTime(
+										data.admission.discharge_time
+									)
+									: "Currently Admitted"
+									}`,
 								width: "*"
 							}
 						],
@@ -1979,11 +1984,11 @@ class ReportsManager {
 					},
 					...(data.admission.diagnosis
 						? [
-								{
-									text: `Diagnosis: ${data.admission.diagnosis}`,
-									margin: [0, 0, 0, 15]
-								}
-						  ]
+							{
+								text: `Diagnosis: ${data.admission.diagnosis}`,
+								margin: [0, 0, 0, 15]
+							}
+						]
 						: []),
 					// Services and Drugs Table
 					...this.generateAdmissionItemsTable(data.admission),
@@ -2084,28 +2089,28 @@ class ReportsManager {
 						{ text: item.quantity.toString(), alignment: "center" },
 						includeFinances
 							? {
-									text: this.formatCurrency(
-										item.unit_price,
-										true
-									),
-									alignment: "right"
-							  }
+								text: this.formatCurrency(
+									item.unit_price,
+									true
+								),
+								alignment: "right"
+							}
 							: {
-									text: "-",
-									alignment: "center"
-							  },
+								text: "-",
+								alignment: "center"
+							},
 						includeFinances
 							? {
-									text: this.formatCurrency(
-										item.total_price,
-										true
-									),
-									alignment: "right"
-							  }
+								text: this.formatCurrency(
+									item.total_price,
+									true
+								),
+								alignment: "right"
+							}
 							: {
-									text: "-",
-									alignment: "center"
-							  }
+								text: "-",
+								alignment: "center"
+							}
 					]);
 				});
 			});
@@ -2274,8 +2279,8 @@ class ReportsManager {
 						return rowIndex === 0
 							? "#f0f0f0"
 							: rowIndex % 2 === 0
-							? "#f9f9f9"
-							: null;
+								? "#f9f9f9"
+								: null;
 					}
 				},
 				margin: [0, 0, 0, 15]
@@ -2434,11 +2439,11 @@ class ReportsManager {
  	           <div class="text-center py-5">
  	               <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
  	               <h5 class="mt-3 text-muted">${i18n.t(
-						"reports.emptyState.noDataFound"
-					)}</h5>
+				"reports.emptyState.noDataFound"
+			)}</h5>
  	               <p class="text-muted">${i18n.t(
-						"reports.emptyState.noDoctorsDescription"
-					)}</p>
+				"reports.emptyState.noDoctorsDescription"
+			)}</p>
  	           </div>
  	       `;
 			return;
@@ -2455,18 +2460,18 @@ class ReportsManager {
                 <div class="summary-card border-start-primary">
                     <h6>${i18n.t("reports.summary.totalDoctors")}</h6>
                     <div class="value">${i18n.formatNumber(
-						doctors.length,
-						0
-					)}</div>
+			doctors.length,
+			0
+		)}</div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="summary-card border-start-info">
                     <h6>${i18n.t("reports.summary.totalPatients")}</h6>
                     <div class="value">${i18n.formatNumber(
-						totalPatients,
-						0
-					)}</div>
+			totalPatients,
+			0
+		)}</div>
                 </div>
             </div>
         </div>
@@ -2485,137 +2490,131 @@ class ReportsManager {
 	                <div class="d-flex justify-content-between align-items-center">
 	                    <div>
 	                        <h5 class="mb-0">${this.escapeHtml(
-								doctor.doctor_name
-							)}</h5>
+			doctor.doctor_name
+		)}</h5>
 	                        <small class="text-muted">${i18n
-								.t(
-									`employees.doctorTypes.${doctor.doctor_type}`
-								)
-								.toUpperCase()}</small>
+				.t(
+					`employees.doctorTypes.${doctor.doctor_type}`
+				)
+				.toUpperCase()}</small>
 	                    </div>
 	                    <div class="text-end">
 	                        <h4 class="mb-0">${i18n.formatNumber(
-								doctor.total_patients,
-								0
-							)} ${i18n.t("reports.doctorCard.patients")}</h4>
+					doctor.total_patients,
+					0
+				)} ${i18n.t("reports.doctorCard.patients")}</h4>
 	                    </div>
 	                </div>
 	            </div>
 	            <div class="card-body">
-	                ${
-						doctor.patients && doctor.patients.length > 0
-							? `
+	                ${doctor.patients && doctor.patients.length > 0
+				? `
 	                    <div class="table-responsive">
 	                        <table class="table table-hover report-table">
 	                            <thead>
 	                                <tr>
 	                                    <th>${i18n.t(
-											"reports.table.patientName"
-										)}</th>
+					"reports.table.patientName"
+				)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.nationalId"
-										)}</th>
+					"reports.table.nationalId"
+				)}</th>
 	                                    <th>${i18n.t("reports.table.gender")}</th>
 	                                    <th>${i18n.t("reports.table.age")}</th>
 	                                    <th>${i18n.t(
-											"reports.table.paymentType"
-										)}</th>
+					"reports.table.paymentType"
+				)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.admissions"
-										)}</th>
+					"reports.table.admissions"
+				)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.totalBilled"
-										)}</th>
+					"reports.table.totalBilled"
+				)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.totalPaid"
-										)}</th>
+					"reports.table.totalPaid"
+				)}</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>
 	                                ${doctor.patients
-										.map(
-											(patient: any) => `
+					.map(
+						(patient: any) => `
 	                                    <tr>
 	                                        <td>${this.escapeHtml(
-												patient.patient_name
-											)}</td>
-	                                        <td>${
-												patient.national_id ||
-												i18n.t("common.unknown")
-											}</td>
-	                                        <td><span class="gender-badge badge-${
-												patient.gender || "other"
-											}">${i18n.t(
-												`reports.genderTypes.${
-													patient.gender || "other"
-												}`
-											)}</span></td>
-	                                        <td>${
-												patient.age
-													? i18n.formatNumber(
-															patient.age,
-															0
-													  )
-													: i18n.t("common.unknown")
-											}</td>
-	                                        <td><span class="payment-type-badge badge-${
-												patient.payment_type
-											}">${i18n
-												.t(
-													`reports.paymentTypes.${patient.payment_type}`
-												)
-												.toUpperCase()}</span></td>
+							patient.patient_name
+						)}</td>
+	                                        <td>${patient.national_id ||
+							i18n.t("common.unknown")
+							}</td>
+	                                        <td><span class="gender-badge badge-${patient.gender || "other"
+							}">${i18n.t(
+								`reports.genderTypes.${patient.gender || "other"
+								}`
+							)}</span></td>
+	                                        <td>${patient.age
+								? i18n.formatNumber(
+									patient.age,
+									0
+								)
+								: i18n.t("common.unknown")
+							}</td>
+	                                        <td><span class="payment-type-badge badge-${patient.payment_type
+							}">${i18n
+								.t(
+									`reports.paymentTypes.${patient.payment_type}`
+								)
+								.toUpperCase()}</span></td>
 	                                        <td class="text-center">${i18n.formatNumber(
-												patient.admission_count,
-												0
-											)}</td>
+									patient.admission_count,
+									0
+								)}</td>
 	                                        <td>${i18n.formatCurrency(
-												patient.total_billed
-											)}</td>
+									patient.total_billed
+								)}</td>
 	                                        <td class="text-success fw-bold">${i18n.formatCurrency(
-												patient.total_paid
-											)}</td>
+									patient.total_paid
+								)}</td>
 	                                    </tr>
 	                                `
-										)
-										.join("")}
+					)
+					.join("")}
 	                            </tbody>
 	                            <tfoot>
 	                                <tr class="totals-row">
 	                                    <td colspan="5" class="text-end"><strong>${i18n.t(
-											"reports.table.totals"
-										)}:</strong></td>
+						"reports.table.totals"
+					)}:</strong></td>
 	                                    <td class="text-center"><strong>${i18n.formatNumber(
-											doctor.patients.reduce(
-												(sum: number, p: any) =>
-													sum + p.admission_count,
-												0
-											),
-											0
-										)}</strong></td>
+						doctor.patients.reduce(
+							(sum: number, p: any) =>
+								sum + p.admission_count,
+							0
+						),
+						0
+					)}</strong></td>
 	                                    <td><strong>${i18n.formatCurrency(
-											doctor.patients.reduce(
-												(sum: number, p: any) =>
-													sum + p.total_billed,
-												0
-											)
-										)}</strong></td>
+						doctor.patients.reduce(
+							(sum: number, p: any) =>
+								sum + p.total_billed,
+							0
+						)
+					)}</strong></td>
 	                                    <td><strong class="text-success">${i18n.formatCurrency(
-											doctor.patients.reduce(
-												(sum: number, p: any) =>
-													sum + p.total_paid,
-												0
-											)
-										)}</strong></td>
+						doctor.patients.reduce(
+							(sum: number, p: any) =>
+								sum + p.total_paid,
+							0
+						)
+					)}</strong></td>
 	                                </tr>
 	                            </tfoot>
 	                        </table>
 	                    </div>
 	                `
-							: `<p class="text-muted">${i18n.t(
-									"reports.emptyState.noPatientsForDoctor"
-							  )}</p>`
-					}
+				: `<p class="text-muted">${i18n.t(
+					"reports.emptyState.noPatientsForDoctor"
+				)}</p>`
+			}
 	            </div>
 	        </div>
 	    `;
@@ -3086,28 +3085,28 @@ class ReportsManager {
 				// Determine column widths
 				const widths = hasInsurance
 					? [
-							"*",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto"
-					  ]
+						"*",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto"
+					]
 					: [
-							"*",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto",
-							"auto"
-					  ];
+						"*",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto",
+						"auto"
+					];
 
 				content.push({
 					table: {
@@ -3498,13 +3497,12 @@ class ReportsManager {
 										width: "*"
 									},
 									{
-										text: `Discharge: ${
-											admission.discharge_time
-												? this.formatDateTime(
-														admission.discharge_time
-												  )
-												: "Active"
-										}`,
+										text: `Discharge: ${admission.discharge_time
+											? this.formatDateTime(
+												admission.discharge_time
+											)
+											: "Active"
+											}`,
 										width: "*"
 									}
 								],
@@ -3762,11 +3760,11 @@ class ReportsManager {
 	            <div class="text-center py-5">
 	                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
 	                <h5 class="mt-3 text-muted">${i18n.t(
-						"reports.emptyState.noDataFound"
-					)}</h5>
+				"reports.emptyState.noDataFound"
+			)}</h5>
 	                <p class="text-muted">${i18n.t(
-						"reports.emptyState.noNursesDescription"
-					)}</p>
+				"reports.emptyState.noNursesDescription"
+			)}</p>
 	            </div>
 	        `;
 			return;
@@ -3783,18 +3781,18 @@ class ReportsManager {
 	                <div class="summary-card border-start-primary">
 	                    <h6>${i18n.t("reports.summary.totalNurses")}</h6>
 	                    <div class="value">${i18n.formatNumber(
-							nurses.length,
-							0
-						)}</div>
+			nurses.length,
+			0
+		)}</div>
 	                </div>
 	            </div>
 	            <div class="col-md-6">
 	                <div class="summary-card border-start-info">
 	                    <h6>${i18n.t("reports.summary.totalPatients")}</h6>
 	                    <div class="value">${i18n.formatNumber(
-							totalPatients,
-							0
-						)}</div>
+			totalPatients,
+			0
+		)}</div>
 	                </div>
 	            </div>
 	        </div>
@@ -3820,158 +3818,151 @@ class ReportsManager {
 	                <div class="d-flex justify-content-between align-items-center">
 	                    <div>
 	                        <h5 class="mb-0">${this.escapeHtml(
-								nurse.nurse_name
-							)}</h5>
+			nurse.nurse_name
+		)}</h5>
 	                        <small class="text-muted">${i18n
-								.t("employees.types.nurse")
-								.toUpperCase()}</small>
+				.t("employees.types.nurse")
+				.toUpperCase()}</small>
 	                    </div>
 	                    <div class="text-end">
 	                        <h4 class="mb-0">${i18n.formatNumber(
-								nurse.total_patients,
-								0
-							)} ${i18n.t("reports.nurseCard.patients")}</h4>
+					nurse.total_patients,
+					0
+				)} ${i18n.t("reports.nurseCard.patients")}</h4>
 	                        <small class="text-muted">${i18n.formatNumber(
-								totalDays,
-								0
-							)} ${i18n.t(
-			"reports.nurseCard.totalDays"
-		)} | ${i18n.formatNumber(dailyAssignments.length, 0)} ${i18n.t(
-			"reports.nurseCard.workDays"
-		)}</small>
+					totalDays,
+					0
+				)} ${i18n.t(
+					"reports.nurseCard.totalDays"
+				)} | ${i18n.formatNumber(dailyAssignments.length, 0)} ${i18n.t(
+					"reports.nurseCard.workDays"
+				)}</small>
 	                    </div>
 	                </div>
 	            </div>
 	            <div class="card-body">
-	                ${
-						nurse.patients && nurse.patients.length > 0
-							? `
+	                ${nurse.patients && nurse.patients.length > 0
+				? `
 	                    <div class="mb-4">
 	                        <h6 class="mb-3"><i class="bi bi-people me-2"></i>${i18n.t(
-								"reports.nurseCard.patientSummary"
-							)}</h6>
+					"reports.nurseCard.patientSummary"
+				)}</h6>
 	                        <div class="table-responsive">
 	                            <table class="table table-hover report-table">
 	                                <thead>
 	                                    <tr>
 	                                        <th>${i18n.t(
-												"reports.table.patientName"
-											)}</th>
+					"reports.table.patientName"
+				)}</th>
 	                                        <th>${i18n.t(
-												"reports.table.lastAdmission"
-											)}</th>
+					"reports.table.lastAdmission"
+				)}</th>
 	                                        <th>${i18n.t(
-												"reports.table.lastDischarge"
-											)}</th>
+					"reports.table.lastDischarge"
+				)}</th>
 	                                        <th>${i18n.t(
-												"reports.table.paymentType"
-											)}</th>
+					"reports.table.paymentType"
+				)}</th>
 	                                        <th>${i18n.t(
-												"reports.table.diagnosis"
-											)}</th>
+					"reports.table.diagnosis"
+				)}</th>
 	                                        <th class="text-center">${i18n.t(
-												"reports.table.daysAssigned"
-											)}</th>
+					"reports.table.daysAssigned"
+				)}</th>
 	                                    </tr>
 	                                </thead>
 	                                <tbody>
 	                                    ${nurse.patients
-											.map(
-												(patient: any) => `
+					.map(
+						(patient: any) => `
 	                                        <tr>
 	                                            <td>${this.escapeHtml(
-													patient.patient_name
-												)}</td>
-	                                            <td>${
-													patient.last_admission_time
-														? i18n.formatDateTime(
-																patient.last_admission_time
-														  )
-														: i18n.t(
-																"common.unknown"
-														  )
-												}</td>
-	                                            <td>${
-													patient.last_discharge_time
-														? i18n.formatDateTime(
-																patient.last_discharge_time
-														  )
-														: `<span class="badge bg-success">${i18n.t(
-																"common.active"
-														  )}</span>`
-												}</td>
-	                                            <td><span class="payment-type-badge badge-${
-													patient.payment_type
-												}">${i18n
-													.t(
-														`reports.paymentTypes.${patient.payment_type}`
-													)
-													.toUpperCase()}</span></td>
-	                                            <td>${
-													patient.diagnosis
-														? this.escapeHtml(
-																patient.diagnosis
-														  )
-														: i18n.t(
-																"common.unknown"
-														  )
-												}</td>
+							patient.patient_name
+						)}</td>
+	                                            <td>${patient.last_admission_time
+								? i18n.formatDateTime(
+									patient.last_admission_time
+								)
+								: i18n.t(
+									"common.unknown"
+								)
+							}</td>
+	                                            <td>${patient.last_discharge_time
+								? i18n.formatDateTime(
+									patient.last_discharge_time
+								)
+								: `<span class="badge bg-success">${i18n.t(
+									"common.active"
+								)}</span>`
+							}</td>
+	                                            <td><span class="payment-type-badge badge-${patient.payment_type
+							}">${i18n
+								.t(
+									`reports.paymentTypes.${patient.payment_type}`
+								)
+								.toUpperCase()}</span></td>
+	                                            <td>${patient.diagnosis
+								? this.escapeHtml(
+									patient.diagnosis
+								)
+								: i18n.t(
+									"common.unknown"
+								)
+							}</td>
 	                                            <td class="text-center">${i18n.formatNumber(
-													patient.total_days_assigned,
-													0
-												)}</td>
+								patient.total_days_assigned,
+								0
+							)}</td>
 	                                        </tr>
 	                                    `
-											)
-											.join("")}
+					)
+					.join("")}
 	                                </tbody>
 	                                <tfoot>
 	                                    <tr class="totals-row">
 	                                        <td colspan="5" class="text-end"><strong>${i18n.t(
-												"reports.table.totalDays"
-											)}:</strong></td>
+						"reports.table.totalDays"
+					)}:</strong></td>
 	                                        <td class="text-center"><strong>${i18n.formatNumber(
-												totalDays,
-												0
-											)}</strong></td>
+						totalDays,
+						0
+					)}</strong></td>
 	                                    </tr>
 	                                </tfoot>
 	                            </table>
 	                        </div>
 	                    </div>
 	                `
-							: `<p class="text-muted">${i18n.t(
-									"reports.emptyState.noPatientsForNurse"
-							  )}</p>`
-					}
+				: `<p class="text-muted">${i18n.t(
+					"reports.emptyState.noPatientsForNurse"
+				)}</p>`
+			}
 						  
-	                ${
-						dailyAssignments.length > 0
-							? `
+	                ${dailyAssignments.length > 0
+				? `
 	                    <div class="mt-4">
 	                        <h6 class="mb-3"><i class="bi bi-calendar-week me-2"></i>${i18n.t(
-								"reports.nurseCard.dailyWorkAssignments"
-							)} (${i18n.formatNumber(
-									dailyAssignments.length,
-									0
-							  )} ${i18n.t("reports.nurseCard.days")})</h6>
-	                        <div class="accordion" id="dailyAssignmentsAccordion${
-								nurse.nurse_id
-							}">
+					"reports.nurseCard.dailyWorkAssignments"
+				)} (${i18n.formatNumber(
+					dailyAssignments.length,
+					0
+				)} ${i18n.t("reports.nurseCard.days")})</h6>
+	                        <div class="accordion" id="dailyAssignmentsAccordion${nurse.nurse_id
+				}">
 	                            ${dailyAssignments
-									.map((day: any, index: number) =>
-										this.renderDailyAssignmentCard(
-											day,
-											index,
-											nurse.nurse_id
-										)
-									)
-									.join("")}
+					.map((day: any, index: number) =>
+						this.renderDailyAssignmentCard(
+							day,
+							index,
+							nurse.nurse_id
+						)
+					)
+					.join("")}
 	                        </div>
 	                    </div>
 	                `
-							: ""
-					}
+				: ""
+			}
 	            </div>
 	        </div>
 	    `;
@@ -3985,33 +3976,29 @@ class ReportsManager {
 		return `
 	        <div class="accordion-item">
 	            <h2 class="accordion-header" id="heading${nurseId}_${index}">
-	                <button class="accordion-button ${
-						index === 0 ? "" : "collapsed"
-					}" type="button" 
+	                <button class="accordion-button ${index === 0 ? "" : "collapsed"
+			}" type="button" 
 	                        data-bs-toggle="collapse" data-bs-target="#collapse${nurseId}_${index}" 
-	                        aria-expanded="${
-								index === 0 ? "true" : "false"
-							}" aria-controls="collapse${nurseId}_${index}">
+	                        aria-expanded="${index === 0 ? "true" : "false"
+			}" aria-controls="collapse${nurseId}_${index}">
 	                    <div class="d-flex justify-content-between w-100 me-3">
 	                        <span><strong>${i18n.formatDate(
-								day.work_date
-							)}</strong></span>
+				day.work_date
+			)}</strong></span>
 	                        <span class="text-muted">
-	                            ${i18n.formatNumber(day.patient_count, 0)} ${
-			day.patient_count === 1
+	                            ${i18n.formatNumber(day.patient_count, 0)} ${day.patient_count === 1
 				? i18n.t("reports.nurseCard.patient")
 				: i18n.t("reports.nurseCard.patients")
-		} | 
+			} | 
 	                            ${i18n.formatNumber(day.total_hours, 1)} ${i18n.t(
-			"reports.units.hours"
-		)}
+				"reports.units.hours"
+			)}
 	                        </span>
 	                    </div>
 	                </button>
 	            </h2>
-	            <div id="collapse${nurseId}_${index}" class="accordion-collapse collapse ${
-			index === 0 ? "show" : ""
-		}" 
+	            <div id="collapse${nurseId}_${index}" class="accordion-collapse collapse ${index === 0 ? "show" : ""
+			}" 
 	                 aria-labelledby="heading${nurseId}_${index}" data-bs-parent="#dailyAssignmentsAccordion${nurseId}">
 	                <div class="accordion-body">
 	                    <div class="table-responsive">
@@ -4019,63 +4006,61 @@ class ReportsManager {
 	                            <thead>
 	                                <tr>
 	                                    <th>${i18n.t(
-											"reports.table.patientName"
-										)}</th>
+				"reports.table.patientName"
+			)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.paymentType"
-										)}</th>
+				"reports.table.paymentType"
+			)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.diagnosis"
-										)}</th>
+				"reports.table.diagnosis"
+			)}</th>
 	                                    <th class="text-center">${i18n.t(
-											"reports.table.hoursWorked"
-										)}</th>
+				"reports.table.hoursWorked"
+			)}</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>
 	                                ${day.patients
-										.map(
-											(patient: any) => `
+				.map(
+					(patient: any) => `
 	                                    <tr>
 	                                        <td>${this.escapeHtml(
-												patient.patient_name
-											)}</td>
-	                                        <td><span class="payment-type-badge badge-${
-												patient.payment_type
-											}">${i18n
-												.t(
-													`reports.paymentTypes.${patient.payment_type}`
-												)
-												.toUpperCase()}</span></td>
-	                                        <td>${
-												patient.diagnosis
-													? this.escapeHtml(
-															patient.diagnosis
-													  )
-													: i18n.t("common.unknown")
-											}</td>
+						patient.patient_name
+					)}</td>
+	                                        <td><span class="payment-type-badge badge-${patient.payment_type
+						}">${i18n
+							.t(
+								`reports.paymentTypes.${patient.payment_type}`
+							)
+							.toUpperCase()}</span></td>
+	                                        <td>${patient.diagnosis
+							? this.escapeHtml(
+								patient.diagnosis
+							)
+							: i18n.t("common.unknown")
+						}</td>
 	                                        <td class="text-center">${i18n.formatNumber(
-												patient.hours_worked,
-												1
-											)}${i18n.t(
-												"reports.units.hours"
-											)}</td>
+							patient.hours_worked,
+							1
+						)}${i18n.t(
+							"reports.units.hours"
+						)}</td>
 	                                    </tr>
 	                                `
-										)
-										.join("")}
+				)
+				.join("")}
 	                            </tbody>
 	                            <tfoot>
 	                                <tr class="table-light">
 	                                    <td colspan="3" class="text-end"><strong>${i18n.t(
-											"common.total"
-										)}:</strong></td>
+					"common.total"
+				)}:</strong></td>
 	                                    <td class="text-center"><strong>${i18n.formatNumber(
-											day.total_hours,
-											1
-										)}${i18n.t(
-			"reports.units.hours"
-		)}</strong></td>
+					day.total_hours,
+					1
+				)}${i18n.t(
+					"reports.units.hours"
+				)}</strong></td>
 	                                </tr>
 	                            </tfoot>
 	                        </table>
@@ -4468,11 +4453,9 @@ class ReportsManager {
 						}
 
 						content.push({
-							text: `${this.formatDate(day.work_date)} - ${
-								day.patient_count
-							} patient${
-								day.patient_count !== 1 ? "s" : ""
-							} (${day.total_hours.toFixed(1)} hours)`,
+							text: `${this.formatDate(day.work_date)} - ${day.patient_count
+								} patient${day.patient_count !== 1 ? "s" : ""
+								} (${day.total_hours.toFixed(1)} hours)`,
 							bold: true,
 							fontSize: 10,
 							margin: [0, 10, 0, 5]
@@ -4685,11 +4668,9 @@ class ReportsManager {
 			}
 
 			content.push({
-				text: `${this.formatDate(day.work_date)} - ${
-					day.patient_count
-				} patient${
-					day.patient_count !== 1 ? "s" : ""
-				} (${day.total_hours.toFixed(1)} hours)`,
+				text: `${this.formatDate(day.work_date)} - ${day.patient_count
+					} patient${day.patient_count !== 1 ? "s" : ""
+					} (${day.total_hours.toFixed(1)} hours)`,
 				bold: true,
 				fontSize: 10,
 				margin: [0, 10, 0, 5]
@@ -5156,9 +5137,9 @@ class ReportsManager {
 											const percentage =
 												total > 0
 													? (
-															(value / total) *
-															100
-													  ).toFixed(1)
+														(value / total) *
+														100
+													).toFixed(1)
 													: "0.0";
 											return {
 												text: `${label}: ${value} (${percentage}%)`,
@@ -5603,8 +5584,7 @@ class ReportsManager {
 								return [
 									`Usage Count: ${drug.usage_count}`,
 									`Quantity: ${drug.total_quantity}`,
-									`Manufacturer: ${
-										drug.manufacturer || "N/A"
+									`Manufacturer: ${drug.manufacturer || "N/A"
 									}`
 								];
 							}
@@ -5685,17 +5665,15 @@ class ReportsManager {
 							afterLabel: function (context: any) {
 								const staff = data[context.datasetIndex];
 								if (context.datasetIndex === 0) {
-									return `Avg Patients/Staff: ${
-										staff.avg_patients_per_staff?.toFixed(
-											2
-										) || "N/A"
-									}`;
+									return `Avg Patients/Staff: ${staff.avg_patients_per_staff?.toFixed(
+										2
+									) || "N/A"
+										}`;
 								} else if (context.datasetIndex === 2) {
-									return `Avg Hours/Assignment: ${
-										staff.avg_hours_per_assignment?.toFixed(
-											2
-										) || "N/A"
-									}`;
+									return `Avg Hours/Assignment: ${staff.avg_hours_per_assignment?.toFixed(
+										2
+									) || "N/A"
+										}`;
 								}
 								return "";
 							}
@@ -5873,11 +5851,11 @@ class ReportsManager {
 	            <div class="text-center py-5">
 	                <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
 	                <h5 class="mt-3 text-muted">${i18n.t(
-						"reports.emptyState.noDataFound"
-					)}</h5>
+				"reports.emptyState.noDataFound"
+			)}</h5>
 	                <p class="text-muted">${i18n.t(
-						"reports.emptyState.noEmployeePaymentsDescription"
-					)}</p>
+				"reports.emptyState.noEmployeePaymentsDescription"
+			)}</p>
 	            </div>
 	        `;
 			return;
@@ -5902,34 +5880,34 @@ class ReportsManager {
 	                <div class="summary-card border-start-primary">
 	                    <h6>${i18n.t("reports.summary.totalEmployees")}</h6>
 	                    <div class="value">${i18n.formatNumber(
-							employees.length,
-							0
-						)}</div>
+			employees.length,
+			0
+		)}</div>
 	                </div>
 	            </div>
 	            <div class="col-md-3">
 	                <div class="summary-card border-start-info">
 	                    <h6>${i18n.t("reports.summary.totalPayments")}</h6>
 	                    <div class="value">${i18n.formatNumber(
-							totalPayments,
-							0
-						)}</div>
+			totalPayments,
+			0
+		)}</div>
 	                </div>
 	            </div>
 	            <div class="col-md-3">
 	                <div class="summary-card border-start-success">
 	                    <h6>${i18n.t("reports.summary.totalPaid")}</h6>
 	                    <div class="value text-success">${i18n.formatCurrency(
-							totalPaid
-						)}</div>
+			totalPaid
+		)}</div>
 	                </div>
 	            </div>
 	            <div class="col-md-3">
 	                <div class="summary-card border-start-warning">
 	                    <h6>${i18n.t("reports.summary.totalUnpaid")}</h6>
 	                    <div class="value text-warning">${i18n.formatCurrency(
-							totalUnpaid
-						)}</div>
+			totalUnpaid
+		)}</div>
 	                </div>
 	            </div>
 	        </div>
@@ -5949,44 +5927,43 @@ class ReportsManager {
 	                <div class="d-flex justify-content-between align-items-center">
 	                    <div>
 	                        <h5 class="mb-0">${this.escapeHtml(
-								employee.employee_name
-							)}</h5>
+			employee.employee_name
+		)}</h5>
 	                        <small class="text-muted">
 	                            ${i18n
-									.t(
-										`employees.types.${employee.employee_type}`
-									)
-									.toUpperCase()} | 
+				.t(
+					`employees.types.${employee.employee_type}`
+				)
+				.toUpperCase()} | 
 	                            ${i18n.t(
-									"reports.employeeCard.hired"
-								)}: ${i18n.formatDate(employee.hire_date)}
-	                            ${
-									breakdown
-										? `| ${i18n.t(
-												"reports.employeeCard.workDays"
-										  )}: ${i18n.formatNumber(
-												breakdown.total_work_days,
-												0
-										  )} | ${i18n.t(
-												"reports.employeeCard.patientsServed"
-										  )}: ${i18n.formatNumber(
-												breakdown.total_patients_served,
-												0
-										  )}`
-										: ""
-								}
+					"reports.employeeCard.hired"
+				)}: ${i18n.formatDate(employee.hire_date)}
+	                            ${breakdown
+				? `| ${i18n.t(
+					"reports.employeeCard.workDays"
+				)}: ${i18n.formatNumber(
+					breakdown.total_work_days,
+					0
+				)} | ${i18n.t(
+					"reports.employeeCard.patientsServed"
+				)}: ${i18n.formatNumber(
+					breakdown.total_patients_served,
+					0
+				)}`
+				: ""
+			}
 	                        </small>
 	                    </div>
 	                    <div class="text-end">
 	                        <h6 class="mb-0">${i18n.t(
-								"reports.employeeCard.netPayment"
-							)}: ${i18n.formatCurrency(summary.net_payment)}</h6>
+				"reports.employeeCard.netPayment"
+			)}: ${i18n.formatCurrency(summary.net_payment)}</h6>
 	                        <small class="text-muted">${i18n.formatNumber(
-								summary.total_payments,
-								0
-							)} ${i18n.t(
-			"reports.employeeCard.paymentRecords"
-		)}</small>
+				summary.total_payments,
+				0
+			)} ${i18n.t(
+				"reports.employeeCard.paymentRecords"
+			)}</small>
 	                    </div>
 	                </div>
 	            </div>
@@ -5996,73 +5973,72 @@ class ReportsManager {
 	                <div class="row g-3 mb-3">
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.basePay"
-							)}</small>
+				"reports.employeeCard.basePay"
+			)}</small>
 	                        <div class="fw-bold">${i18n.formatCurrency(
-								summary.total_base_pay
-							)}</div>
+				summary.total_base_pay
+			)}</div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.extraPay"
-							)}</small>
+				"reports.employeeCard.extraPay"
+			)}</small>
 	                        <div class="fw-bold">${i18n.formatCurrency(
-								summary.total_extra_pay
-							)}</div>
+				summary.total_extra_pay
+			)}</div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.deductions"
-							)}</small>
+				"reports.employeeCard.deductions"
+			)}</small>
 	                        <div class="fw-bold text-danger">-${i18n.formatCurrency(
-								summary.total_deductions
-							)}</div>
+				summary.total_deductions
+			)}</div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.paid"
-							)}</small>
+				"reports.employeeCard.paid"
+			)}</small>
 	                        <div class="fw-bold text-success">${i18n.formatCurrency(
-								summary.total_paid
-							)}</div>
+				summary.total_paid
+			)}</div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.unpaid"
-							)}</small>
+				"reports.employeeCard.unpaid"
+			)}</small>
 	                        <div class="fw-bold text-warning">${i18n.formatCurrency(
-								summary.total_unpaid
-							)}</div>
+				summary.total_unpaid
+			)}</div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <small class="text-muted">${i18n.t(
-								"reports.employeeCard.avgPayment"
-							)}</small>
+				"reports.employeeCard.avgPayment"
+			)}</small>
 	                        <div class="fw-bold">${i18n.formatCurrency(
-								summary.avg_payment
-							)}</div>
+				summary.avg_payment
+			)}</div>
 	                    </div>
 	                </div>
 						
-	                ${
-						employee.payment_details &&
-						employee.payment_details.length > 0
-							? `
+	                ${employee.payment_details &&
+				employee.payment_details.length > 0
+				? `
 	                    <div class="mt-3">
 	                        <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>${i18n.t(
-								"reports.employeeCard.paymentDetails"
-							)}</h6>
+					"reports.employeeCard.paymentDetails"
+				)}</h6>
 	                        ${employee.payment_details
-								.map((payment: any) =>
-									this.renderPaymentDetail(payment)
-								)
-								.join("")}
+					.map((payment: any) =>
+						this.renderPaymentDetail(payment)
+					)
+					.join("")}
 	                    </div>
 	                `
-							: `<p class="text-muted">${i18n.t(
-									"reports.emptyState.noPaymentDetails"
-							  )}</p>`
-					}
+				: `<p class="text-muted">${i18n.t(
+					"reports.emptyState.noPaymentDetails"
+				)}</p>`
+			}
 	            </div>
 	        </div>
 	    `;
@@ -6072,86 +6048,81 @@ class ReportsManager {
 		return `
 	        <div class="alert alert-info mb-3">
 	            <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>${i18n.t(
-					"reports.paymentCard.configuration"
-				)}</h6>
+			"reports.paymentCard.configuration"
+		)}</h6>
 	            <div class="row g-2">
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.basePay"
-						)}:</small>
+			"reports.paymentCard.basePay"
+		)}:</small>
 	                    <div class="fw-bold">${i18n.formatCurrency(
-							breakdown.base_pay
-						)}</div>
+			breakdown.base_pay
+		)}</div>
 	                </div>
-	                ${
-						breakdown.base_extra_amount > 0
-							? `
+	                ${breakdown.base_extra_amount > 0
+				? `
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.baseExtraAmount"
-						)}:</small>
+					"reports.paymentCard.baseExtraAmount"
+				)}:</small>
 	                    <div class="fw-bold">${i18n.formatCurrency(
-							breakdown.base_extra_amount
-						)}</div>
+					breakdown.base_extra_amount
+				)}</div>
 	                </div>
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.extraPaymentType"
-						)}:</small>
+					"reports.paymentCard.extraPaymentType"
+				)}:</small>
 	                    <div class="fw-bold">${i18n.t(
-							`employees.paymentTypes.${breakdown.base_extra_payment_type}`
-						)}</div>
+					`employees.paymentTypes.${breakdown.base_extra_payment_type}`
+				)}</div>
 	                </div>
 	                `
-							: ""
-					}
-	                ${
-						breakdown.per_patient_payment_type
-							? `
+				: ""
+			}
+	                ${breakdown.per_patient_payment_type
+				? `
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.perPatientType"
-						)}:</small>
+					"reports.paymentCard.perPatientType"
+				)}:</small>
 	                    <div class="fw-bold">${i18n.t(
-							`employees.perPatientPaymentTypes.${breakdown.per_patient_payment_type}`
-						)}</div>
+					`employees.perPatientPaymentTypes.${breakdown.per_patient_payment_type}`
+				)}</div>
 	                </div>
 	                `
-							: ""
-					}
-	                ${
-						breakdown.percentage_scope
-							? `
+				: ""
+			}
+	                ${breakdown.percentage_scope
+				? `
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.percentageScope"
-						)}:</small>
+					"reports.paymentCard.percentageScope"
+				)}:</small>
 	                    <div class="fw-bold">${i18n.t(
-							`employees.percentageScopes.${breakdown.percentage_scope}`
-						)}</div>
+					`employees.percentageScopes.${breakdown.percentage_scope}`
+				)}</div>
 	                </div>
 	                `
-							: ""
-					}
-	                ${
-						breakdown.need_clock_in
-							? `
+				: ""
+			}
+	                ${breakdown.need_clock_in
+				? `
 	                <div class="col-md-3">
 	                    <small class="text-muted">${i18n.t(
-							"reports.paymentCard.shift"
-						)}:</small>
+					"reports.paymentCard.shift"
+				)}:</small>
 	                    <div class="fw-bold">
 	                        ${i18n.t(
-								`employees.shiftTypes.${breakdown.shift_type}`
-							)} 
-	                        (${breakdown.shift_start_time} - ${
-									breakdown.shift_end_time
-							  })
+					`employees.shiftTypes.${breakdown.shift_type}`
+				)} 
+	                        (${breakdown.shift_start_time} - ${breakdown.shift_end_time
+				})
 	                    </div>
 	                </div>
 	                `
-							: ""
-					}
+				: ""
+			}
 	            </div>
 	        </div>
 	    `;
@@ -6183,31 +6154,28 @@ class ReportsManager {
 	                        </div>
 	                        <div class="payment-type-info mt-1">
 	                            <span class="badge bg-primary me-2">${i18n.t(
-									`employees.paymentTypes.${payment.payment_type}`
-								)}</span>
-	                            ${
-									payment.extra_payment_type !== "none"
-										? `<span class="badge bg-info">${i18n.t(
-												`employees.paymentTypes.${payment.extra_payment_type}`
-										  )}</span>`
-										: ""
-								}
+			`employees.paymentTypes.${payment.payment_type}`
+		)}</span>
+	                            ${payment.extra_payment_type !== "none"
+				? `<span class="badge bg-info">${i18n.t(
+					`employees.paymentTypes.${payment.extra_payment_type}`
+				)}</span>`
+				: ""
+			}
 	                        </div>
 	                    </div>
 	                    <div class="text-end">
 	                        <div class="payment-amount">${i18n.formatCurrency(
-								netAmount
-							)}</div>
-	                        <span class="status-badge badge-${
-								payment.is_paid ? "paid" : "unpaid"
-							} ms-2">
+				netAmount
+			)}</div>
+	                        <span class="status-badge badge-${payment.is_paid ? "paid" : "unpaid"
+			} ms-2">
 	                            ${i18n
-									.t(
-										`employees.paymentStatus.${
-											payment.is_paid ? "paid" : "pending"
-										}`
-									)
-									.toUpperCase()}
+				.t(
+					`employees.paymentStatus.${payment.is_paid ? "paid" : "pending"
+					}`
+				)
+				.toUpperCase()}
 	                        </span>
 	                    </div>
 	                </div>
@@ -6219,118 +6187,111 @@ class ReportsManager {
 	                    <div class="col-md-3">
 	                        <div class="payment-item">
 	                            <small class="text-muted">${i18n.t(
-									"reports.paymentDetail.basePay"
-								)}:</small>
+					"reports.paymentDetail.basePay"
+				)}:</small>
 	                            <div class="fw-bold text-primary">${i18n.formatCurrency(
-									payment.payment_amount
-								)}</div>
+					payment.payment_amount
+				)}</div>
 	                        </div>
 	                    </div>
-	                    ${
-							payment.extra_amount > 0
-								? `
+	                    ${payment.extra_amount > 0
+				? `
 	                    <div class="col-md-3">
 	                        <div class="payment-item">
 	                            <small class="text-muted">${i18n.t(
-									"reports.paymentDetail.extraPay"
-								)}:</small>
+					"reports.paymentDetail.extraPay"
+				)}:</small>
 	                            <div class="fw-bold text-success">+${i18n.formatCurrency(
-									payment.extra_amount
-								)}</div>
+					payment.extra_amount
+				)}</div>
 	                        </div>
 	                    </div>
 	                    `
-								: ""
-						}
-	                    ${
-							hasDeductions
-								? `
+				: ""
+			}
+	                    ${hasDeductions
+				? `
 	                    <div class="col-md-3">
 	                        <div class="payment-item">
 	                            <small class="text-muted">${i18n.t(
-									"reports.paymentDetail.deductions"
-								)}:</small>
+					"reports.paymentDetail.deductions"
+				)}:</small>
 	                            <div class="fw-bold text-danger">
 	                                -${i18n.formatCurrency(
-										payment.clock_in_deductions.reduce(
-											(sum: number, d: any) =>
-												sum + d.pay_deduction,
-											0
-										)
-									)}
+					payment.clock_in_deductions.reduce(
+						(sum: number, d: any) =>
+							sum + d.pay_deduction,
+						0
+					)
+				)}
 	                            </div>
 	                        </div>
 	                    </div>
 	                    `
-								: ""
-						}
+				: ""
+			}
 	                    <div class="col-md-3">
 	                        <div class="payment-item">
 	                            <small class="text-muted">${i18n.t(
-									"reports.paymentDetail.netAmount"
-								)}:</small>
+				"reports.paymentDetail.netAmount"
+			)}:</small>
 	                            <div class="fw-bold text-dark">${i18n.formatCurrency(
-									netAmount
-								)}</div>
+				netAmount
+			)}</div>
 	                        </div>
 	                    </div>
 	                </div>
 	            </div>
 
-	            ${
-					payment.is_paid
-						? `
+	            ${payment.is_paid
+				? `
 	            <div class="payment-meta mt-2">
 	                <small class="text-muted">
 	                    <i class="bi bi-check-circle-fill text-success me-1"></i>
 	                    ${i18n.t(
-							"reports.paymentDetail.paidOn"
-						)} ${i18n.formatDateTime(payment.paid_timestamp)}
-	                    ${
-							payment.paid_by
-								? ` ${i18n.t(
-										"reports.paymentDetail.by"
-								  )} ${this.escapeHtml(payment.paid_by)}`
-								: ""
-						}
+					"reports.paymentDetail.paidOn"
+				)} ${i18n.formatDateTime(payment.paid_timestamp)}
+	                    ${payment.paid_by
+					? ` ${i18n.t(
+						"reports.paymentDetail.by"
+					)} ${this.escapeHtml(payment.paid_by)}`
+					: ""
+				}
 	                </small>
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
 
-	            ${
-					payment.main_patient_id
-						? `
+	            ${payment.main_patient_id
+				? `
 	            <div class="alert alert-light mt-3 mb-2">
 	                <i class="bi bi-person-badge me-2"></i>
 	                <strong>${i18n.t(
-						"reports.paymentDetail.mainPatient"
-					)}:</strong> ${this.escapeHtml(payment.main_patient_name)}
+					"reports.paymentDetail.mainPatient"
+				)}:</strong> ${this.escapeHtml(payment.main_patient_name)}
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
 
-	            ${
-					hasPatientAssociations
-						? `
+	            ${hasPatientAssociations
+				? `
 	            <div class="mt-3">
 	                <div class="d-flex justify-content-between align-items-center mb-2">
 	                    <h6 class="mb-0">
 	                        <i class="bi bi-people me-2"></i>
 	                        ${i18n.t(
-								"reports.paymentDetail.patientWorkDetails"
-							)} (${payment.patient_associations.length})
+					"reports.paymentDetail.patientWorkDetails"
+				)} (${payment.patient_associations.length})
 	                    </h6>
 	                    <button class="btn btn-sm btn-outline-secondary" type="button" 
 	                            data-bs-toggle="collapse" 
-	                            data-bs-target="#patientDetails${
-									payment.payment_id
-								}">
+	                            data-bs-target="#patientDetails${payment.payment_id
+				}">
 	                        <i class="bi bi-chevron-down"></i> ${i18n.t(
-								"reports.paymentDetail.toggleDetails"
-							)}
+					"reports.paymentDetail.toggleDetails"
+				)}
 	                    </button>
 	                </div>
 	                <div class="collapse" id="patientDetails${payment.payment_id}">
@@ -6340,112 +6301,109 @@ class ReportsManager {
 	                                <tr>
 	                                    <th>${i18n.t("reports.table.workDate")}</th>
 	                                    <th>${i18n.t(
-											"reports.table.patientName"
-										)}</th>
+					"reports.table.patientName"
+				)}</th>
 	                                    <th>${i18n.t(
-											"reports.table.diagnosis"
-										)}</th>
+					"reports.table.diagnosis"
+				)}</th>
 	                                    <th>${i18n.t("reports.table.hours")}</th>
 	                                    <th>${i18n.t(
-											"reports.table.paymentType"
-										)}</th>
+					"reports.table.paymentType"
+				)}</th>
 	                                    <th class="text-end">${i18n.t(
-											"reports.table.amount"
-										)}</th>
+					"reports.table.amount"
+				)}</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>
 	                                ${payment.patient_associations
-										.map(
-											(assoc: any) => `
+					.map(
+						(assoc: any) => `
 	                                    <tr>
 	                                        <td>${i18n.formatDate(
-												assoc.work_date
-											)}</td>
+							assoc.work_date
+						)}</td>
 	                                        <td>
 	                                            ${this.escapeHtml(
-													assoc.patient_name
-												)}
-	                                            ${
-													assoc.admission_time
-														? `
+							assoc.patient_name
+						)}
+	                                            ${assoc.admission_time
+								? `
 	                                                <br><small class="text-muted">
 	                                                    ${i18n.t(
-															"reports.paymentDetail.admitted"
-														)}: ${i18n.formatDate(
-																assoc.admission_time
-														  )}
-	                                                    ${
-															assoc.discharge_time
-																? ` - ${i18n.t(
-																		"reports.paymentDetail.discharged"
-																  )}: ${i18n.formatDate(
-																		assoc.discharge_time
-																  )}`
-																: ` <span class="badge bg-success">${i18n.t(
-																		"common.active"
-																  )}</span>`
-														}
+									"reports.paymentDetail.admitted"
+								)}: ${i18n.formatDate(
+									assoc.admission_time
+								)}
+	                                                    ${assoc.discharge_time
+									? ` - ${i18n.t(
+										"reports.paymentDetail.discharged"
+									)}: ${i18n.formatDate(
+										assoc.discharge_time
+									)}`
+									: ` <span class="badge bg-success">${i18n.t(
+										"common.active"
+									)}</span>`
+								}
 	                                                </small>
 	                                            `
-														: ""
-												}
+								: ""
+							}
 	                                        </td>
 	                                        <td>
-	                                            ${
-													assoc.diagnosis
-														? `<small>${this.escapeHtml(
-																assoc.diagnosis
-														  )}</small>`
-														: `<span class="text-muted">${i18n.t(
-																"common.unknown"
-														  )}</span>`
-												}
+	                                            ${assoc.diagnosis
+								? `<small>${this.escapeHtml(
+									assoc.diagnosis
+								)}</small>`
+								: `<span class="text-muted">${i18n.t(
+									"common.unknown"
+								)}</span>`
+							}
 	                                        </td>
 	                                        <td>${i18n.formatNumber(
-												assoc.hours_worked,
-												1
-											)}${i18n.t(
-												"reports.units.hours"
-											)}</td>
+								assoc.hours_worked,
+								1
+							)}${i18n.t(
+								"reports.units.hours"
+							)}</td>
 	                                        <td>
 	                                            <span class="badge bg-info">
 	                                                ${i18n.t(
-														`employees.paymentTypes.${assoc.payment_type}`
-													)}
+								`employees.paymentTypes.${assoc.payment_type}`
+							)}
 	                                            </span>
 	                                        </td>
 	                                        <td class="text-end fw-bold">${i18n.formatCurrency(
-												assoc.payment_amount
-											)}</td>
+								assoc.payment_amount
+							)}</td>
 	                                    </tr>
 	                                `
-										)
-										.join("")}
+					)
+					.join("")}
 	                            </tbody>
 	                            <tfoot class="table-light">
 	                                <tr>
 	                                    <td colspan="3" class="text-end"><strong>${i18n.t(
-											"common.total"
-										)}:</strong></td>
+						"common.total"
+					)}:</strong></td>
 	                                    <td><strong>${i18n.formatNumber(
-											payment.patient_associations.reduce(
-												(sum: number, a: any) =>
-													sum + a.hours_worked,
-												0
-											),
-											1
-										)}${i18n.t(
-								"reports.units.hours"
-						  )}</strong></td>
+						payment.patient_associations.reduce(
+							(sum: number, a: any) =>
+								sum + a.hours_worked,
+							0
+						),
+						1
+					)}${i18n.t(
+						"reports.units.hours"
+					)}</strong></td>
 	                                    <td></td>
 	                                    <td class="text-end"><strong>${i18n.formatCurrency(
-											payment.patient_associations.reduce(
-												(sum: number, a: any) =>
-													sum + a.payment_amount,
-												0
-											)
-										)}</strong></td>
+						payment.patient_associations.reduce(
+							(sum: number, a: any) =>
+								sum + a.payment_amount,
+							0
+						)
+					)}</strong></td>
 	                                </tr>
 	                            </tfoot>
 	                        </table>
@@ -6453,33 +6411,29 @@ class ReportsManager {
 	                </div>
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
 
-	            ${
-					hasDeductions
-						? `
+	            ${hasDeductions
+				? `
 	            <div class="mt-3">
 	                <div class="d-flex justify-content-between align-items-center mb-2">
 	                    <h6 class="mb-0 text-danger">
 	                        <i class="bi bi-exclamation-triangle me-2"></i>
-	                        ${i18n.t("reports.paymentDetail.clockInDeductions")} (${
-								payment.clock_in_deductions.length
-						  })
+	                        ${i18n.t("reports.paymentDetail.clockInDeductions")} (${payment.clock_in_deductions.length
+				})
 	                    </h6>
 	                    <button class="btn btn-sm btn-outline-danger" type="button" 
 	                            data-bs-toggle="collapse" 
-	                            data-bs-target="#deductionDetails${
-									payment.payment_id
-								}">
+	                            data-bs-target="#deductionDetails${payment.payment_id
+				}">
 	                        <i class="bi bi-chevron-down"></i> ${i18n.t(
-								"reports.paymentDetail.toggleDetails"
-							)}
+					"reports.paymentDetail.toggleDetails"
+				)}
 	                    </button>
 	                </div>
-	                <div class="collapse" id="deductionDetails${
-						payment.payment_id
-					}">
+	                <div class="collapse" id="deductionDetails${payment.payment_id
+				}">
 	                    <div class="table-responsive">
 	                        <table class="table table-sm table-hover mb-0">
 	                            <thead class="table-light">
@@ -6487,76 +6441,74 @@ class ReportsManager {
 	                                    <th>${i18n.t("reports.table.clockIn")}</th>
 	                                    <th>${i18n.t("reports.table.clockOut")}</th>
 	                                    <th>${i18n.t(
-											"reports.table.hoursWorked"
-										)}</th>
+					"reports.table.hoursWorked"
+				)}</th>
 	                                    <th>${i18n.t("reports.table.status")}</th>
 	                                    <th class="text-end">${i18n.t(
-											"reports.table.deduction"
-										)}</th>
+					"reports.table.deduction"
+				)}</th>
 	                                </tr>
 	                            </thead>
 	                            <tbody>
 	                                ${payment.clock_in_deductions
-										.map(
-											(deduction: any) => `
+					.map(
+						(deduction: any) => `
 	                                    <tr>
 	                                        <td>${i18n.formatDateTime(
-												deduction.clock_in
-											)}</td>
-	                                        <td>${
-												deduction.clock_out
-													? i18n.formatDateTime(
-															deduction.clock_out
-													  )
-													: `<span class="badge bg-warning">${i18n.t(
-															"reports.clockStatus.incomplete"
-													  )}</span>`
-											}</td>
+							deduction.clock_in
+						)}</td>
+	                                        <td>${deduction.clock_out
+								? i18n.formatDateTime(
+									deduction.clock_out
+								)
+								: `<span class="badge bg-warning">${i18n.t(
+									"reports.clockStatus.incomplete"
+								)}</span>`
+							}</td>
 	                                        <td>${i18n.formatNumber(
-												deduction.hours_worked,
-												2
-											)}${i18n.t(
-												"reports.units.hours"
-											)}</td>
+								deduction.hours_worked,
+								2
+							)}${i18n.t(
+								"reports.units.hours"
+							)}</td>
 	                                        <td>
-	                                            <span class="badge ${
-													deduction.status ===
-													"On Time"
-														? "bg-success"
-														: deduction.status ===
-														  "Incomplete"
-														? "bg-warning"
-														: "bg-danger"
-												}">
+	                                            <span class="badge ${deduction.status ===
+								"On Time"
+								? "bg-success"
+								: deduction.status ===
+									"Incomplete"
+									? "bg-warning"
+									: "bg-danger"
+							}">
 	                                                ${i18n.t(
-														`reports.clockStatus.${deduction.status
-															.toLowerCase()
-															.replace(" ", "")}`
-													)}
+								`reports.clockStatus.${deduction.status
+									.toLowerCase()
+									.replace(" ", "")}`
+							)}
 	                                            </span>
 	                                        </td>
 	                                        <td class="text-end text-danger fw-bold">
 	                                            -${i18n.formatCurrency(
-													deduction.pay_deduction
-												)}
+								deduction.pay_deduction
+							)}
 	                                        </td>
 	                                    </tr>
 	                                `
-										)
-										.join("")}
+					)
+					.join("")}
 	                            </tbody>
 	                            <tfoot class="table-light">
 	                                <tr>
 	                                    <td colspan="4" class="text-end"><strong>${i18n.t(
-											"reports.paymentDetail.totalDeductions"
-										)}:</strong></td>
+						"reports.paymentDetail.totalDeductions"
+					)}:</strong></td>
 	                                    <td class="text-end text-danger"><strong>-${i18n.formatCurrency(
-											payment.clock_in_deductions.reduce(
-												(sum: number, d: any) =>
-													sum + d.pay_deduction,
-												0
-											)
-										)}</strong></td>
+						payment.clock_in_deductions.reduce(
+							(sum: number, d: any) =>
+								sum + d.pay_deduction,
+							0
+						)
+					)}</strong></td>
 	                                </tr>
 	                            </tfoot>
 	                        </table>
@@ -6564,8 +6516,8 @@ class ReportsManager {
 	                </div>
 	            </div>
 	            `
-						: ""
-				}
+				: ""
+			}
 	        </div>
 	    `;
 	}
@@ -6996,8 +6948,7 @@ class ReportsManager {
 		if (breakdown.need_clock_in) {
 			configRows.push([
 				"Shift",
-				`${this.capitalizeFirst(breakdown.shift_type)} (${
-					breakdown.shift_start_time
+				`${this.capitalizeFirst(breakdown.shift_type)} (${breakdown.shift_start_time
 				} - ${breakdown.shift_end_time})`
 			]);
 		}
@@ -7193,8 +7144,8 @@ class ReportsManager {
 							assoc.patient_name,
 							assoc.admission_time
 								? `\n(Admitted: ${this.formatDate(
-										assoc.admission_time
-								  )})`
+									assoc.admission_time
+								)})`
 								: ""
 						],
 						fontSize: 8
@@ -7389,9 +7340,8 @@ class ReportsManager {
 		// Payment status info
 		if (payment.is_paid && payment.paid_timestamp) {
 			content.push({
-				text: `Paid on ${this.formatDateTime(payment.paid_timestamp)}${
-					payment.paid_by ? ` by ${payment.paid_by}` : ""
-				}`,
+				text: `Paid on ${this.formatDateTime(payment.paid_timestamp)}${payment.paid_by ? ` by ${payment.paid_by}` : ""
+					}`,
 				fontSize: 8,
 				bold: true,
 				color: "#28a745",
@@ -7511,11 +7461,11 @@ class ReportsManager {
             <div class="text-center py-5">
                 <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
                 <h5 class="mt-3 text-muted">${i18n.t(
-					"reports.emptyState.noDataFound"
-				)}</h5>
+				"reports.emptyState.noDataFound"
+			)}</h5>
                 <p class="text-muted">${i18n.t(
-					"reports.emptyState.noClockInDataDescription"
-				)}</p>
+				"reports.emptyState.noClockInDataDescription"
+			)}</p>
             </div>
         `;
 			this.hideClockInSummary();
@@ -7763,8 +7713,8 @@ class ReportsManager {
 			attendanceSummary.punctuality_rate >= 90
 				? "success"
 				: attendanceSummary.punctuality_rate >= 75
-				? "warning"
-				: "danger";
+					? "warning"
+					: "danger";
 
 		return `
 	        <div class="card mb-3">
@@ -7772,40 +7722,38 @@ class ReportsManager {
 	                <div class="d-flex justify-content-between align-items-center">
 	                    <div>
 	                        <h5 class="mb-0">${this.escapeHtml(
-								employee.employee_name
-							)}</h5>
+			employee.employee_name
+		)}</h5>
 	                        <small class="text-muted">
 	                            ${i18n
-									.t(
-										`employees.types.${employee.employee_type}`
-									)
-									.toUpperCase()}
-	                            ${
-									employee.shift_start_time &&
-									employee.shift_end_time
-										? ` (${employee.shift_start_time.substring(
-												0,
-												5
-										  )} - ${employee.shift_end_time.substring(
-												0,
-												5
-										  )})`
-										: ""
-								}
+				.t(
+					`employees.types.${employee.employee_type}`
+				)
+				.toUpperCase()}
+	                            ${employee.shift_start_time &&
+				employee.shift_end_time
+				? ` (${employee.shift_start_time.substring(
+					0,
+					5
+				)} - ${employee.shift_end_time.substring(
+					0,
+					5
+				)})`
+				: ""
+			}
 	                        </small>
 	                    </div>
 	                    <div class="text-end">
-	                        <h4 class="mb-0">${
-								i18n.formatNumber(
-									employee.total_hours_worked,
-									1
-								) + i18n.t("reports.units.hours")
-							}</h4>
+	                        <h4 class="mb-0">${i18n.formatNumber(
+				employee.total_hours_worked,
+				1
+			) + i18n.t("reports.units.hours")
+			}</h4>
 	                        <small class="text-muted">
 	                            ${i18n.formatNumber(
-									employee.total_clock_ins,
-									0
-								)} ${i18n.t("reports.clockInCard.clockIns")}
+				employee.total_clock_ins,
+				0
+			)} ${i18n.t("reports.clockInCard.clockIns")}
 	                        </small>
 	                    </div>
 	                </div>
@@ -7817,161 +7765,155 @@ class ReportsManager {
 	                        <div class="summary-card border-start-primary">
 	                            <h6>${i18n.t("reports.clockInCard.totalDays")}</h6>
 	                            <div class="value">${i18n.formatNumber(
-									attendanceSummary.total_days,
-									0
-								)}</div>
+				attendanceSummary.total_days,
+				0
+			)}</div>
 	                        </div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <div class="summary-card border-start-success">
 	                            <h6>${i18n.t("reports.clockInCard.onTime")}</h6>
 	                            <div class="value">${i18n.formatNumber(
-									attendanceSummary.on_time_days,
-									0
-								)}</div>
+				attendanceSummary.on_time_days,
+				0
+			)}</div>
 	                        </div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <div class="summary-card border-start-warning">
 	                            <h6>${i18n.t("reports.clockInCard.late")}</h6>
 	                            <div class="value">${i18n.formatNumber(
-									attendanceSummary.late_days,
-									0
-								)}</div>
+				attendanceSummary.late_days,
+				0
+			)}</div>
 	                        </div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <div class="summary-card border-start-danger">
 	                            <h6>${i18n.t("reports.clockInCard.missing")}</h6>
 	                            <div class="value text-danger">${i18n.formatNumber(
-									attendanceSummary.missing_days || 0,
-									0
-								)}</div>
+				attendanceSummary.missing_days || 0,
+				0
+			)}</div>
 	                        </div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <div class="summary-card border-start-info">
 	                            <h6>${i18n.t("reports.clockInCard.incomplete")}</h6>
 	                            <div class="value">${i18n.formatNumber(
-									attendanceSummary.incomplete_days,
-									0
-								)}</div>
+				attendanceSummary.incomplete_days,
+				0
+			)}</div>
 	                        </div>
 	                    </div>
 	                    <div class="col-md-2">
 	                        <div class="summary-card border-start-${punctualityColor}">
 	                            <h6>${i18n.t(
-									"reports.clockInCard.punctualityRate"
-								)}</h6>
+				"reports.clockInCard.punctualityRate"
+			)}</h6>
 	                            <div class="value">${i18n.formatNumber(
-									attendanceSummary.punctuality_rate,
-									1
-								)}%</div>
+				attendanceSummary.punctuality_rate,
+				1
+			)}%</div>
 	                        </div>
 	                    </div>
 	                </div>
 							
-	                ${
-						attendanceSummary.missing_days > 0
-							? `
+	                ${attendanceSummary.missing_days > 0
+				? `
 	                    <div class="alert alert-danger">
 	                        <i class="bi bi-exclamation-octagon me-2"></i>
-	                        <strong>${
-								attendanceSummary.missing_days
-							}</strong> ${i18n.t(
-									"reports.clockInCard.missingDaysAlert"
-							  )}
+	                        <strong>${attendanceSummary.missing_days
+				}</strong> ${i18n.t(
+					"reports.clockInCard.missingDaysAlert"
+				)}
 	                    </div>
 	                `
-							: ""
-					}
+				: ""
+			}
 						  
-	                ${
-						attendanceSummary.incomplete_days > 0
-							? `
+	                ${attendanceSummary.incomplete_days > 0
+				? `
 	                    <div class="alert alert-warning">
 	                        <i class="bi bi-exclamation-triangle me-2"></i>
 	                        ${attendanceSummary.incomplete_days} ${i18n.t(
-									"reports.clockInCard.incompleteDays"
-							  )}
+					"reports.clockInCard.incompleteDays"
+				)}
 	                    </div>
 	                `
-							: ""
-					}
+				: ""
+			}
 						  
-	                ${
-						employee.total_deductions > 0
-							? `
+	                ${employee.total_deductions > 0
+				? `
 	                    <div class="alert alert-danger">
 	                        <i class="bi bi-exclamation-circle me-2"></i>
 	                        ${i18n.t(
-								"reports.clockInCard.totalDeductions"
-							)}: <strong>${this.formatCurrency(
-									employee.total_deductions
-							  )}</strong>
+					"reports.clockInCard.totalDeductions"
+				)}: <strong>${this.formatCurrency(
+					employee.total_deductions
+				)}</strong>
 	                    </div>
 	                `
-							: ""
-					}
+				: ""
+			}
 						  
 	                <!-- Clock-In Records Table -->
 	                <h6 class="mb-3"><i class="bi bi-clock-history me-2"></i>${i18n.t(
-						"reports.clockInCard.clockInRecords"
-					)}</h6>
+				"reports.clockInCard.clockInRecords"
+			)}</h6>
 	                <div class="table-responsive">
 	                    <table class="table table-hover report-table clock-in-records-table">
 	                        <thead>
 	                            <tr>
 	                                <th>${i18n.t("reports.clockInTable.date")}</th>
 	                                <th>${i18n.t(
-										"reports.clockInTable.clockIn"
-									)}</th>
+				"reports.clockInTable.clockIn"
+			)}</th>
 	                                <th>${i18n.t(
-										"reports.clockInTable.clockOut"
-									)}</th>
+				"reports.clockInTable.clockOut"
+			)}</th>
 	                                <th class="text-center">${i18n.t(
-										"reports.clockInTable.hoursWorked"
-									)}</th>
+				"reports.clockInTable.hoursWorked"
+			)}</th>
 	                                <th class="text-center">${i18n.t(
-										"reports.clockInTable.status"
-									)}</th>
+				"reports.clockInTable.status"
+			)}</th>
 	                                <th class="text-end">${i18n.t(
-										"reports.clockInTable.deduction"
-									)}</th>
+				"reports.clockInTable.deduction"
+			)}</th>
 	                                <th>${i18n.t("reports.clockInTable.notes")}</th>
 	                            </tr>
 	                        </thead>
 	                        <tbody>
 	                            ${employee.clock_in_records
-									.map((record: any) =>
-										this.renderClockInRecordRow(record)
-									)
-									.join("")}
+				.map((record: any) =>
+					this.renderClockInRecordRow(record)
+				)
+				.join("")}
 	                        </tbody>
 	                        <tfoot>
 	                            <tr class="totals-row">
 	                                <td colspan="3" class="text-end"><strong>${i18n.t(
-										"common.total"
-									)}:</strong></td>
-	                                <td class="text-center"><strong>${
-										i18n.formatNumber(
-											employee.total_hours_worked,
-											1
-										) + i18n.t("reports.units.hours")
-									}</strong></td>
+					"common.total"
+				)}:</strong></td>
+	                                <td class="text-center"><strong>${i18n.formatNumber(
+					employee.total_hours_worked,
+					1
+				) + i18n.t("reports.units.hours")
+			}</strong></td>
 	                                <td class="text-center">
-	                                    <span class="badge bg-info">${
-											i18n.formatNumber(
-												employee.avg_hours_per_day,
-												1
-											) + i18n.t("reports.units.hours")
-										} ${i18n.t(
-			"reports.clockInCard.avgPerDay"
-		)}</span>
+	                                    <span class="badge bg-info">${i18n.formatNumber(
+				employee.avg_hours_per_day,
+				1
+			) + i18n.t("reports.units.hours")
+			} ${i18n.t(
+				"reports.clockInCard.avgPerDay"
+			)}</span>
 	                                </td>
 	                                <td class="text-end"><strong>${this.formatCurrency(
-										employee.total_deductions
-									)}</strong></td>
+				employee.total_deductions
+			)}</strong></td>
 	                                <td></td>
 	                            </tr>
 	                        </tfoot>
@@ -8000,46 +7942,43 @@ class ReportsManager {
                 <td colspan="2" class="text-center">
                     <span class="badge bg-danger">
                         <i class="bi bi-exclamation-octagon me-1"></i>${i18n.t(
-							"reports.clockInStatus.missing"
-						)}
+				"reports.clockInStatus.missing"
+			)}
                     </span>
                 </td>
                 <td class="text-center">-</td>
                 <td class="text-center">
                     <span class="badge bg-danger">
                         <i class="bi bi-x-circle me-1"></i>${i18n.t(
-							"reports.clockInStatus.noRecord"
-						)}
+				"reports.clockInStatus.noRecord"
+			)}
                     </span>
                 </td>
                 <td class="text-end">-</td>
                 <td>
                     <small class="text-danger fw-bold">${i18n.t(
-						"reports.clockInStatus.noClockInRecord"
-					)}</small>
-                    ${
-						hasPatients
-							? `
+				"reports.clockInStatus.noClockInRecord"
+			)}</small>
+                    ${hasPatients
+					? `
                         <button class="btn btn-sm btn-outline-info ms-2" type="button" 
                                 data-bs-toggle="collapse" data-bs-target="#patients-missing-${record.date.replace(
-									/-/g,
-									""
-								)}" 
+						/-/g,
+						""
+					)}" 
                                 aria-expanded="false">
-                            <i class="bi bi-people"></i> ${
-								patients.length
-							} ${i18n.t("reports.clockInCard.patients")}
+                            <i class="bi bi-people"></i> ${patients.length
+					} ${i18n.t("reports.clockInCard.patients")}
                         </button>
                     `
-							: ""
-					}
+					: ""
+				}
                 </td>
             </tr>
-            ${
-				hasPatients
+            ${hasPatients
 					? this.renderPatientAssignmentsRow(record, "missing")
 					: ""
-			}
+				}
         `;
 		}
 
@@ -8083,53 +8022,46 @@ class ReportsManager {
 		return `
         <tr class="${record.status === "incomplete" ? "table-warning" : ""}">
             <td class="fw-bold">${i18n.formatDate(dateToDisplay)}</td>
-            <td>${
-				record.clock_in ? i18n.formatDateTime(record.clock_in) : "-"
+            <td>${record.clock_in ? i18n.formatDateTime(record.clock_in) : "-"
 			}</td>
-            <td>${
-				record.clock_out
-					? i18n.formatDateTime(record.clock_out)
-					: `<span class="badge bg-warning">${i18n.t(
-							"reports.clockInStatus.pending"
-					  )}</span>`
+            <td>${record.clock_out
+				? i18n.formatDateTime(record.clock_out)
+				: `<span class="badge bg-warning">${i18n.t(
+					"reports.clockInStatus.pending"
+				)}</span>`
 			}</td>
-            <td class="text-center">${
-				hoursWorked > 0 ? i18n.formatNumber(hoursWorked, 2) + "h" : "-"
+            <td class="text-center">${hoursWorked > 0 ? i18n.formatNumber(hoursWorked, 2) + "h" : "-"
 			}</td>
             <td class="text-center">
                 <span class="badge bg-${status.class}">
                     <i class="bi bi-${status.icon} me-1"></i>${status.label}
                 </span>
             </td>
-            <td class="text-end ${
-				payDeduction > 0 ? "text-danger fw-bold" : ""
+            <td class="text-end ${payDeduction > 0 ? "text-danger fw-bold" : ""
 			}">
                 ${payDeduction > 0 ? this.formatCurrency(payDeduction) : "-"}
             </td>
             <td>
                 <small class="text-muted">${this.escapeHtml(
-					record.notes || "-"
-				)}</small>
-                ${
-					hasPatients
-						? `
+				record.notes || "-"
+			)}</small>
+                ${hasPatients
+				? `
                     <button class="btn btn-sm btn-outline-primary ms-2" type="button" 
                             data-bs-toggle="collapse" data-bs-target="#patients-${dateId}" 
                             aria-expanded="false">
-                        <i class="bi bi-people"></i> ${
-							patients.length
-						} ${i18n.t("reports.clockInCard.patients")}
+                        <i class="bi bi-people"></i> ${patients.length
+				} ${i18n.t("reports.clockInCard.patients")}
                     </button>
                 `
-						: ""
-				}
+				: ""
+			}
             </td>
         </tr>
-        ${
-			hasPatients
+        ${hasPatients
 				? this.renderPatientAssignmentsRow(record, status.class)
 				: ""
-		}
+			}
     `;
 	}
 
@@ -8151,102 +8083,99 @@ class ReportsManager {
                         <h6 class="mb-3">
                             <i class="bi bi-people-fill me-2"></i>
                             ${i18n.t(
-								"reports.clockInCard.patientsWorkedOn"
-							)} - ${i18n.formatDate(record.date)}
+			"reports.clockInCard.patientsWorkedOn"
+		)} - ${i18n.formatDate(record.date)}
                         </h6>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover mb-0">
                                 <thead>
                                     <tr>
                                         <th>${i18n.t(
-											"reports.table.patientName"
-										)}</th>
+			"reports.table.patientName"
+		)}</th>
                                         <th>${i18n.t(
-											"reports.table.paymentType"
-										)}</th>
+			"reports.table.paymentType"
+		)}</th>
                                         <th>${i18n.t(
-											"reports.table.diagnosis"
-										)}</th>
+			"reports.table.diagnosis"
+		)}</th>
                                         <th>${i18n.t(
-											"reports.table.admissionStatus"
-										)}</th>
+			"reports.table.admissionStatus"
+		)}</th>
                                         <th class="text-center">${i18n.t(
-											"reports.table.hoursWorked"
-										)}</th>
+			"reports.table.hoursWorked"
+		)}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${patients
-										.map(
-											(patient: any) => `
+				.map(
+					(patient: any) => `
                                         <tr>
                                             <td>
                                                 <strong>${this.escapeHtml(
-													patient.patient_name
-												)}</strong>
+						patient.patient_name
+					)}</strong>
                                                 <br>
-                                                <small class="text-muted">ID: ${
-													patient.patient_id
-												}</small>
+                                                <small class="text-muted">ID: ${patient.patient_id
+						}</small>
                                             </td>
                                             <td>
-                                                <span class="payment-type-badge badge-${
-													patient.payment_type
-												}">
+                                                <span class="payment-type-badge badge-${patient.payment_type
+						}">
                                                     ${i18n
-														.t(
-															`reports.paymentTypes.${patient.payment_type}`
-														)
-														.toUpperCase()}
+							.t(
+								`reports.paymentTypes.${patient.payment_type}`
+							)
+							.toUpperCase()}
                                                 </span>
                                             </td>
                                             <td>${this.escapeHtml(
-												patient.diagnosis ||
-													i18n.t("common.unknown")
-											)}</td>
+								patient.diagnosis ||
+								i18n.t("common.unknown")
+							)}</td>
                                             <td>
-                                                ${
-													patient.discharge_time
-														? `<span class="badge bg-secondary">${i18n.t(
-																"common.discharged"
-														  )}</span><br><small>${i18n.formatDate(
-																patient.discharge_time
-														  )}</small>`
-														: `<span class="badge bg-success">${i18n.t(
-																"common.active"
-														  )}</span>`
-												}
+                                                ${patient.discharge_time
+							? `<span class="badge bg-secondary">${i18n.t(
+								"common.discharged"
+							)}</span><br><small>${i18n.formatDate(
+								patient.discharge_time
+							)}</small>`
+							: `<span class="badge bg-success">${i18n.t(
+								"common.active"
+							)}</span>`
+						}
                                             </td>
                                             <td class="text-center">
                                                 <strong>${i18n.formatNumber(
-													patient.hours_worked,
-													1
-												)}h</strong>
+							patient.hours_worked,
+							1
+						)}h</strong>
                                             </td>
                                         </tr>
                                     `
-										)
-										.join("")}
+				)
+				.join("")}
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-light">
                                         <td colspan="4" class="text-end">
                                             <strong>${i18n.t(
-												"common.total"
-											)}:</strong>
+					"common.total"
+				)}:</strong>
                                         </td>
                                         <td class="text-center">
                                             <strong>
                                                 ${i18n.formatNumber(
-													patients.reduce(
-														(sum: number, p: any) =>
-															sum +
-															(p.hours_worked ||
-																0),
-														0
-													),
-													1
-												)}h
+					patients.reduce(
+						(sum: number, p: any) =>
+							sum +
+							(p.hours_worked ||
+								0),
+						0
+					),
+					1
+				)}h
                                             </strong>
                                         </td>
                                     </tr>
@@ -8463,19 +8392,18 @@ class ReportsManager {
 				columns: [
 					{
 						width: "*",
-						text: `Shift: ${
-							employee.shift_type
-								? `${this.capitalizeFirst(
-										employee.shift_type
-								  )} (${employee.shift_start_time?.substring(
-										0,
-										5
-								  )} - ${employee.shift_end_time?.substring(
-										0,
-										5
-								  )})`
-								: "N/A"
-						}`,
+						text: `Shift: ${employee.shift_type
+							? `${this.capitalizeFirst(
+								employee.shift_type
+							)} (${employee.shift_start_time?.substring(
+								0,
+								5
+							)} - ${employee.shift_end_time?.substring(
+								0,
+								5
+							)})`
+							: "N/A"
+							}`,
 						fontSize: 9
 					},
 					{
@@ -8501,8 +8429,8 @@ class ReportsManager {
 							attendanceSummary.punctuality_rate >= 90
 								? "#28a745"
 								: attendanceSummary.punctuality_rate >= 75
-								? "#ffc107"
-								: "#dc3545"
+									? "#ffc107"
+									: "#dc3545"
 					}
 				],
 				margin: [0, 5, 0, 10]
@@ -8737,10 +8665,10 @@ class ReportsManager {
 					record.status === "on_time"
 						? "#28a745"
 						: record.status === "late"
-						? "#ffc107"
-						: record.status === "early"
-						? "#17a2b8"
-						: "#dc3545";
+							? "#ffc107"
+							: record.status === "early"
+								? "#17a2b8"
+								: "#dc3545";
 
 				tableBody.push([
 					{

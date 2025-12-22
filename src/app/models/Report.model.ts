@@ -296,6 +296,7 @@ export default class ReportModel {
 
 			const services = await this.getAdmissionServices(row.bill_id);
 			const drugs = await this.getAdmissionDrugs(row.bill_id, patientId);
+			const supplies = await this.getAdmissionSupplies(row.bill_id, patientId);
 
 			admissions.push({
 				patient_history_id: row.patient_history_id,
@@ -308,7 +309,8 @@ export default class ReportModel {
 				discount: parseFloat(row.discount || 0),
 				daily_staff: dailyStaff,
 				services: services,
-				drugs: drugs
+				drugs: drugs,
+				supplies: supplies
 			});
 		}
 
@@ -645,7 +647,44 @@ export default class ReportModel {
 	}
 
 	/**
-	 * Get services and drugs grouped by service date
+	 * Get medical supplies used in an admission
+	 */
+	private static async getAdmissionSupplies(
+		billId: number,
+		_patientId: number
+	): Promise<any[]> {
+		const sql = `
+            SELECT 
+                ms.supply_id,
+                ms.name as supply_name,
+                ms.manufacturer,
+                SUM(bd.quantity) as quantity,
+                bd.unit_price,
+                SUM(bd.quantity * bd.unit_price) as total_price,
+                array_agg(DISTINCT bd.generated_at::date ORDER BY bd.generated_at::date) as administration_dates
+            FROM BillDetail bd
+            JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+            JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
+            WHERE bd.bill_id = $1
+            AND bd.medical_supply_shipment_id IS NOT NULL
+            GROUP BY ms.supply_id, ms.name, ms.manufacturer, bd.unit_price
+            ORDER BY ms.name
+        `;
+
+		const result = await query(sql, [billId]);
+		return result.rows.map((row) => ({
+			supply_id: row.supply_id,
+			supply_name: row.supply_name,
+			manufacturer: row.manufacturer,
+			quantity: parseInt(row.quantity),
+			unit_price: parseFloat(row.unit_price),
+			total_price: parseFloat(row.total_price),
+			administration_dates: row.administration_dates || []
+		}));
+	}
+
+	/**
+	 * Get services, drugs, and medical supplies grouped by service date
 	 */
 	private static async getAdmissionItemsByDate(
 		billId: number
@@ -653,10 +692,11 @@ export default class ReportModel {
 		const itemsSql = `
             SELECT 
                 bd.generated_at::date as service_date,
-                COALESCE(s.name, dc.name) as item_name,
+                COALESCE(s.name, dc.name, ms.name) as item_name,
                 CASE 
                     WHEN bd.service_id IS NOT NULL THEN 'service'
-                    ELSE 'drug'
+                    WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
+                    ELSE 'supply'
                 END as item_type,
                 bd.quantity,
                 bd.unit_price,
@@ -665,6 +705,8 @@ export default class ReportModel {
             LEFT JOIN Service s ON bd.service_id = s.service_id
             LEFT JOIN DrugShipment ds ON bd.drug_shipment_id = ds.shipment_id
             LEFT JOIN DrugCard dc ON ds.drug_id = dc.drug_id
+            LEFT JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+            LEFT JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
             WHERE bd.bill_id = $1
             ORDER BY bd.generated_at::date, item_type, item_name
         `;
@@ -1663,7 +1705,7 @@ export default class ReportModel {
 			avg_patients_per_staff:
 				row.staff_count > 0
 					? (parseInt(row.patients_served) || 0) /
-					  parseInt(row.staff_count)
+					parseInt(row.staff_count)
 					: 0
 		}));
 	}
@@ -1781,7 +1823,7 @@ export default class ReportModel {
 			Math.ceil(
 				(new Date(dateRange.end_date).getTime() -
 					new Date(dateRange.start_date).getTime()) /
-					(1000 * 60 * 60 * 24)
+				(1000 * 60 * 60 * 24)
 			)
 		);
 
@@ -2568,9 +2610,8 @@ export default class ReportModel {
 				(clockInTime.getTime() - shiftStart.getTime()) / (1000 * 60)
 			);
 			if (lateMinutes > 0) {
-				return `Late by ${lateMinutes} minute${
-					lateMinutes > 1 ? "s" : ""
-				}`;
+				return `Late by ${lateMinutes} minute${lateMinutes > 1 ? "s" : ""
+					}`;
 			}
 		}
 
@@ -2579,9 +2620,8 @@ export default class ReportModel {
 				(shiftEnd.getTime() - clockOutTime.getTime()) / (1000 * 60)
 			);
 			if (earlyMinutes > 0) {
-				return `Left ${earlyMinutes} minute${
-					earlyMinutes > 1 ? "s" : ""
-				} early`;
+				return `Left ${earlyMinutes} minute${earlyMinutes > 1 ? "s" : ""
+					} early`;
 			}
 		}
 

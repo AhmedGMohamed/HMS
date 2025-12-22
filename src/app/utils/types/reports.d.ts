@@ -49,6 +49,7 @@ export interface PatientAdmissionDetail {
 	daily_staff: DailyStaffAssignment[];
 	services: ServiceUsageDetail[];
 	drugs: DrugUsageDetail[];
+	supplies: MedicalSupplyUsageDetail[];
 }
 
 export interface DailyStaffAssignment {
@@ -77,6 +78,16 @@ export interface ServiceUsageDetail {
 export interface DrugUsageDetail {
 	drug_id: number;
 	drug_name: string;
+	manufacturer?: string;
+	quantity: number;
+	unit_price: number;
+	total_price: number;
+	administration_dates: string[];
+}
+
+export interface MedicalSupplyUsageDetail {
+	supply_id: number;
+	supply_name: string;
 	manufacturer?: string;
 	quantity: number;
 	unit_price: number;
@@ -280,12 +291,12 @@ export interface ClockInRecord {
 	hours_worked: number;
 	pay_deduction: number;
 	status:
-		| "complete"
-		| "incomplete"
-		| "late"
-		| "early"
-		| "on_time"
-		| "missing";
+	| "complete"
+	| "incomplete"
+	| "late"
+	| "early"
+	| "on_time"
+	| "missing";
 	is_missing?: boolean;
 	date?: string;
 	notes?: string;
