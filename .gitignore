@@ -29,6 +29,8 @@ dist-electron
 
 tree*
 .instructions/*
+!instructions/Project Details/DB initialization.sql
 check-i18n-keys.js
 *.zip
 *.rar
+.env

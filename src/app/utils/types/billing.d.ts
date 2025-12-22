@@ -22,6 +22,8 @@ export interface BillDetail {
 	service_name?: string;
 	drug_shipment_id: number | null;
 	drug_name?: string;
+	medical_supply_shipment_id: number | null;
+	medical_supply_name?: string;
 	quantity: number;
 	unit_price: number;
 	charge_type: string;

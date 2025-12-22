@@ -51,8 +51,10 @@
 		"page": "صفحة",
 		"of": "من",
 		"units": "وحدات",
+		"quantity": "كمية",
 		"unknown": "غير معروف",
-		"discharged": "تم الخروج"
+		"discharged": "تم الخروج",
+		"default": "افتراضي"
 	},
 	"sidebar": {
 		"dashboard": "لوحة القيادة",
@@ -60,6 +62,7 @@
 		"services": "الخدمات",
 		"pharmacy": "الصيدلية",
 		"drugs": "الأدوية",
+		"medicalSupplies": "المستلزمات الطبية",
 		"employees": "الموظفون",
 		"doctors": "الأطباء",
 		"nurses": "الممرضات",
@@ -583,6 +586,7 @@
 			"printBill": "طباعة الفاتورة",
 			"addService": "إضافة خدمة",
 			"addDrug": "إضافة دواء",
+			"addSupply": "إضافة مستلزم",
 			"confirmPayment": "تأكيد الدفع",
 			"updateCalculations": "تحديث الحسابات",
 			"savePatient": "حفظ المريض",
@@ -601,6 +605,7 @@
 			"admissionInfo": "معلومات الإدخال",
 			"assignedServices": "الخدمات المسندة",
 			"assignedDrugs": "الأدوية المسندة",
+			"assignedSupplies": "المستلزمات الطبية المخصصة",
 			"billingInfo": "معلومات الفواتير"
 		},
 		"fields": {
@@ -645,6 +650,7 @@
 		"billing": {
 			"servicesTotal": "إجمالي الخدمات",
 			"drugsTotal": "إجمالي الأدوية",
+			"suppliesTotal": "إجمالي المستلزمات",
 			"paidAmount": "المبلغ المدفوع",
 			"discount": "الخصم",
 			"discountTotal": "إجمالي الخصم",
@@ -710,6 +716,7 @@
 			"selectReason": "اختر السبب",
 			"searchServices": "البحث عن خدمات...",
 			"searchDrugs": "البحث عن أدوية...",
+			"searchSupplies": "البحث عن مستلزمات...",
 			"default": "افتراضي",
 			"enterAmount": "أدخل المبلغ"
 		},
@@ -718,6 +725,7 @@
 			"editPatient": "تعديل المريض",
 			"addService": "إضافة خدمة للمريض",
 			"addDrug": "إضافة دواء للمريض",
+			"addSupply": "إضافة مستلزم للمريض",
 			"discharge": "تسريح المريض",
 			"customizeBill": "تخصيص الفاتورة للطباعة",
 			"addItemToBill": "إضافة عنصر للفاتورة",
@@ -737,7 +745,8 @@
 			"allPatients": "جميع المرضى",
 			"staffStatus": "حالة الموظفين",
 			"services": "الخدمات",
-			"drugs": "الأدوية"
+			"drugs": "الأدوية",
+			"supplies": "المستلزمات الطبية"
 		},
 		"staffStatus": {
 			"clockedInDoctors": "الأطباء المسجلون حالياً",
@@ -801,6 +810,13 @@
 			"drugAdded": "تمت إضافة الدواء بنجاح",
 			"drugRemoved": "تمت إزالة الدواء بنجاح",
 			"drugAdministered": "تم إعطاء الدواء بنجاح",
+			"supplyAdded": "تم إضافة المستلزم بنجاح",
+			"supplyRemoved": "تم إزالة المستلزم بنجاح",
+			"supplyAdministered": "تم إعطاء المستلزم بنجاح",
+			"noSuppliesAssigned": "لا توجد مستلزمات طبية مسندة",
+			"suppliesUsed": "المستلزمات المستخدمة",
+			"noSuppliesUsed": "لا توجد مستلزمات طبية مستخدمة",
+			"noSuppliesFound": "لا توجد مستلزمات طبية",
 			"paymentProcessed": "تم معالجة الدفع بنجاح",
 			"billingUpdated": "تم تحديث معلومات الفواتير بنجاح",
 			"savePatientError": "فشل حفظ المريض",
@@ -812,12 +828,18 @@
 			"addDrugError": "فشل إضافة الدواء",
 			"removeDrugError": "فشل إزالة الدواء",
 			"administerDrugError": "فشل إعطاء الدواء",
+			"addSupplyError": "فشل إضافة المستلزم",
+			"removeSupplyTitle": "إزالة المستلزمات",
+			"removeSupplyText": "هل أنت متأكد من إزالة هذه المستلزمات؟",
+			"removeSupplyError": "فشل إزالة المستلزم",
+			"administerSupplyError": "فشل إعطاء المستلزم",
 			"paymentError": "فشل معالجة الدفع",
 			"billingUpdateError": "فشل تحديث معلومات الفواتير",
 			"loadPatientError": "فشل تحميل بيانات المريض",
 			"loadPatientsError": "فشل تحميل قائمة المرضى",
 			"loadAdmissionsError": "فشل تحميل الإقامات السابقة",
 			"loadAdmissionDetailsError": "فشل تحميل تفاصيل الإقامة",
+			"loadSuppliesError": "فشل تحميل المستلزمات الطبية",
 			"noRemainingQuantity": "لا توجد كمية متبقية للإعطاء",
 			"enterPaymentAmount": "يرجى إدخال مبلغ الدفع",
 			"confirmPaymentTitle": "تأكيد الدفع",
@@ -872,7 +894,8 @@
 			"billSettled": "تم تسوية الفاتورة بنجاح",
 			"settleBillError": "فشل في تسوية الفاتورة",
 			"paidExceedsTotal": "المبلغ المدفوع يتجاوز المبلغ الإجمالي. هل تريد المتابعة؟",
-			"loadBillError": "فشل في تحميل بيانات الفاتورة"
+			"loadBillError": "فشل في تحميل بيانات الفاتورة",
+			"outOfStock": "لا يوجد مخزون متاح"
 		},
 		"printBill": {
 			"unknownItem": "عنصر غير معروف",
@@ -882,7 +905,8 @@
 			"available": "متاح",
 			"itemTypes": {
 				"service": "خدمة",
-				"drug": "دواء"
+				"drug": "دواء",
+				"supply": "مستلزم"
 			},
 			"messages": {
 				"noBillOrPatient": "لم يتم اختيار فاتورة أو مريض",
@@ -1015,13 +1039,15 @@
 			"totalDrugs": "إجمالي الأدوية",
 			"totalAmount": "المبلغ الإجمالي",
 			"patientName": "اسم المريض",
-			"serviceType": "الخدمة/الدواء",
+			"itemName": "اسم العنصر",
+			"serviceType": "الخدمة/الدواء/المستلزمات",
 			"quantity": "الكمية",
 			"unitPrice": "سعر الوحدة",
 			"totalPrice": "السعر الإجمالي",
 			"date": "التاريخ",
 			"services": "الخدمات",
 			"drugs": "الأدوية",
+			"supplies": "المستلزمات الطبية",
 			"grandTotal": "الإجمالي الكلي",
 			"noData": "لا توجد بيانات متاحة للفترة المحددة",
 			"generatedOn": "تم الإنشاء في",
@@ -1322,12 +1348,13 @@
 			"patientRevenue": "إيرادات المرضى",
 			"manualPayments": "الدفعات اليدوية",
 			"insurancePayments": "مدفوعات التأمين",
-			"pharmacyOperations": "عمليات الصيدلية",
+			"pharmacyOperations": "الصيدلية والمستلزمات",
 			"employeeWages": "رواتب الموظفين"
 		},
 		"metrics": {
 			"servicesRevenue": "إيرادات الخدمات",
 			"drugsRevenue": "إيرادات الأدوية",
+			"suppliesRevenue": "إيرادات المستلزمات",
 			"totalPayments": "إجمالي المدفوعات",
 			"outstandingBalance": "الرصيد المستحق",
 			"totalDiscounts": "إجمالي الخصومات",
@@ -1340,6 +1367,9 @@
 			"shipmentCosts": "تكاليف الشحنات",
 			"salesRevenue": "إيرادات المبيعات",
 			"salesProfit": "ربح المبيعات",
+			"supplyShipmentCosts": "تكاليف شحنات المستلزمات",
+			"supplySalesRevenue": "إيرادات مبيعات المستلزمات",
+			"supplySalesProfit": "أرباح مبيعات المستلزمات",
 			"wagesOwed": "الرواتب المستحقة",
 			"wagesPaid": "الرواتب المدفوعة",
 			"outstandingWages": "الرواتب المتأخرة"
@@ -1347,6 +1377,7 @@
 		"reportButtons": {
 			"viewServicesReport": "عرض تقرير الخدمات",
 			"viewDrugsReport": "عرض تقرير الأدوية",
+			"viewSuppliesReport": "عرض تقرير المستلزمات",
 			"viewPaymentsReport": "عرض تقرير المدفوعات",
 			"viewOutstandingReport": "عرض تقرير المستحقات",
 			"viewDiscountsReport": "عرض تقرير الخصومات",
@@ -1355,6 +1386,9 @@
 			"viewShipmentsReport": "عرض تقرير الشحنات",
 			"viewSalesReport": "عرض تقرير المبيعات",
 			"viewProfitsReport": "عرض تقرير الأرباح",
+			"viewSupplyShipmentsReport": "عرض تقرير شحنات المستلزمات",
+			"viewSupplySalesReport": "عرض تقرير مبيعات المستلزمات",
+			"viewSupplyProfitsReport": "عرض تقرير أرباح المستلزمات",
 			"viewWagesOwedReport": "عرض تقرير الرواتب المستحقة",
 			"viewWagesPaidReport": "عرض تقرير الرواتب المدفوعة",
 			"viewOutstandingWagesReport": "عرض تقرير الرواتب المتأخرة"
@@ -1410,6 +1444,7 @@
 		"reportTitles": {
 			"patient_services": "إيرادات خدمات المرضى",
 			"patient_drugs": "إيرادات أدوية المرضى",
+			"patient_supplies": "إيرادات مستلزمات المرضى",
 			"patient_payments": "مدفوعات المرضى",
 			"patient_outstanding": "الأرصدة المستحقة",
 			"patient_discounts": "خصومات المرضى",
@@ -1418,6 +1453,9 @@
 			"drug_shipments": "تكاليف شحنات الأدوية",
 			"drug_sales": "إيرادات مبيعات الأدوية",
 			"drug_profits": "أرباح مبيعات الأدوية",
+			"medical_supply_shipments": "تكاليف شحنات المستلزمات",
+			"medical_supply_sales": "إيرادات مبيعات المستلزمات",
+			"medical_supply_profits": "أرباح مبيعات المستلزمات",
 			"wages_owed": "الرواتب المستحقة",
 			"wages_paid": "الرواتب المدفوعة"
 		},
@@ -1503,7 +1541,8 @@
 			"nurseReports": "تقارير الممرضين",
 			"statistics": "الإحصائيات",
 			"employeePayments": "مدفوعات الموظفين",
-			"clockInReports": "تقارير الحضور والانصراف"
+			"clockInReports": "تقارير الحضور والانصراف",
+			"medicalSupplyReports": "تقارير المستلزمات الطبية"
 		},
 		"filters": {
 			"title": "مرشحات التقرير",
@@ -1595,7 +1634,8 @@
 		"paymentTypes": {
 			"cash": "نقدي",
 			"credit": "آجل",
-			"insurance": "تأمين"
+			"insurance": "تأمين",
+			"supplies": "المستلزمات الطبية"
 		},
 		"genderTypes": {
 			"male": "ذكر",
@@ -1640,7 +1680,8 @@
 			"doctors": "الأطباء",
 			"nurses": "الممرضون",
 			"services": "الخدمات",
-			"drugs": "الأدوية"
+			"drugs": "الأدوية",
+			"supplies": "المستلزمات الطبية"
 		},
 		"doctorCard": {
 			"patients": "مرضى"
@@ -1858,5 +1899,119 @@
 		"deleted": "تم الحذف بنجاح",
 		"added": "تمت الإضافة بنجاح",
 		"processed": "تمت المعالجة بنجاح"
+	},
+	"medicalSupplies": {
+		"pageTitle": "نظام إدارة المستشفى - إدارة المستلزمات الطبية",
+		"title": "إدارة المستلزمات الطبية",
+		"stats": {
+			"totalSupplies": "إجمالي المستلزمات",
+			"inStock": "متوفر في المخزون",
+			"lowStock": "مخزون منخفض",
+			"totalValue": "القيمة الإجمالية"
+		},
+		"buttons": {
+			"createSupply": "إضافة مستلزم جديد",
+			"manageWarehouses": "إدارة المستودعات",
+			"addWarehouse": "إضافة مستودع جديد",
+			"saveWarehouse": "حفظ المستودع",
+			"addShipment": "إضافة شحنة"
+		},
+		"searchPlaceholder": "البحث عن مستلزمات طبية...",
+		"placeholders": {
+			"selectWarehouse": "اختر المستودع",
+			"frequency": "مثال: 8 ساعات"
+		},
+		"table": {
+			"supplyName": "اسم المستلزم",
+			"manufacturer": "الشركة المصنعة",
+			"provider": "المورد",
+			"autoRenew": "تجديد تلقائي",
+			"totalStock": "إجمالي المخزون",
+			"warehouseName": "اسم المستودع",
+			"location": "الموقع",
+			"totalShipments": "إجمالي الشحنات"
+		},
+		"modals": {
+			"createSupply": "إضافة مستلزم طبي جديد",
+			"editSupply": "تعديل مستلزم طبي",
+			"addShipment": "إضافة شحنة جديدة",
+			"editShipment": "تعديل الشحنة",
+			"warehouseManagement": "إدارة المستودعات",
+			"addWarehouse": "إضافة مستودع جديد",
+			"editWarehouse": "تعديل المستودع"
+		},
+		"fields": {
+			"supplyName": "اسم المستلزم",
+			"manufacturer": "الشركة المصنعة",
+			"provider": "المورد",
+			"saleQuantity": "كمية البيع",
+			"minStockAlert": "تنبيه الحد الأدنى للمخزون",
+			"isObligatoryContinuous": "صرف مستمر إلزامي",
+			"frequency": "التكرار (ساعات)",
+			"warehouse": "المستودع",
+			"quantity": "الكمية",
+			"buyPrice": "سعر الشراء",
+			"expiryDate": "تاريخ الانتهاء",
+			"prices": "أسعار البيع",
+			"warehouseName": "اسم المستودع",
+			"location": "الموقع",
+			"expiry": "الانتهاء"
+		},
+		"sections": {
+			"additionalSettings": "إعدادات إضافية",
+			"sellingPrices": "أسعار البيع",
+			"existingWarehouses": "المستودعات الحالية"
+		},
+		"help": {
+			"minStockAlert": "تنبيه عند انخفاض المخزون عن هذا الحد",
+			"frequency": "الفترة الزمنية بين الجرعات (إذا كان مستمراً)",
+			"expiryDate": "اختياري"
+		},
+		"validation": {
+			"supplyNameLength": "يجب أن يكون اسم المستلزم 3 أحرف على الأقل",
+			"saleQuantityMin": "يجب أن تكون كمية البيع أكبر من 0",
+			"warehouseRequired": "يرجى اختيار مستودع",
+			"quantityMin": "يرجى إدخال كمية صحيحة",
+			"buyPriceRequired": "يرجى إدخال سعر شراء صحيح",
+			"warehouseNameLength": "يجب أن يكون اسم المستودع 3 أحرف على الأقل",
+			"locationLength": "يجب أن يكون الموقع 5 أحرف على الأقل"
+		},
+		"confirmations": {
+			"deleteSupplyTitle": "حذف المستلزم؟",
+			"deleteSupplyText": "لا يمكن التراجع عن هذا الإجراء.",
+			"deleteShipmentTitle": "حذف الشحنة؟",
+			"deleteShipmentText": "لا يمكن التراجع عن هذا الإجراء.",
+			"deleteWarehouseTitle": "حذف المستودع؟",
+			"deleteWarehouseText": "لا يمكن التراجع عن هذا الإجراء."
+		},
+		"messages": {
+			"loadInitialDataError": "فشل تحميل البيانات الأولية",
+			"loadSuppliesError": "فشل تحميل المستلزمات الطبية",
+			"loadPriceListsError": "فشل تحميل قوائم الأسعار",
+			"loadWarehousesError": "فشل تحميل المستودعات",
+			"noShipments": "لا توجد شحنات متاحة لهذا المستلزم",
+			"deleteSuccess": "تم حذف المستلزم بنجاح",
+			"deleteError": "فشل حذف المستلزم",
+			"updateSuccess": "تم تحديث المستلزم بنجاح",
+			"createSuccess": "تم إضافة المستلزم بنجاح",
+			"saveError": "فشل حفظ المستلزم",
+			"shipmentUpdateSuccess": "تم تحديث الشحنة بنجاح",
+			"shipmentCreateSuccess": "تم إضافة الشحنة بنجاح",
+			"shipmentSaveError": "فشل حفظ الشحنة",
+			"shipmentDeleteSuccess": "تم حذف الشحنة بنجاح",
+			"shipmentDeleteError": "فشل حذف الشحنة",
+			"warehouseUpdateSuccess": "تم تحديث المستودع بنجاح",
+			"warehouseCreateSuccess": "تم إضافة المستودع بنجاح",
+			"warehouseSaveError": "فشل حفظ المستودع",
+			"warehouseDeleteSuccess": "تم حذف المستودع بنجاح",
+			"warehouseDeleteError": "فشل حذف المستودع"
+		},
+		"frequency": {
+			"every": "كل",
+			"hours": "ساعات"
+		},
+		"status": {
+			"lowStock": "مخزون منخفض"
+		}
 	}
 }

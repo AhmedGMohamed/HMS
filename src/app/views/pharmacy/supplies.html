@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="medicalSupplies.pageTitle">HMS - Medical Supplies Management</title>
+  <!-- Bootstrap CSS -->
+  <link id="bootstrap-css" href="../css/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="../css/dashboard.css" rel="stylesheet">
+  <link href="../css/pharmacy.css" rel="stylesheet">
+  <!-- RTL CSS (loaded dynamically) -->
+  <link class="rtl-css" href="../css/dashboard-rtl.css" rel="stylesheet" disabled>
+  <link class="rtl-css" href="../css/pharmacy-rtl.css" rel="stylesheet" disabled>
+  <link id="bootstrap-rtl-css" href="../css/bootstrap/bootstrap.rtl.min.css" rel="stylesheet" disabled>
+  <!-- SweetAlert2 CSS -->
+  <link href="../css/sweetalert2/sweetalert2.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="active">
+      <div class="sidebar-header">
+        <h3>HMS</h3>
+        <h3 class="sidebar-mini">H</h3>
+      </div>
+
+      <div class="sidebar-profile">
+        <div class="profile-image d-flex justify-content-center">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="userFullName">Loading...</div>
+          <div class="profile-role" id="userRole">Loading...</div>
+        </div>
+      </div>
+
+      <ul class="list-unstyled components" id="sidebarComponents"></ul>
+
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="btn btn-link">
+          <i class="bi bi-box-arrow-left"></i>
+          <span data-i18n="sidebar.logout">Logout</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navigation -->
+      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-light">
+            <i class="bi bi-list"></i>
+          </button>
+          <div class="page-title">
+            <h4 data-i18n="medicalSupplies.title">Medical Supplies Management</h4>
+          </div>
+          <div class="ms-auto d-flex align-items-center">
+            <!-- Language Switcher -->
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-globe"></i>
+                <span id="currentLanguage">EN</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                <li><a class="dropdown-item language-option" href="#" data-lang="en">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    English
+                  </a></li>
+                <li><a class="dropdown-item language-option" href="#" data-lang="ar">
+                    <i class="bi bi-check2 language-check" style="display: none;"></i>
+                    العربية
+                  </a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="container-fluid">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card bg-primary text-white">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-0" data-i18n="medicalSupplies.stats.totalSupplies">Total Supplies</h6>
+                    <h3 class="mb-0" id="totalSuppliesCount">0</h3>
+                  </div>
+                  <i class="bi bi-box-seam fs-1"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-success text-white">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-0" data-i18n="medicalSupplies.stats.inStock">In Stock</h6>
+                    <h3 class="mb-0" id="inStockCount">0</h3>
+                  </div>
+                  <i class="bi bi-check-circle fs-1"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-warning text-white">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-0" data-i18n="medicalSupplies.stats.lowStock">Low Stock</h6>
+                    <h3 class="mb-0" id="lowStockCount">0</h3>
+                  </div>
+                  <i class="bi bi-exclamation-triangle fs-1"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-info text-white">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-0" data-i18n="medicalSupplies.stats.totalValue">Total Value</h6>
+                    <h3 class="mb-0" id="totalValueAmount">0</h3>
+                  </div>
+                  <i class="bi bi-currency-dollar fs-1"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+          <div class="col">
+            <button type="button" class="btn btn-primary" id="createSupplyBtn">
+              <i class="bi bi-plus-circle"></i> <span data-i18n="medicalSupplies.buttons.createSupply">Create New Supply</span>
+            </button>
+            <button type="button" class="btn btn-success ms-2" id="manageWarehousesBtn">
+              <i class="bi bi-building"></i> <span data-i18n="medicalSupplies.buttons.manageWarehouses">Manage Warehouses</span>
+            </button>
+          </div>
+          <div class="col-auto">
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" class="form-control" id="searchSupply" data-i18n-placeholder="medicalSupplies.searchPlaceholder" placeholder="Search medical supplies...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Supplies Table -->
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th style="width: 40px"></th>
+                    <th data-i18n="medicalSupplies.table.supplyName">Supply Name</th>
+                    <th data-i18n="medicalSupplies.table.autoRenew">Auto Renew</th>
+                    <th data-i18n="medicalSupplies.table.totalStock">Total Stock</th>
+                    <th data-i18n="common.actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="suppliesTableBody">
+                  <!-- Supplies will be dynamically loaded -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Supply Modal -->
+  <div class="modal fade" id="supplyModal" tabindex="-1" aria-labelledby="supplyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="supplyModalLabel" data-i18n="medicalSupplies.modals.createSupply">Create New Medical Supply</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="supplyForm" novalidate>
+            <input type="hidden" id="supplyId">
+
+            <!-- Basic Information -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="supplyName" class="form-label" data-i18n="medicalSupplies.fields.supplyName">Supply Name</label>
+                <input type="text" class="form-control" id="supplyName" required minlength="3">
+                <div class="invalid-feedback" data-i18n="medicalSupplies.validation.supplyNameLength">
+                  Supply name must be at least 3 characters long
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="saleQuantity" class="form-label" data-i18n="medicalSupplies.fields.saleQuantity">Sale Quantity</label>
+                <input type="number" class="form-control" id="saleQuantity" required min="1">
+                <div class="invalid-feedback" data-i18n="medicalSupplies.validation.saleQuantityMin">
+                  Sale quantity must be greater than 0
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="card mb-3">
+              <div class="card-header" data-i18n="medicalSupplies.sections.additionalSettings">
+                Additional Settings
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="minStockAlert" class="form-label" data-i18n="medicalSupplies.fields.minStockAlert">Minimum Stock Alert</label>
+                    <input type="number" class="form-control" id="minStockAlert" min="0">
+                    <small class="text-muted" data-i18n="medicalSupplies.help.minStockAlert">
+                      Alert when stock falls below this amount
+                    </small>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mt-4">
+                      <input class="form-check-input" type="checkbox" id="isObligatoryContinuous">
+                      <label class="form-check-label" for="isObligatoryContinuous" data-i18n="medicalSupplies.fields.isObligatoryContinuous">
+                        Is Obligatory Continuous
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="frequency" class="form-label" data-i18n="medicalSupplies.fields.frequency">Frequency (hours)</label>
+                    <input type="number" class="form-control" id="frequency" data-i18n-placeholder="medicalSupplies.placeholders.frequency" placeholder="e.g., 8 hours">
+                    <small class="text-muted" data-i18n="medicalSupplies.help.frequency">
+                      Time interval between administrations (if continuous)
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveSupplyBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text" data-i18n="common.save">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Shipment Modal -->
+  <div class="modal fade" id="shipmentModal" tabindex="-1" aria-labelledby="shipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="shipmentModalLabel" data-i18n="medicalSupplies.modals.addShipment">Add New Shipment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="shipmentForm" novalidate>
+            <input type="hidden" id="shipmentId">
+            <input type="hidden" id="shipmentSupplyId">
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="warehouseSelect" class="form-label" data-i18n="medicalSupplies.fields.warehouse">Warehouse</label>
+                <select class="form-select" id="warehouseSelect" required>
+                  <option value="" data-i18n="medicalSupplies.placeholders.selectWarehouse">Select Warehouse</option>
+                  <!-- Warehouses will be loaded dynamically -->
+                </select>
+                <div class="invalid-feedback" data-i18n="medicalSupplies.validation.warehouseRequired">
+                  Please select a warehouse
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="quantity" class="form-label" data-i18n="medicalSupplies.fields.quantity">Quantity</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="quantity" required min="1">
+                  <span class="input-group-text">units</span>
+                </div>
+                <div class="invalid-feedback" data-i18n="medicalSupplies.validation.quantityMin">
+                  Please enter a valid quantity
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="buyPrice" class="form-label" data-i18n="medicalSupplies.fields.buyPrice">Buy Price</label>
+                <div class="input-group">
+                  <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                  <input type="number" class="form-control" id="buyPrice" required min="0.01" step="0.01">
+                </div>
+                <div class="invalid-feedback" data-i18n="medicalSupplies.validation.buyPriceRequired">
+                  Please enter a valid buy price
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="expiryDate" class="form-label" data-i18n="medicalSupplies.fields.expiryDate">Expiry Date</label>
+                <input type="date" class="form-control" id="expiryDate">
+                <small class="text-muted" data-i18n="medicalSupplies.help.expiryDate">Optional</small>
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header" data-i18n="medicalSupplies.sections.sellingPrices">
+                Selling Prices
+              </div>
+              <div class="card-body" id="priceListContainer">
+                <!-- Price list inputs will be generated here -->
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveShipmentBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text" data-i18n="common.save">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warehouse Management Modal (reuse from drugs) -->
+  <div class="modal fade" id="warehouseModal" tabindex="-1" aria-labelledby="warehouseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="warehouseModalLabel" data-i18n="medicalSupplies.modals.warehouseManagement">Warehouse Management</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-4">
+            <div class="col">
+              <button type="button" class="btn btn-primary" id="addWarehouseBtn">
+                <i class="bi bi-plus-circle"></i> <span data-i18n="medicalSupplies.buttons.addWarehouse">Add New Warehouse</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0" data-i18n="medicalSupplies.sections.existingWarehouses">Existing Warehouses</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th data-i18n="medicalSupplies.table.warehouseName">Warehouse Name</th>
+                      <th data-i18n="medicalSupplies.table.location">Location</th>
+                      <th data-i18n="medicalSupplies.table.totalShipments">Total Shipments</th>
+                      <th data-i18n="common.actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="warehousesTableBody">
+                    <!-- Warehouses will be dynamically loaded -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Warehouse Modal -->
+  <div class="modal fade" id="addWarehouseModal" tabindex="-1" aria-labelledby="addWarehouseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addWarehouseModalLabel" data-i18n="medicalSupplies.modals.addWarehouse">Add New Warehouse</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-i18n-aria="common.close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="warehouseForm" novalidate>
+            <input type="hidden" id="warehouseId">
+
+            <div class="mb-3">
+              <label for="warehouseName" class="form-label" data-i18n="medicalSupplies.fields.warehouseName">Warehouse Name</label>
+              <input type="text" class="form-control" id="warehouseName" required minlength="3">
+              <div class="invalid-feedback" data-i18n="medicalSupplies.validation.warehouseNameLength">
+                Warehouse name must be at least 3 characters long
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="warehouseLocation" class="form-label" data-i18n="medicalSupplies.fields.location">Location</label>
+              <textarea class="form-control" id="warehouseLocation" rows="3" required minlength="5"></textarea>
+              <div class="invalid-feedback" data-i18n="medicalSupplies.validation.locationLength">
+                Location must be at least 5 characters long
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveWarehouseBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            <span class="btn-text" data-i18n="medicalSupplies.buttons.saveWarehouse">Save Warehouse</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle with Popper-->
+  <script src="../js/bootstrap/dist/bootstrap.bundle.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="../js/sweetalert2/src/sweetalert2.js" type="module"></script>
+  <!-- i18n Utility -->
+  <script src="../js/utils/i18n.js" type="module"></script>
+  <!-- Custom JS -->
+  <script src="../js/shared/sidebar.js" type="module"></script>
+  <script src="../js/pharmacy/supplies.js" type="module"></script>
+</body>
+
+</html>

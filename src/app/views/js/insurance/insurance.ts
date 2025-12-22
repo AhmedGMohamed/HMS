@@ -70,6 +70,7 @@ interface InsuranceReportSummary {
 	last_cleared_date: string;
 	total_services_cost: number;
 	total_drugs_cost: number;
+	total_supplies_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -118,6 +119,7 @@ interface PatientReportSummary {
 	}>;
 	total_services_cost: number;
 	total_drugs_cost: number;
+	total_supplies_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -466,70 +468,65 @@ class InsuranceManager {
 
 		return `
         <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card insurance-card h-100" data-insurance-id="${
-				insurance.insurance_id
+            <div class="card insurance-card h-100" data-insurance-id="${insurance.insurance_id
 			}">
                 <div class="card-body insurance-card-body d-flex flex-column">
                     <div class="insurance-icon">
                         <i class="bi bi-shield-check"></i>
                     </div>
                     <div class="insurance-name">${this.escapeHtml(
-						insurance.name
-					)}</div>
+				insurance.name
+			)}</div>
                     
                     <div class="insurance-meta">
                         <div class="insurance-meta-item">
                             <i class="bi bi-list-check"></i>
-                            <span>${
-								insurance.pricelist_name ||
-								i18n.t(
-									"insurance.messages.noPriceListsAvailable"
-								)
-							}</span>
+                            <span>${insurance.pricelist_name ||
+			i18n.t(
+				"insurance.messages.noPriceListsAvailable"
+			)
+			}</span>
                         </div>
                         <div class="insurance-meta-item">
                             <i class="bi bi-calendar-check"></i>
                             <span>${i18n.t(
-								"insurance.fields.lastCleared"
-							)}: ${lastClearedDate}</span>
+				"insurance.fields.lastCleared"
+			)}: ${lastClearedDate}</span>
                         </div>
                     </div>
 
-                    ${
-						insurance.contact_info
-							? `
+                    ${insurance.contact_info
+				? `
                         <div class="insurance-meta">
                             <div class="insurance-meta-item">
                                 <i class="bi bi-telephone"></i>
                                 <span>${this.escapeHtml(
-									insurance.contact_info.substring(0, 50)
-								)}${
-									insurance.contact_info.length > 50
-										? "..."
-										: ""
-							  }</span>
+					insurance.contact_info.substring(0, 50)
+				)}${insurance.contact_info.length > 50
+					? "..."
+					: ""
+				}</span>
                             </div>
                         </div>
                     `
-							: ""
-					}
+				: ""
+			}
 
                     <div class="insurance-stats mt-auto">
                         <div class="insurance-stat">
-                            <span class="insurance-stat-value">${
-								insurance.patient_count || 0
-							}</span>
+                            <span class="insurance-stat-value">${insurance.patient_count || 0
+			}</span>
                             <span class="insurance-stat-label">${i18n.t(
-								"insurance.statistics.totalPatients"
-							)}</span>
+				"insurance.statistics.totalPatients"
+			)}</span>
                         </div>
                         <div class="insurance-stat">
                             <span class="insurance-stat-value">
                                 <i class="bi bi-arrow-right text-primary"></i>
                             </span>
                             <span class="insurance-stat-label">${i18n.t(
-								"insurance.buttons.viewDetails"
-							)}</span>
+				"insurance.buttons.viewDetails"
+			)}</span>
                         </div>
                     </div>
                 </div>
@@ -648,42 +645,40 @@ class InsuranceManager {
 		container.innerHTML = `
 	        <div class="insurance-info-item">
 	            <div class="insurance-info-label">${i18n.t(
-					"insurance.fields.companyName"
-				)}</div>
+			"insurance.fields.companyName"
+		)}</div>
 	            <div class="insurance-info-value">${this.escapeHtml(
-					this.selectedInsurance.name
-				)}</div>
+			this.selectedInsurance.name
+		)}</div>
 	        </div>
 			
-	        ${
-				this.selectedInsurance.contact_info
-					? `
+	        ${this.selectedInsurance.contact_info
+				? `
 	            <div class="insurance-info-item">
 	                <div class="insurance-info-label">${i18n.t(
-						"insurance.fields.contactInfo"
-					)}</div>
+					"insurance.fields.contactInfo"
+				)}</div>
 	                <div class="insurance-info-value">${this.escapeHtml(
-						this.selectedInsurance.contact_info
-					)}</div>
+					this.selectedInsurance.contact_info
+				)}</div>
 	            </div>
 	        `
-					: ""
+				: ""
 			}
 				
 	        <div class="insurance-info-item">
 	            <div class="insurance-info-label">${i18n.t(
-					"insurance.fields.priceList"
-				)}</div>
-	            <div class="insurance-info-value">${
-					this.selectedInsurance.pricelist_name ||
-					i18n.t("insurance.messages.noPriceListsAvailable")
-				}</div>
+				"insurance.fields.priceList"
+			)}</div>
+	            <div class="insurance-info-value">${this.selectedInsurance.pricelist_name ||
+			i18n.t("insurance.messages.noPriceListsAvailable")
+			}</div>
 	        </div>
 			
 	        <div class="insurance-info-item">
 	            <div class="insurance-info-label">${i18n.t(
-					"insurance.fields.lastCleared"
-				)}</div>
+				"insurance.fields.lastCleared"
+			)}</div>
 	            <div class="insurance-info-value">${lastClearedDate}</div>
 	        </div>
 	    `;
@@ -710,78 +705,75 @@ class InsuranceManager {
             <div class="stat-metric">
                 <span class="stat-metric-value">${stats.total_patients}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.totalPatients"
-				)}</span>
+			"insurance.statistics.totalPatients"
+		)}</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
-                <span class="stat-metric-value text-success">${
-					stats.active_patients
-				}</span>
+                <span class="stat-metric-value text-success">${stats.active_patients
+			}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.activePatients"
-				)}</span>
+				"insurance.statistics.activePatients"
+			)}</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
-                <span class="stat-metric-value text-info">${
-					stats.current_admissions
-				}</span>
+                <span class="stat-metric-value text-info">${stats.current_admissions
+			}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"dashboard.metrics.admittedPatients"
-				)}</span>
+				"dashboard.metrics.admittedPatients"
+			)}</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
                 <span class="stat-metric-value">${i18n.formatCurrency(
-					stats.total_billed
-				)}</span>
+				stats.total_billed
+			)}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.totalRevenue"
-				)}*</span>
+				"insurance.statistics.totalRevenue"
+			)}*</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
                 <span class="stat-metric-value text-primary">${i18n.formatCurrency(
-					stats.total_insurance_payments
-				)}</span>
+				stats.total_insurance_payments
+			)}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.totalPayments"
-				)}</span>
+				"insurance.statistics.totalPayments"
+			)}</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
                 <span class="stat-metric-value text-success">${i18n.formatCurrency(
-					stats.total_paid
-				)}</span>
+				stats.total_paid
+			)}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.paymentHistory.paymentAmount"
-				)}*</span>
+				"insurance.paymentHistory.paymentAmount"
+			)}*</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
                 <span class="stat-metric-value text-warning">${i18n.formatCurrency(
-					stats.total_outstanding
-				)}</span>
+				stats.total_outstanding
+			)}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.outstandingBalance"
-				)}*</span>
+				"insurance.statistics.outstandingBalance"
+			)}*</span>
             </div>
         </div>
         <div class="col-md-6 col-lg-3">
             <div class="stat-metric">
-                <span class="stat-metric-value ${
-					stats.net_outstanding > 0 ? "text-danger" : "text-success"
-				}">${i18n.formatCurrency(stats.net_outstanding)}</span>
+                <span class="stat-metric-value ${stats.net_outstanding > 0 ? "text-danger" : "text-success"
+			}">${i18n.formatCurrency(stats.net_outstanding)}</span>
                 <span class="stat-metric-label">${i18n.t(
-					"insurance.statistics.outstandingBalance"
-				)}</span>
+				"insurance.statistics.outstandingBalance"
+			)}</span>
             </div>
         </div>
         <div class="col-md-12 mt-3">
@@ -789,21 +781,21 @@ class InsuranceManager {
                 <small>
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>*</strong> ${i18n.t(
-						"insurance.messages.reportNote"
-					)}
+				"insurance.messages.reportNote"
+			)}
                     (${i18n.formatDate(
-						this.selectedInsurance!.last_cleared_date
-					)}).
+				this.selectedInsurance!.last_cleared_date
+			)}).
                     <br>
                     <strong>${i18n.t(
-						"insurance.statistics.outstandingBalance"
-					)}:</strong> ${i18n.formatCurrency(stats.net_outstanding)}
+				"insurance.statistics.outstandingBalance"
+			)}:</strong> ${i18n.formatCurrency(stats.net_outstanding)}
                     <br>
                     <strong>${i18n.t(
-						"insurance.statistics.totalPayments"
-					)}:</strong> ${stats.payment_coverage_percentage.toFixed(
-			1
-		)}%
+				"insurance.statistics.totalPayments"
+			)}:</strong> ${stats.payment_coverage_percentage.toFixed(
+				1
+			)}%
                 </small>
             </div>
         </div>
@@ -853,8 +845,8 @@ class InsuranceManager {
 			patient.gender === "male"
 				? "bi-gender-male"
 				: patient.gender === "female"
-				? "bi-gender-female"
-				: "bi-person";
+					? "bi-gender-female"
+					: "bi-person";
 
 		let admissionHtml = "";
 		if (patient.current_admission) {
@@ -866,37 +858,35 @@ class InsuranceManager {
 	            <div class="patient-admission">
 	                <div class="patient-admission-header">
 	                    <i class="bi bi-hospital me-2"></i>${i18n.t(
-							"insurance.patient.admission"
-						)}
+				"insurance.patient.admission"
+			)}
 	                </div>
 	                <div class="patient-admission-details">
 	                    <div class="patient-admission-detail">
 	                        <strong>${i18n.t(
-								"insurance.patient.admissionDate"
-							)}:</strong> ${admissionDate}
+				"insurance.patient.admissionDate"
+			)}:</strong> ${admissionDate}
 	                    </div>
 	                    <div class="patient-admission-detail">
 	                        <strong>${i18n.t(
-								"insurance.patient.diagnosis"
-							)}:</strong> ${
-				admission.diagnosis ||
-				i18n.t("insurance.patient.noActiveAdmission")
-			}
+				"insurance.patient.diagnosis"
+			)}:</strong> ${admission.diagnosis ||
+			i18n.t("insurance.patient.noActiveAdmission")
+				}
 	                    </div>
 	                    <div class="patient-admission-detail">
 	                        <strong>${i18n.t(
-								"common.total"
-							)}:</strong> ${i18n.formatCurrency(
-				admission.total_amount
-			)}
+					"common.total"
+				)}:</strong> ${i18n.formatCurrency(
+					admission.total_amount
+				)}
 	                    </div>
 	                    <div class="patient-admission-detail">
 	                        <strong>${i18n.t(
-								"insurance.patient.outstandingAmount"
-							)}:</strong> 
-	                        <span class="outstanding-amount ${
-								outstanding === 0 ? "zero" : ""
-							}">
+					"insurance.patient.outstandingAmount"
+				)}:</strong> 
+	                        <span class="outstanding-amount ${outstanding === 0 ? "zero" : ""
+				}">
 	                            ${i18n.formatCurrency(outstanding)}
 	                        </span>
 	                    </div>
@@ -910,14 +900,12 @@ class InsuranceManager {
 			: i18n.t("insurance.patient.status.inactive");
 
 		return `
-        <div class="patient-card ${
-			patient.is_active ? "active-patient" : "inactive-patient"
-		}">
+        <div class="patient-card ${patient.is_active ? "active-patient" : "inactive-patient"
+			}">
             <div class="patient-header">
                 <h6 class="patient-name">${this.escapeHtml(patient.name)}</h6>
-                <span class="patient-status ${
-					patient.is_active ? "active" : "inactive"
-				}">
+                <span class="patient-status ${patient.is_active ? "active" : "inactive"
+			}">
                     ${statusText}
                 </span>
             </div>
@@ -928,42 +916,37 @@ class InsuranceManager {
                     <span>${this.capitalizeFirst(patient.gender)}</span>
                 </div>
                 
-                ${
-					patient.phone
-						? `
+                ${patient.phone
+				? `
                     <div class="patient-detail">
                         <i class="bi bi-telephone"></i>
                         <span>${patient.phone}</span>
                     </div>
                 `
-						: ""
-				}
+				: ""
+			}
                 
-                ${
-					patient.insurance_card_id
-						? `
+                ${patient.insurance_card_id
+				? `
                     <div class="patient-detail">
                         <i class="bi bi-credit-card"></i>
-                        <span>${i18n.t("insurance.patient.insuranceCardId")}: ${
-								patient.insurance_card_id
-						  }</span>
+                        <span>${i18n.t("insurance.patient.insuranceCardId")}: ${patient.insurance_card_id
+				}</span>
                     </div>
                 `
-						: ""
-				}
+				: ""
+			}
                 
-                ${
-					patient.insurance_form_id
-						? `
+                ${patient.insurance_form_id
+				? `
                     <div class="patient-detail">
                         <i class="bi bi-file-earmark-text"></i>
-                        <span>${i18n.t("insurance.patient.insuranceFormId")}: ${
-								patient.insurance_form_id
-						  }</span>
+                        <span>${i18n.t("insurance.patient.insuranceFormId")}: ${patient.insurance_form_id
+				}</span>
                     </div>
                 `
-						: ""
-				}
+				: ""
+			}
                 
                 <div class="patient-detail">
                     <i class="bi bi-calendar-plus"></i>
@@ -979,8 +962,8 @@ class InsuranceManager {
                     data-patient-name="${this.escapeHtml(patient.name)}"
                     data-requires-permission="manage_reports">
                     <i class="bi bi-file-earmark-text me-2"></i>${i18n.t(
-						"insurance.buttons.generatePatientReport"
-					)}
+				"insurance.buttons.generatePatientReport"
+			)}
                 </button>
             </div>
         </div>
@@ -1114,7 +1097,7 @@ class InsuranceManager {
 				const errorData = await response.json();
 				throw new Error(
 					errorData.message ||
-						i18n.t("insurance.messages.reportError")
+					i18n.t("insurance.messages.reportError")
 				);
 			}
 
@@ -1145,9 +1128,8 @@ class InsuranceManager {
 			"patientReportDetailsContent"
 		)!;
 
-		modalLabel.textContent = `${
-			this.currentPatientReport.patient_name
-		} - ${i18n.t("insurance.modals.patientReport")}`;
+		modalLabel.textContent = `${this.currentPatientReport.patient_name
+			} - ${i18n.t("insurance.modals.patientReport")}`;
 
 		const reportStartDate = i18n.formatDate(
 			this.currentPatientReport.report_period.start_date
@@ -1166,8 +1148,8 @@ class InsuranceManager {
                 <div class="card-header">
                     <h6 class="mb-0">
                         <i class="bi bi-person-check me-2"></i>${i18n.t(
-							"insurance.fields.patient"
-						)} ${i18n.t("common.info")}
+			"insurance.fields.patient"
+		)} ${i18n.t("common.info")}
                     </h6>
                 </div>
                 <div class="card-body">
@@ -1175,90 +1157,82 @@ class InsuranceManager {
                         <div class="col-md-6">
                             <div class="patient-info-item">
                                 <div class="patient-info-label">${i18n.t(
-									"insurance.report.patientName"
-								)}</div>
+			"insurance.report.patientName"
+		)}</div>
                                 <div class="patient-info-value">${this.escapeHtml(
-									this.currentPatientReport.patient_name
-								)}</div>
+			this.currentPatientReport.patient_name
+		)}</div>
                             </div>
-                            ${
-								this.currentPatientReport.patient_info
-									.national_id
-									? `
+                            ${this.currentPatientReport.patient_info
+				.national_id
+				? `
                                 <div class="patient-info-item">
                                     <div class="patient-info-label">${i18n.t(
-										"insurance.patient.nationalId"
-									)}</div>
-                                    <div class="patient-info-value">${
-										this.currentPatientReport.patient_info
-											.national_id
-									}</div>
+					"insurance.patient.nationalId"
+				)}</div>
+                                    <div class="patient-info-value">${this.currentPatientReport.patient_info
+					.national_id
+				}</div>
                                 </div>
                             `
-									: ""
-							}
+				: ""
+			}
                             <div class="patient-info-item">
                                 <div class="patient-info-label">${i18n.t(
-									"insurance.patient.gender"
-								)}</div>
+				"insurance.patient.gender"
+			)}</div>
                                 <div class="patient-info-value">${this.capitalizeFirst(
-									this.currentPatientReport.patient_info
-										.gender
-								)}</div>
+				this.currentPatientReport.patient_info
+					.gender
+			)}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            ${
-								this.currentPatientReport.patient_info.phone
-									? `
+                            ${this.currentPatientReport.patient_info.phone
+				? `
                                 <div class="patient-info-item">
                                     <div class="patient-info-label">${i18n.t(
-										"insurance.patient.phone"
-									)}</div>
-                                    <div class="patient-info-value">${
-										this.currentPatientReport.patient_info
-											.phone
-									}</div>
+					"insurance.patient.phone"
+				)}</div>
+                                    <div class="patient-info-value">${this.currentPatientReport.patient_info
+					.phone
+				}</div>
                                 </div>
                             `
-									: ""
-							}
-                            ${
-								this.currentPatientReport.patient_info
-									.insurance_card_id
-									? `
+				: ""
+			}
+                            ${this.currentPatientReport.patient_info
+				.insurance_card_id
+				? `
                                 <div class="patient-info-item">
                                     <div class="patient-info-label">${i18n.t(
-										"insurance.patient.insuranceCardId"
-									)}</div>
-                                    <div class="patient-info-value">${
-										this.currentPatientReport.patient_info
-											.insurance_card_id
-									}</div>
+					"insurance.patient.insuranceCardId"
+				)}</div>
+                                    <div class="patient-info-value">${this.currentPatientReport.patient_info
+					.insurance_card_id
+				}</div>
                                 </div>
                             `
-									: ""
-							}
-                            ${
-								this.currentPatientReport.patient_info
-									.insurance_form_id
-									? `
+				: ""
+			}
+                            ${this.currentPatientReport.patient_info
+				.insurance_form_id
+				? `
                                 <div class="patient-info-item">
                                     <div class="patient-info-label">${i18n.t(
-										"insurance.patient.insuranceFormId"
-									)}</div>
-                                    <div class="patient-info-value">${
-										this.currentPatientReport.patient_info
-											.insurance_form_id
-									}</div>
+					"insurance.patient.insuranceFormId"
+				)}</div>
+                                    <div class="patient-info-value">${this.currentPatientReport.patient_info
+					.insurance_form_id
+				}</div>
                                 </div>
                             `
-									: ""
-							}
+				: ""
+			}
                             <div class="patient-info-item">
                                 <div class="patient-info-label">${i18n.t(
-									"common.date"
-								)}</div>
+				"common.date"
+			)}</div>
                                 <div class="patient-info-value">${registrationDate}</div>
                             </div>
                         </div>
@@ -1273,57 +1247,64 @@ class InsuranceManager {
         <div class="report-summary">
             <div class="report-summary-title">
                 ${i18n.t(
-					"insurance.modals.patientReport"
-				)} - ${reportStartDate} ${i18n.t("common.to")} ${reportEndDate}
+			"insurance.modals.patientReport"
+		)} - ${reportStartDate} ${i18n.t("common.to")} ${reportEndDate}
             </div>
             <div class="report-summary-grid">
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentPatientReport.total_services_cost
-					)}</span>
+			this.currentPatientReport.total_services_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.services"
-					)}</span>
+			"insurance.report.services"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentPatientReport.total_drugs_cost
-					)}</span>
+			this.currentPatientReport.total_drugs_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.drugs"
-					)}</span>
+			"insurance.report.drugs"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentPatientReport.total_cost
-					)}</span>
+			this.currentPatientReport.total_supplies_cost || 0
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.totalAmount"
-					)}</span>
+			"insurance.report.supplies"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentPatientReport.total_patient_payments
-					)}</span>
+			this.currentPatientReport.total_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.paymentHistory.paymentAmount"
-					)}</span>
+			"insurance.report.totalAmount"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${i18n.formatCurrency(
+			this.currentPatientReport.total_patient_payments
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.paymentHistory.paymentAmount"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value text-warning">${i18n.formatCurrency(
-						this.currentPatientReport.outstanding_amount
-					)}</span>
+			this.currentPatientReport.outstanding_amount
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.statistics.outstandingBalance"
-					)}</span>
+			"insurance.statistics.outstandingBalance"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
-                    <span class="report-summary-value">${
-						this.currentPatientReport.admissions.length
-					}</span>
+                    <span class="report-summary-value">${this.currentPatientReport.admissions.length
+			}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.patient.admission"
-					)}</span>
+				"insurance.patient.admission"
+			)}</span>
                 </div>
             </div>
         </div>
@@ -1334,9 +1315,8 @@ class InsuranceManager {
 		if (this.currentPatientReport.admissions.length > 0) {
 			admissionsHtml = `
             <div class="mt-4">
-                <h6>${i18n.t("insurance.patient.admission")} (${
-				this.currentPatientReport.admissions.length
-			})</h6>
+                <h6>${i18n.t("insurance.patient.admission")} (${this.currentPatientReport.admissions.length
+				})</h6>
                 ${this.currentPatientReport.admissions
 					.map((admission, index) =>
 						this.createAdmissionCard(admission, index)
@@ -1370,24 +1350,26 @@ class InsuranceManager {
 				.map(
 					(item: any) => `
 	            <tr>
-	                <td>${
-						item.item_type === "service"
+	                <td>${item.item_type === "service"
 							? item.service_name || "-"
-							: item.drug_name || "-"
-					}</td>
-	                <td><span class="badge ${
-						item.item_type === "service"
+							: item.item_type === "supply"
+								? item.medical_supply_name || "-"
+								: item.drug_name || "-"
+						}</td>
+	                <td><span class="badge ${item.item_type === "service"
 							? "bg-success"
-							: "bg-primary"
-					}">${this.capitalizeFirst(item.item_type)}</span></td>
+							: item.item_type === "supply"
+								? "bg-info"
+								: "bg-primary"
+						}">${this.capitalizeFirst(item.item_type)}</span></td>
 	                <td>${i18n.formatDate(item.service_date)}</td>
 	                <td class="text-center">${item.quantity}</td>
 	                <td class="text-end">${i18n.formatCurrency(
-						item.unit_price
-					)}</td>
+							item.unit_price
+						)}</td>
 	                <td class="text-end">${i18n.formatCurrency(
-						item.total_cost
-					)}</td>
+							item.total_cost
+						)}</td>
 	            </tr>
 	        `
 				)
@@ -1403,15 +1385,15 @@ class InsuranceManager {
 	                <table class="table table-sm">
 	                    <thead>
 	                        <tr>
+	                            <th>${i18n.t("insurance.report.itemName")}</th>
 	                            <th>${i18n.t("insurance.report.serviceType")}</th>
-	                            <th>${i18n.t("common.status")}</th>
 	                            <th>${i18n.t("insurance.report.date")}</th>
 	                            <th class="text-center">${i18n.t(
-									"insurance.report.quantity"
-								)}</th>
+				"insurance.report.quantity"
+			)}</th>
 	                            <th class="text-end">${i18n.t(
-									"insurance.report.unitPrice"
-								)}</th>
+				"insurance.report.unitPrice"
+			)}</th>
 	                            <th class="text-end">${i18n.t("common.total")}</th>
 	                        </tr>
 	                    </thead>
@@ -1421,11 +1403,11 @@ class InsuranceManager {
 	                    <tfoot class="table-light">
 	                        <tr class="border-top-2">
 	                            <td colspan="5" class="fw-bold">${i18n.t(
-									"insurance.patient.admission"
-								)} ${i18n.t("common.total")}:</td>
+				"insurance.patient.admission"
+			)} ${i18n.t("common.total")}:</td>
 	                            <td class="fw-bold text-end">${i18n.formatCurrency(
-									totalItemsCost
-								)}</td>
+				totalItemsCost
+			)}</td>
 	                        </tr>
 	                    </tfoot>
 	                </table>
@@ -1447,63 +1429,58 @@ class InsuranceManager {
 			"insurance.patient.admission"
 		)} ${admissionDate}</h6>
 	                <div class="patient-group-info">
-	                    <span class="badge bg-info me-2">Bill ID: ${
-							admission.bill_id
-						}</span>
-	                    ${
-							dischargeDate
-								? `<span class="badge bg-success">${i18n.t(
-										"insurance.patient.status.inactive"
-								  )}: ${dischargeDate}</span>`
-								: `<span class="badge bg-warning">${i18n.t(
-										"insurance.patient.admission"
-								  )}</span>`
-						}
-	                    ${
-							admission.diagnosis
-								? `<span class="badge bg-secondary ms-2">${i18n.t(
-										"insurance.patient.diagnosis"
-								  )}: ${admission.diagnosis}</span>`
-								: ""
-						}
+	                    <span class="badge bg-info me-2">Bill ID: ${admission.bill_id
+			}</span>
+	                    ${dischargeDate
+				? `<span class="badge bg-success">${i18n.t(
+					"insurance.patient.status.inactive"
+				)}: ${dischargeDate}</span>`
+				: `<span class="badge bg-warning">${i18n.t(
+					"insurance.patient.admission"
+				)}</span>`
+			}
+	                    ${admission.diagnosis
+				? `<span class="badge bg-secondary ms-2">${i18n.t(
+					"insurance.patient.diagnosis"
+				)}: ${admission.diagnosis}</span>`
+				: ""
+			}
 	                </div>
 	            </div>
 	            ${itemsHtml}
-	            <div class="admission-summary p-3 bg-light">
+	            <div class="admission-summary p-3 bg-light mt-0 border-top-0">
 	                <div class="row">
 	                    <div class="col-md-3">
 	                        <strong>${i18n.t(
-								"common.total"
-							)}:</strong> ${i18n.formatCurrency(
-			admission.total_amount
-		)}
+				"common.total"
+			)}:</strong> ${i18n.formatCurrency(
+				admission.total_amount
+			)}
 	                    </div>
 	                    <div class="col-md-3">
 	                        <strong>${i18n.t(
-								"insurance.paymentHistory.paymentAmount"
-							)}:</strong> 
+				"insurance.paymentHistory.paymentAmount"
+			)}:</strong> 
 	                        <span class="text-success">${i18n.formatCurrency(
-								admission.paid_amount
-							)}</span>
+				admission.paid_amount
+			)}</span>
 	                    </div>
 	                    <div class="col-md-3">
 	                        <strong>${i18n.t(
-								"insurance.statistics.outstandingBalance"
-							)}:</strong> 
-	                        <span class="${
-								admission.outstanding_amount > 0
-									? "text-warning"
-									: "text-success"
-							}">
+				"insurance.statistics.outstandingBalance"
+			)}:</strong> 
+	                        <span class="${admission.outstanding_amount > 0
+				? "text-warning"
+				: "text-success"
+			}">
 	                            ${i18n.formatCurrency(admission.outstanding_amount)}
 	                        </span>
 	                    </div>
 	                    <div class="col-md-3">
 	                        <strong>${i18n.t(
-								"insurance.report.serviceType"
-							)}:</strong> ${
-			admission.items ? admission.items.length : 0
-		}
+				"insurance.report.serviceType"
+			)}:</strong> ${admission.items ? admission.items.length : 0
+			}
 	                    </div>
 	                </div>
 	            </div>
@@ -1563,14 +1540,14 @@ class InsuranceManager {
 										...(this.currentPatientReport
 											.patient_info.national_id
 											? [
-													[
-														"National ID:",
-														this
-															.currentPatientReport
-															.patient_info
-															.national_id
-													]
-											  ]
+												[
+													"National ID:",
+													this
+														.currentPatientReport
+														.patient_info
+														.national_id
+												]
+											]
 											: []),
 										[
 											"Gender:",
@@ -1582,13 +1559,13 @@ class InsuranceManager {
 										...(this.currentPatientReport
 											.patient_info.phone
 											? [
-													[
-														"Phone:",
-														this
-															.currentPatientReport
-															.patient_info.phone
-													]
-											  ]
+												[
+													"Phone:",
+													this
+														.currentPatientReport
+														.patient_info.phone
+												]
+											]
 											: [])
 									]
 								},
@@ -1602,26 +1579,26 @@ class InsuranceManager {
 										...(this.currentPatientReport
 											.patient_info.insurance_card_id
 											? [
-													[
-														"Card ID:",
-														this
-															.currentPatientReport
-															.patient_info
-															.insurance_card_id
-													]
-											  ]
+												[
+													"Card ID:",
+													this
+														.currentPatientReport
+														.patient_info
+														.insurance_card_id
+												]
+											]
 											: []),
 										...(this.currentPatientReport
 											.patient_info.insurance_form_id
 											? [
-													[
-														"Form ID:",
-														this
-															.currentPatientReport
-															.patient_info
-															.insurance_form_id
-													]
-											  ]
+												[
+													"Form ID:",
+													this
+														.currentPatientReport
+														.patient_info
+														.insurance_form_id
+												]
+											]
 											: []),
 										[
 											"Registration:",
@@ -1679,6 +1656,17 @@ class InsuranceManager {
 										text: this.formatCurrency(
 											this.currentPatientReport
 												.total_drugs_cost,
+											true
+										),
+										alignment: "right"
+									}
+								],
+								[
+									"Supplies Cost:",
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.total_supplies_cost || 0,
 											true
 										),
 										alignment: "right"
@@ -1830,9 +1818,8 @@ class InsuranceManager {
 				: "Currently Admitted";
 
 			content.push({
-				text: `Admission ${
-					index + 1
-				}: ${admissionDate} - ${dischargeDate}`,
+				text: `Admission ${index + 1
+					}: ${admissionDate} - ${dischargeDate}`,
 				style: "admissionHeader",
 				margin: [0, index === 0 ? 0 : 20, 0, 5]
 			});
@@ -1907,7 +1894,9 @@ class InsuranceManager {
 					const itemName =
 						item.item_type === "service"
 							? item.service_name || "Unknown Service"
-							: item.drug_name || "Unknown Drug";
+							: item.item_type === "supply"
+								? item.medical_supply_name || "Unknown Supply"
+								: item.drug_name || "Unknown Drug";
 
 					tableBody.push([
 						itemName,
@@ -1927,13 +1916,73 @@ class InsuranceManager {
 					admissionTotal += item.total_cost;
 				});
 
+				const servicesTotal = admission.items
+					.filter((i: any) => i.item_type === "service")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+				const drugsTotal = admission.items
+					.filter((i: any) => i.item_type === "drug")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+				const suppliesTotal = admission.items
+					.filter((i: any) => i.item_type === "supply")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+
+				// Add subtotal rows
+				tableBody.push([
+					{
+						text: "Services Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(servicesTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+				tableBody.push([
+					{
+						text: "Drugs Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(drugsTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+				tableBody.push([
+					{
+						text: "Supplies Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(suppliesTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
 				// Add total row
 				tableBody.push([
 					{
-						text: "Admission Items Total:",
+						text: "Total Charges:",
 						colSpan: 5,
 						bold: true,
-						fillColor: "#f8f9fa"
+						fillColor: "#cacfd4ff"
 					},
 					{},
 					{},
@@ -1943,7 +1992,53 @@ class InsuranceManager {
 						text: this.formatCurrency(admissionTotal, true),
 						bold: true,
 						alignment: "right",
+						fillColor: "#e9ecef"
+					}
+				]);
+
+				// Assuming patientData is 'admission' for this context based on the original code
+				const patientData = admission;
+
+				tableBody.push([
+					{
+						text: "Patient Paid:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						border: [true, true, true, true]
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(
+							patientData.paid_amount, // Changed from patientData.patientPaid to patientData.paid_amount to match existing data structure
+							true
+						),
+						bold: true,
+						alignment: "right",
 						fillColor: "#f8f9fa"
+					}
+				]);
+
+				const outstandingAmount = patientData.total_amount - patientData.paid_amount; // Changed from patientData.totalCost to patientData.total_amount to match existing data structure
+
+				tableBody.push([
+					{
+						text: "Outstanding Amount:",
+						colSpan: 5,
+						bold: true,
+						fillColor:
+							outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
+						border: [true, true, true, true],
+						color: outstandingAmount > 0 ? "red" : "black"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(outstandingAmount, true),
+						bold: true,
+						alignment: "right",
+						fillColor:
+							outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
+						color: outstandingAmount > 0 ? "red" : "black"
 					}
 				]);
 
@@ -2214,7 +2309,7 @@ class InsuranceManager {
 				const errorData = await response.json();
 				throw new Error(
 					errorData.message ||
-						i18n.t("insurance.messages.paymentError")
+					i18n.t("insurance.messages.paymentError")
 				);
 			}
 
@@ -2331,7 +2426,7 @@ class InsuranceManager {
 				const errorData = await response.json();
 				throw new Error(
 					errorData.message ||
-						i18n.t("insurance.messages.reportError")
+					i18n.t("insurance.messages.reportError")
 				);
 			}
 
@@ -2357,9 +2452,8 @@ class InsuranceManager {
 		const modalLabel = document.getElementById("reportDetailsModalLabel")!;
 		const container = document.getElementById("reportDetailsContent")!;
 
-		modalLabel.textContent = `${
-			this.currentReport.insurance_name
-		} - ${i18n.t("insurance.modals.insuranceReport")}`;
+		modalLabel.textContent = `${this.currentReport.insurance_name
+			} - ${i18n.t("insurance.modals.insuranceReport")}`;
 
 		const reportStartDate = i18n.formatDate(
 			this.currentReport.report_period.start_date
@@ -2373,57 +2467,64 @@ class InsuranceManager {
         <div class="report-summary">
             <div class="report-summary-title">
                 ${i18n.t(
-					"insurance.report.summary"
-				)} - ${reportStartDate} ${i18n.t("common.to")} ${reportEndDate}
+			"insurance.report.summary"
+		)} - ${reportStartDate} ${i18n.t("common.to")} ${reportEndDate}
             </div>
             <div class="report-summary-grid">
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentReport.total_services_cost
-					)}</span>
+			this.currentReport.total_services_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.services"
-					)}</span>
+			"insurance.report.services"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentReport.total_drugs_cost
-					)}</span>
+			this.currentReport.total_drugs_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.drugs"
-					)}</span>
+			"insurance.report.drugs"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentReport.total_cost
-					)}</span>
+			this.currentReport.total_supplies_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.report.totalAmount"
-					)}</span>
+			"insurance.report.supplies"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-						this.currentReport.total_patient_payments
-					)}</span>
+			this.currentReport.total_cost
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.paymentHistory.paymentAmount"
-					)}</span>
+			"insurance.report.totalAmount"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${i18n.formatCurrency(
+			this.currentReport.total_patient_payments
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.paymentHistory.paymentAmount"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value text-warning">${i18n.formatCurrency(
-						this.currentReport.outstanding_amount
-					)}</span>
+			this.currentReport.outstanding_amount
+		)}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.statistics.outstandingBalance"
-					)}</span>
+			"insurance.statistics.outstandingBalance"
+		)}</span>
                 </div>
                 <div class="report-summary-item">
-                    <span class="report-summary-value">${
-						this.currentReport.patient_count
-					}</span>
+                    <span class="report-summary-value">${this.currentReport.patient_count
+			}</span>
                     <span class="report-summary-label">${i18n.t(
-						"insurance.patients"
-					)}</span>
+				"insurance.patients"
+			)}</span>
                 </div>
             </div>
         </div>
@@ -2438,11 +2539,9 @@ class InsuranceManager {
 
 			itemsDisplayHtml = `
             <div class="mt-4">
-                <h6>${i18n.t("insurance.report.patientName")} (${
-				Object.keys(patientGroups).length
-			} ${i18n.t("insurance.patients").toLowerCase()}, ${
-				this.currentReport.items.length
-			} items)</h6>
+                <h6>${i18n.t("insurance.report.patientName")} (${Object.keys(patientGroups).length
+				} ${i18n.t("insurance.patients").toLowerCase()}, ${this.currentReport.items.length
+				} items)</h6>
                 ${Object.entries(patientGroups)
 					.map(
 						(
@@ -2490,30 +2589,29 @@ class InsuranceManager {
 
 			paymentsHtml = `
             <div class="mt-4">
-                <h6>${i18n.t("insurance.modals.paymentHistory")} (${
-				this.currentReport.cleared_payments.length
-			} ${i18n
-				.t("insurance.statistics.totalPayments")
-				.toLowerCase()})</h6>
+                <h6>${i18n.t("insurance.modals.paymentHistory")} (${this.currentReport.cleared_payments.length
+				} ${i18n
+					.t("insurance.statistics.totalPayments")
+					.toLowerCase()})</h6>
                 <div class="table-responsive">
                     <table class="insurance-report-table">
                         <thead>
                             <tr>
                                 <th>${i18n.t(
-									"insurance.paymentHistory.paymentAmount"
-								)}</th>
+						"insurance.paymentHistory.paymentAmount"
+					)}</th>
                                 <th>${i18n.t(
-									"insurance.fields.paymentPeriodFrom"
-								)}</th>
+						"insurance.fields.paymentPeriodFrom"
+					)}</th>
                                 <th>${i18n.t(
-									"insurance.fields.paymentPeriodTo"
-								)}</th>
+						"insurance.fields.paymentPeriodTo"
+					)}</th>
                                 <th>${i18n.t(
-									"insurance.paymentHistory.paymentDate"
-								)}</th>
+						"insurance.paymentHistory.paymentDate"
+					)}</th>
                                 <th>${i18n.t(
-									"insurance.paymentHistory.recordedBy"
-								)}</th>
+						"insurance.paymentHistory.recordedBy"
+					)}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2544,14 +2642,18 @@ class InsuranceManager {
 			.map(
 				(item: any) => `
 	        <tr>
-	            <td>${
-					item.item_type === "service"
+	            <td>${item.item_type === "service"
 						? item.service_name || "-"
-						: item.drug_name || "-"
-				}</td>
-	            <td><span class="badge ${
-					item.item_type === "service" ? "bg-success" : "bg-primary"
-				}">${this.capitalizeFirst(item.item_type)}</span></td>
+						: item.item_type === "supply"
+							? item.medical_supply_name || "-"
+							: item.drug_name || "-"
+					}</td>
+	            <td><span class="badge ${item.item_type === "service"
+						? "bg-success"
+						: item.item_type === "supply"
+							? "bg-info"
+							: "bg-primary"
+					}">${this.capitalizeFirst(item.item_type)}</span></td>
 	            <td>${i18n.formatDate(item.service_date)}</td>
 	            <td>${item.quantity}</td>
 	            <td>${i18n.formatCurrency(item.unit_price)}</td>
@@ -2568,40 +2670,37 @@ class InsuranceManager {
 			patientName
 		)}</h6>
 	                <div class="patient-group-info">
-	                    ${
-							sampleItem.insurance_card_id
-								? `<span class="badge bg-primary me-2">${i18n.t(
-										"insurance.patient.insuranceCardId"
-								  )}: ${sampleItem.insurance_card_id}</span>`
-								: ""
-						}
-	                    ${
-							sampleItem.insurance_form_id
-								? `<span class="badge bg-info me-2">${i18n.t(
-										"insurance.patient.insuranceFormId"
-								  )}: ${sampleItem.insurance_form_id}</span>`
-								: ""
-						}
+	                    ${sampleItem.insurance_card_id
+				? `<span class="badge bg-primary me-2">${i18n.t(
+					"insurance.patient.insuranceCardId"
+				)}: ${sampleItem.insurance_card_id}</span>`
+				: ""
+			}
+	                    ${sampleItem.insurance_form_id
+				? `<span class="badge bg-info me-2">${i18n.t(
+					"insurance.patient.insuranceFormId"
+				)}: ${sampleItem.insurance_form_id}</span>`
+				: ""
+			}
 	                    <span class="badge bg-secondary">${i18n.t(
-							"insurance.patient.admission"
-						)}: ${admissionDate}</span>
-	                    ${
-							dischargeDate
-								? `<span class="badge bg-success">${i18n.t(
-										"insurance.patient.status.inactive"
-								  )}: ${dischargeDate}</span>`
-								: `<span class="badge bg-warning">${i18n.t(
-										"insurance.patient.admission"
-								  )}</span>`
-						}
+				"insurance.patient.admission"
+			)}: ${admissionDate}</span>
+	                    ${dischargeDate
+				? `<span class="badge bg-success">${i18n.t(
+					"insurance.patient.status.inactive"
+				)}: ${dischargeDate}</span>`
+				: `<span class="badge bg-warning">${i18n.t(
+					"insurance.patient.admission"
+				)}</span>`
+			}
 	                </div>
 	            </div>
 	            <div class="table-responsive">
 	                <table class="table table-sm">
 	                    <thead>
 	                        <tr>
+	                            <th>${i18n.t("insurance.report.itemName")}</th>
 	                            <th>${i18n.t("insurance.report.serviceType")}</th>
-	                            <th>${i18n.t("common.status")}</th>
 	                            <th>${i18n.t("insurance.report.date")}</th>
 	                            <th>${i18n.t("insurance.report.quantity")}</th>
 	                            <th>${i18n.t("insurance.report.unitPrice")}</th>
@@ -2614,35 +2713,34 @@ class InsuranceManager {
 	                    <tfoot class="table-light">
 	                        <tr class="border-top-2">
 	                            <td colspan="5" class="fw-bold">${i18n.t(
-									"common.total"
-								)}:</td>
+				"common.total"
+			)}:</td>
 	                            <td class="fw-bold">${i18n.formatCurrency(
-									patientData.totalCost
-								)}</td>
+				patientData.totalCost
+			)}</td>
 	                        </tr>
 	                        <tr>
 	                            <td colspan="5" class="fw-bold">${i18n.t(
-									"insurance.paymentHistory.paymentAmount"
-								)}:</td>
+				"insurance.paymentHistory.paymentAmount"
+			)}:</td>
 	                            <td class="fw-bold text-success">${i18n.formatCurrency(
-									patientData.patientPaid
-								)}</td>
+				patientData.patientPaid
+			)}</td>
 	                        </tr>
 	                        <tr>
 	                            <td colspan="5" class="fw-bold">${i18n.t(
-									"insurance.patient.outstandingAmount"
-								)}:</td>
-	                            <td class="fw-bold ${
-									patientData.totalCost -
-										patientData.patientPaid >
-									0
-										? "text-warning"
-										: "text-success"
-								}">
+				"insurance.patient.outstandingAmount"
+			)}:</td>
+	                            <td class="fw-bold ${patientData.totalCost -
+				patientData.patientPaid >
+				0
+				? "text-warning"
+				: "text-success"
+			}">
 	                                ${i18n.formatCurrency(
-										patientData.totalCost -
-											patientData.patientPaid
-									)}
+				patientData.totalCost -
+				patientData.patientPaid
+			)}
 	                            </td>
 	                        </tr>
 	                    </tfoot>
@@ -2735,6 +2833,17 @@ class InsuranceManager {
 												text: this.formatCurrency(
 													this.currentReport
 														.total_drugs_cost,
+													true
+												),
+												alignment: "right"
+											}
+										],
+										[
+											"Supplies Cost:",
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_supplies_cost,
 													true
 												),
 												alignment: "right"
@@ -2959,7 +3068,9 @@ class InsuranceManager {
 					const itemName =
 						item.item_type === "service"
 							? item.service_name || "Unknown Service"
-							: item.drug_name || "Unknown Drug";
+							: item.item_type === "supply"
+								? item.medical_supply_name || "Unknown Supply"
+								: item.drug_name || "Unknown Drug";
 
 					tableBody.push([
 						itemName,
@@ -2978,15 +3089,76 @@ class InsuranceManager {
 				});
 
 				// Add summary rows at the end of the same table
-				const outstandingAmount =
-					patientData.totalCost - patientData.patientPaid;
+				const servicesTotal = patientData.items
+					.filter((i: any) => i.item_type === "service")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+				const drugsTotal = patientData.items
+					.filter((i: any) => i.item_type === "drug")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+				const suppliesTotal = patientData.items
+					.filter((i: any) => i.item_type === "supply")
+					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+
+				// Services Total
+				tableBody.push([
+					{
+						text: "Services Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(servicesTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				// Drugs Total
+				tableBody.push([
+					{
+						text: "Drugs Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(drugsTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				// Supplies Total
+				tableBody.push([
+					{
+						text: "Supplies Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(suppliesTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
 
 				tableBody.push([
 					{
 						text: "Total Charges:",
 						colSpan: 5,
 						bold: true,
-						fillColor: "#f8f9fa",
+						fillColor: "#cacfd4ff",
 						border: [true, true, true, true]
 					},
 					{},
@@ -2997,7 +3169,7 @@ class InsuranceManager {
 						text: this.formatCurrency(patientData.totalCost, true),
 						bold: true,
 						alignment: "right",
-						fillColor: "#f8f9fa"
+						fillColor: "#e9ecef"
 					}
 				]);
 
@@ -3023,6 +3195,9 @@ class InsuranceManager {
 						fillColor: "#f8f9fa"
 					}
 				]);
+
+				const outstandingAmount =
+					patientData.totalCost - patientData.patientPaid;
 
 				tableBody.push([
 					{
@@ -3209,7 +3384,7 @@ class InsuranceManager {
 				const errorData = await response.json();
 				throw new Error(
 					errorData.message ||
-						i18n.t("insurance.messages.clearBalanceError")
+					i18n.t("insurance.messages.clearBalanceError")
 				);
 			}
 
@@ -3245,19 +3420,18 @@ class InsuranceManager {
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">${i18n.t(
-						"common.loading"
-					)}</span>
+				"common.loading"
+			)}</span>
                 </div>
                 <p class="mt-3">${i18n.t(
-					"insurance.messages.loadPaymentHistoryError"
-				)}</p>
+				"insurance.messages.loadPaymentHistoryError"
+			)}</p>
             </div>
         `;
 
 			document.getElementById(
 				"paymentHistoryModalLabel"
-			)!.textContent = `${i18n.t("insurance.modals.paymentHistory")} - ${
-				this.selectedInsurance.name
+			)!.textContent = `${i18n.t("insurance.modals.paymentHistory")} - ${this.selectedInsurance.name
 			}`;
 
 			this.paymentHistoryModal.show();
@@ -3301,8 +3475,8 @@ class InsuranceManager {
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-credit-card" style="font-size: 3rem;"></i>
                 <h5 class="mt-3">${i18n.t(
-					"insurance.paymentHistory.noPayments"
-				)}</h5>
+				"insurance.paymentHistory.noPayments"
+			)}</h5>
                 <p>${i18n.t("insurance.paymentHistory.noPayments")}</p>
             </div>
         `;
@@ -3320,18 +3494,18 @@ class InsuranceManager {
             <div class="row">
                 <div class="col-md-4">
                     <strong>${i18n.t(
-						"insurance.statistics.totalPayments"
-					)}:</strong> ${payments.length}
+			"insurance.statistics.totalPayments"
+		)}:</strong> ${payments.length}
                 </div>
                 <div class="col-md-4">
                     <strong>${i18n.t(
-						"insurance.report.totalAmount"
-					)}:</strong> ${i18n.formatCurrency(totalPayments)}
+			"insurance.report.totalAmount"
+		)}:</strong> ${i18n.formatCurrency(totalPayments)}
                 </div>
                 <div class="col-md-4">
                     <strong>${i18n.t(
-						"insurance.paymentHistory.paymentAmount"
-					)}:</strong> ${i18n.formatCurrency(
+			"insurance.paymentHistory.paymentAmount"
+		)}:</strong> ${i18n.formatCurrency(
 			totalPayments / payments.length
 		)}
                 </div>
@@ -3355,30 +3529,29 @@ class InsuranceManager {
         <div class="payment-history-item">
             <div class="payment-header">
                 <div class="payment-amount">${i18n.formatCurrency(
-					payment.payment_amount
-				)}</div>
+			payment.payment_amount
+		)}</div>
                 <div class="payment-date">${i18n.t(
-					"insurance.paymentHistory.paymentDate"
-				)}: ${recordedDate}</div>
+			"insurance.paymentHistory.paymentDate"
+		)}: ${recordedDate}</div>
             </div>
             <div class="payment-period">
                 <i class="bi bi-calendar-range me-2"></i>
                 ${i18n.t(
-					"insurance.fields.paymentPeriodFrom"
-				)}: ${fromDate} - ${toDate}
+			"insurance.fields.paymentPeriodFrom"
+		)}: ${fromDate} - ${toDate}
             </div>
-            ${
-				payment.added_by_username
-					? `
+            ${payment.added_by_username
+				? `
                 <div class="mt-2">
                     <small class="text-muted">
                         <i class="bi bi-person me-1"></i>${i18n.t(
-							"insurance.paymentHistory.recordedBy"
-						)}: ${payment.added_by_username}
+					"insurance.paymentHistory.recordedBy"
+				)}: ${payment.added_by_username}
                     </small>
                 </div>
             `
-					: ""
+				: ""
 			}
         </div>
     `;

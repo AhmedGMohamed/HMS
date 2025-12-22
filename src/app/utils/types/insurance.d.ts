@@ -76,7 +76,9 @@ export interface InsuranceReportItem {
 	service_name?: string;
 	drug_shipment_id?: number;
 	drug_name?: string;
-	item_type: "service" | "drug";
+	medical_supply_shipment_id?: number;
+	medical_supply_name?: string;
+	item_type: "service" | "drug" | "supply";
 	quantity: number;
 	unit_price: number;
 	total_cost: number;
@@ -96,6 +98,7 @@ export interface InsuranceReportSummary {
 	last_cleared_date: Date;
 	total_services_cost: number;
 	total_drugs_cost: number;
+	total_supplies_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -152,6 +155,7 @@ export interface PatientReportSummary {
 	}>;
 	total_services_cost: number;
 	total_drugs_cost: number;
+	total_supplies_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;

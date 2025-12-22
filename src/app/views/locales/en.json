@@ -51,8 +51,10 @@
 		"page": "Page",
 		"of": "of",
 		"units": "units",
+		"quantity": "Quantity",
 		"unknown": "Unknown",
-		"discharged": "Discharged"
+		"discharged": "Discharged",
+		"default": "Default"
 	},
 	"sidebar": {
 		"dashboard": "Dashboard",
@@ -60,6 +62,7 @@
 		"services": "Services",
 		"pharmacy": "Pharmacy",
 		"drugs": "Drugs",
+		"medicalSupplies": "Medical Supplies",
 		"employees": "Employees",
 		"doctors": "Doctors",
 		"nurses": "Nurses",
@@ -582,6 +585,7 @@
 			"printBill": "Print Bill",
 			"addService": "Add Service",
 			"addDrug": "Add Drug",
+			"addSupply": "Add Supply",
 			"confirmPayment": "Confirm Payment",
 			"updateCalculations": "Update Calculations",
 			"savePatient": "Save Patient",
@@ -600,6 +604,7 @@
 			"admissionInfo": "Admission Information",
 			"assignedServices": "Assigned Services",
 			"assignedDrugs": "Assigned Drugs",
+			"assignedSupplies": "Assigned Medical Supplies",
 			"billingInfo": "Billing Information"
 		},
 		"fields": {
@@ -644,6 +649,7 @@
 		"billing": {
 			"servicesTotal": "Services Total",
 			"drugsTotal": "Drugs Total",
+			"suppliesTotal": "Supplies Total",
 			"paidAmount": "Paid Amount",
 			"discount": "Discount",
 			"discountTotal": "Discount Total",
@@ -709,6 +715,7 @@
 			"selectReason": "Select Reason",
 			"searchServices": "Search services...",
 			"searchDrugs": "Search drugs...",
+			"searchSupplies": "Search supplies...",
 			"default": "Default",
 			"enterAmount": "Enter amount"
 		},
@@ -717,6 +724,7 @@
 			"editPatient": "Edit Patient",
 			"addService": "Add Service to Patient",
 			"addDrug": "Add Drug to Patient",
+			"addSupply": "Add Supply to Patient",
 			"discharge": "Discharge Patient",
 			"customizeBill": "Customize Bill for Printing",
 			"addItemToBill": "Add Item to Bill",
@@ -736,7 +744,8 @@
 			"allPatients": "All Patients",
 			"staffStatus": "Staff Status",
 			"services": "Services",
-			"drugs": "Drugs"
+			"drugs": "Drugs",
+			"supplies": "Medical Supplies"
 		},
 		"staffStatus": {
 			"clockedInDoctors": "Clocked-In Doctors",
@@ -800,6 +809,13 @@
 			"drugAdded": "Drug added successfully",
 			"drugRemoved": "Drug removed successfully",
 			"drugAdministered": "Drug administered successfully",
+			"supplyAdded": "Supply added successfully",
+			"supplyRemoved": "Supply removed successfully",
+			"supplyAdministered": "Supply administered successfully",
+			"noSuppliesAssigned": "No supplies assigned",
+			"suppliesUsed": "Supplies used",
+			"noSuppliesUsed": "No medical supplies used",
+			"noSuppliesFound": "No medical supplies found",
 			"paymentProcessed": "Payment processed successfully",
 			"billingUpdated": "Billing information updated successfully",
 			"savePatientError": "Failed to save patient",
@@ -811,12 +827,16 @@
 			"addDrugError": "Failed to add drug",
 			"removeDrugError": "Failed to remove drug",
 			"administerDrugError": "Failed to administer drug",
+			"addSupplyError": "Failed to add supply",
+			"removeSupplyError": "Failed to remove supply",
+			"administerSupplyError": "Failed to administer supply",
 			"paymentError": "Failed to process payment",
 			"billingUpdateError": "Failed to update billing information",
 			"loadPatientError": "Failed to load patient data",
 			"loadPatientsError": "Failed to load patients list",
 			"loadAdmissionsError": "Failed to load past admissions",
 			"loadAdmissionDetailsError": "Failed to load admission details",
+			"loadSuppliesError": "Failed to load medical supplies list",
 			"noRemainingQuantity": "No remaining quantity to administer",
 			"enterPaymentAmount": "Please enter a payment amount",
 			"confirmPaymentTitle": "Confirm Payment",
@@ -833,6 +853,11 @@
 			"quantityLabel": "Quantity ({{unit}})",
 			"availableQuantity": "Available: {{quantity}} {{unit}}",
 			"enterValidQuantity": "Please enter a valid quantity",
+			"addSupplyTitle": "Add {{supplyName}}",
+			"removeSupplyTitle": "Remove Supply",
+			"removeSupplyText": "Are you sure you want to remove this supply?",
+			"administerSupplyTitle": "Administer Supply",
+			"administerSupplyText": "Confirm supply administration?",
 			"admitPatientTitle": "Admit Patient",
 			"noPastAdmissions": "No Past Admissions",
 			"noPastAdmissionsText": "This patient has no previous admission history.",
@@ -871,7 +896,8 @@
 			"billSettled": "Bill settled successfully",
 			"settleBillError": "Failed to settle bill",
 			"paidExceedsTotal": "The paid amount exceeds the total amount. Do you want to continue?",
-			"loadBillError": "Failed to load bill data"
+			"loadBillError": "Failed to load bill data",
+			"outOfStock": "Out of stock"
 		},
 		"printBill": {
 			"unknownItem": "Unknown Item",
@@ -881,7 +907,8 @@
 			"available": "Available",
 			"itemTypes": {
 				"service": "Service",
-				"drug": "Drug"
+				"drug": "Drug",
+				"supply": "Supply"
 			},
 			"messages": {
 				"noBillOrPatient": "No bill or patient selected",
@@ -1014,7 +1041,8 @@
 			"totalDrugs": "Total Drugs",
 			"totalAmount": "Total Amount",
 			"patientName": "Patient Name",
-			"serviceType": "Service/Drug",
+			"itemName": "Item Name",
+			"serviceType": "Service/Drug/Supply",
 			"service": "Service",
 			"drug": "Drug",
 			"quantity": "Quantity",
@@ -1023,6 +1051,7 @@
 			"date": "Date",
 			"services": "Services",
 			"drugs": "Drugs",
+			"supplies": "Supplies",
 			"grandTotal": "Grand Total",
 			"noData": "No data available for the selected period",
 			"generatedOn": "Generated on",
@@ -1323,12 +1352,13 @@
 			"patientRevenue": "Patient Revenue",
 			"manualPayments": "Manual Payments",
 			"insurancePayments": "Insurance Payments",
-			"pharmacyOperations": "Pharmacy Operations",
+			"pharmacyOperations": "Pharmacy & Supplies",
 			"employeeWages": "Employee Wages"
 		},
 		"metrics": {
 			"servicesRevenue": "Services Revenue",
 			"drugsRevenue": "Drugs Revenue",
+			"suppliesRevenue": "Supplies Revenue",
 			"totalPayments": "Total Payments",
 			"outstandingBalance": "Outstanding Balance",
 			"totalDiscounts": "Total Discounts",
@@ -1341,6 +1371,9 @@
 			"shipmentCosts": "Shipment Costs",
 			"salesRevenue": "Sales Revenue",
 			"salesProfit": "Sales Profit",
+			"supplyShipmentCosts": "Supply Shipment Costs",
+			"supplySalesRevenue": "Supply Sales Revenue",
+			"supplySalesProfit": "Supply Sales Profit",
 			"wagesOwed": "Wages Owed",
 			"wagesPaid": "Wages Paid",
 			"outstandingWages": "Outstanding Wages"
@@ -1348,6 +1381,7 @@
 		"reportButtons": {
 			"viewServicesReport": "View Services Report",
 			"viewDrugsReport": "View Drugs Report",
+			"viewSuppliesReport": "View Supplies Report",
 			"viewPaymentsReport": "View Payments Report",
 			"viewOutstandingReport": "View Outstanding Report",
 			"viewDiscountsReport": "View Discounts Report",
@@ -1356,6 +1390,9 @@
 			"viewShipmentsReport": "View Shipments Report",
 			"viewSalesReport": "View Sales Report",
 			"viewProfitsReport": "View Profits Report",
+			"viewSupplyShipmentsReport": "View Supply Shipments Report",
+			"viewSupplySalesReport": "View Supply Sales Report",
+			"viewSupplyProfitsReport": "View Supply Profits Report",
 			"viewWagesOwedReport": "View Wages Owed Report",
 			"viewWagesPaidReport": "View Wages Paid Report",
 			"viewOutstandingWagesReport": "View Outstanding Wages Report"
@@ -1411,6 +1448,7 @@
 		"reportTitles": {
 			"patient_services": "Patient Services Revenue",
 			"patient_drugs": "Patient Drugs Revenue",
+			"patient_supplies": "Patient Supplies Revenue",
 			"patient_payments": "Patient Payments",
 			"patient_outstanding": "Outstanding Balances",
 			"patient_discounts": "Patient Discounts",
@@ -1419,6 +1457,9 @@
 			"drug_shipments": "Drug Shipment Costs",
 			"drug_sales": "Drug Sales Revenue",
 			"drug_profits": "Drug Sales Profit",
+			"medical_supply_shipments": "Supply Shipment Costs",
+			"medical_supply_sales": "Supply Sales Revenue",
+			"medical_supply_profits": "Supply Sales Profit",
 			"wages_owed": "Wages Owed",
 			"wages_paid": "Wages Paid"
 		},
@@ -1504,7 +1545,8 @@
 			"nurseReports": "Nurse Reports",
 			"statistics": "Statistics",
 			"employeePayments": "Employee Payments",
-			"clockInReports": "Clock-In Reports"
+			"clockInReports": "Clock-In Reports",
+			"medicalSupplyReports": "Medical Supply Reports"
 		},
 		"filters": {
 			"title": "Report Filters",
@@ -1596,7 +1638,8 @@
 		"paymentTypes": {
 			"cash": "Cash",
 			"credit": "Credit",
-			"insurance": "Insurance"
+			"insurance": "Insurance",
+			"supplies": "Medical Supplies"
 		},
 		"genderTypes": {
 			"male": "Male",
@@ -1641,7 +1684,8 @@
 			"doctors": "Doctors",
 			"nurses": "Nurses",
 			"services": "Services",
-			"drugs": "Drugs"
+			"drugs": "Drugs",
+			"supplies": "Medical Supplies"
 		},
 		"doctorCard": {
 			"patients": "Patients"
@@ -1859,5 +1903,119 @@
 		"deleted": "Deleted successfully",
 		"added": "Added successfully",
 		"processed": "Processed successfully"
+	},
+	"medicalSupplies": {
+		"pageTitle": "HMS - Medical Supplies Management",
+		"title": "Medical Supplies Management",
+		"stats": {
+			"totalSupplies": "Total Supplies",
+			"inStock": "In Stock",
+			"lowStock": "Low Stock",
+			"totalValue": "Total Value"
+		},
+		"buttons": {
+			"createSupply": "Create New Supply",
+			"manageWarehouses": "Manage Warehouses",
+			"addWarehouse": "Add New Warehouse",
+			"saveWarehouse": "Save Warehouse",
+			"addShipment": "Add Shipment"
+		},
+		"searchPlaceholder": "Search medical supplies...",
+		"placeholders": {
+			"selectWarehouse": "Select Warehouse",
+			"frequency": "e.g., 8 hours"
+		},
+		"table": {
+			"supplyName": "Supply Name",
+			"manufacturer": "Manufacturer",
+			"provider": "Provider",
+			"autoRenew": "Auto Renew",
+			"totalStock": "Total Stock",
+			"warehouseName": "Warehouse Name",
+			"location": "Location",
+			"totalShipments": "Total Shipments"
+		},
+		"modals": {
+			"createSupply": "Create New Medical Supply",
+			"editSupply": "Edit Medical Supply",
+			"addShipment": "Add New Shipment",
+			"editShipment": "Edit Shipment",
+			"warehouseManagement": "Warehouse Management",
+			"addWarehouse": "Add New Warehouse",
+			"editWarehouse": "Edit Warehouse"
+		},
+		"fields": {
+			"supplyName": "Supply Name",
+			"manufacturer": "Manufacturer",
+			"provider": "Provider",
+			"saleQuantity": "Sale Quantity",
+			"minStockAlert": "Minimum Stock Alert",
+			"isObligatoryContinuous": "Is Obligatory Continuous",
+			"frequency": "Frequency (hours)",
+			"warehouse": "Warehouse",
+			"quantity": "Quantity",
+			"buyPrice": "Buy Price",
+			"expiryDate": "Expiry Date",
+			"prices": "Selling Prices",
+			"warehouseName": "Warehouse Name",
+			"location": "Location",
+			"expiry": "Expiry"
+		},
+		"sections": {
+			"additionalSettings": "Additional Settings",
+			"sellingPrices": "Selling Prices",
+			"existingWarehouses": "Existing Warehouses"
+		},
+		"help": {
+			"minStockAlert": "Alert when stock falls below this amount",
+			"frequency": "Time interval between administrations (if continuous)",
+			"expiryDate": "Optional"
+		},
+		"validation": {
+			"supplyNameLength": "Supply name must be at least 3 characters long",
+			"saleQuantityMin": "Sale quantity must be greater than 0",
+			"warehouseRequired": "Please select a warehouse",
+			"quantityMin": "Please enter a valid quantity",
+			"buyPriceRequired": "Please enter a valid buy price",
+			"warehouseNameLength": "Warehouse name must be at least 3 characters long",
+			"locationLength": "Location must be at least 5 characters long"
+		},
+		"confirmations": {
+			"deleteSupplyTitle": "Delete Supply?",
+			"deleteSupplyText": "This action cannot be undone.",
+			"deleteShipmentTitle": "Delete Shipment?",
+			"deleteShipmentText": "This action cannot be undone.",
+			"deleteWarehouseTitle": "Delete Warehouse?",
+			"deleteWarehouseText": "This action cannot be undone."
+		},
+		"messages": {
+			"loadInitialDataError": "Failed to load initial data",
+			"loadSuppliesError": "Failed to load medical supplies",
+			"loadPriceListsError": "Failed to load price lists",
+			"loadWarehousesError": "Failed to load warehouses",
+			"noShipments": "No shipments available for this supply",
+			"deleteSuccess": "Supply deleted successfully",
+			"deleteError": "Failed to delete supply",
+			"updateSuccess": "Supply updated successfully",
+			"createSuccess": "Supply created successfully",
+			"saveError": "Failed to save supply",
+			"shipmentUpdateSuccess": "Shipment updated successfully",
+			"shipmentCreateSuccess": "Shipment created successfully",
+			"shipmentSaveError": "Failed to save shipment",
+			"shipmentDeleteSuccess": "Shipment deleted successfully",
+			"shipmentDeleteError": "Failed to delete shipment",
+			"warehouseUpdateSuccess": "Warehouse updated successfully",
+			"warehouseCreateSuccess": "Warehouse created successfully",
+			"warehouseSaveError": "Failed to save warehouse",
+			"warehouseDeleteSuccess": "Warehouse deleted successfully",
+			"warehouseDeleteError": "Failed to delete warehouse"
+		},
+		"frequency": {
+			"every": "Every",
+			"hours": "hours"
+		},
+		"status": {
+			"lowStock": "Low Stock"
+		}
 	}
 }

@@ -8,6 +8,7 @@ interface VaultSummary {
 	// Patient Revenue
 	patient_services_total: number;
 	patient_drugs_total: number;
+	patient_supplies_total: number;
 	patient_payments_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;
@@ -26,6 +27,9 @@ interface VaultSummary {
 	drug_shipment_costs_total: number;
 	drug_sales_revenue_total: number;
 	drug_sales_profit_total: number;
+	supply_shipment_costs_total: number;
+	supply_sales_revenue_total: number;
+	supply_sales_profit_total: number;
 
 	// Employee Wages
 	wages_owed_total: number;
@@ -242,15 +246,16 @@ class VaultManager {
 
 		const netProfitElement = document.getElementById("netProfit")!;
 		netProfitElement.textContent = i18n.formatCurrency(summary.net_profit);
-		netProfitElement.className = `summary-amount ${
-			summary.net_profit >= 0 ? "text-success" : "text-danger"
-		}`;
+		netProfitElement.className = `summary-amount ${summary.net_profit >= 0 ? "text-success" : "text-danger"
+			}`;
 
 		// Update patient revenue metrics
 		document.getElementById("patientServicesTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_services_total);
 		document.getElementById("patientDrugsTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_drugs_total);
+		document.getElementById("patientSuppliesTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_supplies_total);
 		document.getElementById("patientPaymentsTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_payments_total);
 		document.getElementById("patientOutstandingTotal")!.textContent =
@@ -268,9 +273,8 @@ class VaultManager {
 		manualNetElement.textContent = i18n.formatCurrency(
 			summary.manual_net_total
 		);
-		manualNetElement.className = `metric-value ${
-			summary.manual_net_total >= 0 ? "text-success" : "text-danger"
-		}`;
+		manualNetElement.className = `metric-value ${summary.manual_net_total >= 0 ? "text-success" : "text-danger"
+			}`;
 
 		document.getElementById("insurancePaymentsTotal")!.textContent =
 			i18n.formatCurrency(summary.insurance_payments_total);
@@ -286,6 +290,13 @@ class VaultManager {
 			i18n.formatCurrency(summary.drug_sales_revenue_total);
 		document.getElementById("drugSalesProfitTotal")!.textContent =
 			i18n.formatCurrency(summary.drug_sales_profit_total);
+
+		document.getElementById("medicalSupplyShipmentCostsTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_shipment_costs_total);
+		document.getElementById("medicalSupplySalesRevenueTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_sales_revenue_total);
+		document.getElementById("medicalSupplySalesProfitTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_sales_profit_total);
 
 		// Update wages metrics
 		document.getElementById("wagesOwedTotal")!.textContent =
@@ -403,12 +414,12 @@ class VaultManager {
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">${i18n.t(
-							"common.loading"
-						)}</span>
+				"common.loading"
+			)}</span>
                     </div>
                     <p class="mt-3">${i18n.t(
-						"vault.messages.loadingReportData"
-					)}</p>
+				"vault.messages.loadingReportData"
+			)}</p>
                 </div>
             `;
 
@@ -464,13 +475,13 @@ class VaultManager {
 		container.innerHTML = `
             <div class="report-header mb-4">
                 <h6 class="text-muted">${i18n.t(
-					"vault.report.dateRange"
-				)}: ${i18n.formatDate(
+			"vault.report.dateRange"
+		)}: ${i18n.formatDate(
 			this.currentDateRange!.start
 		)} - ${i18n.formatDate(this.currentDateRange!.end)}</h6>
                 <h6 class="text-muted">${i18n.t(
-					"vault.report.totalRecords"
-				)}: ${i18n.formatNumber(data.length, 0)}</h6>
+			"vault.report.totalRecords"
+		)}: ${i18n.formatNumber(data.length, 0)}</h6>
             </div>
             ${summaryHtml}
             ${tableHtml}
@@ -528,19 +539,18 @@ class VaultManager {
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">${i18n.t(
-							`vault.reportSummary.${key}`
-						)}</h6>
-                        <h4 class="mb-0">${
-							typeof value === "number" &&
-							!key.includes("count") &&
-							!key.includes("records") &&
-							!key.includes("unique") &&
-							!key.includes("quantity") &&
-							!key.includes("total_shipments") &&
-							!key.includes("total_transactions")
-								? i18n.formatCurrency(value)
-								: i18n.formatNumber(value as number, 0)
-						}</h4>
+					`vault.reportSummary.${key}`
+				)}</h6>
+                        <h4 class="mb-0">${typeof value === "number" &&
+						!key.includes("count") &&
+						!key.includes("records") &&
+						!key.includes("unique") &&
+						!key.includes("quantity") &&
+						!key.includes("total_shipments") &&
+						!key.includes("total_transactions")
+						? i18n.formatCurrency(value)
+						: i18n.formatNumber(value as number, 0)
+					}</h4>
                     </div>
                 </div>
             </div>
@@ -572,15 +582,15 @@ class VaultManager {
 					avg_per_patient:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(
-											row.services_total ||
-												row.drugs_total ||
-												0
-										),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(
+										row.services_total ||
+										row.drugs_total ||
+										0
+									),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -594,10 +604,10 @@ class VaultManager {
 					avg_payment:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum + parseFloat(row.paid_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum + parseFloat(row.paid_amount || 0),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -612,11 +622,11 @@ class VaultManager {
 					avg_outstanding:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(row.outstanding_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(row.outstanding_amount || 0),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -659,11 +669,11 @@ class VaultManager {
 					avg_payment:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(row.payment_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(row.payment_amount || 0),
+								0
+							) / data.length
 							: 0,
 					unique_companies: new Set(
 						data.map((row) => row.insurance_id)
@@ -788,7 +798,7 @@ class VaultManager {
 				}
 			],
 			styles: {
-				
+
 			}
 		};
 	}
