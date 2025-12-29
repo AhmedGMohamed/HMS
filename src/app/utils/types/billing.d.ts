@@ -7,6 +7,7 @@ export interface Bill {
 	discount_type: "fixed" | "percentage" | null;
 	discount: number;
 	administrative_expenses: number;
+	medical_tests_amount: number;
 	vat_percentage: number | null;
 	vat_scope: "services" | "drugs" | "both" | null;
 	generated_at: Date;
@@ -45,6 +46,7 @@ export interface UpdateBillDTO {
 	discount_type?: "fixed" | "percentage";
 	discount?: number;
 	administrative_expenses?: number;
+	medical_tests_amount?: number;
 	vat_percentage?: number;
 	vat_scope?: "services" | "drugs" | "both";
 	paid_amount?: number;

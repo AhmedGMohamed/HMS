@@ -271,7 +271,8 @@ export default class ReportModel {
                 ph.bill_id,
                 b.total_amount,
                 b.paid_amount,
-                COALESCE(b.discount, 0) as discount
+                COALESCE(b.discount, 0) as discount,
+                COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
             WHERE ph.patient_id = $1
@@ -307,6 +308,7 @@ export default class ReportModel {
 				total_amount: parseFloat(row.total_amount || 0),
 				paid_amount: parseFloat(row.paid_amount || 0),
 				discount: parseFloat(row.discount || 0),
+				medical_tests_amount: parseFloat(row.medical_tests_amount || 0),
 				daily_staff: dailyStaff,
 				services: services,
 				drugs: drugs,
@@ -332,7 +334,8 @@ export default class ReportModel {
                 ph.diagnosis,
                 ph.bill_id,
                 b.total_amount,
-                b.paid_amount
+                b.paid_amount,
+                COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
             WHERE ph.patient_id = $1
@@ -369,6 +372,7 @@ export default class ReportModel {
 				bill_id: admission.bill_id,
 				total_amount: parseFloat(admission.total_amount || 0),
 				paid_amount: parseFloat(admission.paid_amount || 0),
+				medical_tests_amount: parseFloat(admission.medical_tests_amount || 0),
 				items_by_date: itemsByDate,
 				daily_staff: dailyStaff
 			});
@@ -403,7 +407,8 @@ export default class ReportModel {
                 ph.diagnosis,
                 ph.bill_id,
                 b.total_amount,
-                b.paid_amount
+                b.paid_amount,
+                COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             JOIN Patient p ON ph.patient_id = p.patient_id
             LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
@@ -453,6 +458,7 @@ export default class ReportModel {
 				bill_id: data.bill_id,
 				total_amount: parseFloat(data.total_amount || 0),
 				paid_amount: parseFloat(data.paid_amount || 0),
+				medical_tests_amount: parseFloat(data.medical_tests_amount || 0),
 				items_by_date: itemsByDate,
 				daily_staff: dailyStaff
 			}

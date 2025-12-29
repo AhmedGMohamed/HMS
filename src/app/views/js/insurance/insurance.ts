@@ -43,6 +43,7 @@ interface InsurancePatient {
 		bill_id: number;
 		total_amount: number;
 		paid_amount: number;
+		medical_tests_amount: number;
 		outstanding_amount: number;
 	};
 }
@@ -71,6 +72,7 @@ interface InsuranceReportSummary {
 	total_services_cost: number;
 	total_drugs_cost: number;
 	total_supplies_cost: number;
+	total_medical_tests_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -115,11 +117,13 @@ interface PatientReportSummary {
 		total_amount: number;
 		paid_amount: number;
 		outstanding_amount: number;
+		medical_tests_amount: number;
 		items: any[];
 	}>;
 	total_services_cost: number;
 	total_drugs_cost: number;
 	total_supplies_cost: number;
+	total_medical_tests_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -883,6 +887,13 @@ class InsuranceManager {
 	                    </div>
 	                    <div class="patient-admission-detail">
 	                        <strong>${i18n.t(
+					"insurance.report.totalMedicalTests"
+				)}:</strong> ${i18n.formatCurrency(
+					admission.medical_tests_amount || 0
+				)}
+	                    </div>
+	                    <div class="patient-admission-detail">
+	                        <strong>${i18n.t(
 					"insurance.patient.outstandingAmount"
 				)}:</strong> 
 	                        <span class="outstanding-amount ${outstanding === 0 ? "zero" : ""
@@ -1273,6 +1284,15 @@ class InsuranceManager {
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
 			"insurance.report.supplies"
+		)}</span>
+                </div>
+                <!-- Medical Tests -->
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${i18n.formatCurrency(
+			this.currentPatientReport.total_medical_tests_cost || 0
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.report.totalMedicalTests"
 		)}</span>
                 </div>
                 <div class="report-summary-item">
@@ -1673,6 +1693,17 @@ class InsuranceManager {
 									}
 								],
 								[
+									"Medical Tests Cost:",
+									{
+										text: this.formatCurrency(
+											this.currentPatientReport
+												.total_medical_tests_cost || 0,
+											true
+										),
+										alignment: "right"
+									}
+								],
+								[
 									{ text: "Total Cost:", bold: true },
 									{
 										text: this.formatCurrency(
@@ -1970,6 +2001,23 @@ class InsuranceManager {
 					{}, {}, {}, {},
 					{
 						text: this.formatCurrency(suppliesTotal, true),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
+				tableBody.push([
+					{
+						text: "Medical Tests Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(admission.medical_tests_amount || 0, true),
 						bold: true,
 						alignment: "right",
 						fillColor: "#f8f9fa"
@@ -2495,6 +2543,15 @@ class InsuranceManager {
 			"insurance.report.supplies"
 		)}</span>
                 </div>
+                <!-- Medical Tests -->
+                <div class="report-summary-item">
+                    <span class="report-summary-value">${i18n.formatCurrency(
+			this.currentReport.total_medical_tests_cost || 0
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.report.totalMedicalTests"
+		)}</span>
+                </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
 			this.currentReport.total_cost
@@ -2713,6 +2770,14 @@ class InsuranceManager {
 	                    <tfoot class="table-light">
 	                        <tr class="border-top-2">
 	                            <td colspan="5" class="fw-bold">${i18n.t(
+				"insurance.report.totalMedicalTests"
+			)}:</td>
+	                            <td class="fw-bold">${i18n.formatCurrency(
+				patientData.medicalTestsAmount || 0
+			)}</td>
+	                        </tr>
+	                        <tr>
+	                            <td colspan="5" class="fw-bold">${i18n.t(
 				"common.total"
 			)}:</td>
 	                            <td class="fw-bold">${i18n.formatCurrency(
@@ -2844,6 +2909,17 @@ class InsuranceManager {
 												text: this.formatCurrency(
 													this.currentReport
 														.total_supplies_cost,
+													true
+												),
+												alignment: "right"
+											}
+										],
+										[
+											"Medical Tests Cost:",
+											{
+												text: this.formatCurrency(
+													this.currentReport
+														.total_medical_tests_cost || 0,
 													true
 												),
 												alignment: "right"
@@ -3153,6 +3229,27 @@ class InsuranceManager {
 					}
 				]);
 
+				// Medical Tests Total
+				tableBody.push([
+					{
+						text: "Medical Tests Total:",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa",
+						alignment: "left"
+					},
+					{}, {}, {}, {},
+					{
+						text: this.formatCurrency(
+							patientData.medicalTestsAmount || 0,
+							true
+						),
+						bold: true,
+						alignment: "right",
+						fillColor: "#f8f9fa"
+					}
+				]);
+
 				tableBody.push([
 					{
 						text: "Total Charges:",
@@ -3272,6 +3369,7 @@ class InsuranceManager {
 
 	private groupItemsByPatient(items: any[]): { [patientName: string]: any } {
 		const groups: { [patientName: string]: any } = {};
+		const processedBillsPerPatient: { [patientName: string]: Set<number> } = {};
 
 		items.forEach((item) => {
 			const patientName = item.patient_name;
@@ -3281,12 +3379,21 @@ class InsuranceManager {
 					items: [],
 					totalCost: 0,
 					patientPaid: item.patient_paid_amount || 0,
-					patientTotal: item.patient_total_amount || 0
+					patientTotal: item.patient_total_amount || 0,
+					medicalTestsAmount: 0
 				};
+				processedBillsPerPatient[patientName] = new Set();
 			}
 
 			groups[patientName].items.push(item);
 			groups[patientName].totalCost += parseFloat(item.total_cost) || 0;
+
+			// Add medical tests amount once per bill
+			if (!processedBillsPerPatient[patientName].has(item.bill_id)) {
+				groups[patientName].medicalTestsAmount +=
+					parseFloat(item.medical_tests_amount) || 0;
+				processedBillsPerPatient[patientName].add(item.bill_id);
+			}
 
 			// Update patient payment info if it's higher (in case of multiple bills)
 			if (
@@ -3304,8 +3411,12 @@ class InsuranceManager {
 			}
 		});
 
-		// Sort items within each patient group by service date
+		// Add medical tests to total cost for each patient
 		Object.keys(groups).forEach((patientName) => {
+			groups[patientName].totalCost +=
+				groups[patientName].medicalTestsAmount;
+
+			// Sort items within each patient group by service date
 			groups[patientName].items.sort((a: any, b: any) => {
 				return (
 					new Date(a.service_date).getTime() -
@@ -3672,16 +3783,6 @@ class InsuranceManager {
 	private showError(message: string): void {
 		//@ts-ignore
 		toastr.error(message);
-	}
-
-	private showInfo(message: string): void {
-		//@ts-ignore
-		toastr.info(message);
-	}
-
-	private showWarning(message: string): void {
-		//@ts-ignore
-		toastr.warning(message);
 	}
 }
 

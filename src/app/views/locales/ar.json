@@ -62,7 +62,7 @@
 		"services": "الخدمات",
 		"pharmacy": "الصيدلية",
 		"drugs": "الأدوية",
-		"medicalSupplies": "المستلزمات الطبية",
+		"supplies": "المستلزمات الطبية",
 		"employees": "الموظفون",
 		"doctors": "الأطباء",
 		"nurses": "الممرضات",
@@ -651,6 +651,7 @@
 			"servicesTotal": "إجمالي الخدمات",
 			"drugsTotal": "إجمالي الأدوية",
 			"suppliesTotal": "إجمالي المستلزمات",
+			"medicalTestsTotal": "الفحوصات الطبية",
 			"paidAmount": "المبلغ المدفوع",
 			"discount": "الخصم",
 			"discountTotal": "إجمالي الخصم",
@@ -1037,6 +1038,7 @@
 			"period": "الفترة",
 			"totalServices": "إجمالي الخدمات",
 			"totalDrugs": "إجمالي الأدوية",
+			"totalMedicalTests": "إجمالي الفحوصات الطبية",
 			"totalAmount": "المبلغ الإجمالي",
 			"patientName": "اسم المريض",
 			"itemName": "اسم العنصر",
@@ -1355,6 +1357,7 @@
 			"servicesRevenue": "إيرادات الخدمات",
 			"drugsRevenue": "إيرادات الأدوية",
 			"suppliesRevenue": "إيرادات المستلزمات",
+			"medicalTestsRevenue": "إيرادات الفحوصات الطبية",
 			"totalPayments": "إجمالي المدفوعات",
 			"outstandingBalance": "الرصيد المستحق",
 			"totalDiscounts": "إجمالي الخصومات",
@@ -1681,7 +1684,8 @@
 			"nurses": "الممرضون",
 			"services": "الخدمات",
 			"drugs": "الأدوية",
-			"supplies": "المستلزمات الطبية"
+			"supplies": "المستلزمات الطبية",
+			"medicalTests": "الفحوصات الطبية"
 		},
 		"doctorCard": {
 			"patients": "مرضى"

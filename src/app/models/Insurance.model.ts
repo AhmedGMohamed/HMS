@@ -209,6 +209,7 @@ class InsuranceModel {
                 ph.bill_id,
                 b.total_amount,
                 b.paid_amount,
+                b.medical_tests_amount,
                 (b.total_amount - b.paid_amount) as outstanding_amount
             FROM Patient p
             LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id AND ph.discharge_time IS NULL
@@ -240,6 +241,7 @@ class InsuranceModel {
 					bill_id: row.bill_id,
 					total_amount: parseFloat(row.total_amount || 0),
 					paid_amount: parseFloat(row.paid_amount || 0),
+					medical_tests_amount: parseFloat(row.medical_tests_amount || 0),
 					outstanding_amount: parseFloat(
 						row.outstanding_amount || 0
 					)
@@ -423,7 +425,15 @@ class InsuranceModel {
 				(sum, item) => sum + item.total_cost,
 				0
 			);
-			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost;
+
+			// Get medical tests total
+			const totalMedicalTestsCost = await this.getMedicalTestsTotalByInsurance(
+				filters.insurance_id,
+				filters.start_date,
+				filters.end_date
+			);
+
+			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost + totalMedicalTestsCost;
 
 			// Get total patient payments for these bills
 			const patientPayments =
@@ -451,6 +461,7 @@ class InsuranceModel {
 				total_services_cost: totalServicesCost,
 				total_drugs_cost: totalDrugsCost,
 				total_supplies_cost: totalSuppliesCost,
+				total_medical_tests_cost: totalMedicalTestsCost,
 				total_cost: totalCost,
 				total_patient_payments: patientPayments,
 				outstanding_amount: outstandingAmount,
@@ -493,7 +504,8 @@ class InsuranceModel {
             DATE(bd.generated_at) as service_date,  -- Group by date only
             bd.sale_type,
             b.paid_amount as patient_paid_amount,  -- Add patient paid amount
-            b.total_amount as patient_total_amount  -- Add patient total amount
+            b.total_amount as patient_total_amount,  -- Add patient total amount
+            COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
         FROM Patient p
         JOIN PatientHistory ph ON p.patient_id = ph.patient_id
         JOIN Bill b ON ph.bill_id = b.bill_id
@@ -534,7 +546,7 @@ class InsuranceModel {
             p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
             ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
             s.name, bd.drug_shipment_id, dc.name, bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
-            DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount
+            DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount
         ORDER BY p.name, DATE(bd.generated_at) DESC
     `;
 
@@ -545,7 +557,8 @@ class InsuranceModel {
 			quantity: parseInt(row.quantity),
 			unit_price: parseFloat(row.unit_price),
 			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
-			patient_total_amount: parseFloat(row.patient_total_amount || 0)
+			patient_total_amount: parseFloat(row.patient_total_amount || 0),
+			medical_tests_amount: parseFloat(row.medical_tests_amount || 0)
 		}));
 	}
 
@@ -590,6 +603,25 @@ class InsuranceModel {
 
 		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
 		return parseFloat(rows[0].total_payments);
+	}
+
+	private async getMedicalTestsTotalByInsurance(
+		insuranceId: number,
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(b.medical_tests_amount), 0) as total
+            FROM Patient p
+            JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            JOIN Bill b ON ph.bill_id = b.bill_id
+            WHERE p.insurance_id = $1
+                AND b.generated_at >= $2
+                AND b.generated_at <= $3::DATE + '1 day'::INTERVAL;
+        `;
+
+		const { rows } = await query(sql, [insuranceId, startDate, endDate]);
+		return parseFloat(rows[0].total);
 	}
 
 	// Additional utility methods for reports and analytics
@@ -761,7 +793,15 @@ class InsuranceModel {
 				(sum, item) => sum + item.total_cost,
 				0
 			);
-			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost;
+
+			// Get medical tests total for this patient
+			const totalMedicalTestsCost = await this.getMedicalTestsTotalByPatient(
+				filters.patient_id,
+				filters.start_date,
+				filters.end_date
+			);
+
+			const totalCost = totalServicesCost + totalDrugsCost + totalSuppliesCost + totalMedicalTestsCost;
 
 			// Get total patient payments for this patient in the period
 			const patientPayments = await this.getPatientPaymentsByPeriod(
@@ -796,6 +836,7 @@ class InsuranceModel {
 				total_services_cost: totalServicesCost,
 				total_drugs_cost: totalDrugsCost,
 				total_supplies_cost: totalSuppliesCost,
+				total_medical_tests_cost: totalMedicalTestsCost,
 				total_cost: totalCost,
 				total_patient_payments: patientPayments,
 				outstanding_amount: outstandingAmount,
@@ -819,7 +860,8 @@ class InsuranceModel {
 			ph.bill_id,
 			b.total_amount,
 			b.paid_amount,
-			(b.total_amount - b.paid_amount) as outstanding_amount
+			(b.total_amount - b.paid_amount) as outstanding_amount,
+			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
 		FROM PatientHistory ph
 		JOIN Bill b ON ph.bill_id = b.bill_id
 		WHERE ph.patient_id = $1
@@ -932,7 +974,8 @@ class InsuranceModel {
 			bd.generated_at as service_date,
 			bd.sale_type,
 			b.paid_amount as patient_paid_amount,
-			b.total_amount as patient_total_amount
+			b.total_amount as patient_total_amount,
+			b.medical_tests_amount
 		FROM Patient p
 		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 		JOIN Bill b ON ph.bill_id = b.bill_id
@@ -978,7 +1021,8 @@ class InsuranceModel {
 			quantity: parseInt(row.quantity),
 			unit_price: parseFloat(row.unit_price),
 			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
-			patient_total_amount: parseFloat(row.patient_total_amount || 0)
+			patient_total_amount: parseFloat(row.patient_total_amount || 0),
+			medical_tests_amount: parseFloat(row.medical_tests_amount || 0)
 		}));
 	}
 
@@ -999,6 +1043,25 @@ class InsuranceModel {
 
 		const { rows } = await query(sql, [patientId, startDate, endDate]);
 		return parseFloat(rows[0].total_payments);
+	}
+
+	private async getMedicalTestsTotalByPatient(
+		patientId: number,
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+		SELECT COALESCE(SUM(b.medical_tests_amount), 0) as total
+		FROM Patient p
+		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+		JOIN Bill b ON ph.bill_id = b.bill_id
+		WHERE p.patient_id = $1
+			AND b.generated_at >= $2
+			AND b.generated_at <= $3::DATE + '1 day'::INTERVAL;
+	`;
+
+		const { rows } = await query(sql, [patientId, startDate, endDate]);
+		return parseFloat(rows[0].total);
 	}
 }
 

@@ -373,11 +373,11 @@ function calculateSummaryValue(field: ReportField, data: any): any {
 	switch (field.key) {
 		case "calculated.subtotal":
 			return (
-				data.billDetails?.reduce(
+				(data.billDetails?.reduce(
 					(sum: number, detail: BillDetail) =>
 						sum + detail.quantity * detail.unit_price,
 					0
-				) || 0
+				) || 0) + (data.bill?.medical_tests_amount || 0)
 			);
 		case "calculated.vat_amount":
 			// If VAT amount is explicitly provided in the bill object, use it.
@@ -543,6 +543,11 @@ export const reportTemplates = {
 					{
 						key: "bill.administrative_expenses",
 						label: "Administrative:",
+						type: "currency" as const
+					},
+					{
+						key: "bill.medical_tests_amount",
+						label: "Medical Tests:",
 						type: "currency" as const
 					},
 					{

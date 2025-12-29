@@ -52,20 +52,104 @@ class BillModel {
             }
         });
 
-        if (updateFields.length === 0) {
-            throw new Error("No valid fields to update");
+        if (updateFields.length > 0) {
+            values.push(bill_id);
+            const sql = `
+                UPDATE Bill 
+                SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+                WHERE bill_id = $${paramCount}
+                RETURNING *;
+            `;
+            await query(sql, values);
         }
 
-        values.push(bill_id);
-        const sql = `
-            UPDATE Bill 
-            SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-            WHERE bill_id = $${paramCount}
-            RETURNING *;
-        `;
+        // Recalculate total_amount after update
+        await this.recalculateTotal(bill_id);
 
-        const { rows } = await query(sql, values);
-        return rows[0] || null;
+        return this.getBillById(bill_id);
+    }
+
+    async recalculateTotal(billId: number): Promise<void> {
+        // 1. Calculate subtotal from BillDetail
+        const subtotalResult = await query(
+            `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
+             FROM BillDetail 
+             WHERE bill_id = $1`,
+            [billId]
+        );
+        const itemsSubtotal = parseFloat(subtotalResult.rows[0].subtotal);
+
+        // 2. Fetch bill configuration
+        const billResult = await query(
+            `SELECT medical_tests_amount, discount, discount_type, 
+                    vat_percentage, vat_scope, administrative_expenses
+             FROM Bill WHERE bill_id = $1`,
+            [billId]
+        );
+
+        if (billResult.rows.length === 0) return;
+
+        const bill = billResult.rows[0];
+        const medicalTests = parseFloat(bill.medical_tests_amount || 0);
+        const discount = parseFloat(bill.discount || 0);
+        const adminExpenses = parseFloat(bill.administrative_expenses || 0);
+        const vatPercentage = parseFloat(bill.vat_percentage || 0);
+        const vatScope = bill.vat_scope || "both";
+
+        // Subtotal includes medical tests for discount calculation
+        const totalSubtotal = itemsSubtotal + medicalTests;
+
+        // 3. Calculate discount
+        let discountAmount = 0;
+        if (bill.discount_type === "percentage") {
+            discountAmount = (totalSubtotal * discount) / 100;
+        } else {
+            discountAmount = discount;
+        }
+
+        const totalAfterDiscount = totalSubtotal - discountAmount;
+
+        // 4. Calculate VAT
+        let vatBase = 0;
+        if (totalSubtotal > 0) {
+            switch (vatScope) {
+                case "services":
+                    const servicesSubtotalResult = await query(
+                        `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
+                         FROM BillDetail 
+                         WHERE bill_id = $1 AND service_id IS NOT NULL`,
+                        [billId]
+                    );
+                    const servicesSubtotal = parseFloat(servicesSubtotalResult.rows[0].subtotal) + (medicalTests || 0);
+                    vatBase = servicesSubtotal - (discountAmount * (servicesSubtotal / totalSubtotal));
+                    break;
+                case "drugs":
+                    const drugsSuppliesSubtotalResult = await query(
+                        `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
+                         FROM BillDetail 
+                         WHERE bill_id = $1 AND (drug_shipment_id IS NOT NULL OR medical_supply_shipment_id IS NOT NULL)`,
+                        [billId]
+                    );
+                    const drugsSuppliesSubtotal = parseFloat(drugsSuppliesSubtotalResult.rows[0].subtotal);
+                    vatBase = drugsSuppliesSubtotal - (discountAmount * (drugsSuppliesSubtotal / totalSubtotal));
+                    break;
+                case "both":
+                default:
+                    vatBase = totalAfterDiscount;
+                    break;
+            }
+        }
+
+        const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
+
+        // 5. Final Total
+        const finalTotal = totalAfterDiscount + vatAmount + adminExpenses;
+
+        // 6. Update Bill
+        await query(
+            `UPDATE Bill SET total_amount = $1, updated_at = CURRENT_TIMESTAMP WHERE bill_id = $2`,
+            [finalTotal, billId]
+        );
     }
 }
 

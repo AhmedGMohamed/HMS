@@ -99,6 +99,7 @@ export interface InsuranceReportSummary {
 	total_services_cost: number;
 	total_drugs_cost: number;
 	total_supplies_cost: number;
+	total_medical_tests_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;
@@ -156,6 +157,7 @@ export interface PatientReportSummary {
 	total_services_cost: number;
 	total_drugs_cost: number;
 	total_supplies_cost: number;
+	total_medical_tests_cost: number;
 	total_cost: number;
 	total_patient_payments: number;
 	outstanding_amount: number;

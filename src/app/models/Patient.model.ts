@@ -15,6 +15,7 @@ import {
 	CreateEmployeePaymentDTO,
 	PaymentPatientAssociation
 } from "../utils/types/employees.js";
+import BillModel from "./Bill.model.js";
 
 export class PatientModel {
 	async getAllPatients(): Promise<Patient[]> {
@@ -726,12 +727,8 @@ export class PatientModel {
 		}
 	}
 
-	async handlePatientDischarge(
-		patientId: number,
-		currentAdmission: PatientHistory
-	): Promise<void> {
+	async handlePatientDischarge(patientId: number): Promise<void> {
 		const now = new Date();
-		const today = now.toISOString().split("T")[0];
 
 		// End all current assignments
 		await query(
@@ -918,6 +915,7 @@ export class PatientModel {
     	        ph.leave_reason,
     	        b.total_amount,
     	        b.paid_amount,
+				b.medical_tests_amount,
     	        array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL) as assigned_doctors,
     	        array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as assigned_nurses,
     	        (
@@ -938,7 +936,7 @@ export class PatientModel {
     	    LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NOT NULL
     	    GROUP BY ph.patient_history_id, ph.diagnosis, ph.admission_time, 
-    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.bill_id, ph.quick_check
+    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.medical_tests_amount, b.bill_id, ph.quick_check
     	    ORDER BY ph.discharge_time DESC;
     	`;
 		const result = await query(sql, [patientId]);
@@ -988,7 +986,8 @@ export class PatientModel {
     	        b.discount_type,
     	        b.discount,
     	        b.administrative_expenses,
-    	        b.vat_percentage,
+            b.medical_tests_amount,
+            b.vat_percentage,
     	        b.vat_scope,
     	        COALESCE(da.assigned_doctors, '[]'::json) as assigned_doctors,
     	        COALESCE(na.assigned_nurses, '[]'::json) as assigned_nurses
@@ -1700,16 +1699,7 @@ export class PatientModel {
 	}
 
 	private async updateBillTotal(billId: number): Promise<void> {
-		const totalSql = `
-            UPDATE Bill 
-            SET total_amount = (
-                SELECT COALESCE(SUM(quantity * unit_price), 0)
-                FROM BillDetail 
-                WHERE bill_id = $1
-            )
-            WHERE bill_id = $1;
-        `;
-		await query(totalSql, [billId]);
+		await BillModel.recalculateTotal(billId);
 	}
 
 	private async getPatientBill(billId: number): Promise<Bill> {
