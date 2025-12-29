@@ -3,6 +3,7 @@ export interface VaultSummary {
 	patient_services_total: number;
 	patient_drugs_total: number;
 	patient_supplies_total: number;
+	patient_medical_tests_total: number;
 	patient_payments_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;

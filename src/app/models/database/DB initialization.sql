@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS Bill (
 	discount_type discount_type,
 	discount DECIMAL(15, 2) DEFAULT 0,
 	administrative_expenses DECIMAL(15, 2) DEFAULT 0,
+	medical_tests_amount DECIMAL(15, 2) DEFAULT 0,
 	vat_percentage DECIMAL(5, 2),
 	vat_scope vat_scope_type,
 	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -400,33 +401,33 @@ CREATE TABLE IF NOT EXISTS MedicalSupplyShipmentPrice (
 	PRIMARY KEY (shipment_id, pricelist_id)
 );
 -- Update BillDetail table to include medical_supply_shipment_id
-ALTER TABLE BillDetail 
+ALTER TABLE BillDetail
 ADD COLUMN IF NOT EXISTS medical_supply_shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id);
 -- Drop the existing CHECK constraint on BillDetail
 ALTER TABLE BillDetail DROP CONSTRAINT IF EXISTS billdetail_check;
 ALTER TABLE BillDetail DROP CONSTRAINT IF EXISTS billdetail_generated_at_check;
 -- Add updated CHECK constraint to include medical supplies
-ALTER TABLE BillDetail ADD CONSTRAINT billdetail_check CHECK (
-	(
-		service_id IS NOT NULL
-		AND active_service_id IS NOT NULL
-		AND drug_shipment_id IS NULL
-		AND medical_supply_shipment_id IS NULL
-	)
-	OR (
-		service_id IS NULL
-		AND active_service_id IS NULL
-		AND drug_shipment_id IS NOT NULL
-		AND medical_supply_shipment_id IS NULL
-	)
-	OR (
-		service_id IS NULL
-		AND active_service_id IS NULL
-		AND drug_shipment_id IS NULL
-		AND medical_supply_shipment_id IS NOT NULL
-	)
-);
-
+ALTER TABLE BillDetail
+ADD CONSTRAINT billdetail_check CHECK (
+		(
+			service_id IS NOT NULL
+			AND active_service_id IS NOT NULL
+			AND drug_shipment_id IS NULL
+			AND medical_supply_shipment_id IS NULL
+		)
+		OR (
+			service_id IS NULL
+			AND active_service_id IS NULL
+			AND drug_shipment_id IS NOT NULL
+			AND medical_supply_shipment_id IS NULL
+		)
+		OR (
+			service_id IS NULL
+			AND active_service_id IS NULL
+			AND drug_shipment_id IS NULL
+			AND medical_supply_shipment_id IS NOT NULL
+		)
+	);
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);
 CREATE INDEX IF NOT EXISTS idx_drug_name ON DrugCard(name);
@@ -656,8 +657,7 @@ END;
 $$ LANGUAGE plpgsql;
 -- Create view for medical supply administrations that are due
 CREATE OR REPLACE VIEW MedicalSupplyAdministrationsDue AS
-SELECT
-	msu.usage_id,
+SELECT msu.usage_id,
 	msu.patient_id,
 	p.name as patient_name,
 	msu.supply_id,
@@ -669,29 +669,25 @@ SELECT
 	ms.sale_quantity,
 	ph.bill_id,
 	COALESCE(
-		msu.last_administered + ms.frequency :: interval,
+		msu.last_administered + ms.frequency::interval,
 		CURRENT_TIMESTAMP
 	) as next_administration
-FROM
-	MedicalSupplyUsage msu
+FROM MedicalSupplyUsage msu
 	JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
 	JOIN Patient p ON msu.patient_id = p.patient_id
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
-WHERE
-	msu.remaining_quantity > 0
+WHERE msu.remaining_quantity > 0
 	AND p.is_active = true
 	AND ms.is_obligatory_continuous = true
 	AND ms.frequency IS NOT NULL
 	AND (
 		msu.last_administered IS NULL
-		OR CURRENT_TIMESTAMP >= msu.last_administered + ms.frequency :: interval
+		OR CURRENT_TIMESTAMP >= msu.last_administered + ms.frequency::interval
 	);
-
 -- Create view for medical supplies that need replenishment
 CREATE OR REPLACE VIEW MedicalSupplyReplenishmentNeeded AS
-SELECT
-	msu.usage_id,
+SELECT msu.usage_id,
 	msu.patient_id,
 	p.name as patient_name,
 	msu.supply_id,
@@ -700,14 +696,12 @@ SELECT
 	ms.sale_quantity,
 	ms.is_obligatory_continuous,
 	ph.bill_id
-FROM
-	MedicalSupplyUsage msu
+FROM MedicalSupplyUsage msu
 	JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
 	JOIN Patient p ON msu.patient_id = p.patient_id
 	JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 	AND ph.discharge_time IS NULL
-WHERE
-	msu.remaining_quantity <= 0
+WHERE msu.remaining_quantity <= 0
 	AND p.is_active = true
 	AND ms.is_obligatory_continuous = true;
 -- Insert required permissions
@@ -721,8 +715,10 @@ VALUES (
 	('manage_services', 'Can manage services'),
 	('manage_billing', 'Can manage billing'),
 	('manage_pharmacy', 'Can manage pharmacy'),
-	('manage_supplies', 'Can manage medical supplies and inventory')
-	('manage_shipments', 'Can manage/edit shipments'),
+	(
+		'manage_supplies',
+		'Can manage medical supplies and inventory'
+	) ('manage_shipments', 'Can manage/edit shipments'),
 	(
 		'manage_insurance',
 		'Can manage insurance companies and their payments'

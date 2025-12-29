@@ -143,6 +143,7 @@ interface Bill {
 	patient_id: number;
 	total_amount: number;
 	paid_amount: number;
+	medical_tests_amount: number;
 	discount_type: "fixed" | "percentage" | null;
 	discount: number;
 	administrative_expenses: number;
@@ -1622,6 +1623,8 @@ class PatientManager {
 			parseFloat(drugsTotal.toString()).toFixed(2);
 		(document.getElementById("suppliesTotal") as HTMLInputElement).value =
 			parseFloat(suppliesTotal.toString()).toFixed(2);
+		(document.getElementById("medicalTestsAmount") as HTMLInputElement).value =
+			(bill.medical_tests_amount || 0).toString();
 		(document.getElementById("paidAmount") as HTMLInputElement).value =
 			bill.paid_amount.toString();
 
@@ -1649,6 +1652,8 @@ class PatientManager {
 		const fields = [
 			"servicesTotal",
 			"drugsTotal",
+			"suppliesTotal",
+			"medicalTestsAmount",
 			"paidAmount",
 			"discount",
 			"discountTotal",
@@ -1716,8 +1721,13 @@ class PatientManager {
 					) as HTMLInputElement
 				).value
 			) || 0;
+		const medicalTestsAmount =
+			parseFloat(
+				(document.getElementById("medicalTestsAmount") as HTMLInputElement)
+					.value
+			) || 0;
 
-		const subtotal = servicesTotal + drugsTotal + suppliesTotal;
+		const subtotal = servicesTotal + drugsTotal + suppliesTotal + medicalTestsAmount;
 
 		// Calculate discount
 		let discountAmount = 0;
@@ -1734,7 +1744,7 @@ class PatientManager {
 		switch (vatScope) {
 			case "services":
 				vatBase =
-					servicesTotal - discountAmount * (servicesTotal / subtotal);
+					(servicesTotal + medicalTestsAmount) - discountAmount * ((servicesTotal + medicalTestsAmount) / subtotal);
 				break;
 			case "drugs":
 				// Group supplies with drugs for VAT calculation
@@ -1813,12 +1823,19 @@ class PatientManager {
 					).value
 				) || 0;
 
+			const medicalTestsAmount =
+				parseFloat(
+					(document.getElementById("medicalTestsAmount") as HTMLInputElement)
+						.value
+				) || 0;
+
 			const updateData = {
 				discount_type: isDiscountPercentage ? "percentage" : "fixed",
 				discount: discount,
 				vat_percentage: vatPercentage,
 				vat_scope: vatScope,
-				administrative_expenses: administrativeExpenses
+				administrative_expenses: administrativeExpenses,
+				medical_tests_amount: medicalTestsAmount
 			};
 
 			const response = await fetch(
@@ -3541,6 +3558,14 @@ class PatientManager {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
+				"insurance.report.totalMedicalTests"
+			) || "Medical Tests Total"}:</span>
+                        <span class="detail-value">${i18n.formatCurrency(
+				admission.medical_tests_amount || 0
+			)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">${i18n.t(
 				"patients.billing.discount"
 			)}:</span>
                         <span class="detail-value">${i18n.formatCurrency(
@@ -4079,6 +4104,8 @@ class PatientManager {
 					this.currentAdmissionDetails.administrative_expenses || 0,
 				vat_percentage:
 					this.currentAdmissionDetails.vat_percentage || 0,
+				medical_tests_amount:
+					this.currentAdmissionDetails.medical_tests_amount || 0,
 				vat_scope: this.currentAdmissionDetails.vat_scope || "both",
 				generated_at: this.currentAdmissionDetails.admission_time,
 				updated_at: this.currentAdmissionDetails.discharge_time,
@@ -5278,6 +5305,7 @@ class PatientManager {
 			instances_count: supply.bill_details.length
 		}));
 	}
+
 	private formatGender(gender: string): string {
 		return i18n.t(`patients.gender.${gender}`);
 	}
@@ -5290,17 +5318,6 @@ class PatientManager {
 
 	private formatServiceType(serviceType: string): string {
 		return i18n.t(`patients.serviceTypes.${serviceType}`);
-	}
-
-	private parseDoctorType(
-		doctorTypesString: string,
-		index: number
-	): string | null {
-		if (!doctorTypesString) return null;
-
-		// Remove curly braces and split by comma
-		const types = doctorTypesString.replace(/[{}]/g, "").split(",");
-		return types[index] || null;
 	}
 
 	private setButtonLoading(
@@ -5318,13 +5335,11 @@ class PatientManager {
 				: text.getAttribute("data-original") || "Save";
 	}
 
-	private escapeHtml(unsafe: string): string {
-		return unsafe
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#039;");
+	private escapeHtml(text: string | null | undefined): string {
+		if (!text) return "";
+		const div = document.createElement("div");
+		div.textContent = text;
+		return div.innerHTML;
 	}
 
 	private showSuccess(message: string): void {
@@ -5336,14 +5351,10 @@ class PatientManager {
 		//@ts-ignore
 		toastr.error(message);
 	}
+
 	private showInfo(message: string): void {
 		//@ts-ignore
 		toastr.info(message);
-	}
-
-	private showWarning(message: string): void {
-		//@ts-ignore
-		toastr.warning(message);
 	}
 }
 

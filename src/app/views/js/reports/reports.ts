@@ -1093,6 +1093,19 @@ class ReportsManager {
 				: ""
 			}
 	        </div>
+	            ${admission.medical_tests_amount > 0
+				? `
+	            <div class="mt-2 text-primary">
+	                <small class="text-muted text-dark">${i18n.t(
+					"reports.admissionCard.medicalTests"
+				)}:</small>
+	                <div class="fw-bold">${i18n.formatCurrency(
+					admission.medical_tests_amount
+				)}</div>
+	            </div>
+	            `
+				: ""
+			}
 	    `;
 	}
 
@@ -1246,6 +1259,7 @@ class ReportsManager {
 						alignment: "center",
 						margin: [0, 0, 0, 15]
 					},
+					(this.currentReportData.length !== 1 ?
 					// Summary table
 					{
 						table: {
@@ -1268,10 +1282,12 @@ class ReportsManager {
 									: rowIndex % 2 === 0
 										? "#f9f9f9"
 										: null;
-							}
+							},
+							
 						},
-						margin: [0, 0, 0, 20]
-					},
+						margin: [0, 0, 0, 20],
+						fontSize: 8
+					} : null),
 					// Patient details
 					...this.generatePatientDetailsPages()
 				],
@@ -1379,7 +1395,7 @@ class ReportsManager {
 				});
 				if (patient.insurance_card_id) {
 					patientInfoHeaders.push({
-						text: "Insurance Card ID",
+						text: "Card ID",
 						bold: true,
 						fillColor: "#f0f0f0"
 					});
@@ -1562,6 +1578,30 @@ class ReportsManager {
 							admission.total_amount - admission.paid_amount;
 
 						// Add summary rows
+						if (admission.medical_tests_amount > 0) {
+							itemsTableBody.push([
+								{
+									text: "Medical Tests:",
+									colSpan: 5,
+									bold: true,
+									fillColor: "#f8f9fa"
+								},
+								{},
+								{},
+								{},
+								{},
+								{
+									text: this.formatCurrency(
+										admission.medical_tests_amount,
+										true
+									),
+									bold: true,
+									alignment: "right",
+									fillColor: "#f8f9fa"
+								}
+							]);
+						}
+
 						itemsTableBody.push([
 							{
 								text: "Total Charges:",
@@ -1854,10 +1894,7 @@ class ReportsManager {
 				{ text: data.national_id || "N/A", alignment: "left" },
 				{ text: this.capitalizeFirst(data.gender || "N/A"), alignment: "left" },
 				{
-					text: `${data.age
-						} years (Born: ${this.getBirthDateFromNationalId(
-							data.national_id
-						)})`,
+					text: `${data.age} years`,
 					alignment: "left"
 				},
 				{
@@ -1878,7 +1915,7 @@ class ReportsManager {
 				});
 				if (data.insurance_card_id) {
 					patientInfoHeaders.push({
-						text: "Insurance Card ID",
+						text: "Card ID",
 						bold: true,
 						fillColor: "#f0f0f0"
 					});
@@ -2135,6 +2172,37 @@ class ReportsManager {
 			admission.total_amount - admission.paid_amount;
 
 		if (includeFinances) {
+			// Add Medical Tests if applicable
+			if (admission.medical_tests_amount > 0) {
+				itemsTableBody.push([
+					{
+						text: "Medical Tests",
+						colSpan: 5,
+						bold: true,
+						fillColor: "#f8f9fa"
+					},
+					{},
+					{},
+					{},
+					{},
+					includeFinances
+						? {
+							text: this.formatCurrency(
+								admission.medical_tests_amount,
+								true
+							),
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa"
+						}
+						: {
+							text: "-",
+							bold: true,
+							alignment: "center",
+							fillColor: "#f8f9fa"
+						}
+				]);
+			}
 			// Add summary rows
 			itemsTableBody.push([
 				{

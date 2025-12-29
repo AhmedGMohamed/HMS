@@ -12,6 +12,7 @@ export class VaultModel {
 			patientServicesTotal,
 			patientDrugsTotal,
 			patientSuppliesTotal,
+			patientMedicalTestsTotal,
 			patientPaymentsTotal,
 			patientOutstandingTotal,
 			patientDiscountsTotal,
@@ -31,6 +32,7 @@ export class VaultModel {
 			this.getPatientServicesTotalAmount(startDate, endDate),
 			this.getPatientDrugsTotalAmount(startDate, endDate),
 			this.getPatientSuppliesTotalAmount(startDate, endDate),
+			this.getPatientMedicalTestsTotalAmount(startDate, endDate),
 			this.getPatientPaymentsTotalAmount(startDate, endDate),
 			this.getPatientOutstandingTotalAmount(startDate, endDate),
 			this.getPatientDiscountsTotalAmount(startDate, endDate),
@@ -68,6 +70,7 @@ export class VaultModel {
 			patient_services_total: patientServicesTotal,
 			patient_drugs_total: patientDrugsTotal,
 			patient_supplies_total: patientSuppliesTotal,
+			patient_medical_tests_total: patientMedicalTestsTotal,
 			patient_payments_total: patientPaymentsTotal,
 			patient_outstanding_total: patientOutstandingTotal,
 			patient_discounts_total: patientDiscountsTotal,
@@ -577,6 +580,21 @@ export class VaultModel {
             FROM BillDetail bd
             JOIN Bill b ON bd.bill_id = b.bill_id
             WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return parseFloat(result.rows[0].total);
+	}
+
+	// Medical Tests Methods
+	private async getPatientMedicalTestsTotalAmount(
+		startDate: string,
+		endDate: string
+	): Promise<number> {
+		const sql = `
+            SELECT COALESCE(SUM(medical_tests_amount), 0) as total
+            FROM Bill
+            WHERE generated_at >= $1 AND generated_at <= $2::DATE + '1 day'::INTERVAL;
         `;
 
 		const result = await query(sql, [startDate, endDate]);

@@ -9,6 +9,7 @@ interface VaultSummary {
 	patient_services_total: number;
 	patient_drugs_total: number;
 	patient_supplies_total: number;
+	patient_medical_tests_total: number;
 	patient_payments_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;
@@ -256,6 +257,8 @@ class VaultManager {
 			i18n.formatCurrency(summary.patient_drugs_total);
 		document.getElementById("patientSuppliesTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_supplies_total);
+		document.getElementById("patientMedicalTestsTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_medical_tests_total);
 		document.getElementById("patientPaymentsTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_payments_total);
 		document.getElementById("patientOutstandingTotal")!.textContent =
@@ -594,6 +597,25 @@ class VaultManager {
 							: 0
 				};
 
+			case "patient-medical-tests":
+				return {
+					total_revenue: data.reduce(
+						(sum, row) =>
+							sum + parseFloat(row.medical_tests_amount || 0),
+						0
+					),
+					total_records: data.length,
+					avg_per_patient:
+						data.length > 0
+							? data.reduce(
+								(sum, row) =>
+									sum +
+									parseFloat(row.medical_tests_amount || 0),
+								0
+							) / data.length
+							: 0
+				};
+
 			case "patient-payments":
 				return {
 					total_paid: data.reduce(
@@ -817,7 +839,8 @@ class VaultManager {
 			"drug-sales": "Drug Sales Revenue",
 			"drug-profits": "Drug Sales Profit",
 			"wages-owed": "Wages Owed",
-			"wages-paid": "Wages Paid"
+			"wages-paid": "Wages Paid",
+			"patient-medical-tests": "Medical Tests Revenue"
 		};
 		return titles[reportType] || "Report";
 	}
@@ -835,7 +858,8 @@ class VaultManager {
 			"drug-sales": "drug-sales",
 			"drug-profits": "drug-profits",
 			"wages-owed": "wages-owed",
-			"wages-paid": "wages-paid"
+			"wages-paid": "wages-paid",
+			"patient-medical-tests": "patient-medical-tests"
 		};
 		return endpoints[reportType] || "";
 	}
@@ -877,6 +901,32 @@ class VaultManager {
 					key: "paid_amount",
 					label: "Paid",
 					labelKey: "vault.reportColumns.paid",
+					type: "currency"
+				}
+			],
+			"patient-medical-tests": [
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
+				{
+					key: "medical_tests_amount",
+					label: "Amount",
+					labelKey: "vault.reportColumns.amount",
 					type: "currency"
 				}
 			],
@@ -1392,16 +1442,6 @@ class VaultManager {
 	private showError(message: string): void {
 		//@ts-ignore
 		toastr.error(message);
-	}
-
-	private showInfo(message: string): void {
-		//@ts-ignore
-		toastr.info(message);
-	}
-
-	private showWarning(message: string): void {
-		//@ts-ignore
-		toastr.warning(message);
 	}
 }
 

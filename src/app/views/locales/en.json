@@ -62,7 +62,7 @@
 		"services": "Services",
 		"pharmacy": "Pharmacy",
 		"drugs": "Drugs",
-		"medicalSupplies": "Medical Supplies",
+		"supplies": "Medical Supplies",
 		"employees": "Employees",
 		"doctors": "Doctors",
 		"nurses": "Nurses",
@@ -650,6 +650,7 @@
 			"servicesTotal": "Services Total",
 			"drugsTotal": "Drugs Total",
 			"suppliesTotal": "Supplies Total",
+			"medicalTestsTotal": "Medical Tests",
 			"paidAmount": "Paid Amount",
 			"discount": "Discount",
 			"discountTotal": "Discount Total",
@@ -1039,6 +1040,7 @@
 			"period": "Period",
 			"totalServices": "Total Services",
 			"totalDrugs": "Total Drugs",
+			"totalMedicalTests": "Total Medical Tests",
 			"totalAmount": "Total Amount",
 			"patientName": "Patient Name",
 			"itemName": "Item Name",
@@ -1359,6 +1361,7 @@
 			"servicesRevenue": "Services Revenue",
 			"drugsRevenue": "Drugs Revenue",
 			"suppliesRevenue": "Supplies Revenue",
+			"medicalTestsRevenue": "Medical Tests Revenue",
 			"totalPayments": "Total Payments",
 			"outstandingBalance": "Outstanding Balance",
 			"totalDiscounts": "Total Discounts",
@@ -1395,7 +1398,8 @@
 			"viewSupplyProfitsReport": "View Supply Profits Report",
 			"viewWagesOwedReport": "View Wages Owed Report",
 			"viewWagesPaidReport": "View Wages Paid Report",
-			"viewOutstandingWagesReport": "View Outstanding Wages Report"
+			"viewOutstandingWagesReport": "View Outstanding Wages Report",
+			"viewMedicalTestsReport": "View Medical Tests Report"
 		},
 		"modals": {
 			"addManualPayment": "Add Manual Payment",
@@ -1685,7 +1689,8 @@
 			"nurses": "Nurses",
 			"services": "Services",
 			"drugs": "Drugs",
-			"supplies": "Medical Supplies"
+			"supplies": "Medical Supplies",
+			"medicalTests": "Medical Tests"
 		},
 		"doctorCard": {
 			"patients": "Patients"

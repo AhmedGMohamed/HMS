@@ -407,15 +407,22 @@
                     <input type="text" class="form-control" id="drugsTotal" readonly value="0.00">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.suppliesTotal">Supplies Total</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="text" class="form-control" id="suppliesTotal" readonly value="0.00">
                   </div>
                 </div>
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.medicalTestsTotal">Medical Tests</label>
+                  <div class="input-group">
+                    <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                    <input type="number" class="form-control" id="medicalTestsAmount" value="0" min="0" step="0.01">
+                  </div>
+                </div>
                 <!-- Second Row -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.paidAmount">Paid Amount</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
@@ -434,7 +441,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.discountTotal">Discount Total</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
@@ -449,7 +456,8 @@
                     <input type="text" class="form-control" id="totalAfterDiscount" readonly value="0.00">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <!-- Third Row -->
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.vatPercentage">VAT %</label>
                   <input type="number" class="form-control" id="vatPercentage" value="0" min="0" max="100" step="0.1">
                 </div>
@@ -461,8 +469,6 @@
                     <option value="drugs" data-i18n="patients.billing.vatScopeDrugs">Drugs Only</option>
                   </select>
                 </div>
-
-                <!-- Third Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.adminExpenses">Administrative Expenses</label>
                   <div class="input-group">
@@ -477,6 +483,7 @@
                     <input type="text" class="form-control total-fee" id="totalFee" readonly value="0.00">
                   </div>
                 </div>
+                <!-- Fourth Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.remainingFacility">Remaining for Facility</label>
                   <div class="input-group">
@@ -491,16 +498,14 @@
                     <input type="text" class="form-control remaining-patient" id="remainingPatient" readonly value="0.00">
                   </div>
                 </div>
-
-                <!-- Payment Row -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.paymentAmount">Payment Amount</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="number" class="form-control" id="paymentAmount" value="0" step="0.01">
                   </div>
                 </div>
-                <div class="col-md-8 d-flex align-items-end">
+                <div class="col-md-3 d-flex align-items-end">
                   <div class="button-group">
                     <button type="button" class="btn btn-success" id="confirmPaymentBtn">
                       <i class="bi bi-check-circle"></i> <span data-i18n="patients.buttons.confirmPayment">Confirm Payment</span>
@@ -886,24 +891,36 @@
                   <div class="row g-2">
                     <div class="col-8" data-i18n="patients.billing.subtotal">Subtotal:</div>
                     <div class="col-4 text-end fw-bold" id="printSubtotal">$0.00</div>
-                    <div class="col-4 d-flex align-items-end">
+                    <div class="col-3 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.servicesTotal">Services Total:</small><br>
                         <span id="printServicesTotal" class="fw-bold">$0.00</span>
                       </div>
                     </div>
-                    <div class="col-4 d-flex align-items-end">
+                    <div class="col-3 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.drugsTotal">Drugs Total:</small><br>
                         <span id="printDrugsTotal" class="fw-bold">$0.00</span>
                       </div>
                     </div>
-                    <div class="col-4 d-flex align-items-end">
+                    <div class="col-3 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.suppliesTotal">Supplies Total:</small><br>
                         <span id="printSuppliesTotal" class="fw-bold">$0.00</span>
                       </div>
                     </div>
+                    <div class="col-3 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted" data-i18n="patients.billing.medicalTestsTotal">Medical Tests:</small><br>
+                        <span id="printMedicalTestsTotal" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+
+                    <div class="col-6">
+                      <label class="form-label mb-1" data-i18n="patients.billing.medicalTestsTotal">Medical Tests Amount:</label>
+                      <input type="number" class="form-control form-control-sm" id="printMedicalTestsAmount" value="0" min="0" step="0.01">
+                    </div>
+                    <div class="col-6"></div>
 
                     <div class="col-6">
                       <div class="form-check mb-2">

@@ -173,6 +173,7 @@ export class SidebarManager {
 			services: "sidebar.services",
 			drugs: "sidebar.drugs",
 			pharmacy: "sidebar.pharmacy",
+			supplies: "sidebar.supplies",
 			employees: "sidebar.employees",
 			doctors: "sidebar.doctors",
 			nurses: "sidebar.nurses",

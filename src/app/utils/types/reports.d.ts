@@ -46,6 +46,7 @@ export interface PatientAdmissionDetail {
 	total_amount: number;
 	paid_amount: number;
 	discount: number;
+	medical_tests_amount: number;
 	daily_staff: DailyStaffAssignment[];
 	services: ServiceUsageDetail[];
 	drugs: DrugUsageDetail[];
