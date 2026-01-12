@@ -178,22 +178,19 @@ export class ServiceModel {
 
 			// Update prices if provided
 			if (serviceData.prices) {
-				await query("DELETE FROM ServicePrice WHERE service_id = $1", [
-					serviceData.service_id
-				]);
-
 				for (const price of serviceData.prices) {
-					// Delete existing price for the price list supplied
-					await query(
-						"DELETE FROM ServicePrice WHERE service_id = $1 AND pricelist_id = $2",
-						[serviceData.service_id, price.pricelist_id]
-					);
-					// Insert new price
+					// Use UPSERT to update or insert price without affecting other price lists
 					const priceSql = `
                         INSERT INTO ServicePrice (
                             service_id, pricelist_id, price,
                             requires_prepayment, prepayment_type, prepayment_amount
-                        ) VALUES ($1, $2, $3, $4, $5, $6);
+                        ) VALUES ($1, $2, $3, $4, $5, $6)
+                        ON CONFLICT (service_id, pricelist_id) 
+                        DO UPDATE SET 
+                            price = EXCLUDED.price,
+                            requires_prepayment = EXCLUDED.requires_prepayment,
+                            prepayment_type = EXCLUDED.prepayment_type,
+                            prepayment_amount = EXCLUDED.prepayment_amount;
                     `;
 					await query(priceSql, [
 						serviceData.service_id,

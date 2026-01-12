@@ -149,7 +149,11 @@ export class PriceListModel {
 				(SELECT COUNT(*) FROM ShipmentPrice
 				 JOIN DrugShipment ds ON ds.shipment_id = shipmentprice.shipment_id
 				 AND ds.quantity > 0
-				 WHERE pricelist_id = $1) AS total_drugs
+				 WHERE pricelist_id = $1) AS total_drugs,
+				(SELECT COUNT(*) FROM MedicalSupplyShipmentPrice
+				 JOIN MedicalSupplyShipment mss ON mss.shipment_id = medicalsupplyshipmentprice.shipment_id
+				 AND mss.quantity > 0
+				 WHERE pricelist_id = $1) AS total_supplies
 				`;
 
 		const result = await query(sql, [priceListId]);

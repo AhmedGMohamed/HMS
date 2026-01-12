@@ -24,7 +24,7 @@ export class DrugShipmentModel {
 					FROM (
 						SELECT DISTINCT sp.pricelist_id, sp.price, sp.requires_prepayment, sp.prepayment_type, sp.prepayment_amount
 						FROM ShipmentPrice sp
-						WHERE sp.shipment_id = dc.drug_id
+						WHERE sp.shipment_id = ds.shipment_id
 					) t
 				) as prices 
                 FROM DrugShipment ds
@@ -203,28 +203,20 @@ export class DrugShipmentModel {
 				paramCount++;
 			}
 
-			if (updates.length === 0) {
-				return currentShipment;
+			if (updates.length > 0) {
+				values.push(data.shipment_id);
+				const sql = `
+	                UPDATE DrugShipment
+	                SET ${updates.join(", ")}
+	                WHERE shipment_id = $${paramCount}
+	                RETURNING *;
+	            `;
+
+				await query(sql, values);
 			}
 
-			values.push(data.shipment_id);
-			const sql = `
-                UPDATE DrugShipment
-                SET ${updates.join(", ")}
-                WHERE shipment_id = $${paramCount}
-                RETURNING *;
-            `;
-
-			await query(sql, values);
-
 			if (data.prices !== undefined && data.prices.length > 0) {
-				// Delete all existing prices for this shipment
-				await query(
-					"DELETE FROM ShipmentPrice WHERE shipment_id = $1",
-					[data.shipment_id]
-				);
-
-				// Insert all new prices
+				// Insert all new prices using UPSERT
 				for (const price of data.prices) {
 					// Validate price data
 					if (!price.pricelist_id || price.price === undefined) {
@@ -266,7 +258,15 @@ export class DrugShipmentModel {
 						}
 					}
 
-					// Insert the price
+					// Insert or Update the price
+					// Insert or Update the price
+					// First remove any existing price for this pricelist
+					await query(
+						"DELETE FROM ShipmentPrice WHERE shipment_id = $1 AND pricelist_id = $2",
+						[data.shipment_id, price.pricelist_id]
+					);
+
+					// Then insert the new price
 					await query(
 						`INSERT INTO ShipmentPrice 
 						 (shipment_id, pricelist_id, price, requires_prepayment, prepayment_type, prepayment_amount) 
