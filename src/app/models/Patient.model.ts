@@ -530,15 +530,15 @@ export class PatientModel {
 					);
 
 					const admissionTime = new Date(admission.admission_time);
-					let hoursWorked = 1.0;
+					// let hoursWorked = 1.0;
 
 					if (admissionTime.toISOString().split("T")[0] < today) {
-						hoursWorked = 24.0;
+						// hoursWorked = 24.0;
 					} else {
-						hoursWorked = Math.max(
-							1.0,
-							(now.getTime() - admissionTime.getTime()) / 3600000
-						);
+						// hoursWorked = Math.max(
+						// 	1.0,
+						// 	(now.getTime() - admissionTime.getTime()) / 3600000
+						// );
 					}
 
 					await query(
@@ -1202,6 +1202,50 @@ export class PatientModel {
 				userId
 			);
 
+			// Create Doctor Service Payment
+			const doctors = await query(`
+                SELECT d.doctor_id, d.doctor_type, e.extra_payment_type, e.percentage_scope, dsp.price
+                FROM PatientDoctor pd
+                JOIN Doctor d ON pd.doctor_id = d.doctor_id
+                JOIN Employee e ON d.doctor_id = e.employee_id
+                JOIN DoctorServicePrice dsp ON d.doctor_id = dsp.doctor_id AND dsp.service_id = $1
+                WHERE pd.patient_id = $2 AND pd.unassigned_at IS NULL
+            `, [serviceId, patientId]);
+
+			for (const doctor of doctors.rows) {
+				if (Number(doctor.price) > 0) {
+
+					const payment: CreateEmployeePaymentDTO = {
+						employee_id: doctor.doctor_id,
+						payment_amount: 0.0,
+						payment_type: "service",
+						extra_payment_type: doctor.extra_payment_type || "per_patient",
+						extra_amount: doctor.price,
+						percentage_scope: doctor.percentage_scope,
+						paid_by_user_id: null
+					};
+
+					const workDate = new Date().toISOString().split("T")[0];
+
+					const associations: PaymentPatientAssociation[] = [
+						{
+							patient_id: patientId,
+							patient_history_id: currentAdmission.patient_history_id,
+							work_date: workDate,
+							hours_worked: 0.0,
+							payment_amount: doctor.price,
+							payment_type: "service",
+							active_service_id: activeServiceResult.rows[0].active_service_id
+						}
+					];
+
+					await EmployeePaymentModel.createPaymentWithPatients(
+						payment,
+						associations
+					);
+				}
+			}
+
 			await query("COMMIT");
 			return {
 				service: activeServiceResult.rows[0],
@@ -1284,20 +1328,15 @@ export class PatientModel {
 				[currentAdmission.bill_id, activeServiceId]
 			);
 
+			// Remove service payments
+			await EmployeePaymentModel.removeServicePayments(activeServiceId);
+
 			// Remove service from ActivePatientService
 			await query(
 				`DELETE FROM ActivePatientService 
                  WHERE active_service_id = $1`,
 				[serviceResult.rows[0].active_service_id]
 			);
-
-			// TODO: Implement proper service drug linking for accurate removal
-			// Handle removing service drugs if any
-			/*await this.removeServiceDrugsFromPatient(
-				patientId,
-				serviceId,
-				currentAdmission.bill_id!
-			);*/
 
 			// Update bill total
 			await this.updateBillTotal(currentAdmission.bill_id!);

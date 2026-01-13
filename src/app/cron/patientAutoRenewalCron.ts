@@ -2,6 +2,8 @@
 import { CronJob } from "cron";
 import { query } from "../models/database/connection.js";
 import PatientModel from "../models/Patient.model.js";
+import { CreateEmployeePaymentDTO, PaymentPatientAssociation } from "../utils/types/employees.js";
+import EmployeePaymentModel from "../models/EmployeePayment.model.js";
 
 export class PatientAutoRenewalCron {
 	private serviceRenewalJob: CronJob;
@@ -178,6 +180,55 @@ export class PatientAutoRenewalCron {
 					serviceInfo.active_service_id
 				]
 			);
+
+			// Create Doctor Service Payment for Renewal
+			// We need to fetch the current admission details to get the doctor assignments
+			const currentAdmission = await PatientModel.getCurrentAdmission(serviceInfo.patient_id);
+			if (currentAdmission) {
+				const doctors = await query(`
+                    SELECT d.doctor_id, d.doctor_type, e.extra_payment_type, e.percentage_scope, dsp.price
+                    FROM PatientDoctor pd
+                    JOIN Doctor d ON pd.doctor_id = d.doctor_id
+                    JOIN Employee e ON d.doctor_id = e.employee_id
+                    JOIN DoctorServicePrice dsp ON d.doctor_id = dsp.doctor_id AND dsp.service_id = $1
+                    WHERE pd.patient_id = $2 AND pd.unassigned_at IS NULL
+                `, [serviceInfo.service_id, serviceInfo.patient_id]);
+
+				for (const doctor of doctors.rows) {
+					// Only create payment if price > 0
+					if (doctor.price > 0) {
+						const amount = doctor.price * parseFloat(serviceInfo.number_of_periods);
+						const payment: CreateEmployeePaymentDTO = {
+							employee_id: doctor.doctor_id,
+							payment_amount: 0.0,
+							payment_type: "service_renewal",
+							extra_payment_type: doctor.extra_payment_type || "per_patient",
+							extra_amount: amount,
+							percentage_scope: doctor.percentage_scope,
+							paid_by_user_id: null
+						};
+
+						const workDate = new Date().toISOString().split("T")[0];
+
+						const associations: PaymentPatientAssociation[] = [
+							{
+								patient_id: serviceInfo.patient_id,
+								patient_history_id: currentAdmission.patient_history_id,
+								work_date: workDate,
+								hours_worked: 0.0,
+								payment_amount: amount,
+								payment_type: "service_renewal",
+								active_service_id: serviceInfo.active_service_id
+							}
+						];
+
+						await EmployeePaymentModel.createPaymentWithPatients(
+							payment,
+							associations
+						);
+					}
+				}
+			}
 
 			await query("COMMIT");
 
