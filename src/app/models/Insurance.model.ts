@@ -891,10 +891,10 @@ class InsuranceModel {
 					WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
 					ELSE 'supply'
 				END as item_type,
-				bd.quantity,
+				SUM(bd.quantity) as quantity,  -- Group and sum quantities
 				bd.unit_price,
-				(bd.quantity * bd.unit_price) as total_cost,
-				bd.generated_at as service_date,
+				SUM(bd.quantity * bd.unit_price) as total_cost,  -- Sum total costs
+				DATE(bd.generated_at) as service_date,  -- Group by date only
 				bd.sale_type
 			FROM BillDetail bd
 			LEFT JOIN Service s ON bd.service_id = s.service_id
@@ -926,7 +926,14 @@ class InsuranceModel {
 				itemsQuery.push(filters.insurance_id);
 			}
 
-			itemsSql += " ORDER BY bd.generated_at DESC";
+			// Group by item and date
+			itemsSql += `
+				GROUP BY 
+					bd.service_id, s.name, bd.drug_shipment_id, dc.name, 
+					bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
+					DATE(bd.generated_at), bd.sale_type
+				ORDER BY DATE(bd.generated_at) DESC
+			`;
 
 			const itemsResult = await query(itemsSql, itemsQuery);
 			admission.items = itemsResult.rows.map((row) => ({
@@ -968,14 +975,14 @@ class InsuranceModel {
 				WHEN bd.drug_shipment_id IS NOT NULL THEN 'drug'
 				ELSE 'supply'
 			END as item_type,
-			bd.quantity,
+			SUM(bd.quantity) as quantity,  -- Group and sum quantities
 			bd.unit_price,
-			(bd.quantity * bd.unit_price) as total_cost,
-			bd.generated_at as service_date,
+			SUM(bd.quantity * bd.unit_price) as total_cost,  -- Sum total costs
+			DATE(bd.generated_at) as service_date,  -- Group by date only
 			bd.sale_type,
 			b.paid_amount as patient_paid_amount,
 			b.total_amount as patient_total_amount,
-			b.medical_tests_amount
+			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
 		FROM Patient p
 		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 		JOIN Bill b ON ph.bill_id = b.bill_id
@@ -1012,7 +1019,15 @@ class InsuranceModel {
 		)`;
 		}
 
-		sql += " ORDER BY bd.generated_at DESC";
+		// Group by patient, item, and date
+		sql += `
+			GROUP BY 
+				p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
+				ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
+				s.name, bd.drug_shipment_id, dc.name, bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
+				DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount
+			ORDER BY DATE(bd.generated_at) DESC
+		`;
 
 		const { rows } = await query(sql, values);
 		return rows.map((row) => ({
