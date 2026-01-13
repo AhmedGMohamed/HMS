@@ -22,7 +22,15 @@ interface Doctor {
 	shift_type?: string;
 	shift_start_time: string;
 	shift_end_time: string;
+	service_prices?: DoctorServicePrice[];
 }
+
+interface DoctorServicePrice {
+	service_id: number;
+	service_name: string;
+	price: number;
+}
+
 
 interface Payment {
 	payment_id: number;
@@ -149,7 +157,16 @@ class DoctorManager {
 				this.doctorPaymentStartDate.value = "";
 				this.doctorPaymentEndDate.value = "";
 				this.renderDoctors(this.searchDoctor.value);
+				this.renderDoctors(this.searchDoctor.value);
 			});
+
+		// Add listener for service price inputs
+		document.getElementById("doctorServicesList")?.addEventListener("input", (e) => {
+			const target = e.target as HTMLInputElement;
+			if (target.classList.contains("doctor-service-price")) {
+				// You can add validation or immediate save logic here if needed
+			}
+		});
 	}
 
 	private async loadUser(): Promise<void> {
@@ -264,82 +281,71 @@ class DoctorManager {
 				return `
           <tr>
             <td>
-              ${
-					this.userPermissions.includes("manage_payments") &&
-					payments.length > 0
+              ${this.userPermissions.includes("manage_payments") &&
+						payments.length > 0
 						? `<button class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                              <i class="bi bi-chevron-down"></i>
                            </button>`
 						: ""
-				}
+					}
             </td>
             <td>${this.escapeHtml(doctor.name)}</td>
             <td>${i18n.t(`employees.doctorTypes.${doctor.doctor_type}`)}</td>
             <td>${i18n.formatDate(new Date(doctor.hire_date))}</td>
-            <td>${
-				this.userPermissions.includes("manage_payments")
-					? i18n.formatCurrency(Number(doctor.daily_pay) || 0)
-					: "-"
-			}</td>
-            <td>${
-				this.userPermissions.includes("manage_payments")
-					? this.formatPerPatientPay(doctor)
-					: "-"
-			}</td>
-			<td>${
-				doctor.shift_type
-					? i18n.t(`employees.shiftTypes.${doctor.shift_type}`)
-					: "-"
-			}</td>
-            <td>${
-				doctor.is_active
-					? `<span class='feature-indicator enabled'>
+            <td>${this.userPermissions.includes("manage_payments")
+						? i18n.formatCurrency(Number(doctor.daily_pay) || 0)
+						: "-"
+					}</td>
+            <td>${this.userPermissions.includes("manage_payments")
+						? this.formatPerPatientPay(doctor)
+						: "-"
+					}</td>
+			<td>${doctor.shift_type
+						? i18n.t(`employees.shiftTypes.${doctor.shift_type}`)
+						: "-"
+					}</td>
+            <td>${doctor.is_active
+						? `<span class='feature-indicator enabled'>
 						<i class='bi bi-check-circle-fill text-success'></i>
 						${i18n.t("common.yes")}
 					</span>`
-					: `<span class="feature-indicator disabled">
+						: `<span class="feature-indicator disabled">
                         <i class="bi bi-x-circle-fill text-danger"></i>
                         ${i18n.t("common.no")}
                     </span>`
-			}</td>
+					}</td>
             <td>
               <div class="action-buttons">
-                ${
-					this.userRole === "Admin"
-						? `<button class="btn btn-sm btn-outline-primary" onclick="doctorManager.editDoctor(${
-								doctor.employee_id
-						  })">
+                ${this.userRole === "Admin"
+						? `<button class="btn btn-sm btn-outline-primary" onclick="doctorManager.editDoctor(${doctor.employee_id
+						})">
                              <i class="bi bi-pencil"></i> ${i18n.t(
-									"employees.buttons.edit"
-								)}
+							"employees.buttons.edit"
+						)}
                            </button>
-                           <button class="btn btn-sm btn-outline-danger" onclick="doctorManager.deleteDoctor(${
-								doctor.employee_id
-							})">
+                           <button class="btn btn-sm btn-outline-danger" onclick="doctorManager.deleteDoctor(${doctor.employee_id
+						})">
                              <i class="bi bi-trash"></i> ${i18n.t(
-									"employees.buttons.delete"
-								)}
+							"employees.buttons.delete"
+						)}
                            </button>`
 						: ""
-				}
-                ${
-					this.userPermissions.includes("manage_payments")
-						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${
-								doctor.employee_id
-						  })">
+					}
+                ${this.userPermissions.includes("manage_payments")
+						? `<button class="btn btn-sm btn-outline-success" onclick="employeeManager.showPaymentModal(${doctor.employee_id
+						})">
                              <i class="bi bi-plus-circle"></i> ${i18n.t(
-									"employees.buttons.createPayment"
-								)}
+							"employees.buttons.createPayment"
+						)}
                            </button>`
 						: ""
-				}
+					}
               </div>
             </td>
           </tr>
-          ${
-				this.userPermissions.includes("manage_payments") &&
-				payments.length > 0
-					? `
+          ${this.userPermissions.includes("manage_payments") &&
+						payments.length > 0
+						? `
               <tr class="collapse" id="${collapseId}">
                 <td colspan="9">
                   <div class="table-responsive">
@@ -363,76 +369,68 @@ class DoctorManager {
                           <tr>
                             <td>${payment.payment_id}</td>
                             <td>${i18n.formatCurrency(
-								Number(payment.payment_amount) +
+									Number(payment.payment_amount) +
 									Number(payment.extra_amount || 0)
-							)}<small class="d-block text-muted">(${i18n.formatCurrency(
+								)}<small class="d-block text-muted">(${i18n.formatCurrency(
 									payment.payment_amount
 								)} + ${i18n.formatCurrency(
 									payment.extra_amount || 0
 								)})</small>
 							</td>
-                            <td>${
-								payment.extra_payment_type &&
-								payment.extra_payment_type !== "none"
-									? i18n.t(
+                            <td>${payment.extra_payment_type &&
+										payment.extra_payment_type !== "none"
+										? i18n.t(
 											`employees.paymentTypes.${payment.extra_payment_type}`
-									  )
-									: i18n.t("employees.paymentTypes.none")
-							}</td>
+										)
+										: i18n.t("employees.paymentTypes.none")
+									}</td>
                             <td>${i18n.formatDateTime(
-								new Date(payment.issued_timestamp)
-							)}</td>
-                            <td>${
-								payment.is_void
-									? i18n.t("employees.paymentStatus.void")
-									: payment.is_paid
-									? i18n.t("employees.paymentStatus.paid")
-									: i18n.t("employees.paymentStatus.pending")
-							}</td>
-                            <td>${
-								payment.is_paid && payment.paid_by
-									? this.escapeHtml(payment.paid_by)
-									: "-"
-							}</td>
-                            <td>${
-								payment.is_paid && payment.paid_timestamp
-									? i18n.formatDateTime(
+										new Date(payment.issued_timestamp)
+									)}</td>
+                            <td>${payment.is_void
+										? i18n.t("employees.paymentStatus.void")
+										: payment.is_paid
+											? i18n.t("employees.paymentStatus.paid")
+											: i18n.t("employees.paymentStatus.pending")
+									}</td>
+                            <td>${payment.is_paid && payment.paid_by
+										? this.escapeHtml(payment.paid_by)
+										: "-"
+									}</td>
+                            <td>${payment.is_paid && payment.paid_timestamp
+										? i18n.formatDateTime(
 											new Date(payment.paid_timestamp)
-									  )
-									: "-"
-							}</td>
+										)
+										: "-"
+									}</td>
                             <td>
                               <div class="action-buttons">
-                                ${
-									!payment.is_paid && !payment.is_void
+                                ${!payment.is_paid && !payment.is_void
 										? `
-                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${
-										payment.payment_id
-									})">
+                                  <button class="btn btn-sm btn-outline-success" onclick="employeeManager.markPaymentPaid(${payment.payment_id
+										})">
                                     <i class="bi bi-check-circle"></i> ${i18n.t(
-										"employees.buttons.markPaid"
-									)}
+											"employees.buttons.markPaid"
+										)}
                                   </button>
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
-										payment.payment_id
-									})">
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id
+										})">
                                     <i class="bi bi-x-circle"></i> ${i18n.t(
-										"employees.buttons.void"
-									)}
+											"employees.buttons.void"
+										)}
                                   </button>
                                 `
 										: payment.is_paid && !payment.is_void
-										? `
-                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${
-										payment.payment_id
-									})">
+											? `
+                                  <button class="btn btn-sm btn-outline-danger" onclick="employeeManager.voidPayment(${payment.payment_id
+											})">
                                     <i class="bi bi-x-circle"></i> ${i18n.t(
-										"employees.buttons.void"
-									)}
+												"employees.buttons.void"
+											)}
                                   </button>
                                 `
-										: ""
-								}
+											: ""
+									}
                               </div>
                             </td>
                           </tr>
@@ -445,8 +443,8 @@ class DoctorManager {
                 </td>
               </tr>
             `
-					: ""
-			}
+						: ""
+					}
         `;
 			})
 			.join("");
@@ -483,6 +481,75 @@ class DoctorManager {
 		}
 	}
 
+	private async loadAllServices(): Promise<any[]> {
+		try {
+			const response = await fetch("/api/services", {
+				headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+			});
+			if (!response.ok) return [];
+			return await response.json();
+		} catch (error) {
+			return [];
+		}
+	}
+
+	private async loadDoctorServicePrices(doctorId: number): Promise<DoctorServicePrice[]> {
+		try {
+			const response = await fetch(`/api/doctors/${doctorId}/services/prices`, {
+				headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+			});
+			if (!response.ok) return [];
+			return await response.json();
+		} catch (error) {
+			return [];
+		}
+	}
+
+	private async renderServicePrices(doctorId?: number): Promise<void> {
+		const container = document.getElementById("doctorServicesList");
+		if (!container) return;
+
+		container.innerHTML = `<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div></div>`;
+
+		const services = await this.loadAllServices();
+		let doctorPrices: DoctorServicePrice[] = [];
+		if (doctorId) {
+			doctorPrices = await this.loadDoctorServicePrices(doctorId);
+		}
+
+		if (services.length === 0) {
+			container.innerHTML = `<p class="text-muted small">${i18n.t("common.noData")}</p>`;
+			return;
+		}
+
+		const html = services.map((service: any) => {
+			const priceEntry = doctorPrices.find(p => p.service_id === service.service_id);
+			const price = priceEntry ? priceEntry.price : "";
+
+			return `
+				<div class="mb-2 row">
+					<label class="col-sm-8 col-form-label text-truncate" title="${this.escapeHtml(service.name)}">
+						${this.escapeHtml(service.name)}
+					</label>
+					<div class="col-sm-4">
+						<div class="input-group input-group-sm">
+							<span class="input-group-text">$</span>
+							<input type="number" 
+								   class="form-control doctor-service-price" 
+								   data-service-id="${service.service_id}" 
+								   step="0.01" 
+								   min="0" 
+								   placeholder="0.00"
+								   value="${price}">
+						</div>
+					</div>
+				</div>
+			`;
+		}).join("");
+
+		container.innerHTML = html;
+	}
+
 	private showDoctorModal(doctorId?: number): void {
 		this.resetDoctorForm();
 		const modalTitle = document.getElementById("doctorModalLabel")!;
@@ -492,11 +559,16 @@ class DoctorManager {
 			if (doctor) this.populateDoctorForm(doctor);
 		} else {
 			modalTitle.textContent = i18n.t("employees.createNewDoctor");
+			this.renderServicePrices();
 		}
 		this.doctorModal.show();
 	}
 
-	private populateDoctorForm(doctor: Doctor): void {
+	private async populateDoctorForm(doctor: Doctor): Promise<void> {
+		// ... (existing population code) ...
+		// We will call renderServicePrices here
+		await this.renderServicePrices(doctor.employee_id);
+
 		(document.getElementById("doctorId") as HTMLInputElement).value =
 			doctor.employee_id.toString();
 		(document.getElementById("employeeId") as HTMLInputElement).value =
@@ -658,6 +730,21 @@ class DoctorManager {
 			).value
 		};
 
+		// Collect service prices
+		const servicePrices: DoctorServicePrice[] = [];
+		document.querySelectorAll(".doctor-service-price").forEach((input: any) => {
+			const price = parseFloat(input.value);
+			if (price > 0) {
+				servicePrices.push({
+					service_id: parseInt(input.dataset.serviceId),
+					service_name: "", // Not needed for save
+					price: price
+				});
+			}
+		});
+
+		const payload = { ...doctorData, servicePrices };
+
 		try {
 			this.setDoctorLoading(true);
 			const response = await fetch(
@@ -668,7 +755,7 @@ class DoctorManager {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
-					body: JSON.stringify(doctorData)
+					body: JSON.stringify(payload)
 				}
 			);
 

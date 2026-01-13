@@ -307,6 +307,7 @@ CREATE TABLE IF NOT EXISTS EmployeePaymentPatient (
 	payment_id INTEGER REFERENCES EmployeePayment(payment_id) ON DELETE CASCADE,
 	patient_id INTEGER REFERENCES Patient(patient_id),
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+	active_service_id INTEGER REFERENCES ActivePatientService(active_service_id) ON DELETE CASCADE,
 	work_date DATE NOT NULL,
 	hours_worked DECIMAL(4, 2) NOT NULL,
 	payment_amount DECIMAL(15, 2) NOT NULL,
@@ -428,6 +429,15 @@ ADD CONSTRAINT billdetail_check CHECK (
 			AND medical_supply_shipment_id IS NOT NULL
 		)
 	);
+-- Create a join table for Doctor and Service specific pricing/commission
+CREATE TABLE IF NOT EXISTS DoctorServicePrice (
+	doctor_id INTEGER REFERENCES Doctor(doctor_id) ON DELETE CASCADE,
+	service_id INTEGER REFERENCES Service(service_id) ON DELETE CASCADE,
+	price DECIMAL(15, 2) NOT NULL DEFAULT 0,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (doctor_id, service_id)
+);
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);
 CREATE INDEX IF NOT EXISTS idx_drug_name ON DrugCard(name);
@@ -471,6 +481,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_staff_assignment_employee ON DailyStaffAssi
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_payment ON EmployeePaymentPatient(payment_id);
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_employee_date ON EmployeePaymentPatient(payment_id, work_date);
 CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_patient ON EmployeePaymentPatient(patient_id);
+CREATE INDEX IF NOT EXISTS idx_employee_payment_patient_service ON EmployeePaymentPatient(active_service_id);
 -- Create indexes for Medical Supplies
 CREATE INDEX IF NOT EXISTS idx_medical_supply_name ON MedicalSupply(name);
 CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_patient ON MedicalSupplyUsage(patient_id);
@@ -479,6 +490,9 @@ CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_remaining ON MedicalSupplyUs
 WHERE remaining_quantity > 0;
 CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_administered ON MedicalSupplyUsage(last_administered);
 CREATE INDEX IF NOT EXISTS idx_bill_detail_medical_supply ON BillDetail(medical_supply_shipment_id);
+-- Create indexes for DoctorServicePrice
+CREATE INDEX IF NOT EXISTS idx_doctor_service_price_doctor ON DoctorServicePrice(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_service_price_service ON DoctorServicePrice(service_id);
 -- Add a view for currently admitted patients with their details
 CREATE OR REPLACE VIEW CurrentAdmissions AS
 SELECT p.patient_id,

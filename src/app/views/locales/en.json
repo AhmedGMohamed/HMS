@@ -63,6 +63,7 @@
 		"pharmacy": "Pharmacy",
 		"drugs": "Drugs",
 		"supplies": "Medical Supplies",
+		"medicalSupplies": "Medical Supplies",
 		"employees": "Employees",
 		"doctors": "Doctors",
 		"nurses": "Nurses",
@@ -152,7 +153,8 @@
 			"users": "System user accounts and access control",
 			"roles": "User roles and permission management",
 			"permissions": "System security and access permissions",
-			"insurance": "Insurance company management and claims"
+			"insurance": "Insurance company management and claims",
+			"supplies": "Medical supplies and equipment management"
 		}
 	},
 	"users": {
@@ -286,11 +288,13 @@
 		},
 		"tabs": {
 			"services": "Services",
-			"drugs": "Drug Shipments"
+			"drugs": "Drug Shipments",
+			"supplies": "Medical Supplies"
 		},
 		"placeholders": {
 			"searchServices": "Search services...",
-			"searchDrugs": "Search drugs..."
+			"searchDrugs": "Search drugs...",
+			"searchSupplies": "Search supplies..."
 		},
 		"serviceTypes": {
 			"once": "One Time",
@@ -303,7 +307,8 @@
 		},
 		"stats": {
 			"services": "Services",
-			"drugs": "Drugs"
+			"drugs": "Drugs",
+			"supplies": "Medical Supplies"
 		},
 		"help": {
 			"defaultNote": "Note: Setting this as default will remove default status from any other price list",
@@ -327,6 +332,7 @@
 			"changeDefaultText": "This will remove default status from the current default price list.",
 			"noServices": "No services found",
 			"noDrugs": "No drug shipments found",
+			"noSupplies": "No medical supplies found",
 			"pricesSaveError": "Failed to save prices",
 			"pricesAddedSuccess": "Successfully added {{services}} service prices and {{drugs}} drug prices",
 			"addPricesNow": "Add Prices Now?",
@@ -353,6 +359,7 @@
 		"createManualPayment": "Create Manual Payment",
 		"createManualPaymentFor": "Create Manual Payment for {{name}}",
 		"savePayment": "Save Payment",
+		"servicePrices": "Service Prices",
 		"tabs": {
 			"employees": "Employees",
 			"doctors": "Doctors",
@@ -429,7 +436,10 @@
 			"salary": "Salary",
 			"commission": "Commission",
 			"referral": "Referral",
-			"supervising_doctor_assignment": "Supervising Doctor Commission"
+			"supervising_doctor_assignment": "Supervising Doctor Commission",
+			"fixed": "Fixed",
+			"percentage": "Percentage",
+			"service": "Service"
 		},
 		"paymentCalculation": {
 			"fixed": "Fixed",
@@ -1401,6 +1411,28 @@
 			"viewOutstandingWagesReport": "View Outstanding Wages Report",
 			"viewMedicalTestsReport": "View Medical Tests Report"
 		},
+		"reportSummary": {
+			"total_revenue": "Total Revenue",
+			"total_expenses": "Total Expenses",
+			"net_profit": "Net Profit",
+			"total_records": "Total Records",
+			"avg_per_patient": "Avg. Per Patient",
+			"total_paid": "Total Paid",
+			"avg_payment": "Avg. Payment",
+			"total_outstanding": "Total Outstanding",
+			"avg_outstanding": "Avg. Outstanding",
+			"total_discounts": "Total Discounts",
+			"total_additions": "Total Additions",
+			"total_deductions": "Total Deductions",
+			"unique_companies": "Unique Companies",
+			"total_cost": "Total Cost",
+			"total_quantity": "Total Quantity",
+			"total_shipments": "Total Shipments",
+			"total_transactions": "Total Transactions",
+			"total_profit": "Total Profit",
+			"total_wages": "Total Wages",
+			"unique_employees": "Unique Employees"
+		},
 		"modals": {
 			"addManualPayment": "Add Manual Payment",
 			"reportDetails": "Report Details"
@@ -1517,27 +1549,6 @@
 			"status": "Status",
 			"paidDate": "Paid Date",
 			"paidBy": "Paid By"
-		},
-		"reportSummary": {
-			"total_revenue": "Total Revenue",
-			"total_cost": "Total Cost",
-			"total_profit": "Total Profit",
-			"total_paid": "Total Paid",
-			"total_payments": "Total Payments",
-			"total_outstanding": "Total Outstanding",
-			"total_records": "Total Records",
-			"total_quantity": "Total Quantity",
-			"total_shipments": "Total Shipments",
-			"total_transactions": "Total Transactions",
-			"total_wages": "Total Wages",
-			"total_additions": "Total Additions",
-			"total_deductions": "Total Deductions",
-			"total_discounts": "Total Discounts",
-			"unique_employees": "Employees",
-			"unique_companies": "Companies",
-			"avg_per_patient": "Avg per Patient",
-			"avg_payment": "Avg Payment",
-			"avg_outstanding": "Avg Outstanding"
 		}
 	},
 	"reports": {

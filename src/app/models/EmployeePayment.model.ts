@@ -139,8 +139,8 @@ export default class EmployeePaymentModel {
 				await query(
 					`INSERT INTO EmployeePaymentPatient (
                 		    payment_id, patient_id, patient_history_id, work_date,
-                		    hours_worked, payment_amount, payment_type
-                		) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                		    hours_worked, payment_amount, payment_type, active_service_id
+                		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 					[
 						paymentId,
 						association.patient_id,
@@ -148,13 +148,57 @@ export default class EmployeePaymentModel {
 						association.work_date,
 						association.hours_worked,
 						association.payment_amount,
-						association.payment_type
+						association.payment_type,
+						association.active_service_id || null
 					]
 				);
 			}
 
 			await query("COMMIT");
 			return paymentResult;
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	static async removeServicePayments(activeServiceId: number): Promise<void> {
+		await query("BEGIN");
+		try {
+			// Find payments associated with this service
+			const findPaymentsSql = `
+				SELECT payment_id 
+				FROM EmployeePaymentPatient 
+				WHERE active_service_id = $1
+			`;
+			const result = await query(findPaymentsSql, [activeServiceId]);
+
+			if (result.rows.length > 0) {
+				const paymentIds = result.rows.map(row => row.payment_id);
+
+				// Void or delete payments
+				// Check if any are already paid
+				const checkPaidSql = `
+					SELECT payment_id FROM EmployeePayment 
+					WHERE payment_id = ANY($1) AND is_paid = true
+				`;
+				const paidResult = await query(checkPaidSql, [paymentIds]);
+
+				if (paidResult.rows.length > 0) {
+					// Some are paid, only void unpaid ones
+					const paidIds = paidResult.rows.map(r => r.payment_id);
+					const unpaidIds = paymentIds.filter(id => !paidIds.includes(id));
+
+					if (unpaidIds.length > 0) {
+						await query(`UPDATE EmployeePayment SET is_void = true WHERE payment_id = ANY($1)`, [unpaidIds]);
+					}
+				} else {
+					// All unpaid, void them
+					await query(`UPDATE EmployeePayment SET is_void = true WHERE payment_id = ANY($1)`, [paymentIds]);
+				}
+			}
+
+			await query("COMMIT");
 		} catch (error) {
 			await query("ROLLBACK");
 			throw error;

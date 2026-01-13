@@ -98,7 +98,14 @@ export interface CreateDoctorDTO extends CreateEmployeeDTO {
 	per_patient_pay?: number;
 	payment_calculation?: PaymentCalculation;
 	referral_bonus?: number;
+	servicePrices?: DoctorServicePriceDTO[];
 }
+
+export interface DoctorServicePriceDTO {
+	service_id: number;
+	price: number;
+}
+
 
 export interface CreateEmployeePaymentDTO {
 	employee_id: number;
@@ -124,4 +131,5 @@ interface PaymentPatientAssociation {
 	hours_worked: number;
 	payment_amount: number;
 	payment_type: string;
+	active_service_id?: number | null;
 }

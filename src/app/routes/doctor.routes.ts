@@ -59,4 +59,12 @@ router.get(
 	(req, res) => DoctorController.searchDoctorsByName(req, res)
 );
 
+router.get(
+	"/:id/services/prices",
+	verifyToken,
+	validateId,
+	auditLogger,
+	(req, res) => DoctorController.getDoctorServicePrices(req, res)
+);
+
 export default router;

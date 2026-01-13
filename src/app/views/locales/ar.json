@@ -63,6 +63,7 @@
 		"pharmacy": "الصيدلية",
 		"drugs": "الأدوية",
 		"supplies": "المستلزمات الطبية",
+		"medicalSupplies": "المستلزمات الطبية",
 		"employees": "الموظفون",
 		"doctors": "الأطباء",
 		"nurses": "الممرضات",
@@ -154,10 +155,8 @@
 			"roles": "إدارة أدوار المستخدمين والصلاحيات",
 			"permissions": "أمان النظام وصلاحيات الوصول",
 			"insurance": "إدارة شركات التأمين والمطالبات",
-			"onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الأطباء",
-			"onlyAdminsCanSave": "يمكن للمسؤولين فقط حفظ الأطباء",
-			"onlyAdminsCanEdit": "يمكن للمسؤولين فقط تعديل الأطباء",
-			"onlyAdminsCanDelete": "يمكن للمسؤولين فقط حذف الأطباء"
+			"supplies": "إدارة المستلزمات والمعدات الطبية",
+			"onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الموظفين"
 		}
 	},
 	"users": {
@@ -291,11 +290,13 @@
 		},
 		"tabs": {
 			"services": "الخدمات",
-			"drugs": "شحنات الأدوية"
+			"drugs": "شحنات الأدوية",
+			"supplies": "المستلزمات الطبية"
 		},
 		"placeholders": {
 			"searchServices": "البحث عن خدمات...",
-			"searchDrugs": "البحث عن أدوية..."
+			"searchDrugs": "البحث عن أدوية...",
+			"searchSupplies": "البحث عن مستلزمات..."
 		},
 		"serviceTypes": {
 			"once": "مرة واحدة",
@@ -308,7 +309,8 @@
 		},
 		"stats": {
 			"services": "الخدمات",
-			"drugs": "الأدوية"
+			"drugs": "الأدوية",
+			"supplies": "المستلزمات الطبية"
 		},
 		"help": {
 			"defaultNote": "ملاحظة: تعيين هذه القائمة كافتراضية سيزيل الحالة الافتراضية من أي قائمة أسعار أخرى",
@@ -332,6 +334,7 @@
 			"changeDefaultText": "سيؤدي هذا إلى إزالة الحالة الافتراضية من قائمة الأسعار الافتراضية الحالية.",
 			"noServices": "لم يتم العثور على خدمات",
 			"noDrugs": "لم يتم العثور على شحنات أدوية",
+			"noSupplies": "لم يتم العثور على مستلزمات طبية",
 			"pricesSaveError": "فشل حفظ الأسعار",
 			"pricesAddedSuccess": "تم إضافة {{services}} أسعار خدمات و {{drugs}} أسعار أدوية بنجاح",
 			"addPricesNow": "إضافة الأسعار الآن؟",
@@ -434,7 +437,10 @@
 			"salary": "راتب",
 			"commission": "عمولة",
 			"referral": "تحويل",
-			"supervising_doctor_assignment": "اشراف علي المريض"
+			"supervising_doctor_assignment": "اشراف علي المريض",
+			"fixed": "ثابت",
+			"percentage": "نسبة مئوية",
+			"service": "خدمات"
 		},
 		"paymentCalculation": {
 			"fixed": "ثابت",
@@ -488,7 +494,12 @@
 			"voidAllSuccess": "تم إلغاء جميع المدفوعات بنجاح",
 			"voidAllError": "فشل إلغاء جميع المدفوعات",
 			"loadUserNameError": "فشل تحميل اسم المستخدم",
-			"loadPaymentsError": "فشل تحميل المدفوعات"
+			"loadPaymentsError": "فشل تحميل المدفوعات",
+			"servicePrices": "أسعار الخدمات",
+			"onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الأطباء",
+			"onlyAdminsCanSave": "يمكن للمسؤولين فقط حفظ الأطباء",
+			"onlyAdminsCanEdit": "يمكن للمسؤولين فقط تعديل الأطباء",
+			"onlyAdminsCanDelete": "يمكن للمسؤولين فقط حذف الأطباء"
 		},
 		"buttons": {
 			"edit": "تعديل",
@@ -1394,7 +1405,30 @@
 			"viewSupplyProfitsReport": "عرض تقرير أرباح المستلزمات",
 			"viewWagesOwedReport": "عرض تقرير الرواتب المستحقة",
 			"viewWagesPaidReport": "عرض تقرير الرواتب المدفوعة",
-			"viewOutstandingWagesReport": "عرض تقرير الرواتب المتأخرة"
+			"viewOutstandingWagesReport": "عرض تقرير الرواتب المتأخرة",
+			"viewMedicalTestsReport": "عرض تقرير الفحوصات الطبية"
+		},
+		"reportSummary": {
+			"total_revenue": "إجمالي الإيرادات",
+			"total_expenses": "إجمالي المصروفات",
+			"net_profit": "صافي الربح",
+			"total_records": "إجمالي السجلات",
+			"avg_per_patient": "متوسط لكل مريض",
+			"total_paid": "إجمالي المدفوع",
+			"avg_payment": "متوسط الدفعة",
+			"total_outstanding": "إجمالي المستحقات",
+			"avg_outstanding": "متوسط المستحقات",
+			"total_discounts": "إجمالي الخصومات",
+			"total_additions": "إجمالي الإضافات",
+			"total_deductions": "إجمالي الخصم اليدوي",
+			"unique_companies": "شركات فريدة",
+			"total_cost": "إجمالي التكلفة",
+			"total_quantity": "إجمالي الكمية",
+			"total_shipments": "إجمالي الشحنات",
+			"total_transactions": "إجمالي المعاملات",
+			"total_profit": "إجمالي الربح",
+			"total_wages": "إجمالي الأجور",
+			"unique_employees": "موظفون فريدون"
 		},
 		"modals": {
 			"addManualPayment": "إضافة دفعة يدوية",
@@ -1512,27 +1546,6 @@
 			"status": "الحالة",
 			"paidDate": "تاريخ الدفع",
 			"paidBy": "دفعت بواسطة"
-		},
-		"reportSummary": {
-			"total_revenue": "إجمالي الإيرادات",
-			"total_cost": "إجمالي التكلفة",
-			"total_profit": "إجمالي الربح",
-			"total_paid": "إجمالي المدفوع",
-			"total_payments": "إجمالي المبلغ المدفوع",
-			"total_outstanding": "إجمالي المستحق",
-			"total_records": "إجمالي السجلات",
-			"total_quantity": "إجمالي الكمية",
-			"total_shipments": "إجمالي الشحنات",
-			"total_transactions": "إجمالي المعاملات",
-			"total_wages": "إجمالي الرواتب",
-			"total_additions": "إجمالي الإضافات",
-			"total_deductions": "إجمالي الخصومات",
-			"total_discounts": "إجمالي الخصومات",
-			"unique_employees": "الموظفون",
-			"unique_companies": "الشركات",
-			"avg_per_patient": "المتوسط لكل مريض",
-			"avg_payment": "متوسط الدفع",
-			"avg_outstanding": "متوسط المستحق"
 		}
 	},
 	"reports": {
