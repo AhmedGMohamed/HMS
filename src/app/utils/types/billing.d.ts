@@ -10,6 +10,8 @@ export interface Bill {
 	medical_tests_amount: number;
 	vat_percentage: number | null;
 	vat_scope: "services" | "drugs" | "both" | null;
+	discount_scope?: string[]; // ['services', 'drugs', 'supplies', 'tests']
+	vat_scope_custom?: string[]; // ['services', 'drugs', 'supplies', 'tests']
 	generated_at: Date;
 	updated_at: Date;
 	issued_by_user_id: number;
@@ -49,6 +51,8 @@ export interface UpdateBillDTO {
 	medical_tests_amount?: number;
 	vat_percentage?: number;
 	vat_scope?: "services" | "drugs" | "both";
+	discount_scope?: string[];
+	vat_scope_custom?: string[];
 	paid_amount?: number;
 }
 

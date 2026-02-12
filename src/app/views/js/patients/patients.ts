@@ -149,6 +149,8 @@ interface Bill {
 	administrative_expenses: number;
 	vat_percentage: number | null;
 	vat_scope: "services" | "drugs" | "both" | null;
+	discount_scope?: string[];
+	vat_scope_custom?: string[];
 	bill_details: BillDetail[];
 	issued_by_user_id: number;
 	generated_at: Date;
@@ -208,6 +210,8 @@ class PatientManager {
 	private settleBillModal: Modal;
 	//@ts-ignore
 	private addSupplyModal: Modal;
+	//@ts-ignore
+	private viewItemDetailsModal: Modal;
 
 	private currentPatient: Patient | null = null;
 	private currentAdmission: PatientHistory | null = null;
@@ -286,6 +290,11 @@ class PatientManager {
 		//@ts-ignore
 		this.addSupplyModal = new bootstrap.Modal(
 			document.getElementById("addSupplyModal")!
+		);
+
+		//@ts-ignore
+		this.viewItemDetailsModal = new bootstrap.Modal(
+			document.getElementById("viewItemDetailsModal")!
 		);
 
 		this.waitForI18n().then(() => {
@@ -418,6 +427,15 @@ class PatientManager {
 
 		document.getElementById("vatScope")?.addEventListener("change", () => {
 			this.calculateBilling();
+		});
+
+		// Scope checkboxes listeners
+		document.querySelectorAll('.discount-scope').forEach(checkbox => {
+			checkbox.addEventListener('change', () => this.calculateBilling());
+		});
+
+		document.querySelectorAll('.vat-scope').forEach(checkbox => {
+			checkbox.addEventListener('change', () => this.calculateBilling());
 		});
 
 		document
@@ -1297,56 +1315,86 @@ class PatientManager {
 			return;
 		}
 
-		container.innerHTML = this.assignedServices
-			.map(
-				(service) => `
-    		    <div class="assigned-item">
-    		        <div class="assigned-item-info">
-    		            <div class="assigned-item-name">${this.escapeHtml(
-					service.name
-				)}</div>
-    		            <div class="assigned-item-details">
-    		                ${i18n.t("patients.table.type")}: ${this.formatServiceType(
-					service.service_type
-				)} • 
-    		                ${i18n.t("patients.table.started")}: ${i18n.formatDate(
-					service.start_date
-				)}
-    		                ${service.end_date
-						? ` • ${i18n.t(
-							"patients.table.ended"
-						)}: ${i18n.formatDate(service.end_date)}`
-						: ""
-					}
-    		            </div>
-    		        </div>
-    		        <div class="assigned-item-actions">
-    		            <button class="btn btn-sm btn-outline-danger"
-    		                    onclick="patientManager.removeService(${service.active_service_id
-					})">
-    		                <i class="bi bi-trash"></i> ${i18n.t(
-						"patients.buttons.remove"
-					)}
-    		            </button>
-    		            ${service.is_active
-						? `
-    		                <button class="btn btn-sm btn-outline-warning" 
-    		                        onclick="patientManager.stopService(${service.service_id
-						})">
-    		                    <i class="bi bi-pause-circle"></i> ${i18n.t(
-							"patients.buttons.stop"
-						)}
-    		                </button>
-    		            `
-						: `<span class="badge bg-secondary align-self-center">${i18n.t(
-							"patients.status.inactive"
-						)}</span>`
-					}
-    		        </div>
-    		    </div>
-    		`
-			)
-			.join("");
+		const servicesList: Map<number, { name: string, type: string, services: Array<Service>, quantity: number }> = new Map();
+		this.assignedServices.forEach((service) => {
+			if (servicesList.has(service.service_id)) {
+				servicesList.get(service.service_id)!.services.push(service);
+				servicesList.get(service.service_id)!.quantity += 1;
+			} else {
+				servicesList.set(service.service_id, { name: service.name, type: service.service_type, services: [service], quantity: 1 });
+			}
+		});
+
+		let html = "";
+		servicesList.forEach((serviceType, serviceId) => {
+			html += `
+				<div class="assigned-item">
+					<div class="assigned-item-info">
+						<div class="assigned-item-name">${this.escapeHtml(serviceType.name)}</div>
+						<div class="assigned-item-details">
+							${i18n.t("patients.table.type")}: ${this.formatServiceType(serviceType.type)} • 
+							${i18n.t("patients.table.quantity")}: ${serviceType.quantity}
+						</div>
+					</div>
+					<div class="assigned-item-actions">
+						<button class="btn btn-sm btn-outline-primary"
+								onclick="patientManager.viewServiceList(${serviceId})">${i18n.t("patients.buttons.view")}</button>
+					</div>
+				</div>`;
+		});
+
+		container.innerHTML = html;
+	}
+
+	public viewServiceList(serviceId: number): void {
+		const services = this.assignedServices.filter(s => s.service_id === serviceId);
+
+		if (services.length === 0) return;
+
+		const serviceName = services[0].name;
+
+		// Set modal title
+		document.getElementById("viewItemDetailsModalLabel")!.textContent =
+			`${i18n.t("patients.sections.assignedServices")} - ${serviceName}`;
+
+		// Create table headers
+		const tableHead = document.getElementById("itemDetailsTableHead")!;
+		tableHead.innerHTML = `
+			<tr>
+				<th>${i18n.t("patients.table.dateAdded")}</th>
+				<th>${i18n.t("patients.table.type")}</th>
+				<th>${i18n.t("common.status")}</th>
+				<th>${i18n.t("common.actions")}</th>
+			</tr>
+		`;
+
+		// Create table rows
+		const tableBody = document.getElementById("itemDetailsTableBody")!;
+		tableBody.innerHTML = services.map(service => `
+			<tr>
+				<td>${i18n.formatDateTime(service.start_date)}</td>
+				<td>${this.formatServiceType(service.service_type)}</td>
+				<td>
+					${service.is_active
+				? `<span class="badge bg-success">${i18n.t("patients.status.active")}</span>`
+				: `<span class="badge bg-secondary">${i18n.t("patients.status.stopped")}</span>`
+			}
+				</td>
+				<td>
+					${service.is_active
+				? `<button class="btn btn-sm btn-warning" onclick="patientManager.stopService(${service.active_service_id})">
+								<i class="bi bi-pause-circle"></i> ${i18n.t("patients.buttons.stop")}
+							</button>`
+				: '-'
+			}
+					<button class="btn btn-sm btn-danger" onclick="patientManager.removeService(${service.active_service_id})">
+						<i class="bi bi-trash"></i> ${i18n.t("patients.buttons.remove")}
+					</button>
+				</td>
+			</tr>
+		`).join('');
+
+		this.viewItemDetailsModal.show();
 	}
 
 	public async stopService(serviceId: number): Promise<void> {
@@ -1400,48 +1448,129 @@ class PatientManager {
 			return;
 		}
 
-		container.innerHTML = this.assignedDrugs
+		// Group drugs by drug_id
+		const drugsList: Map<
+			number,
+			{
+				name: string;
+				totalInitial: number;
+				totalRemaining: number;
+				unit: string;
+				lastAdministered: Date | null;
+				drugs: any[];
+			}
+		> = new Map();
+
+		this.assignedDrugs.forEach((drug) => {
+			if (drugsList.has(drug.drug_id)) {
+				const group = drugsList.get(drug.drug_id)!;
+				group.drugs.push(drug);
+				group.totalInitial += parseFloat(drug.initial_quantity || 0);
+				group.totalRemaining += parseFloat(drug.remaining_quantity || 0);
+				if (
+					drug.last_administered &&
+					(!group.lastAdministered ||
+						new Date(drug.last_administered) > group.lastAdministered)
+				) {
+					group.lastAdministered = new Date(drug.last_administered);
+				}
+			} else {
+				drugsList.set(drug.drug_id, {
+					name: drug.drug_name,
+					totalInitial: parseFloat(drug.initial_quantity || 0),
+					totalRemaining: parseFloat(drug.remaining_quantity || 0),
+					unit: drug.unit_conversion?.smaller || "units",
+					lastAdministered: drug.last_administered
+						? new Date(drug.last_administered)
+						: null,
+					drugs: [drug]
+				});
+			}
+		});
+
+		let html = "";
+		drugsList.forEach((group, drugId) => {
+			html += `
+				<div class="assigned-item">
+					<div class="assigned-item-info">
+						<div class="assigned-item-name">${this.escapeHtml(group.name)}</div>
+						<div class="assigned-item-details">
+                            ${i18n.t("patients.table.quantity")}: ${group.totalInitial} ${group.unit} •
+							${i18n.t("patients.table.remaining")}: ${group.totalRemaining} ${group.unit}
+							${group.lastAdministered
+					? ` • ${i18n.t(
+						"patients.table.lastAdministered"
+					)}: ${i18n.formatDateTime(group.lastAdministered)}`
+					: ` • ${i18n.t("patients.table.notAdministeredYet")}`
+				}
+						</div>
+					</div>
+					<div class="assigned-item-actions">
+						<button class="btn btn-sm btn-outline-primary"
+								onclick="patientManager.viewDrugList(${drugId})">${i18n.t(
+					"patients.buttons.view"
+				)}</button>
+					</div>
+				</div>`;
+		});
+
+		container.innerHTML = html;
+	}
+
+	public viewDrugList(drugId: number): void {
+		const drugs = this.assignedDrugs.filter((d) => d.drug_id === drugId);
+
+		if (drugs.length === 0) return;
+
+		const drugName = drugs[0].drug_name;
+
+		// Set modal title
+		document.getElementById(
+			"viewItemDetailsModalLabel"
+		)!.textContent = `${i18n.t("patients.sections.assignedDrugs")} - ${drugName}`;
+
+		// Create table headers
+		const tableHead = document.getElementById("itemDetailsTableHead")!;
+		tableHead.innerHTML = `
+			<tr>
+				<th>${i18n.t("patients.table.dateAdded")}</th>
+				<th>${i18n.t("patients.table.quantity")}</th>
+				<th>${i18n.t("patients.table.remaining")}</th>
+				<th>${i18n.t("patients.table.lastAdministered")}</th>
+				<th>${i18n.t("common.actions")}</th>
+			</tr>
+		`;
+
+		// Create table rows
+		const tableBody = document.getElementById("itemDetailsTableBody")!;
+		tableBody.innerHTML = drugs
 			.map(
 				(drug) => `
-    		    <div class="assigned-item">
-    		        <div class="assigned-item-info">
-    		            <div class="assigned-item-name">${this.escapeHtml(
-					drug.drug_name
-				)}</div>
-    		            <div class="assigned-item-details">
-    		                ${i18n.t("patients.table.remaining")}: ${drug.remaining_quantity
-					} ${drug.unit_conversion?.smaller || "units"}
-    		                ${drug.last_administered
-						? ` • ${i18n.t(
-							"patients.table.lastAdministered"
-						)}: ${i18n.formatDateTime(
-							drug.last_administered
-						)}`
-						: ` • ${i18n.t(
-							"patients.table.notAdministeredYet"
-						)}`
-					}
-    		            </div>
-    		        </div>
-    		        <div class="assigned-item-actions">
-    		            <button class="btn btn-sm btn-outline-primary" 
-    		                    onclick="patientManager.administerDrug(${drug.usage_id
+			<tr>
+				<td>${drug.start_date ? i18n.formatDateTime(drug.start_date) : "-"
+					}</td>
+				<td>${drug.initial_quantity || "-"}</td>
+				<td>${drug.remaining_quantity}</td>
+				<td>${drug.last_administered
+						? i18n.formatDateTime(drug.last_administered)
+						: i18n.t("patients.table.notAdministeredYet")
+					}</td>
+				<td>
+					<button class="btn btn-sm btn-outline-primary"
+							onclick="patientManager.administerDrug(${drug.usage_id})">
+						<i class="bi bi-capsule"></i> ${i18n.t("patients.buttons.administer")}
+					</button>
+					<button class="btn btn-sm btn-danger" onclick="patientManager.removeDrug(${drug.usage_id
 					})">
-    		                <i class="bi bi-capsule"></i> ${i18n.t(
-						"patients.buttons.administer"
-					)}
-    		            </button>
-    		            <button class="btn btn-sm btn-outline-danger" 
-    		                    onclick="patientManager.removeDrug(${drug.usage_id})">
-    		                <i class="bi bi-trash"></i> ${i18n.t(
-						"patients.buttons.remove"
-					)}
-    		            </button>
-    		        </div>
-    		    </div>
-    		`
+						<i class="bi bi-trash"></i> ${i18n.t("patients.buttons.remove")}
+					</button>
+				</td>
+			</tr>
+		`
 			)
 			.join("");
+
+		this.viewItemDetailsModal.show();
 	}
 
 	public async removeDrug(drugUsageId: number): Promise<void> {
@@ -1500,34 +1629,103 @@ class PatientManager {
 			return;
 		}
 
-		container.innerHTML = this.assignedSupplies
+		// Group supplies by supply_id
+		const suppliesList: Map<
+			number,
+			{
+				name: string;
+				totalInitial: number;
+				totalRemaining: number;
+				supplies: any[];
+			}
+		> = new Map();
+
+		this.assignedSupplies.forEach((supply) => {
+			if (suppliesList.has(supply.supply_id)) {
+				const group = suppliesList.get(supply.supply_id)!;
+				group.supplies.push(supply);
+				group.totalInitial += parseFloat(supply.initial_quantity || 0);
+				group.totalRemaining += parseFloat(supply.remaining_quantity || 0);
+			} else {
+				suppliesList.set(supply.supply_id, {
+					name: supply.supply_name,
+					totalInitial: parseFloat(supply.initial_quantity || 0),
+					totalRemaining: parseFloat(supply.remaining_quantity || 0),
+					supplies: [supply]
+				});
+			}
+		});
+
+		let html = "";
+		suppliesList.forEach((group, supplyId) => {
+			html += `
+				<div class="assigned-item">
+					<div class="assigned-item-info">
+						<div class="assigned-item-name">${this.escapeHtml(group.name)}</div>
+						<div class="assigned-item-details">
+                            ${i18n.t("patients.table.quantity")}: ${group.totalInitial} •
+							${i18n.t("patients.table.remaining")}: ${group.totalRemaining}
+						</div>
+					</div>
+					<div class="assigned-item-actions">
+						<button class="btn btn-sm btn-outline-primary"
+								onclick="patientManager.viewSupplyList(${supplyId})">${i18n.t(
+				"patients.buttons.view"
+			)}</button>
+					</div>
+				</div>`;
+		});
+
+		container.innerHTML = html;
+	}
+
+	public viewSupplyList(supplyId: number): void {
+		const supplies = this.assignedSupplies.filter(
+			(s) => s.supply_id === supplyId
+		);
+
+		if (supplies.length === 0) return;
+
+		const supplyName = supplies[0].supply_name;
+
+		// Set modal title
+		document.getElementById(
+			"viewItemDetailsModalLabel"
+		)!.textContent = `${i18n.t("patients.sections.assignedSupplies")} - ${supplyName}`;
+
+		// Create table headers
+		const tableHead = document.getElementById("itemDetailsTableHead")!;
+		tableHead.innerHTML = `
+			<tr>
+				<th>${i18n.t("patients.table.dateAdded")}</th>
+				<th>${i18n.t("patients.table.quantity")}</th>
+				<th>${i18n.t("patients.table.remaining")}</th>
+				<th>${i18n.t("common.actions")}</th>
+			</tr>
+		`;
+
+		// Create table rows
+		const tableBody = document.getElementById("itemDetailsTableBody")!;
+		tableBody.innerHTML = supplies
 			.map(
 				(supply) => `
-    		    <div class="assigned-item">
-    		        <div class="assigned-item-info">
-    		            <div class="assigned-item-name">${this.escapeHtml(
-					supply.supply_name
-				)}</div>
-    		            <div class="assigned-item-details">
-    		                ${i18n.t("patients.table.quantity")}: ${supply.remaining_quantity}
-    		                ${supply.created_at
-						? ` • ${i18n.formatDateTime(supply.created_at)}`
-						: ""
-					}
-    		            </div>
-    		        </div>
-    		        <div class="assigned-item-actions">
-    		            <button class="btn btn-sm btn-outline-danger" 
-    		                    onclick="patientManager.removeSupply(${supply.usage_id})">
-    		                <i class="bi bi-trash"></i> ${i18n.t(
-						"patients.buttons.remove"
-					)}
-    		            </button>
-    		        </div>
-    		    </div>
-    		`
+			<tr>
+				<td>${supply.start_date ? i18n.formatDateTime(supply.start_date) : "-"
+					}</td>
+				<td>${supply.initial_quantity || "-"}</td>
+				<td>${supply.remaining_quantity}</td>
+				<td>
+					<button class="btn btn-sm btn-danger" onclick="patientManager.removeSupply(${supply.usage_id
+					})">
+						<i class="bi bi-trash"></i> ${i18n.t("patients.buttons.remove")}
+					</button>
+				</td>
+			</tr>
+		`
 			)
 			.join("");
+
+		this.viewItemDetailsModal.show();
 	}
 
 	public async removeSupply(usageId: number): Promise<void> {
@@ -1636,6 +1834,19 @@ class PatientManager {
 		(document.getElementById("vatPercentage") as HTMLInputElement).value = (
 			bill.vat_percentage || 0
 		).toString();
+
+		// Populate discount scope checkboxes
+		const discountScope = bill.discount_scope || ["services", "drugs", "supplies", "tests"];
+		document.querySelectorAll('.discount-scope').forEach((checkbox: any) => {
+			checkbox.checked = discountScope.includes(checkbox.value);
+		});
+
+		// Populate VAT scope checkboxes
+		const vatScopeCustom = bill.vat_scope_custom || ["services", "drugs", "supplies", "tests"];
+		document.querySelectorAll('.vat-scope').forEach((checkbox: any) => {
+			checkbox.checked = vatScopeCustom.includes(checkbox.value);
+		});
+
 		(document.getElementById("vatScope") as HTMLSelectElement).value =
 			bill.vat_scope || "both";
 		(
@@ -1673,118 +1884,105 @@ class PatientManager {
 
 		(document.getElementById("discountType") as HTMLInputElement).checked =
 			false;
+
+		// Reset scopes to all checked by default
+		document.querySelectorAll('.discount-scope').forEach((checkbox: any) => checkbox.checked = true);
+		document.querySelectorAll('.vat-scope').forEach((checkbox: any) => checkbox.checked = true);
+
 		(document.getElementById("vatScope") as HTMLSelectElement).value =
 			"both";
 	}
 
 	private calculateBilling(): void {
-		const servicesTotal =
-			parseFloat(
-				(document.getElementById("servicesTotal") as HTMLInputElement)
-					.value
-			) || 0;
-		const drugsTotal =
-			parseFloat(
-				(document.getElementById("drugsTotal") as HTMLInputElement)
-					.value
-			) || 0;
-		const suppliesTotal =
-			parseFloat(
-				(document.getElementById("suppliesTotal") as HTMLInputElement)
-					.value
-			) || 0;
-		const paidAmount =
-			parseFloat(
-				(document.getElementById("paidAmount") as HTMLInputElement)
-					.value
-			) || 0;
-		const discount =
-			parseFloat(
-				(document.getElementById("discount") as HTMLInputElement).value
-			) || 0;
-		const isDiscountPercentage = (
-			document.getElementById("discountType") as HTMLInputElement
-		).checked;
-		const vatPercentage =
-			parseFloat(
-				(document.getElementById("vatPercentage") as HTMLInputElement)
-					.value
-			) || 0;
-		const vatScope = (
-			document.getElementById("vatScope") as HTMLSelectElement
-		).value;
-		const administrativeExpenses =
-			parseFloat(
-				(
-					document.getElementById(
-						"administrativeExpenses"
-					) as HTMLInputElement
-				).value
-			) || 0;
-		const medicalTestsAmount =
-			parseFloat(
-				(document.getElementById("medicalTestsAmount") as HTMLInputElement)
-					.value
-			) || 0;
+		const servicesTotal = parseFloat((document.getElementById("servicesTotal") as HTMLInputElement).value) || 0;
+		const drugsTotal = parseFloat((document.getElementById("drugsTotal") as HTMLInputElement).value) || 0;
+		const suppliesTotal = parseFloat((document.getElementById("suppliesTotal") as HTMLInputElement).value) || 0;
+		const medicalTestsAmount = parseFloat((document.getElementById("medicalTestsAmount") as HTMLInputElement).value) || 0;
+		const paidAmount = parseFloat((document.getElementById("paidAmount") as HTMLInputElement).value) || 0;
+
+		const discount = parseFloat((document.getElementById("discount") as HTMLInputElement).value) || 0;
+		const isDiscountPercentage = (document.getElementById("discountType") as HTMLInputElement).checked;
+
+		const vatPercentage = parseFloat((document.getElementById("vatPercentage") as HTMLInputElement).value) || 0;
+		const administrativeExpenses = parseFloat((document.getElementById("administrativeExpenses") as HTMLInputElement).value) || 0;
+
+		// Get scopes
+		const discountScope: string[] = [];
+		document.querySelectorAll('.discount-scope:checked').forEach((cb: any) => discountScope.push(cb.value));
+
+		const vatScope: string[] = [];
+		document.querySelectorAll('.vat-scope:checked').forEach((cb: any) => vatScope.push(cb.value));
+
+		const categoryTotals: Record<string, number> = {
+			services: servicesTotal,
+			drugs: drugsTotal,
+			supplies: suppliesTotal,
+			tests: medicalTestsAmount
+		};
 
 		const subtotal = servicesTotal + drugsTotal + suppliesTotal + medicalTestsAmount;
 
-		// Calculate discount
+		// Calculate discount only on selected categories
+		let discountableAmount = 0;
+		discountScope.forEach(category => {
+			if (categoryTotals[category] !== undefined) {
+				discountableAmount += categoryTotals[category];
+			}
+		});
+
 		let discountAmount = 0;
-		if (isDiscountPercentage) {
-			discountAmount = (subtotal * discount) / 100;
-		} else {
-			discountAmount = discount;
+		if (discountableAmount > 0) {
+			if (isDiscountPercentage) {
+				discountAmount = (discountableAmount * discount) / 100;
+			} else {
+				discountAmount = discount;
+			}
 		}
 
 		const totalAfterDiscount = subtotal - discountAmount;
 
-		// Calculate VAT (administrative expenses always included in VAT)
-		let vatBase = 0;
-		switch (vatScope) {
-			case "services":
-				vatBase =
-					(servicesTotal + medicalTestsAmount) - discountAmount * ((servicesTotal + medicalTestsAmount) / subtotal);
-				break;
-			case "drugs":
-				// Group supplies with drugs for VAT calculation
-				vatBase = (drugsTotal + suppliesTotal) - discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
-				break;
-			case "both":
-			default:
-				vatBase = totalAfterDiscount;
-				break;
+		// Calculate VAT only on selected categories after discount
+		let vattableCategoriesTotal = 0;
+		vatScope.forEach(category => {
+			if (categoryTotals[category] !== undefined) {
+				vattableCategoriesTotal += categoryTotals[category];
+			}
+		});
+
+		let vattableAfterDiscount = 0;
+		if (vattableCategoriesTotal > 0) {
+			// Calculate proportional discount for vattable categories
+			if (discountableAmount > 0 && discountAmount > 0) {
+				let vattableAndDiscountableTotal = 0;
+				vatScope.forEach(category => {
+					if (discountScope.includes(category) && categoryTotals[category] !== undefined) {
+						vattableAndDiscountableTotal += categoryTotals[category];
+					}
+				});
+
+				const vattableDiscount = (vattableAndDiscountableTotal / discountableAmount) * discountAmount;
+				vattableAfterDiscount = vattableCategoriesTotal - vattableDiscount;
+			} else {
+				vattableAfterDiscount = vattableCategoriesTotal;
+			}
 		}
 
-		const vatAmount =
-			((vatBase + administrativeExpenses) * vatPercentage) / 100;
-		const totalFee =
-			totalAfterDiscount + vatAmount + administrativeExpenses;
+		const vatAmount = ((vattableAfterDiscount + administrativeExpenses) * vatPercentage) / 100;
+
+		const totalFee = totalAfterDiscount + vatAmount + administrativeExpenses;
 		const remaining = totalFee - paidAmount;
 
-		// Update display
-		(document.getElementById("discountTotal") as HTMLInputElement).value =
-			discountAmount.toFixed(2);
-		(
-			document.getElementById("totalAfterDiscount") as HTMLInputElement
-		).value = totalAfterDiscount.toFixed(2);
-		(document.getElementById("totalFee") as HTMLInputElement).value =
-			totalFee.toFixed(2);
+		// Update UI
+		(document.getElementById("discountTotal") as HTMLInputElement).value = discountAmount.toFixed(2);
+		(document.getElementById("totalAfterDiscount") as HTMLInputElement).value = totalAfterDiscount.toFixed(2);
+		(document.getElementById("totalFee") as HTMLInputElement).value = totalFee.toFixed(2);
 
 		if (remaining > 0) {
-			(
-				document.getElementById("remainingFacility") as HTMLInputElement
-			).value = remaining.toFixed(2);
-			(
-				document.getElementById("remainingPatient") as HTMLInputElement
-			).value = "0.00";
+			(document.getElementById("remainingPatient") as HTMLInputElement).value = remaining.toFixed(2);
+			(document.getElementById("remainingFacility") as HTMLInputElement).value = "0.00";
 		} else {
-			(
-				document.getElementById("remainingFacility") as HTMLInputElement
-			).value = "0.00";
-			(
-				document.getElementById("remainingPatient") as HTMLInputElement
-			).value = Math.abs(remaining).toFixed(2);
+			(document.getElementById("remainingPatient") as HTMLInputElement).value = "0.00";
+			(document.getElementById("remainingFacility") as HTMLInputElement).value = Math.abs(remaining).toFixed(2);
 		}
 	}
 
@@ -1829,11 +2027,23 @@ class PatientManager {
 						.value
 				) || 0;
 
+			const discountScopeArray: string[] = [];
+			document.querySelectorAll('.discount-scope:checked').forEach((checkbox: any) => {
+				discountScopeArray.push(checkbox.value);
+			});
+
+			const vatScopeArray: string[] = [];
+			document.querySelectorAll('.vat-scope:checked').forEach((checkbox: any) => {
+				vatScopeArray.push(checkbox.value);
+			});
+
 			const updateData = {
 				discount_type: isDiscountPercentage ? "percentage" : "fixed",
 				discount: discount,
 				vat_percentage: vatPercentage,
-				vat_scope: vatScope,
+				vat_scope: vatScope, // Keep for backward compatibility
+				discount_scope: discountScopeArray,
+				vat_scope_custom: vatScopeArray,
 				administrative_expenses: administrativeExpenses,
 				medical_tests_amount: medicalTestsAmount
 			};

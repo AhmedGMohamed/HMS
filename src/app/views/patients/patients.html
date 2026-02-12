@@ -393,14 +393,14 @@
             <div class="card-body">
               <div class="row g-3">
                 <!-- First Row -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.servicesTotal">Services Total</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="text" class="form-control" id="servicesTotal" readonly value="0.00">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.drugsTotal">Drugs Total</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
@@ -429,7 +429,7 @@
                     <input type="text" class="form-control" id="paidAmount" readonly value="0.00">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.discount">Discount</label>
                   <div class="input-group">
                     <input type="number" class="form-control" id="discount" value="0" min="0" step="0.01">
@@ -442,14 +442,34 @@
                   </div>
                 </div>
                 <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.applyDiscountOn">Apply Discount On:</label>
+                  <div class="btn-group-checkbox d-flex gap-3 flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountServices" value="services" checked>
+                      <label class="form-check-label" for="discountServices" data-i18n="patients.billing.scope.services">Services</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountDrugs" value="drugs" checked>
+                      <label class="form-check-label" for="discountDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountSupplies" value="supplies" checked>
+                      <label class="form-check-label" for="discountSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountTests" value="tests" checked>
+                      <label class="form-check-label" for="discountTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.discountTotal">Discount Total</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="text" class="form-control" id="discountTotal" readonly value="0.00">
                   </div>
                 </div>
-                <!-- Second Row -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.totalAfterDiscount">Total After Discount</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
@@ -461,12 +481,31 @@
                   <label class="form-label" data-i18n="patients.billing.vatPercentage">VAT %</label>
                   <input type="number" class="form-control" id="vatPercentage" value="0" min="0" max="100" step="0.1">
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label" data-i18n="patients.billing.vatScope">VAT Scope</label>
-                  <select class="form-select" id="vatScope">
-                    <option value="both" data-i18n="patients.billing.vatScopeBoth">Services, Drugs & Supplies</option>
-                    <option value="services" data-i18n="patients.billing.vatScopeServices">Services Only</option>
-                    <option value="drugs" data-i18n="patients.billing.vatScopeDrugs">Drugs Only</option>
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.applyVatOn">Apply VAT On:</label>
+                  <div class="btn-group-checkbox d-flex gap-3 flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatServices" value="services" checked>
+                      <label class="form-check-label" for="vatServices" data-i18n="patients.billing.scope.services">Services</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatDrugs" value="drugs" checked>
+                      <label class="form-check-label" for="vatDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatSupplies" value="supplies" checked>
+                      <label class="form-check-label" for="vatSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatTests" value="tests" checked>
+                      <label class="form-check-label" for="vatTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                    </div>
+                  </div>
+                  <!-- Hidden input for backward compatibility if needed, though we won't use it -->
+                  <select class="form-select d-none" id="vatScope">
+                    <option value="both">Both</option>
+                    <option value="services">Services</option>
+                    <option value="drugs">Drugs</option>
                   </select>
                 </div>
                 <div class="col-md-3">
@@ -775,6 +814,33 @@
           <div class="available-supplies-list" id="availableSuppliesList">
             <!-- Available supplies will be loaded here -->
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Item Details Modal -->
+  <div class="modal fade" id="viewItemDetailsModal" tabindex="-1" aria-labelledby="viewItemDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewItemDetailsModalLabel">Item Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-striped" id="itemDetailsTable">
+              <thead id="itemDetailsTableHead">
+                <!-- Table headers will be populated dynamically -->
+              </thead>
+              <tbody id="itemDetailsTableBody">
+                <!-- Table rows will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
         </div>
       </div>
     </div>

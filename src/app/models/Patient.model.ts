@@ -1845,9 +1845,10 @@ export class PatientModel {
 				throw new Error("Patient is not currently admitted");
 			}
 			const sql = `
-				SELECT du.*, dc.name as drug_name, dc.unit_conversion
+				SELECT du.*, dc.name as drug_name, dc.unit_conversion, dt.quantity as initial_quantity, dt.timestamp as start_date
 				FROM DrugUsage du
 				JOIN DrugCard dc ON du.drug_id = dc.drug_id
+				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
 				WHERE du.patient_id = $1
 				AND du.patient_history_id = $2
 				ORDER BY du.last_administered DESC NULLS LAST;

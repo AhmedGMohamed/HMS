@@ -604,7 +604,8 @@
 			"stop": "Stop",
 			"remove": "Remove",
 			"administer": "Administer",
-			"settleBill": "Settle Bill"
+			"settleBill": "Settle Bill",
+			"view": "View"
 		},
 		"sections": {
 			"basicInfo": "Basic Information",
@@ -654,7 +655,8 @@
 			"remaining": "Remaining",
 			"lastAdministered": "Last Administered",
 			"notAdministeredYet": "Not administered yet",
-			"available": "Available"
+			"available": "Available",
+			"dateAdded": "Date Added"
 		},
 		"billing": {
 			"servicesTotal": "Services Total",
@@ -663,9 +665,11 @@
 			"medicalTestsTotal": "Medical Tests",
 			"paidAmount": "Paid Amount",
 			"discount": "Discount",
+			"applyDiscountOn": "Apply Discount On",
 			"discountTotal": "Discount Total",
 			"totalAfterDiscount": "Total After Discount",
 			"vatPercentage": "VAT %",
+			"applyVatOn": "Apply VAT On",
 			"vatScope": "VAT Scope",
 			"vatScopeBoth": "Services & Drugs",
 			"vatScopeServices": "Services Only",
@@ -683,7 +687,14 @@
 			"currentPaid": "Current Paid",
 			"currentBalance": "Current Balance",
 			"newBalance": "New Balance",
-			"difference": "Difference"
+			"difference": "Difference",
+			"scope": {
+				"services": "Services",
+				"drugs": "Drugs",
+				"supplies": "Supplies",
+				"tests": "Tests",
+				"all": "All"
+			}
 		},
 		"gender": {
 			"male": "Male",

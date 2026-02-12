@@ -606,7 +606,8 @@
 			"stop": "إيقاف",
 			"remove": "إزالة",
 			"administer": "إعطاء",
-			"settleBill": "تسوية الفاتورة"
+			"settleBill": "تسوية الفاتورة",
+			"view": "عرض"
 		},
 		"sections": {
 			"basicInfo": "المعلومات الأساسية",
@@ -656,7 +657,8 @@
 			"remaining": "المتبقي",
 			"lastAdministered": "آخر إعطاء",
 			"notAdministeredYet": "لم يتم الإعطاء بعد",
-			"available": "المتاح"
+			"available": "المتاح",
+			"dateAdded": "تاريخ الإضافة"
 		},
 		"billing": {
 			"servicesTotal": "إجمالي الخدمات",
@@ -665,9 +667,11 @@
 			"medicalTestsTotal": "الفحوصات الطبية",
 			"paidAmount": "المبلغ المدفوع",
 			"discount": "الخصم",
+			"applyDiscountOn": "تطبيق الخصم على",
 			"discountTotal": "إجمالي الخصم",
 			"totalAfterDiscount": "الإجمالي بعد الخصم",
 			"vatPercentage": "ضريبة القيمة المضافة %",
+			"applyVatOn": "تطبيق ضريبة القيمة المضافة على",
 			"vatScope": "نطاق ضريبة القيمة المضافة",
 			"vatScopeBoth": "الخدمات والأدوية",
 			"vatScopeServices": "الخدمات فقط",
@@ -685,7 +689,14 @@
 			"currentPaid": "المدفوع الحالي",
 			"currentBalance": "الرصيد الحالي",
 			"newBalance": "الرصيد الجديد",
-			"difference": "الفرق"
+			"difference": "الفرق",
+			"scope": {
+				"services": "الخدمات",
+				"drugs": "الأدوية",
+				"supplies": "المستلزمات",
+				"tests": "الفحوصات",
+				"all": "الكل"
+			}
 		},
 		"gender": {
 			"male": "ذكر",

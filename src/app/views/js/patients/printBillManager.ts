@@ -122,6 +122,15 @@ export class PrintBillManager {
 			});
 		});
 
+		// Scope checkboxes listeners
+		document.querySelectorAll('.print-discount-scope').forEach(checkbox => {
+			checkbox.addEventListener('change', () => this.calculatePrintBilling());
+		});
+
+		document.querySelectorAll('.print-vat-scope').forEach(checkbox => {
+			checkbox.addEventListener('change', () => this.calculatePrintBilling());
+		});
+
 		// Search events for add item modal
 		document
 			.getElementById("serviceSearchInput")
@@ -236,6 +245,19 @@ export class PrintBillManager {
 		(
 			document.getElementById("printVatPercentage") as HTMLInputElement
 		).value = this.customBillData.vatPercentage.toString();
+
+		// Populate discount scope checkboxes
+		const discountScope = this.customBillData.bill.discount_scope || ["services", "drugs", "supplies", "tests"];
+		document.querySelectorAll('.print-discount-scope').forEach((checkbox: any) => {
+			checkbox.checked = discountScope.includes(checkbox.value);
+		});
+
+		// Populate VAT scope checkboxes
+		const vatScopeCustom = this.customBillData.bill.vat_scope_custom || ["services", "drugs", "supplies", "tests"];
+		document.querySelectorAll('.print-vat-scope').forEach((checkbox: any) => {
+			checkbox.checked = vatScopeCustom.includes(checkbox.value);
+		});
+
 		(document.getElementById("printVatScope") as HTMLSelectElement).value =
 			this.customBillData.bill.vat_scope || "both";
 		(
@@ -386,9 +408,14 @@ export class PrintBillManager {
 					) as HTMLInputElement
 				).value
 			) || 0;
-		const vatScope =
-			(document.getElementById("printVatScope") as HTMLSelectElement)
-				?.value || "both";
+
+		// Get scopes from UI
+		const discountScope: string[] = [];
+		document.querySelectorAll('.print-discount-scope:checked').forEach((cb: any) => discountScope.push(cb.value));
+
+		const vatScope: string[] = [];
+		document.querySelectorAll('.print-vat-scope:checked').forEach((cb: any) => vatScope.push(cb.value));
+
 		const adminExpenses =
 			parseFloat(
 				(
@@ -398,42 +425,81 @@ export class PrintBillManager {
 				).value
 			) || 0;
 
+		// Category totals map
+		const categoryTotals: Record<string, number> = {
+			services: servicesTotal,
+			drugs: drugsTotal,
+			supplies: suppliesTotal,
+			tests: medicalTestsAmount
+		};
+
 		// Calculate discount amount (but only apply if includeDiscount is checked)
 		let discountAmount = 0;
 		if (includeDiscount) {
-			if (isDiscountPercentage) {
-				discountAmount = (subtotal * discount) / 100;
-			} else {
-				discountAmount = discount;
+			// Calculate discount only on selected categories
+			let discountableAmount = 0;
+			discountScope.forEach(category => {
+				if (categoryTotals[category] !== undefined) {
+					discountableAmount += categoryTotals[category];
+				}
+			});
+
+			if (discountableAmount > 0) {
+				if (isDiscountPercentage) {
+					discountAmount = (discountableAmount * discount) / 100;
+				} else {
+					discountAmount = discount;
+				}
 			}
 		}
 
 		const totalAfterDiscount = subtotal - discountAmount;
 
-		// Calculate VAT based on scope (matching the patients file logic)
-		// Calculate VAT based on scope (matching the patients file logic)
-		// User requirement: VAT will be calculated on both the drugs and supplies totals grouped together
+		// Calculate VAT only on selected categories after discount
+		let vattableCategoriesTotal = 0;
+		vatScope.forEach(category => {
+			if (categoryTotals[category] !== undefined) {
+				vattableCategoriesTotal += categoryTotals[category];
+			}
+		});
+
 		let vatBase = 0;
-		if (subtotal > 0) {
-			// Avoid division by zero
-			switch (vatScope) {
-				case "services":
-					vatBase =
-						(servicesTotal + medicalTestsAmount) -
-						discountAmount * ((servicesTotal + medicalTestsAmount) / subtotal);
-					break;
-				case "drugs":
-					// Include supplies in "drugs" scope
-					vatBase =
-						(drugsTotal + suppliesTotal) -
-						discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
-					break;
-				case "both":
-				default:
-					vatBase = totalAfterDiscount;
-					break;
+		let vattableAfterDiscount = 0;
+		if (vattableCategoriesTotal > 0) {
+			// Calculate proportional discount for vattable categories
+			// We need to know how much discount was applied to the vattable items
+
+			// If discountAmount is 0, then base is just the category total
+			if (discountAmount === 0) {
+				vattableAfterDiscount = vattableCategoriesTotal;
+			} else {
+				// Find overlap
+				let vattableAndDiscountableTotal = 0;
+				let discountableAmount = 0;
+
+				// Re-calculate discountable amount to be safe
+				discountScope.forEach(category => {
+					if (categoryTotals[category] !== undefined) {
+						discountableAmount += categoryTotals[category];
+					}
+				});
+
+				if (discountableAmount > 0) {
+					vatScope.forEach(category => {
+						if (discountScope.includes(category) && categoryTotals[category] !== undefined) {
+							vattableAndDiscountableTotal += categoryTotals[category];
+						}
+					});
+
+					const vattableDiscount = (vattableAndDiscountableTotal / discountableAmount) * discountAmount;
+					vattableAfterDiscount = vattableCategoriesTotal - vattableDiscount;
+				} else {
+					vattableAfterDiscount = vattableCategoriesTotal;
+				}
 			}
 		}
+
+		vatBase = vattableAfterDiscount;
 
 		// VAT calculation includes administrative expenses (matching patients file logic)
 		const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
@@ -473,9 +539,14 @@ export class PrintBillManager {
 		discountInput.disabled = !includeDiscount;
 		discountTypeInput.disabled = !includeDiscount;
 
+		// Disable/Enable discount scope checkboxes
+		document.querySelectorAll('.print-discount-scope').forEach((checkbox: any) => {
+			checkbox.disabled = !includeDiscount;
+		});
+
 		// Update visual styling
 		const discountContainer = discountInput.closest(
-			".col-6"
+			".col-md-3"
 		) as HTMLElement;
 		if (discountContainer) {
 			discountContainer.style.opacity = includeDiscount ? "1" : "0.6";

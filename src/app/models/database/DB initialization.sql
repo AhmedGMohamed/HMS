@@ -141,6 +141,15 @@ CREATE TABLE IF NOT EXISTS Patient (
 	referring_doctor_id INTEGER REFERENCES Doctor(doctor_id),
 	created_by_user_id INTEGER REFERENCES "User"(user_id)
 );
+CREATE TABLE IF NOT EXISTS ActivePatientService (
+	active_service_id SERIAL PRIMARY KEY,
+	patient_id INTEGER REFERENCES Patient(patient_id),
+	service_id INTEGER REFERENCES Service(service_id),
+	start_date TIMESTAMP NOT NULL,
+	end_date TIMESTAMP,
+	is_active BOOLEAN DEFAULT true,
+	last_renewed TIMESTAMP DEFAULT NULL
+);
 CREATE TABLE IF NOT EXISTS Bill (
 	bill_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
@@ -152,6 +161,9 @@ CREATE TABLE IF NOT EXISTS Bill (
 	medical_tests_amount DECIMAL(15, 2) DEFAULT 0,
 	vat_percentage DECIMAL(5, 2),
 	vat_scope vat_scope_type,
+	--Deprecated, use vat_scope_custom instead
+	discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
+	vat_scope_custom JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
 	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	issued_by_user_id INTEGER REFERENCES "User"(user_id)
@@ -208,32 +220,11 @@ CREATE TABLE IF NOT EXISTS BillDetail (
 	active_service_id INTEGER REFERENCES ActivePatientService(active_service_id),
 	service_id INTEGER REFERENCES Service(service_id),
 	drug_shipment_id INTEGER REFERENCES DrugShipment(shipment_id),
-	medical_supply_shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id),
 	quantity INTEGER NOT NULL,
 	unit_price DECIMAL(15, 2) NOT NULL,
 	charge_type VARCHAR(50),
 	sale_type sale_type NOT NULL,
-	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	CONSTRAINT billdetail_check CHECK (
-		(
-			service_id IS NOT NULL
-			AND active_service_id IS NOT NULL
-			AND drug_shipment_id IS NULL
-			AND medical_supply_shipment_id IS NULL
-		)
-		OR (
-			service_id IS NULL
-			AND active_service_id IS NULL
-			AND drug_shipment_id IS NOT NULL
-			AND medical_supply_shipment_id IS NULL
-		)
-		OR (
-			service_id IS NULL
-			AND active_service_id IS NULL
-			AND drug_shipment_id IS NULL
-			AND medical_supply_shipment_id IS NOT NULL
-		)
-	)
+	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS DrugTransaction (
 	transaction_id SERIAL PRIMARY KEY,
@@ -252,15 +243,6 @@ CREATE TABLE IF NOT EXISTS DrugUsage (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	remaining_quantity INTEGER NOT NULL,
 	last_administered TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS ActivePatientService (
-	active_service_id SERIAL PRIMARY KEY,
-	patient_id INTEGER REFERENCES Patient(patient_id),
-	service_id INTEGER REFERENCES Service(service_id),
-	start_date TIMESTAMP NOT NULL,
-	end_date TIMESTAMP,
-	is_active BOOLEAN DEFAULT true,
-	last_renewed TIMESTAMP DEFAULT NULL
 );
 CREATE TABLE IF NOT EXISTS ServiceDrug (
 	service_id INTEGER REFERENCES Service(service_id),
@@ -732,7 +714,8 @@ VALUES (
 	(
 		'manage_supplies',
 		'Can manage medical supplies and inventory'
-	) ('manage_shipments', 'Can manage/edit shipments'),
+	),
+	('manage_shipments', 'Can manage/edit shipments'),
 	(
 		'manage_insurance',
 		'Can manage insurance companies and their payments'
