@@ -1978,11 +1978,11 @@ class PatientManager {
 		(document.getElementById("totalFee") as HTMLInputElement).value = totalFee.toFixed(2);
 
 		if (remaining > 0) {
-			(document.getElementById("remainingPatient") as HTMLInputElement).value = remaining.toFixed(2);
-			(document.getElementById("remainingFacility") as HTMLInputElement).value = "0.00";
-		} else {
 			(document.getElementById("remainingPatient") as HTMLInputElement).value = "0.00";
-			(document.getElementById("remainingFacility") as HTMLInputElement).value = Math.abs(remaining).toFixed(2);
+			(document.getElementById("remainingFacility") as HTMLInputElement).value = remaining.toFixed(2);
+		} else {
+			(document.getElementById("remainingPatient") as HTMLInputElement).value = Math.abs(remaining).toFixed(2);
+			(document.getElementById("remainingFacility") as HTMLInputElement).value = "0.00";
 		}
 	}
 

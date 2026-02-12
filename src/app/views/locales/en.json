@@ -1400,7 +1400,8 @@
 			"supplySalesProfit": "Supply Sales Profit",
 			"wagesOwed": "Wages Owed",
 			"wagesPaid": "Wages Paid",
-			"outstandingWages": "Outstanding Wages"
+			"outstandingWages": "Outstanding Wages",
+			"vatAndAdminTotal": "Total VAT/Admin. Expenses"
 		},
 		"reportButtons": {
 			"viewServicesReport": "View Services Report",
@@ -1442,7 +1443,9 @@
 			"total_transactions": "Total Transactions",
 			"total_profit": "Total Profit",
 			"total_wages": "Total Wages",
-			"unique_employees": "Unique Employees"
+			"unique_employees": "Unique Employees",
+			"total_vat": "Total VAT",
+			"total_admin_expenses": "Total Admin Expenses"
 		},
 		"modals": {
 			"addManualPayment": "Add Manual Payment",
@@ -1454,7 +1457,9 @@
 			"type": "Type",
 			"selectPaymentType": "Select payment type",
 			"description": "Description",
-			"optionalDescription": "Optional description of the payment"
+			"optionalDescription": "Optional description of the payment",
+			"vatAmount": "VAT Amount",
+			"adminExpenses": "Administrative Expenses"
 		},
 		"paymentTypes": {
 			"addition": "Addition (Income)",
@@ -1508,7 +1513,8 @@
 			"medical_supply_sales": "Supply Sales Revenue",
 			"medical_supply_profits": "Supply Sales Profit",
 			"wages_owed": "Wages Owed",
-			"wages_paid": "Wages Paid"
+			"wages_paid": "Wages Paid",
+			"patient_vat_admin": "VAT & Admin Expenses Report"
 		},
 		"reportColumns": {
 			"patientName": "Patient Name",
@@ -1559,7 +1565,9 @@
 			"issuedDate": "Issued Date",
 			"status": "Status",
 			"paidDate": "Paid Date",
-			"paidBy": "Paid By"
+			"paidBy": "Paid By",
+			"vatAmount": "VAT Amount",
+			"adminExpenses": "Administrative Expenses"
 		}
 	},
 	"reports": {

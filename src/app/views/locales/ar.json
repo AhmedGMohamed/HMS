@@ -1397,7 +1397,8 @@
 			"supplySalesProfit": "أرباح مبيعات المستلزمات",
 			"wagesOwed": "الرواتب المستحقة",
 			"wagesPaid": "الرواتب المدفوعة",
-			"outstandingWages": "الرواتب المتأخرة"
+			"outstandingWages": "الرواتب المتأخرة",
+			"vatAndAdminTotal": "إجمالي الضريبة/المصاريف الإدارية"
 		},
 		"reportButtons": {
 			"viewServicesReport": "عرض تقرير الخدمات",
@@ -1439,7 +1440,9 @@
 			"total_transactions": "إجمالي المعاملات",
 			"total_profit": "إجمالي الربح",
 			"total_wages": "إجمالي الأجور",
-			"unique_employees": "موظفون فريدون"
+			"unique_employees": "موظفون فريدون",
+			"total_vat": "إجمالي الضريبة",
+			"total_admin_expenses": "إجمالي المصاريف الإدارية"
 		},
 		"modals": {
 			"addManualPayment": "إضافة دفعة يدوية",
@@ -1451,7 +1454,9 @@
 			"type": "النوع",
 			"selectPaymentType": "اختر نوع الدفعة",
 			"description": "الوصف",
-			"optionalDescription": "وصف اختياري للدفعة"
+			"optionalDescription": "وصف اختياري للدفعة",
+			"vatAmount": "مبلغ الضريبة",
+			"adminExpenses": "المصاريف الإدارية"
 		},
 		"paymentTypes": {
 			"addition": "إضافة (دخل)",
@@ -1505,7 +1510,8 @@
 			"medical_supply_sales": "إيرادات مبيعات المستلزمات",
 			"medical_supply_profits": "أرباح مبيعات المستلزمات",
 			"wages_owed": "الرواتب المستحقة",
-			"wages_paid": "الرواتب المدفوعة"
+			"wages_paid": "الرواتب المدفوعة",
+			"patient_vat_admin": "تقرير الضريبة والمصاريف الإدارية"
 		},
 		"reportColumns": {
 			"patientName": "اسم المريض",
@@ -1556,7 +1562,9 @@
 			"issuedDate": "تاريخ الإصدار",
 			"status": "الحالة",
 			"paidDate": "تاريخ الدفع",
-			"paidBy": "دفعت بواسطة"
+			"paidBy": "دفعت بواسطة",
+			"vatAmount": "مبلغ الضريبة",
+			"adminExpenses": "المصاريف الإدارية"
 		}
 	},
 	"reports": {

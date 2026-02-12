@@ -7,6 +7,8 @@ export interface VaultSummary {
 	patient_payments_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;
+	patient_vat_total: number;
+	patient_admin_total: number;
 
 	// Manual Payments
 	manual_additions_total: number;

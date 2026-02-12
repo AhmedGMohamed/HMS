@@ -469,6 +469,7 @@
                     <input type="text" class="form-control" id="discountTotal" readonly value="0.00">
                   </div>
                 </div>
+                <!-- Third Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.totalAfterDiscount">Total After Discount</label>
                   <div class="input-group">
@@ -476,7 +477,13 @@
                     <input type="text" class="form-control" id="totalAfterDiscount" readonly value="0.00">
                   </div>
                 </div>
-                <!-- Third Row -->
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.adminExpenses">Administrative Expenses</label>
+                  <div class="input-group">
+                    <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                    <input type="number" class="form-control" id="administrativeExpenses" value="0" min="0" step="0.01">
+                  </div>
+                </div>
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.vatPercentage">VAT %</label>
                   <input type="number" class="form-control" id="vatPercentage" value="0" min="0" max="100" step="0.1">
@@ -508,13 +515,7 @@
                     <option value="drugs">Drugs</option>
                   </select>
                 </div>
-                <div class="col-md-3">
-                  <label class="form-label" data-i18n="patients.billing.adminExpenses">Administrative Expenses</label>
-                  <div class="input-group">
-                    <span class="input-group-text" data-i18n="common.currency">EGP</span>
-                    <input type="number" class="form-control" id="administrativeExpenses" value="0" min="0" step="0.01">
-                  </div>
-                </div>
+                <!-- Fourth Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.totalFee">Total Fee</label>
                   <div class="input-group">
@@ -522,7 +523,6 @@
                     <input type="text" class="form-control total-fee" id="totalFee" readonly value="0.00">
                   </div>
                 </div>
-                <!-- Fourth Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.remainingFacility">Remaining for Facility</label>
                   <div class="input-group">
@@ -544,7 +544,8 @@
                     <input type="number" class="form-control" id="paymentAmount" value="0" step="0.01">
                   </div>
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
+                <!-- Fifth Row -->
+                <div class="col-md-12 d-flex align-items-center justify-content-end">
                   <div class="button-group">
                     <button type="button" class="btn btn-success" id="confirmPaymentBtn">
                       <i class="bi bi-check-circle"></i> <span data-i18n="patients.buttons.confirmPayment">Confirm Payment</span>
