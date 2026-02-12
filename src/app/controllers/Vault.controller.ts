@@ -150,6 +150,31 @@ export class VaultController {
 		}
 	}
 
+	async getPatientVatAndAdminExpenses(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const data = await VaultModel.getPatientVatAndAdminExpenses(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(data);
+		} catch (error) {
+			console.error("Error fetching VAT and admin expenses:", error);
+			res.status(500).json({
+				error: "Failed to fetch VAT and admin expenses"
+			});
+		}
+	}
+
 	// Manual Payment Methods
 	async getManualPayments(req: Request, res: Response) {
 		try {
