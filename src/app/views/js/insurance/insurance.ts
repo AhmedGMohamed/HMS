@@ -81,6 +81,15 @@ interface InsuranceReportSummary {
 	cleared_payments: InsurancePayment[];
 }
 
+interface BillFinancials {
+	grossTotal: number;
+	discountAmount: number;
+	vatAmount: number;
+	adminExpenses: number;
+	netTotal: number;
+	medicalTestsTotal: number;
+}
+
 export interface PatientReportFilters {
 	insurance_id: number;
 	patient_id: number;
@@ -118,6 +127,12 @@ interface PatientReportSummary {
 		paid_amount: number;
 		outstanding_amount: number;
 		medical_tests_amount: number;
+		discount: number;
+		discount_type: string;
+		discount_scope: string[];
+		vat_percentage: number;
+		vat_scope_custom: string[];
+		administrative_expenses: number;
 		items: any[];
 	}>;
 	total_services_cost: number;
@@ -129,6 +144,15 @@ interface PatientReportSummary {
 	outstanding_amount: number;
 	items: any[];
 }
+
+// Scope arrays use plural: 'services', 'drugs', 'supplies', 'tests'
+// item_type from SQL uses singular: 'service', 'drug', 'supply'
+const itemTypeToCategoryMap: Record<string, string> = {
+	'service': 'services',
+	'drug': 'drugs',
+	'supply': 'supplies',
+	'test': 'tests'
+};
 
 class InsuranceManager {
 	//@ts-ignore
@@ -1253,6 +1277,9 @@ class InsuranceManager {
         </div>
     `;
 
+		// Calculate detailed financials
+		const financials = this.calculateFinancials(this.currentPatientReport.items || []);
+
 		// Generate report summary
 		const summaryHtml = `
         <div class="report-summary">
@@ -1264,40 +1291,39 @@ class InsuranceManager {
             <div class="report-summary-grid">
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentPatientReport.total_services_cost
+			financials.grossTotal
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
-			"insurance.report.services"
+			"insurance.report.grossTotal"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-danger">-${i18n.formatCurrency(
+			financials.discountAmount
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.report.discount"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-muted">${i18n.formatCurrency(
+			financials.adminExpenses
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"vault.fields.adminExpenses"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-muted">${i18n.formatCurrency(
+			financials.vatAmount
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"vault.fields.vatAmount"
 		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentPatientReport.total_drugs_cost
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.drugs"
-		)}</span>
-                </div>
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentPatientReport.total_supplies_cost || 0
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.supplies"
-		)}</span>
-                </div>
-                <!-- Medical Tests -->
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentPatientReport.total_medical_tests_cost || 0
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.totalMedicalTests"
-		)}</span>
-                </div>
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentPatientReport.total_cost
+			financials.netTotal
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
 			"insurance.report.totalAmount"
@@ -1313,7 +1339,7 @@ class InsuranceManager {
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value text-warning">${i18n.formatCurrency(
-			this.currentPatientReport.outstanding_amount
+			financials.netTotal - this.currentPatientReport.total_patient_payments
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
 			"insurance.statistics.outstandingBalance"
@@ -1396,9 +1422,23 @@ class InsuranceManager {
 				.join("");
 
 			const totalItemsCost = admission.items.reduce(
-				(sum: number, item: any) => sum + item.total_cost,
+				(sum: number, item: any) => sum + (parseFloat(item.total_cost) || 0),
 				0
 			);
+
+			// Calculate per-admission financials
+			const admEnrichedItems = admission.items.map((item: any) => ({
+				...item,
+				bill_id: admission.bill_id,
+				discount: admission.discount,
+				discount_type: admission.discount_type,
+				discount_scope: admission.discount_scope,
+				vat_percentage: admission.vat_percentage,
+				vat_scope_custom: admission.vat_scope_custom,
+				administrative_expenses: admission.administrative_expenses,
+				medical_tests_amount: admission.medical_tests_amount
+			}));
+			const admFinancials = this.calculateFinancials(admEnrichedItems);
 
 			itemsHtml = `
 	            <div class="table-responsive">
@@ -1429,6 +1469,25 @@ class InsuranceManager {
 				totalItemsCost
 			)}</td>
 	                        </tr>
+						${admFinancials.discountAmount > 0 ? `
+						<tr>
+							<td colspan="5" class="fw-bold text-danger">${admission.discount_type === "percentage" ? admission.discount + "% " : ""}Discount (${(admission.discount_scope || []).join("/")}):</td>
+							<td class="fw-bold text-end text-danger">-${i18n.formatCurrency(admFinancials.discountAmount)}</td>
+						</tr>` : ""}
+						${admFinancials.adminExpenses > 0 ? `
+						<tr>
+							<td colspan="5" class="fw-bold">Administrative Expenses:</td>
+							<td class="fw-bold text-end">${i18n.formatCurrency(admFinancials.adminExpenses)}</td>
+						</tr>` : ""}
+						${admFinancials.vatAmount > 0 ? `
+						<tr>
+							<td colspan="5" class="fw-bold">${admission.vat_percentage}% VAT (${(admission.vat_scope_custom || []).join("/")}/administrative expenses):</td>
+							<td class="fw-bold text-end">${i18n.formatCurrency(admFinancials.vatAmount)}</td>
+						</tr>` : ""}
+						<tr class="table-secondary">
+							<td colspan="5" class="fw-bold">Net Total:</td>
+							<td class="fw-bold text-end">${i18n.formatCurrency(admFinancials.netTotal)}</td>
+						</tr>
 	                    </tfoot>
 	                </table>
 	            </div>
@@ -1513,6 +1572,9 @@ class InsuranceManager {
 			this.showError("No patient report data to print");
 			return;
 		}
+
+		// Calculate financials for summary
+		const financials = this.calculateFinancials(this.currentPatientReport.items || []);
 
 		try {
 			// Create custom PDF for patient report
@@ -1650,65 +1712,51 @@ class InsuranceManager {
 							widths: ["*", "auto"],
 							body: [
 								[
-									{
-										text: "Financial Summary",
-										colSpan: 2,
-										bold: true,
-										fillColor: "#f0f0f0",
-										alignment: "center"
-									},
-									{}
-								],
-								[
-									"Services Cost:",
+									"Gross Total:",
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport
-												.total_services_cost,
+											financials.grossTotal,
 											true
 										),
 										alignment: "right"
 									}
 								],
 								[
-									"Drugs Cost:",
+									`Discount:`,
+									{
+										text: `-${this.formatCurrency(
+											financials.discountAmount,
+											true
+										)}`,
+										alignment: "right",
+										color: "red"
+									}
+								],
+								[
+									"Administrative Expenses:",
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport
-												.total_drugs_cost,
+											financials.adminExpenses,
 											true
 										),
 										alignment: "right"
 									}
 								],
 								[
-									"Supplies Cost:",
+									"VAT:",
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport
-												.total_supplies_cost || 0,
+											financials.vatAmount,
 											true
 										),
 										alignment: "right"
 									}
 								],
 								[
-									"Medical Tests Cost:",
+									{ text: "Net Total Cost:", bold: true },
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport
-												.total_medical_tests_cost || 0,
-											true
-										),
-										alignment: "right"
-									}
-								],
-								[
-									{ text: "Total Cost:", bold: true },
-									{
-										text: this.formatCurrency(
-											this.currentPatientReport
-												.total_cost,
+											financials.netTotal,
 											true
 										),
 										bold: true,
@@ -1734,8 +1782,7 @@ class InsuranceManager {
 									},
 									{
 										text: this.formatCurrency(
-											this.currentPatientReport
-												.outstanding_amount,
+											financials.netTotal - this.currentPatientReport.total_patient_payments,
 											true
 										),
 										bold: true,
@@ -1944,20 +1991,20 @@ class InsuranceManager {
 						}
 					]);
 
-					admissionTotal += item.total_cost;
+					admissionTotal += parseFloat(item.total_cost) || 0;
 				});
 
 				const servicesTotal = admission.items
 					.filter((i: any) => i.item_type === "service")
-					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+					.reduce((sum: number, i: any) => sum + (parseFloat(i.total_cost) || 0), 0);
 				const drugsTotal = admission.items
 					.filter((i: any) => i.item_type === "drug")
-					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+					.reduce((sum: number, i: any) => sum + (parseFloat(i.total_cost) || 0), 0);
 				const suppliesTotal = admission.items
 					.filter((i: any) => i.item_type === "supply")
-					.reduce((sum: number, i: any) => sum + i.total_cost, 0);
+					.reduce((sum: number, i: any) => sum + (parseFloat(i.total_cost) || 0), 0);
 
-				// Add subtotal rows
+				// Services Total
 				tableBody.push([
 					{
 						text: "Services Total:",
@@ -1974,6 +2021,8 @@ class InsuranceManager {
 						fillColor: "#f8f9fa"
 					}
 				]);
+
+				// Drugs Total
 				tableBody.push([
 					{
 						text: "Drugs Total:",
@@ -1990,6 +2039,8 @@ class InsuranceManager {
 						fillColor: "#f8f9fa"
 					}
 				]);
+
+				// Supplies Total
 				tableBody.push([
 					{
 						text: "Supplies Total:",
@@ -2007,6 +2058,7 @@ class InsuranceManager {
 					}
 				]);
 
+				// Medical Tests Total
 				tableBody.push([
 					{
 						text: "Medical Tests Total:",
@@ -2024,7 +2076,82 @@ class InsuranceManager {
 					}
 				]);
 
-				// Add total row
+				// Calculate admission financials
+				// Enrich items with bill-level data (items sub-query doesn't include these)
+				const enrichedItems = admission.items.map((item: any) => ({
+					...item,
+					bill_id: admission.bill_id,
+					discount: admission.discount,
+					discount_type: admission.discount_type,
+					discount_scope: admission.discount_scope,
+					vat_percentage: admission.vat_percentage,
+					vat_scope_custom: admission.vat_scope_custom,
+					administrative_expenses: admission.administrative_expenses,
+					medical_tests_amount: admission.medical_tests_amount
+				}));
+				const admFinancials = this.calculateFinancials(enrichedItems);
+
+				// Discount
+				if (admFinancials.discountAmount > 0) {
+					tableBody.push([
+						{
+							text: `${admission.discount_type === "percentage" ? admission.discount + "% " : ""}Discount (${admission.discount_scope.join("/")}):`,
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: `-${this.formatCurrency(admFinancials.discountAmount, true)}`,
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa",
+							color: "red"
+						}
+					]);
+				}
+
+				// Admin
+				if (admFinancials.adminExpenses > 0) {
+					tableBody.push([
+						{
+							text: "Administrative Expenses:",
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: this.formatCurrency(admFinancials.adminExpenses, true),
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa"
+						}
+					]);
+				}
+
+				// VAT
+				if (admFinancials.vatAmount > 0) {
+					tableBody.push([
+						{
+							text: `${admission.vat_percentage}% VAT (${admission.vat_scope_custom.join("/") + "/admin. expenses"}):`,
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: this.formatCurrency(admFinancials.vatAmount, true),
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa"
+						}
+					]);
+				}
+
 				tableBody.push([
 					{
 						text: "Total Charges:",
@@ -2032,33 +2159,26 @@ class InsuranceManager {
 						bold: true,
 						fillColor: "#cacfd4ff"
 					},
-					{},
-					{},
-					{},
-					{},
+					{}, {}, {}, {},
 					{
-						text: this.formatCurrency(admissionTotal, true),
+						text: this.formatCurrency(admFinancials.netTotal, true),
 						bold: true,
 						alignment: "right",
 						fillColor: "#e9ecef"
 					}
 				]);
 
-				// Assuming patientData is 'admission' for this context based on the original code
-				const patientData = admission;
-
 				tableBody.push([
 					{
 						text: "Patient Paid:",
 						colSpan: 5,
 						bold: true,
-						fillColor: "#f8f9fa",
-						border: [true, true, true, true]
+						fillColor: "#f8f9fa"
 					},
 					{}, {}, {}, {},
 					{
 						text: this.formatCurrency(
-							patientData.paid_amount, // Changed from patientData.patientPaid to patientData.paid_amount to match existing data structure
+							admission.paid_amount,
 							true
 						),
 						bold: true,
@@ -2067,7 +2187,7 @@ class InsuranceManager {
 					}
 				]);
 
-				const outstandingAmount = patientData.total_amount - patientData.paid_amount; // Changed from patientData.totalCost to patientData.total_amount to match existing data structure
+				const outstandingAmount = admission.total_amount - admission.paid_amount;
 
 				tableBody.push([
 					{
@@ -2510,6 +2630,9 @@ class InsuranceManager {
 			this.currentReport.report_period.end_date
 		);
 
+		// Calculate detailed financials
+		const financials = this.calculateFinancials(this.currentReport.items);
+
 		// Generate report summary
 		const summaryHtml = `
         <div class="report-summary">
@@ -2521,40 +2644,39 @@ class InsuranceManager {
             <div class="report-summary-grid">
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentReport.total_services_cost
+			financials.grossTotal
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
-			"insurance.report.services"
+			"insurance.report.grossTotal"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-danger">-${i18n.formatCurrency(
+			financials.discountAmount
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"insurance.report.discount"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-muted">${i18n.formatCurrency(
+			financials.adminExpenses
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"vault.fields.adminExpenses"
+		)}</span>
+                </div>
+                <div class="report-summary-item">
+                    <span class="report-summary-value text-muted">${i18n.formatCurrency(
+			financials.vatAmount
+		)}</span>
+                    <span class="report-summary-label">${i18n.t(
+			"vault.fields.vatAmount"
 		)}</span>
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentReport.total_drugs_cost
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.drugs"
-		)}</span>
-                </div>
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentReport.total_supplies_cost
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.supplies"
-		)}</span>
-                </div>
-                <!-- Medical Tests -->
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentReport.total_medical_tests_cost || 0
-		)}</span>
-                    <span class="report-summary-label">${i18n.t(
-			"insurance.report.totalMedicalTests"
-		)}</span>
-                </div>
-                <div class="report-summary-item">
-                    <span class="report-summary-value">${i18n.formatCurrency(
-			this.currentReport.total_cost
+			financials.netTotal
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
 			"insurance.report.totalAmount"
@@ -2570,18 +2692,19 @@ class InsuranceManager {
                 </div>
                 <div class="report-summary-item">
                     <span class="report-summary-value text-warning">${i18n.formatCurrency(
-			this.currentReport.outstanding_amount
+			financials.netTotal - this.currentReport.total_patient_payments
 		)}</span>
                     <span class="report-summary-label">${i18n.t(
 			"insurance.statistics.outstandingBalance"
 		)}</span>
                 </div>
+                <!-- Breakdown -->
                 <div class="report-summary-item">
-                    <span class="report-summary-value">${this.currentReport.patient_count
-			}</span>
-                    <span class="report-summary-label">${i18n.t(
-				"insurance.patients"
-			)}</span>
+                    <span class="report-summary-value text-info" style="font-size: 0.9em;">
+                        ${i18n.formatCurrency(this.currentReport.total_services_cost)} S / 
+                        ${i18n.formatCurrency(this.currentReport.total_drugs_cost)} D
+                    </span>
+                    <span class="report-summary-label">Services / Drugs</span>
                 </div>
             </div>
         </div>
@@ -2776,38 +2899,45 @@ class InsuranceManager {
 				patientData.medicalTestsAmount || 0
 			)}</td>
 	                        </tr>
+						${(() => {
+				const patFinancials = this.calculateFinancials(patientData.items);
+				let rows = '';
+				if (patFinancials.discountAmount > 0) {
+					const sampleItem = patientData.items[0];
+					rows += `<tr>
+									<td colspan="5" class="fw-bold text-danger">${sampleItem.discount_type === "percentage" ? sampleItem.discount + "% " : ""}Discount (${(sampleItem.discount_scope || []).join("/")}):</td>
+									<td class="fw-bold text-danger">-${i18n.formatCurrency(patFinancials.discountAmount)}</td>
+								</tr>`;
+				}
+				if (patFinancials.adminExpenses > 0) {
+					rows += `<tr>
+									<td colspan="5" class="fw-bold">Administrative Expenses:</td>
+									<td class="fw-bold">${i18n.formatCurrency(patFinancials.adminExpenses)}</td>
+								</tr>`;
+				}
+				if (patFinancials.vatAmount > 0) {
+					const sampleItem = patientData.items[0];
+					rows += `<tr>
+									<td colspan="5" class="fw-bold">${sampleItem.vat_percentage}% VAT (${(sampleItem.vat_scope_custom || []).join("/")}/admin. expenses):</td>
+									<td class="fw-bold">${i18n.formatCurrency(patFinancials.vatAmount)}</td>
+								</tr>`;
+				}
+				rows += `<tr class="table-secondary">
+								<td colspan="5" class="fw-bold">${i18n.t("insurance.report.netTotal")}:</td>
+								<td class="fw-bold">${i18n.formatCurrency(patFinancials.netTotal)}</td>
+							</tr>`;
+				rows += `
 	                        <tr>
-	                            <td colspan="5" class="fw-bold">${i18n.t(
-				"common.total"
-			)}:</td>
-	                            <td class="fw-bold">${i18n.formatCurrency(
-				patientData.totalCost
-			)}</td>
+	                            <td colspan="5" class="fw-bold">${i18n.t("insurance.paymentHistory.paymentAmount")}:</td>
+	                            <td class="fw-bold text-success">${i18n.formatCurrency(patientData.patientPaid)}</td>
 	                        </tr>
 	                        <tr>
-	                            <td colspan="5" class="fw-bold">${i18n.t(
-				"insurance.paymentHistory.paymentAmount"
-			)}:</td>
-	                            <td class="fw-bold text-success">${i18n.formatCurrency(
-				patientData.patientPaid
-			)}</td>
-	                        </tr>
-	                        <tr>
-	                            <td colspan="5" class="fw-bold">${i18n.t(
-				"insurance.patient.outstandingAmount"
-			)}:</td>
-	                            <td class="fw-bold ${patientData.totalCost -
-				patientData.patientPaid >
-				0
-				? "text-warning"
-				: "text-success"
-			}">
-	                                ${i18n.formatCurrency(
-				patientData.totalCost -
-				patientData.patientPaid
-			)}
-	                            </td>
-	                        </tr>
+	                            <td colspan="5" class="fw-bold">${i18n.t("insurance.patient.outstandingAmount")}:</td>
+	                            <td class="fw-bold ${patFinancials.netTotal - patientData.patientPaid > 0 ? "text-warning" : "text-success"}">
+	                                ${i18n.formatCurrency(patFinancials.netTotal - patientData.patientPaid)}</td>
+	                        </tr>`
+				return rows;
+			})()}
 	                    </tfoot>
 	                </table>
 	            </div>
@@ -2847,6 +2977,9 @@ class InsuranceManager {
 					}
 				]);
 			});
+			// Calculate detailed financials
+			const financials = this.calculateFinancials(this.currentReport.items);
+
 			const docDefinition = {
 				content: [
 					{
@@ -2882,55 +3015,51 @@ class InsuranceManager {
 											{}
 										],
 										[
-											"Services Cost:",
+											"Gross Total (Services + Drugs + Supplies):",
 											{
 												text: this.formatCurrency(
-													this.currentReport
-														.total_services_cost,
+													financials.grossTotal,
 													true
 												),
 												alignment: "right"
 											}
 										],
 										[
-											"Drugs Cost:",
+											"Discount:",
+											{
+												text: `-${this.formatCurrency(
+													financials.discountAmount,
+													true
+												)}`,
+												alignment: "right",
+												color: "red"
+											}
+										],
+										[
+											"Administrative Expenses:",
 											{
 												text: this.formatCurrency(
-													this.currentReport
-														.total_drugs_cost,
+													financials.adminExpenses,
 													true
 												),
 												alignment: "right"
 											}
 										],
 										[
-											"Supplies Cost:",
+											"VAT:",
 											{
 												text: this.formatCurrency(
-													this.currentReport
-														.total_supplies_cost,
+													financials.vatAmount,
 													true
 												),
 												alignment: "right"
 											}
 										],
 										[
-											"Medical Tests Cost:",
+											{ text: "Net Total Cost:", bold: true },
 											{
 												text: this.formatCurrency(
-													this.currentReport
-														.total_medical_tests_cost || 0,
-													true
-												),
-												alignment: "right"
-											}
-										],
-										[
-											{ text: "Total Cost:", bold: true },
-											{
-												text: this.formatCurrency(
-													this.currentReport
-														.total_cost,
+													financials.netTotal,
 													true
 												),
 												bold: true,
@@ -2956,8 +3085,8 @@ class InsuranceManager {
 											},
 											{
 												text: this.formatCurrency(
-													this.currentReport
-														.outstanding_amount,
+													financials.netTotal - this.currentReport
+														.total_patient_payments,
 													true
 												),
 												bold: true,
@@ -3250,9 +3379,74 @@ class InsuranceManager {
 					}
 				]);
 
+				// Calculate financials for this patient
+				const patFinancials = this.calculateFinancials(patientData.items);
+
+				// Discount
+				if (patFinancials.discountAmount > 0) {
+					tableBody.push([
+						{
+							text: "Discount:",
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: `-${this.formatCurrency(patFinancials.discountAmount, true)}`,
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa",
+							color: "red"
+						}
+					]);
+				}
+
+				// Administrative Expenses
+				if (patFinancials.adminExpenses > 0) {
+					tableBody.push([
+						{
+							text: "Administrative Expenses:",
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: this.formatCurrency(patFinancials.adminExpenses, true),
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa"
+						}
+					]);
+				}
+
+				// VAT
+				if (patFinancials.vatAmount > 0) {
+					tableBody.push([
+						{
+							text: "VAT:",
+							colSpan: 5,
+							bold: true,
+							fillColor: "#f8f9fa",
+							alignment: "left"
+						},
+						{}, {}, {}, {},
+						{
+							text: this.formatCurrency(patFinancials.vatAmount, true),
+							bold: true,
+							alignment: "right",
+							fillColor: "#f8f9fa"
+						}
+					]);
+				}
+
+
 				tableBody.push([
 					{
-						text: "Total Charges:",
+						text: "Net Total:",
 						colSpan: 5,
 						bold: true,
 						fillColor: "#cacfd4ff",
@@ -3263,7 +3457,7 @@ class InsuranceManager {
 					{},
 					{},
 					{
-						text: this.formatCurrency(patientData.totalCost, true),
+						text: this.formatCurrency(patFinancials.netTotal, true),
 						bold: true,
 						alignment: "right",
 						fillColor: "#e9ecef"
@@ -3294,7 +3488,7 @@ class InsuranceManager {
 				]);
 
 				const outstandingAmount =
-					patientData.totalCost - patientData.patientPaid;
+					patFinancials.netTotal - patientData.patientPaid;
 
 				tableBody.push([
 					{
@@ -3783,6 +3977,134 @@ class InsuranceManager {
 	private showError(message: string): void {
 		//@ts-ignore
 		toastr.error(message);
+	}
+	private calculateFinancials(items: any[]): BillFinancials {
+		const bills = new Map<number, any>();
+		const billItems = new Map<number, any[]>();
+
+		// Group items by bill
+		items.forEach((item) => {
+			if (!bills.has(item.bill_id)) {
+				bills.set(item.bill_id, {
+					discount: item.discount || 0,
+					discount_type: item.discount_type,
+					discount_scope: item.discount_scope || [],
+					vat_percentage: item.vat_percentage || 0,
+					vat_scope_custom: item.vat_scope_custom || [],
+					administrative_expenses: item.administrative_expenses || 0,
+					medical_tests_amount: item.medical_tests_amount || 0,
+					bill_id: item.bill_id
+				});
+				billItems.set(item.bill_id, []);
+			}
+			billItems.get(item.bill_id)!.push(item);
+		});
+
+		let totalGross = 0;
+		let totalDiscount = 0;
+		let totalVat = 0;
+		let totalAdmin = 0;
+		let totalMedicalTests = 0;
+
+		bills.forEach((bill, billId) => {
+			const billItemsList = billItems.get(billId)!;
+
+			// Build per-category subtotals (matching Bill.model.ts categories)
+			const categoryTotals: Record<string, number> = {
+				services: 0,
+				drugs: 0,
+				supplies: 0,
+				tests: bill.medical_tests_amount
+			};
+			billItemsList.forEach(item => {
+				const cat = itemTypeToCategoryMap[item.item_type] || item.item_type;
+				if (categoryTotals[cat] !== undefined) {
+					categoryTotals[cat] += (item.quantity * item.unit_price);
+				}
+			});
+
+			const itemsGross = categoryTotals.services + categoryTotals.drugs + categoryTotals.supplies;
+			const totalSubtotal = itemsGross + bill.medical_tests_amount;
+
+			// Calculate discount on selected categories (matches Bill.model.ts)
+			const discountScope: string[] = bill.discount_scope || [];
+			let discountableAmount = 0;
+			for (const category of discountScope) {
+				if (categoryTotals[category] !== undefined) {
+					discountableAmount += categoryTotals[category];
+				}
+			}
+			// If scope is empty or has 'all', discount on everything
+			if (discountScope.length === 0 || discountScope.includes('all')) {
+				discountableAmount = totalSubtotal;
+			}
+
+			let discountAmount = 0;
+			if (discountableAmount > 0) {
+				if (bill.discount_type === 'percentage') {
+					discountAmount = (discountableAmount * bill.discount) / 100;
+				} else {
+					discountAmount = bill.discount;
+				}
+			}
+
+
+			// Calculate VAT on selected categories (matches Bill.model.ts)
+			const vatScope: string[] = bill.vat_scope_custom || [];
+			let vattableCategoriesTotal = 0;
+			for (const category of vatScope) {
+				if (categoryTotals[category] !== undefined) {
+					vattableCategoriesTotal += Number(categoryTotals[category]);
+				}
+			}
+			// If scope is empty or has 'all', VAT on everything
+			if (vatScope.length === 0 || vatScope.includes('all')) {
+				vattableCategoriesTotal = totalSubtotal;
+			}
+
+			// Proportional discount on vattable items (matches Bill.model.ts)
+			let vattableAfterDiscount = vattableCategoriesTotal;
+			if (vattableCategoriesTotal > 0 && discountableAmount > 0 && discountAmount > 0) {
+				// Find overlap between discount scope and VAT scope
+				let vattableAndDiscountableTotal = 0;
+				const effectiveVatScope = (vatScope.length === 0 || vatScope.includes('all'))
+					? Object.keys(categoryTotals) : vatScope;
+				const effectiveDiscountScope = (discountScope.length === 0 || discountScope.includes('all'))
+					? Object.keys(categoryTotals) : discountScope;
+
+				for (const category of effectiveVatScope) {
+					if (effectiveDiscountScope.includes(category) && categoryTotals[category] !== undefined) {
+						vattableAndDiscountableTotal += Number(categoryTotals[category]);
+					}
+				}
+
+				if (vattableAndDiscountableTotal > 0) {
+					const vattableDiscount = (vattableAndDiscountableTotal / discountableAmount) * discountAmount;
+					vattableAfterDiscount = vattableCategoriesTotal - vattableDiscount;
+				}
+			}
+
+			const vatAmount = ((Number(vattableAfterDiscount) + Number(bill.administrative_expenses)) * Number(bill.vat_percentage)) / 100;
+
+			totalGross += Number(itemsGross);
+			totalDiscount += Number(discountAmount);
+			totalVat += Number(vatAmount);
+			totalAdmin += Number(bill.administrative_expenses);
+			totalMedicalTests += Number(bill.medical_tests_amount);
+		});
+
+		// Net = totalAfterDiscount + vatAmount + adminExpenses (matches Bill.model.ts)
+		const grossWithTests = Number(totalGross) + Number(totalMedicalTests);
+		const netTotal = (grossWithTests - Number(totalDiscount)) + Number(totalVat) + Number(totalAdmin);
+
+		return {
+			grossTotal: Number(totalGross),
+			discountAmount: Number(totalDiscount),
+			vatAmount: totalVat,
+			adminExpenses: totalAdmin,
+			medicalTestsTotal: totalMedicalTests,
+			netTotal: netTotal
+		};
 	}
 }
 
