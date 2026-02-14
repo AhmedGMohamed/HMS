@@ -503,9 +503,15 @@ class InsuranceModel {
             SUM(bd.quantity * bd.unit_price) as total_cost,  -- Sum total costs
             DATE(bd.generated_at) as service_date,  -- Group by date only
             bd.sale_type,
-            b.paid_amount as patient_paid_amount,  -- Add patient paid amount
-            b.total_amount as patient_total_amount,  -- Add patient total amount
-            COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
+            b.paid_amount as patient_paid_amount,
+            b.total_amount as patient_total_amount,
+            COALESCE(b.medical_tests_amount, 0) as medical_tests_amount,
+            b.discount,
+            b.discount_type,
+            b.discount_scope,
+            b.vat_percentage,
+            b.vat_scope_custom,
+            b.administrative_expenses
         FROM Patient p
         JOIN PatientHistory ph ON p.patient_id = ph.patient_id
         JOIN Bill b ON ph.bill_id = b.bill_id
@@ -546,7 +552,8 @@ class InsuranceModel {
             p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
             ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
             s.name, bd.drug_shipment_id, dc.name, bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
-            DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount
+            DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount,
+            b.discount, b.discount_type, b.discount_scope, b.vat_percentage, b.vat_scope_custom, b.administrative_expenses
         ORDER BY p.name, DATE(bd.generated_at) DESC
     `;
 
@@ -558,7 +565,13 @@ class InsuranceModel {
 			unit_price: parseFloat(row.unit_price),
 			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
 			patient_total_amount: parseFloat(row.patient_total_amount || 0),
-			medical_tests_amount: parseFloat(row.medical_tests_amount || 0)
+			medical_tests_amount: parseFloat(row.medical_tests_amount || 0),
+			discount: parseFloat(row.discount || 0),
+			discount_type: row.discount_type,
+			discount_scope: row.discount_scope,
+			vat_percentage: parseFloat(row.vat_percentage || 0),
+			vat_scope_custom: row.vat_scope_custom,
+			administrative_expenses: parseFloat(row.administrative_expenses || 0)
 		}));
 	}
 
@@ -861,7 +874,13 @@ class InsuranceModel {
 			b.total_amount,
 			b.paid_amount,
 			(b.total_amount - b.paid_amount) as outstanding_amount,
-			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
+			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount,
+			b.discount,
+			b.discount_type,
+			b.discount_scope,
+			b.vat_percentage,
+			b.vat_scope_custom,
+			b.administrative_expenses
 		FROM PatientHistory ph
 		JOIN Bill b ON ph.bill_id = b.bill_id
 		WHERE ph.patient_id = $1
@@ -948,7 +967,13 @@ class InsuranceModel {
 			...row,
 			total_amount: parseFloat(row.total_amount || 0),
 			paid_amount: parseFloat(row.paid_amount || 0),
-			outstanding_amount: parseFloat(row.outstanding_amount || 0)
+			outstanding_amount: parseFloat(row.outstanding_amount || 0),
+			discount: parseFloat(row.discount || 0),
+			discount_type: row.discount_type,
+			discount_scope: row.discount_scope,
+			vat_percentage: parseFloat(row.vat_percentage || 0),
+			vat_scope_custom: row.vat_scope_custom,
+			administrative_expenses: parseFloat(row.administrative_expenses || 0)
 		}));
 	}
 
@@ -982,7 +1007,13 @@ class InsuranceModel {
 			bd.sale_type,
 			b.paid_amount as patient_paid_amount,
 			b.total_amount as patient_total_amount,
-			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
+			COALESCE(b.medical_tests_amount, 0) as medical_tests_amount,
+			b.discount,
+			b.discount_type,
+			b.discount_scope,
+			b.vat_percentage,
+			b.vat_scope_custom,
+			b.administrative_expenses
 		FROM Patient p
 		JOIN PatientHistory ph ON p.patient_id = ph.patient_id
 		JOIN Bill b ON ph.bill_id = b.bill_id
@@ -1025,7 +1056,8 @@ class InsuranceModel {
 				p.patient_id, p.name, p.insurance_card_id, p.insurance_form_id,
 				ph.admission_time, ph.discharge_time, b.bill_id, bd.service_id, 
 				s.name, bd.drug_shipment_id, dc.name, bd.medical_supply_shipment_id, ms.name, bd.unit_price, 
-				DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount
+				DATE(bd.generated_at), bd.sale_type, b.paid_amount, b.total_amount, b.medical_tests_amount,
+				b.discount, b.discount_type, b.discount_scope, b.vat_percentage, b.vat_scope_custom, b.administrative_expenses
 			ORDER BY DATE(bd.generated_at) DESC
 		`;
 
@@ -1037,7 +1069,13 @@ class InsuranceModel {
 			unit_price: parseFloat(row.unit_price),
 			patient_paid_amount: parseFloat(row.patient_paid_amount || 0),
 			patient_total_amount: parseFloat(row.patient_total_amount || 0),
-			medical_tests_amount: parseFloat(row.medical_tests_amount || 0)
+			medical_tests_amount: parseFloat(row.medical_tests_amount || 0),
+			discount: parseFloat(row.discount || 0),
+			discount_type: row.discount_type,
+			discount_scope: row.discount_scope,
+			vat_percentage: parseFloat(row.vat_percentage || 0),
+			vat_scope_custom: row.vat_scope_custom,
+			administrative_expenses: parseFloat(row.administrative_expenses || 0)
 		}));
 	}
 
