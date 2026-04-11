@@ -1092,20 +1092,23 @@ class ReportsManager {
 	            `
 				: ""
 			}
-	        </div>
-	            ${admission.medical_tests_amount > 0
+			${admission.medical_tests_amount > 0
 				? `
-	            <div class="mt-2 text-primary">
-	                <small class="text-muted text-dark">${i18n.t(
+				<small class="text-muted">${i18n.t("reports.admissionCard.medicalTests")}</small>
+				<ul class="item-list mt-1">
+				<li class="item-list-item">
+				<span class="item-name">${i18n.t(
 					"reports.admissionCard.medicalTests"
-				)}:</small>
-	                <div class="fw-bold">${i18n.formatCurrency(
+				)}:</span>
+				<span class="item-price">${i18n.formatCurrency(
 					admission.medical_tests_amount
-				)}</div>
-	            </div>
+				)}</span>
+	            </li>
+	            </ul>
 	            `
 				: ""
 			}
+			</div>
 	    `;
 	}
 
@@ -1260,34 +1263,34 @@ class ReportsManager {
 						margin: [0, 0, 0, 15]
 					},
 					(this.currentReportData.length !== 1 ?
-					// Summary table
-					{
-						table: {
-							headerRows: 1,
-							widths: [
-								"*",
-								"auto",
-								"auto",
-								"auto",
-								"auto",
-								"auto",
-								"*"
-							],
-							body: summaryTableBody
-						},
-						layout: {
-							fillColor: function (rowIndex: number) {
-								return rowIndex === 0
-									? "#f0f0f0"
-									: rowIndex % 2 === 0
-										? "#f9f9f9"
-										: null;
+						// Summary table
+						{
+							table: {
+								headerRows: 1,
+								widths: [
+									"*",
+									"auto",
+									"auto",
+									"auto",
+									"auto",
+									"auto",
+									"*"
+								],
+								body: summaryTableBody
 							},
-							
-						},
-						margin: [0, 0, 0, 20],
-						fontSize: 8
-					} : null),
+							layout: {
+								fillColor: function (rowIndex: number) {
+									return rowIndex === 0
+										? "#f0f0f0"
+										: rowIndex % 2 === 0
+											? "#f9f9f9"
+											: null;
+								},
+
+							},
+							margin: [0, 0, 0, 20],
+							fontSize: 8
+						} : null),
 					// Patient details
 					...this.generatePatientDetailsPages()
 				],

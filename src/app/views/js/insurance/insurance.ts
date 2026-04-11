@@ -1469,6 +1469,10 @@ class InsuranceManager {
 				totalItemsCost
 			)}</td>
 	                        </tr>
+							<tr>
+								<td colspan="5" class="fw-bold">${i18n.t("insurance.patient.medicalTests")}</td>
+								<td class="fw-bold text-end">${i18n.formatCurrency(admFinancials.medicalTestsTotal)}</td>
+							</tr>
 						${admFinancials.discountAmount > 0 ? `
 						<tr>
 							<td colspan="5" class="fw-bold text-danger">${admission.discount_type === "percentage" ? admission.discount + "% " : ""}Discount (${(admission.discount_scope || []).join("/")}):</td>
@@ -4098,7 +4102,7 @@ class InsuranceManager {
 		const netTotal = (grossWithTests - Number(totalDiscount)) + Number(totalVat) + Number(totalAdmin);
 
 		return {
-			grossTotal: Number(totalGross),
+			grossTotal: Number(grossWithTests),
 			discountAmount: Number(totalDiscount),
 			vatAmount: totalVat,
 			adminExpenses: totalAdmin,
