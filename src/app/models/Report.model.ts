@@ -82,7 +82,7 @@ export default class ReportModel {
 			);
 
 			const totalBill = admissions.reduce(
-				(sum, adm) => sum + parseFloat(adm.total_amount as any),
+				(sum, adm) => sum + parseFloat((adm.final_total || 0) as any),
 				0
 			);
 			const totalPaid = admissions.reduce(
@@ -225,13 +225,13 @@ export default class ReportModel {
 		const patients = [];
 
 		for (const patient of patientsResult.rows) {
-			// Calculate age from national ID
 			const age = this.calculateAgeFromNationalId(patient.national_id);
-
 			const admissions = await this.getPatientAdmissionsFormatted(
 				patient.patient_id,
 				dateRange
 			);
+
+			const accurateTotalBilled = admissions.reduce((sum, adm) => sum + (adm.final_total || 0), 0);
 
 			patients.push({
 				patient_id: patient.patient_id,
@@ -246,7 +246,7 @@ export default class ReportModel {
 				insurance_form_id: patient.insurance_form_id,
 				insurance_card_id: patient.insurance_card_id,
 				referring_doctor_name: patient.referring_doctor_name,
-				total_billed: parseFloat(patient.total_billed),
+				total_billed: accurateTotalBilled,
 				total_paid: parseFloat(patient.total_paid),
 				admissions: admissions
 			});
@@ -272,6 +272,11 @@ export default class ReportModel {
                 b.total_amount,
                 b.paid_amount,
                 COALESCE(b.discount, 0) as discount,
+                b.discount_type,
+                b.discount_scope,
+                b.vat_percentage,
+                b.vat_scope_custom,
+                COALESCE(b.administrative_expenses, 0) as administrative_expenses,
                 COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
@@ -299,6 +304,13 @@ export default class ReportModel {
 			const drugs = await this.getAdmissionDrugs(row.bill_id, patientId);
 			const supplies = await this.getAdmissionSupplies(row.bill_id, patientId);
 
+			const servicesTotal = services.reduce((sum, s) => sum + s.total_price, 0);
+			const drugsTotal = drugs.reduce((sum, d) => sum + d.total_price, 0);
+			const suppliesTotal = supplies.reduce((sum, s) => sum + s.total_price, 0);
+			const testsTotal = parseFloat(row.medical_tests_amount || 0);
+
+			const financials = this.calculateFinancials(row, servicesTotal, drugsTotal, suppliesTotal, testsTotal);
+
 			admissions.push({
 				patient_history_id: row.patient_history_id,
 				admission_time: row.admission_time,
@@ -308,11 +320,12 @@ export default class ReportModel {
 				total_amount: parseFloat(row.total_amount || 0),
 				paid_amount: parseFloat(row.paid_amount || 0),
 				discount: parseFloat(row.discount || 0),
-				medical_tests_amount: parseFloat(row.medical_tests_amount || 0),
+				medical_tests_amount: testsTotal,
 				daily_staff: dailyStaff,
 				services: services,
 				drugs: drugs,
-				supplies: supplies
+				supplies: supplies,
+				...financials
 			});
 		}
 
@@ -335,11 +348,17 @@ export default class ReportModel {
                 ph.bill_id,
                 b.total_amount,
                 b.paid_amount,
+                COALESCE(b.discount, 0) as discount,
+                b.discount_type,
+                b.discount_scope,
+                b.vat_percentage,
+                b.vat_scope_custom,
+                COALESCE(b.administrative_expenses, 0) as administrative_expenses,
                 COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE ph.patient_id = $1
-            AND ph.admission_time BETWEEN $2 AND $3::DATE + '1 day'::INTERVAL
+            WHERE ph.patient_id = \$1
+            AND ph.admission_time BETWEEN \$2 AND \$3::DATE + '1 day'::INTERVAL
             ORDER BY ph.admission_time DESC
         `;
 
@@ -352,17 +371,22 @@ export default class ReportModel {
 		const admissions = [];
 
 		for (const admission of admissionsResult.rows) {
-			// Get services and drugs grouped by date
-			const itemsByDate = await this.getAdmissionItemsByDate(
-				admission.bill_id
+			const itemsByDate = await this.getAdmissionItemsByDate(admission.bill_id);
+			const dailyStaff = await this.getDailyStaffForReport(
+				patientId, admission.admission_time, admission.discharge_time
 			);
 
-			// Get daily staff assignments
-			const dailyStaff = await this.getDailyStaffForReport(
-				patientId,
-				admission.admission_time,
-				admission.discharge_time
-			);
+			let servicesTotal = 0, drugsTotal = 0, suppliesTotal = 0;
+			for (const group of itemsByDate) {
+				for (const item of group.items) {
+					if (item.item_type === 'service') servicesTotal += item.total_price;
+					else if (item.item_type === 'drug') drugsTotal += item.total_price;
+					else if (item.item_type === 'supply') suppliesTotal += item.total_price;
+				}
+			}
+			const testsTotal = parseFloat(admission.medical_tests_amount || 0);
+
+			const financials = this.calculateFinancials(admission, servicesTotal, drugsTotal, suppliesTotal, testsTotal);
 
 			admissions.push({
 				patient_history_id: admission.patient_history_id,
@@ -372,9 +396,10 @@ export default class ReportModel {
 				bill_id: admission.bill_id,
 				total_amount: parseFloat(admission.total_amount || 0),
 				paid_amount: parseFloat(admission.paid_amount || 0),
-				medical_tests_amount: parseFloat(admission.medical_tests_amount || 0),
+				medical_tests_amount: testsTotal,
 				items_by_date: itemsByDate,
-				daily_staff: dailyStaff
+				daily_staff: dailyStaff,
+				...financials
 			});
 		}
 
@@ -387,55 +412,60 @@ export default class ReportModel {
 	static async getSingleAdmissionFormatted(
 		patientHistoryId: number
 	): Promise<any> {
-		// Get patient and admission data
 		const admissionSql = `
             SELECT 
-                p.patient_id,
-                p.name as patient_name,
-                p.national_id,
-                p.gender,
-                p.phone,
-                p.address,
-                p.payment_type,
-                ic.name as insurance_company,
-                p.insurance_form_id,
-                p.insurance_card_id,
-                rd.name as referring_doctor_name,
-                ph.patient_history_id,
-                ph.admission_time,
-                ph.discharge_time,
-                ph.diagnosis,
-                ph.bill_id,
-                b.total_amount,
-                b.paid_amount,
-                COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
+				p.patient_id,
+				p.name as patient_name,
+				p.national_id,
+				p.gender,
+				p.phone,
+				p.address,
+				p.payment_type,
+				ic.name as insurance_company,
+				p.insurance_form_id,
+				p.insurance_card_id,
+				rd.name as referring_doctor_name,
+				ph.patient_history_id,
+				ph.admission_time,
+				ph.discharge_time,
+				ph.diagnosis,
+				ph.bill_id,
+				b.total_amount,
+				b.paid_amount,
+                COALESCE(b.discount, 0) as discount,
+				b.discount_type,
+				b.discount_scope,
+                b.vat_percentage,
+				b.vat_scope_custom,
+				COALESCE(b.administrative_expenses, 0) as administrative_expenses,
+				COALESCE(b.medical_tests_amount, 0) as medical_tests_amount
             FROM PatientHistory ph
             JOIN Patient p ON ph.patient_id = p.patient_id
             LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
             LEFT JOIN Doctor d ON p.referring_doctor_id = d.doctor_id
             LEFT JOIN Employee rd ON d.doctor_id = rd.employee_id
             LEFT JOIN Bill b ON ph.bill_id = b.bill_id
-            WHERE ph.patient_history_id = $1
+            WHERE ph.patient_history_id = \$1
         `;
 
 		const result = await query(admissionSql, [patientHistoryId]);
-
-		if (result.rows.length === 0) {
-			throw new Error("Admission not found");
-		}
-
+		if (result.rows.length === 0) throw new Error("Admission not found");
 		const data = result.rows[0];
+
 		const age = this.calculateAgeFromNationalId(data.national_id);
-
-		// Get services and drugs grouped by date
 		const itemsByDate = await this.getAdmissionItemsByDate(data.bill_id);
+		const dailyStaff = await this.getDailyStaffForReport(data.patient_id, data.admission_time, data.discharge_time);
 
-		// Get daily staff assignments
-		const dailyStaff = await this.getDailyStaffForReport(
-			data.patient_id,
-			data.admission_time,
-			data.discharge_time
-		);
+		let servicesTotal = 0, drugsTotal = 0, suppliesTotal = 0;
+		for (const group of itemsByDate) {
+			for (const item of group.items) {
+				if (item.item_type === 'service') servicesTotal += item.total_price;
+				else if (item.item_type === 'drug') drugsTotal += item.total_price;
+				else if (item.item_type === 'supply') suppliesTotal += item.total_price;
+			}
+		}
+		const testsTotal = parseFloat(data.medical_tests_amount || 0);
+		const financials = this.calculateFinancials(data, servicesTotal, drugsTotal, suppliesTotal, testsTotal);
 
 		return {
 			patient_id: data.patient_id,
@@ -458,9 +488,10 @@ export default class ReportModel {
 				bill_id: data.bill_id,
 				total_amount: parseFloat(data.total_amount || 0),
 				paid_amount: parseFloat(data.paid_amount || 0),
-				medical_tests_amount: parseFloat(data.medical_tests_amount || 0),
+				medical_tests_amount: testsTotal,
 				items_by_date: itemsByDate,
-				daily_staff: dailyStaff
+				daily_staff: dailyStaff,
+				...financials
 			}
 		};
 	}
@@ -774,6 +805,55 @@ export default class ReportModel {
 					)
 				};
 			});
+	}
+
+	private static calculateFinancials(
+		row: any,
+		servicesTotal: number,
+		drugsTotal: number,
+		suppliesTotal: number,
+		testsTotal: number
+	) {
+		const baseTotal = servicesTotal + drugsTotal + suppliesTotal + testsTotal;
+
+		const discountScopeArr = typeof row.discount_scope === 'string' ? JSON.parse(row.discount_scope) : (row.discount_scope || []);
+		const vatScopeArr = typeof row.vat_scope_custom === 'string' ? JSON.parse(row.vat_scope_custom) : (row.vat_scope_custom || []);
+
+		const getScopeTotal = (scopes: string[]) => {
+			let total = 0;
+			if (scopes.includes('services')) total += servicesTotal;
+			if (scopes.includes('drugs')) total += drugsTotal;
+			if (scopes.includes('supplies')) total += suppliesTotal;
+			if (scopes.includes('tests')) total += testsTotal;
+			return total;
+		};
+
+		let calculatedDiscount = parseFloat(row.discount || 0);
+		if (row.discount_type === 'percentage') {
+			calculatedDiscount = getScopeTotal(discountScopeArr) * (calculatedDiscount / 100);
+		}
+
+		const adminExpenses = parseFloat(row.administrative_expenses || 0);
+
+		let calculatedVat = 0;
+		if (row.vat_percentage) {
+			const scopeTotalForVat = getScopeTotal(vatScopeArr);
+			calculatedVat = (scopeTotalForVat - calculatedDiscount + adminExpenses) * (parseFloat(row.vat_percentage) / 100);
+		}
+
+		const finalTotal = baseTotal - calculatedDiscount + calculatedVat + adminExpenses;
+
+		return {
+			discount_type: row.discount_type,
+			discount_scope: discountScopeArr,
+			calculated_discount: calculatedDiscount,
+			vat_percentage: parseFloat(row.vat_percentage || 0),
+			vat_scope_custom: vatScopeArr,
+			calculated_vat: calculatedVat,
+			administrative_expenses: adminExpenses,
+			final_total: finalTotal,
+			base_total: baseTotal
+		};
 	}
 
 	// ==================== DOCTOR REPORTS ====================
