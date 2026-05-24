@@ -896,30 +896,41 @@ class ReportsManager {
 	            `
 				: ""
 			}
-	            <div class="row g-3 mb-2">
-	                <div class="col-md-4">
-	                    <small class="text-muted">${i18n.t("common.total")}:</small>
-	                    <div class="fw-bold">${i18n.formatCurrency(
-				admission.total_amount
-			)}</div>
-	                </div>
-	                <div class="col-md-4">
-	                    <small class="text-muted">${i18n.t(
-				"reports.admissionCard.paid"
-			)}:</small>
-	                    <div class="fw-bold text-success">${i18n.formatCurrency(
-				admission.paid_amount
-			)}</div>
-	                </div>
-	                <div class="col-md-4">
-	                    <small class="text-muted">${i18n.t(
-				"reports.admissionCard.discount"
-			)}:</small>
-	                    <div class="fw-bold text-info">${i18n.formatCurrency(
-				admission.discount
-			)}</div>
-	                </div>
-	            </div>
+				<div class="row g-3 mb-2">
+					<div class="col-md-3">
+						<small class="text-muted">${i18n.t("common.baseTotal") || "Base Total"}:</small>
+						<div class="fw-bold">${i18n.formatCurrency(admission.base_total)}</div>
+					</div>
+					${admission.calculated_discount > 0 ? `
+					<div class="col-md-3">
+						<small class="text-muted">${admission.discount_type === 'percentage' ? admission.discount + '% ' : ''}${i18n.t("reports.admissionCard.discount")} (${(admission.discount_scope || []).join('/')}):</small>
+						<div class="fw-bold text-info">-${i18n.formatCurrency(admission.calculated_discount)}</div>
+					</div>` : ''}
+					${admission.administrative_expenses > 0 ? `
+					<div class="col-md-3">
+						<small class="text-muted">${i18n.t("reports.admissionCard.adminExpenses") || "Admin Expenses"}:</small>
+						<div class="fw-bold text-warning">+${i18n.formatCurrency(admission.administrative_expenses)}</div>
+					</div>` : ''}
+					${admission.calculated_vat > 0 ? `
+					<div class="col-md-3">
+						<small class="text-muted">${admission.vat_percentage}% ${i18n.t("reports.admissionCard.vat") || "VAT"} (${[...(admission.vat_scope_custom || []), 'admin'].join('/')}):</small>
+						<div class="fw-bold text-danger">+${i18n.formatCurrency(admission.calculated_vat)}</div>
+					</div>` : ''}
+				</div>
+				<div class="row g-3 mb-2">
+					<div class="col-md-4">
+						<small class="text-muted">${i18n.t("common.finalTotal") || "Final Total"}:</small>
+						<div class="fw-bold">${i18n.formatCurrency(admission.final_total)}</div>
+					</div>
+					<div class="col-md-4">
+						<small class="text-muted">${i18n.t("reports.admissionCard.paid")}:</small>
+						<div class="fw-bold text-success">${i18n.formatCurrency(admission.paid_amount)}</div>
+					</div>
+					<div class="col-md-4">
+						<small class="text-muted">${i18n.t("reports.admissionCard.outstanding")}:</small>
+						<div class="fw-bold text-warning">${i18n.formatCurrency(admission.final_total - admission.paid_amount)}</div>
+					</div>
+				</div>
 	            ${admission.daily_staff && admission.daily_staff.length > 0
 				? `
 	            <div class="mb-2">
@@ -1577,108 +1588,69 @@ class ReportsManager {
 							);
 						}
 
-						const outstandingAmount =
-							admission.total_amount - admission.paid_amount;
+						const outstandingAmount = admission.final_total - admission.paid_amount;
 
-						// Add summary rows
-						if (admission.medical_tests_amount > 0) {
+						// Add Base Total
+						itemsTableBody.push([
+							{ text: "Base Charges:", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+							{ text: this.formatCurrency(admission.base_total, true), bold: true, alignment: "right", fillColor: "#f8f9fa" }
+						]);
+
+						// Add Discount
+						if (admission.calculated_discount > 0) {
+							const scopeStr = admission.discount_scope ? admission.discount_scope.join("/") : "";
+							const discountLabel = admission.discount_type === 'percentage'
+								? `${admission.discount}% Discount (${scopeStr})`
+								: `Discount (${scopeStr})`;
+
 							itemsTableBody.push([
-								{
-									text: "Medical Tests:",
-									colSpan: 5,
-									bold: true,
-									fillColor: "#f8f9fa"
-								},
-								{},
-								{},
-								{},
-								{},
-								{
-									text: this.formatCurrency(
-										admission.medical_tests_amount,
-										true
-									),
-									bold: true,
-									alignment: "right",
-									fillColor: "#f8f9fa"
-								}
+								{ text: discountLabel, colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+								{ text: `-${this.formatCurrency(admission.calculated_discount, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa", color: "#dc3545" }
 							]);
 						}
 
+						// Add Admin Expenses
+						if (admission.administrative_expenses > 0) {
+							itemsTableBody.push([
+								{ text: "Administrative Expenses", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+								{ text: `+${this.formatCurrency(admission.administrative_expenses, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa" }
+							]);
+						}
+
+						// Add VAT
+						if (admission.calculated_vat > 0) {
+							// Append 'admin' to the display scope
+							const scopeStr = [...(admission.vat_scope_custom || []), 'admin'].join("/");
+
+							itemsTableBody.push([
+								{ text: `${admission.vat_percentage}% VAT (${scopeStr})`, colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+								{ text: `+${this.formatCurrency(admission.calculated_vat, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa" }
+							]);
+						}
+
+						// Add Final Total row
 						itemsTableBody.push([
-							{
-								text: "Total Charges:",
-								colSpan: 5,
-								bold: true,
-								fillColor: "#f8f9fa"
-							},
-							{},
-							{},
-							{},
-							{},
-							{
-								text: this.formatCurrency(
-									admission.total_amount,
-									true
-								),
-								bold: true,
-								alignment: "right",
-								fillColor: "#f8f9fa"
-							}
+							{ text: "Final Total Owed:", colSpan: 5, bold: true, fillColor: "#e2e3e5" }, {}, {}, {}, {},
+							{ text: this.formatCurrency(admission.final_total, true), bold: true, alignment: "right", fillColor: "#e2e3e5" }
 						]);
 
+						// Add Paid Row
 						itemsTableBody.push([
-							{
-								text: "Patient Paid:",
-								colSpan: 5,
-								bold: true,
-								fillColor: "#f8f9fa"
-							},
-							{},
-							{},
-							{},
-							{},
-							{
-								text: this.formatCurrency(
-									admission.paid_amount,
-									true
-								),
-								bold: true,
-								alignment: "right",
-								fillColor: "#f8f9fa",
-								color: "#28a745"
-							}
+							{ text: "Patient Paid:", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+							{ text: this.formatCurrency(admission.paid_amount, true), bold: true, alignment: "right", fillColor: "#f8f9fa", color: "#28a745" }
 						]);
 
+						// Add Outstanding Row
 						itemsTableBody.push([
 							{
-								text: "Outstanding Amount:",
-								colSpan: 5,
-								bold: true,
-								fillColor:
-									outstandingAmount > 0
-										? "#fff3cd"
-										: "#d1edff"
-							},
-							{},
-							{},
-							{},
-							{},
+								text: "Outstanding Amount:", colSpan: 5, bold: true,
+								fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff"
+							}, {}, {}, {}, {},
 							{
-								text: this.formatCurrency(
-									outstandingAmount,
-									true
-								),
-								bold: true,
-								alignment: "right",
-								fillColor:
-									outstandingAmount > 0
-										? "#fff3cd"
-										: "#d1edff",
-								color:
-									outstandingAmount > 0
-										? "#856404"
-										: "#0c5460"
+								text: this.formatCurrency(outstandingAmount, true),
+								bold: true, alignment: "right",
+								fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
+								color: outstandingAmount > 0 ? "#856404" : "#0c5460"
 							}
 						]);
 
@@ -2171,99 +2143,70 @@ class ReportsManager {
 			]);
 		}
 
-		const outstandingAmount =
-			admission.total_amount - admission.paid_amount;
+		const outstandingAmount = admission.final_total - admission.paid_amount;
 
 		if (includeFinances) {
 			// Add Medical Tests if applicable
 			if (admission.medical_tests_amount > 0) {
 				itemsTableBody.push([
-					{
-						text: "Medical Tests",
-						colSpan: 5,
-						bold: true,
-						fillColor: "#f8f9fa"
-					},
-					{},
-					{},
-					{},
-					{},
-					includeFinances
-						? {
-							text: this.formatCurrency(
-								admission.medical_tests_amount,
-								true
-							),
-							bold: true,
-							alignment: "right",
-							fillColor: "#f8f9fa"
-						}
-						: {
-							text: "-",
-							bold: true,
-							alignment: "center",
-							fillColor: "#f8f9fa"
-						}
+					{ text: "Medical Tests", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+					includeFinances ? { text: this.formatCurrency(admission.medical_tests_amount, true), bold: true, alignment: "right", fillColor: "#f8f9fa" } : { text: "-", bold: true, alignment: "center", fillColor: "#f8f9fa" }
 				]);
 			}
-			// Add summary rows
+
+			// Base Total
 			itemsTableBody.push([
-				{
-					text: "Total Charges:",
-					colSpan: 5,
-					bold: true,
-					fillColor: "#f8f9fa"
-				},
-				{},
-				{},
-				{},
-				{},
-				{
-					text: this.formatCurrency(admission.total_amount, true),
-					bold: true,
-					alignment: "right",
-					fillColor: "#f8f9fa"
-				}
+				{ text: "Base Charges:", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+				{ text: this.formatCurrency(admission.base_total, true), bold: true, alignment: "right", fillColor: "#f8f9fa" }
 			]);
 
+			// Add Discount
+			if (admission.calculated_discount > 0) {
+				const scopeStr = admission.discount_scope ? admission.discount_scope.join("/") : "";
+				const discountLabel = admission.discount_type === 'percentage'
+					? `${admission.discount}% Discount (${scopeStr})`
+					: `Discount (${scopeStr})`;
+
+				itemsTableBody.push([
+					{ text: discountLabel, colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+					{ text: `-${this.formatCurrency(admission.calculated_discount, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa", color: "#dc3545" }
+				]);
+			}
+
+			// Add Admin Expenses
+			if (admission.administrative_expenses > 0) {
+				itemsTableBody.push([
+					{ text: "Administrative Expenses", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+					{ text: `+${this.formatCurrency(admission.administrative_expenses, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa" }
+				]);
+			}
+
+			if (admission.calculated_vat > 0) {
+				// Append 'admin' to the display scope
+				const scopeStr = [...(admission.vat_scope_custom || []), 'admin'].join("/");
+
+				itemsTableBody.push([
+					{ text: `${admission.vat_percentage}% VAT (${scopeStr})`, colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+					{ text: `+${this.formatCurrency(admission.calculated_vat, true)}`, bold: true, alignment: "right", fillColor: "#f8f9fa" }
+				]);
+			}
+
+			// Final Total row
 			itemsTableBody.push([
-				{
-					text: "Patient Paid:",
-					colSpan: 5,
-					bold: true,
-					fillColor: "#f8f9fa"
-				},
-				{},
-				{},
-				{},
-				{},
-				{
-					text: this.formatCurrency(admission.paid_amount, true),
-					bold: true,
-					alignment: "right",
-					fillColor: "#f8f9fa",
-					color: "#28a745"
-				}
+				{ text: "Final Total Owed:", colSpan: 5, bold: true, fillColor: "#e2e3e5" }, {}, {}, {}, {},
+				{ text: this.formatCurrency(admission.final_total, true), bold: true, alignment: "right", fillColor: "#e2e3e5" }
 			]);
 
+			// Paid
 			itemsTableBody.push([
-				{
-					text: "Outstanding Amount:",
-					colSpan: 5,
-					bold: true,
-					fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff"
-				},
-				{},
-				{},
-				{},
-				{},
-				{
-					text: this.formatCurrency(outstandingAmount, true),
-					bold: true,
-					alignment: "right",
-					fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff",
-					color: outstandingAmount > 0 ? "#856404" : "#0c5460"
-				}
+				{ text: "Patient Paid:", colSpan: 5, bold: true, fillColor: "#f8f9fa" }, {}, {}, {}, {},
+				{ text: this.formatCurrency(admission.paid_amount, true), bold: true, alignment: "right", fillColor: "#f8f9fa", color: "#28a745" }
+			]);
+
+			// Outstanding Amount
+			itemsTableBody.push([
+				{ text: "Outstanding Amount:", colSpan: 5, bold: true, fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff" }, {}, {}, {}, {},
+				{ text: this.formatCurrency(outstandingAmount, true), bold: true, alignment: "right", fillColor: outstandingAmount > 0 ? "#fff3cd" : "#d1edff", color: outstandingAmount > 0 ? "#856404" : "#0c5460" }
 			]);
 		}
 

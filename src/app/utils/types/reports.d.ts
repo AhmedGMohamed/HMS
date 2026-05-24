@@ -46,11 +46,21 @@ export interface PatientAdmissionDetail {
 	total_amount: number;
 	paid_amount: number;
 	discount: number;
+	discount_type?: string;
+	discount_scope?: string[];
+	calculated_discount?: number;
+	vat_percentage?: number;
+	vat_scope_custom?: string[];
+	calculated_vat?: number;
+	administrative_expenses?: number;
+	final_total?: number;
+	base_total?: number;
 	medical_tests_amount: number;
 	daily_staff: DailyStaffAssignment[];
 	services: ServiceUsageDetail[];
 	drugs: DrugUsageDetail[];
 	supplies: MedicalSupplyUsageDetail[];
+	items_by_date?: any[]
 }
 
 export interface DailyStaffAssignment {
