@@ -1006,6 +1006,27 @@
                         </div>
                       </div>
                     </div>
+                    <div class="col-6">
+                      <label class="form-label mb-1" data-i18n="patients.billing.applyDiscountOn">Apply Discount On:</label>
+                      <div class="btn-group-checkbox d-flex gap-2 flex-wrap" style="font-size: 0.875em;">
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountServices" value="services" checked>
+                          <label class="form-check-label" for="printDiscountServices" data-i18n="patients.billing.scope.services">Services</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountDrugs" value="drugs" checked>
+                          <label class="form-check-label" for="printDiscountDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountSupplies" value="supplies" checked>
+                          <label class="form-check-label" for="printDiscountSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-0">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountTests" value="tests" checked>
+                          <label class="form-check-label" for="printDiscountTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                        </div>
+                      </div>
+                    </div>
                     <div class="col-6 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.discountTotal">Discount Amount:</small><br>
@@ -1024,11 +1045,27 @@
                       </div>
                     </div>
                     <div class="col-6">
-                      <label class="form-label mb-1" data-i18n="patients.billing.vatScope">VAT Scope:</label>
-                      <select class="form-select form-select-sm" id="printVatScope">
-                        <option value="both" data-i18n="patients.billing.vatScopeBoth">Services & Drugs</option>
-                        <option value="services" data-i18n="patients.billing.vatScopeServices">Services Only</option>
-                        <option value="drugs" data-i18n="patients.billing.vatScopeDrugs">Drugs Only</option>
+                      <label class="form-label mb-1" data-i18n="patients.billing.applyVatOn">Apply VAT On:</label>
+                      <div class="btn-group-checkbox d-flex gap-2 flex-wrap" style="font-size: 0.875em;">
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatServices" value="services" checked>
+                          <label class="form-check-label" for="printVatServices" data-i18n="patients.billing.scope.services">Services</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatDrugs" value="drugs" checked>
+                          <label class="form-check-label" for="printVatDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatSupplies" value="supplies" checked>
+                          <label class="form-check-label" for="printVatSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-0">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatTests" value="tests" checked>
+                          <label class="form-check-label" for="printVatTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                        </div>
+                      </div>
+                      <select class="form-select d-none" id="printVatScope">
+                        <option value="both">Both</option>
                       </select>
                     </div>
 

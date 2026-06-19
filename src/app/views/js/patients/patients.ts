@@ -3681,6 +3681,71 @@ class PatientManager {
 		const drugs = this.groupDrugsByDrugId(admission.drugs || []);
 		const supplies = this.groupSuppliesBySupplyId(admission.supplies || []);
 
+		// Calculate discount and VAT amounts based on scopes
+		const servicesTotal = admission.services_total || 0;
+		const drugsTotal = admission.drugs_total || 0;
+		const suppliesTotal = admission.supplies_total || 0;
+		const medicalTestsAmount = parseFloat(admission.medical_tests_amount || 0);
+
+		const categoryTotals: Record<string, number> = {
+			services: servicesTotal,
+			drugs: drugsTotal,
+			supplies: suppliesTotal,
+			tests: medicalTestsAmount
+		};
+
+		const discountScope = admission.discount_scope || ['services', 'drugs', 'supplies', 'tests'];
+		const vatScope = admission.vat_scope_custom || ['services', 'drugs', 'supplies', 'tests'];
+
+		let discountAmount = 0;
+		const discount = parseFloat(admission.discount || 0);
+		if (discount > 0) {
+			let discountableAmount = 0;
+			discountScope.forEach((c: string) => {
+				if (categoryTotals[c]) discountableAmount += categoryTotals[c];
+			});
+			if (discountableAmount > 0) {
+				if (admission.discount_type === "percentage") {
+					discountAmount = (discountableAmount * discount) / 100;
+				} else {
+					discountAmount = discount;
+				}
+			}
+		}
+
+		let vattableCategoriesTotal = 0;
+		vatScope.forEach((c: string) => {
+			if (categoryTotals[c]) vattableCategoriesTotal += categoryTotals[c];
+		});
+
+		let vatBase = 0;
+		if (vattableCategoriesTotal > 0) {
+			if (discountAmount === 0) {
+				vatBase = vattableCategoriesTotal;
+			} else {
+				let vattableAndDiscountableTotal = 0;
+				let discountableAmount = 0;
+				discountScope.forEach((c: string) => {
+					if (categoryTotals[c]) discountableAmount += categoryTotals[c];
+				});
+				if (discountableAmount > 0) {
+					vatScope.forEach((c: string) => {
+						if (discountScope.includes(c) && categoryTotals[c]) {
+							vattableAndDiscountableTotal += categoryTotals[c];
+						}
+					});
+					const vattableDiscount = (vattableAndDiscountableTotal / discountableAmount) * discountAmount;
+					vatBase = vattableCategoriesTotal - vattableDiscount;
+				} else {
+					vatBase = vattableCategoriesTotal;
+				}
+			}
+		}
+
+		const vatPercentage = parseFloat(admission.vat_percentage || 0);
+		const adminExpenses = parseFloat(admission.administrative_expenses || 0);
+		const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
+
 		container.innerHTML = `
         <!-- Admission Overview -->
         <div class="admission-details-grid">
@@ -3778,16 +3843,17 @@ class PatientManager {
                         <span class="detail-label">${i18n.t(
 				"patients.billing.discount"
 			)}:</span>
-                        <span class="detail-value">${i18n.formatCurrency(
-				parseFloat(admission.discount || 0)
-			)}</span>
+                        <span class="detail-value">
+                            ${admission.discount_type === "percentage" ? admission.discount + "% (" + i18n.formatCurrency(discountAmount) + ")" : i18n.formatCurrency(discountAmount)}
+                        </span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
 				"patients.billing.vatPercentage"
 			)}:</span>
-                        <span class="detail-value">${admission.vat_percentage || 0
-			}%</span>
+                        <span class="detail-value">
+                            ${vatPercentage}% ${vatPercentage > 0 ? "(" + i18n.formatCurrency(vatAmount) + ")" : ""}
+                        </span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">${i18n.t(
@@ -4316,6 +4382,8 @@ class PatientManager {
 					this.currentAdmissionDetails.vat_percentage || 0,
 				medical_tests_amount:
 					this.currentAdmissionDetails.medical_tests_amount || 0,
+				vat_scope_custom: this.currentAdmissionDetails.vat_scope_custom,
+				discount_scope: this.currentAdmissionDetails.discount_scope,
 				vat_scope: this.currentAdmissionDetails.vat_scope || "both",
 				generated_at: this.currentAdmissionDetails.admission_time,
 				updated_at: this.currentAdmissionDetails.discharge_time,
