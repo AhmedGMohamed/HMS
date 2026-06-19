@@ -989,6 +989,8 @@ export class PatientModel {
             b.medical_tests_amount,
             b.vat_percentage,
     	        b.vat_scope,
+				b.vat_scope_custom,
+				b.discount_scope,
     	        COALESCE(da.assigned_doctors, '[]'::json) as assigned_doctors,
     	        COALESCE(na.assigned_nurses, '[]'::json) as assigned_nurses
     	    FROM PatientHistory ph

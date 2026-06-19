@@ -40,6 +40,7 @@ interface ReportField {
 	label: string;
 	type: "text" | "number" | "currency" | "date" | "boolean";
 	formatter?: (value: any, item?: any) => string;
+	labelFormatter?: (data: any) => string;
 	alignment?: "left" | "center" | "right";
 	bold?: boolean;
 	width?: string | number;
@@ -320,8 +321,10 @@ function buildSummary(section: ReportSection, data: any): any {
 		const value = calculateSummaryValue(field, data);
 		const formattedValue = formatValue(value, field, data); // Pass data as context
 
+		const actualLabel = field.labelFormatter ? field.labelFormatter(data) : field.label;
+
 		return [
-			field.label,
+			actualLabel,
 			field.bold ? { text: formattedValue, bold: true } : formattedValue
 		];
 	});
@@ -489,6 +492,20 @@ export const reportTemplates = {
 						width: "*"
 					},
 					{
+						key: "type",
+						label: "Type",
+						type: "text" as const,
+						formatter: (_value: any, item: any) => {
+							if (!item) return "Unknown";
+							if (item.type === "service" || item.service_id) return "Service";
+							if (item.type === "drug" || item.drug_shipment_id) return "Drug";
+							if (item.type === "supply" || item.medical_supply_shipment_id) return "Medical Supply";
+							if (item.type === "test") return "Medical Test";
+							return "Unknown";
+						},
+						width: "auto"
+					},
+					{
 						key: "quantity",
 						label: "Quantity",
 						type: "number" as const,
@@ -522,7 +539,7 @@ export const reportTemplates = {
 				],
 				tableConfig: {
 					headerRows: 1,
-					widths: ["*", "auto", "auto", "auto"],
+					widths: ["*", "auto", "auto", "auto", "auto"],
 					groupBy: "billDetails"
 				}
 			},
@@ -538,7 +555,14 @@ export const reportTemplates = {
 						key: "bill.discount",
 						label: "Discount:",
 						type: "currency" as const,
-						condition: "show_discount"
+						condition: "show_discount",
+						labelFormatter: (data: any) => {
+							const scope = data.bill?.discount_scope;
+							if (scope && Array.isArray(scope) && scope.length > 0 && scope.length < 4) {
+								return `Discount (${scope.join(", ")}):`;
+							}
+							return "Discount:";
+						}
 					},
 					{
 						key: "bill.administrative_expenses",
@@ -553,7 +577,15 @@ export const reportTemplates = {
 					{
 						key: "calculated.vat_amount",
 						label: "VAT:",
-						type: "currency" as const
+						type: "currency" as const,
+						labelFormatter: (data: any) => {
+							const pct = data.bill?.vat_percentage || 0;
+							const scope = data.bill?.vat_scope_custom;
+							if (scope && Array.isArray(scope) && scope.length > 0 && scope.length < 4) {
+								return `${pct}% VAT (${scope.join(", ")}):`;
+							}
+							return `${pct}% VAT:`;
+						}
 					},
 					{
 						key: "bill.total_amount",

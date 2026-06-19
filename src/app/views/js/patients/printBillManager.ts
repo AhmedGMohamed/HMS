@@ -360,7 +360,7 @@ export class PrintBillManager {
 		this.calculatePrintBilling();
 	}
 
-	private calculatePrintBilling(): void {
+	private getCalculatedBilling(): any {
 		// Calculate services, drugs, and supplies totals separately
 		let servicesTotal = 0;
 		let drugsTotal = 0;
@@ -467,17 +467,12 @@ export class PrintBillManager {
 		let vattableAfterDiscount = 0;
 		if (vattableCategoriesTotal > 0) {
 			// Calculate proportional discount for vattable categories
-			// We need to know how much discount was applied to the vattable items
-
-			// If discountAmount is 0, then base is just the category total
 			if (discountAmount === 0) {
 				vattableAfterDiscount = vattableCategoriesTotal;
 			} else {
-				// Find overlap
 				let vattableAndDiscountableTotal = 0;
 				let discountableAmount = 0;
 
-				// Re-calculate discountable amount to be safe
 				discountScope.forEach(category => {
 					if (categoryTotals[category] !== undefined) {
 						discountableAmount += categoryTotals[category];
@@ -509,25 +504,36 @@ export class PrintBillManager {
 		const paidAmount = this.customBillData.bill.paid_amount || 0;
 		const balance = totalAmount - paidAmount;
 
+		return {
+			servicesTotal, drugsTotal, suppliesTotal, medicalTestsAmount, subtotal,
+			includeDiscount, discount, isDiscountPercentage, vatPercentage,
+			discountScope, vatScope, adminExpenses,
+			discountAmount, totalAfterDiscount, vatAmount, totalAmount, paidAmount, balance
+		};
+	}
+
+	private calculatePrintBilling(): void {
+		const calc = this.getCalculatedBilling();
+
 		// Update display
 		document.getElementById("printSubtotal")!.textContent =
-			i18n.formatCurrency(subtotal);
+			i18n.formatCurrency(calc.subtotal);
 		document.getElementById("printServicesTotal")!.textContent =
-			i18n.formatCurrency(servicesTotal);
+			i18n.formatCurrency(calc.servicesTotal);
 		document.getElementById("printDrugsTotal")!.textContent =
-			i18n.formatCurrency(drugsTotal);
+			i18n.formatCurrency(calc.drugsTotal);
 		document.getElementById("printSuppliesTotal")!.textContent =
-			i18n.formatCurrency(suppliesTotal);
+			i18n.formatCurrency(calc.suppliesTotal);
 		document.getElementById("printMedicalTestsTotal")!.textContent =
-			i18n.formatCurrency(medicalTestsAmount);
+			i18n.formatCurrency(calc.medicalTestsAmount);
 		document.getElementById("printDiscountAmount")!.textContent =
-			i18n.formatCurrency(discountAmount);
+			i18n.formatCurrency(calc.discountAmount);
 		document.getElementById("printVatAmount")!.textContent =
-			i18n.formatCurrency(vatAmount);
+			i18n.formatCurrency(calc.vatAmount);
 		document.getElementById("printTotalAmount")!.textContent =
-			i18n.formatCurrency(totalAmount);
+			i18n.formatCurrency(calc.totalAmount);
 		document.getElementById("printBalance")!.textContent =
-			i18n.formatCurrency(balance);
+			i18n.formatCurrency(calc.balance);
 
 		// Enable/disable discount fields based on checkbox
 		const discountInput = document.getElementById(
@@ -536,12 +542,12 @@ export class PrintBillManager {
 		const discountTypeInput = document.getElementById(
 			"printDiscountType"
 		) as HTMLInputElement;
-		discountInput.disabled = !includeDiscount;
-		discountTypeInput.disabled = !includeDiscount;
+		discountInput.disabled = !calc.includeDiscount;
+		discountTypeInput.disabled = !calc.includeDiscount;
 
 		// Disable/Enable discount scope checkboxes
 		document.querySelectorAll('.print-discount-scope').forEach((checkbox: any) => {
-			checkbox.disabled = !includeDiscount;
+			checkbox.disabled = !calc.includeDiscount;
 		});
 
 		// Update visual styling
@@ -549,7 +555,7 @@ export class PrintBillManager {
 			".col-md-3"
 		) as HTMLElement;
 		if (discountContainer) {
-			discountContainer.style.opacity = includeDiscount ? "1" : "0.6";
+			discountContainer.style.opacity = calc.includeDiscount ? "1" : "0.6";
 		}
 	}
 
@@ -833,117 +839,24 @@ export class PrintBillManager {
 
 	private async generateCustomPdf(): Promise<void> {
 		try {
-			// Update custom bill data with current form values
-			const includeDiscount = (
-				document.getElementById(
-					"printIncludeDiscount"
-				) as HTMLInputElement
-			).checked;
-			const discount =
-				parseFloat(
-					(
-						document.getElementById(
-							"printDiscount"
-						) as HTMLInputElement
-					).value
-				) || 0;
-			const isDiscountPercentage = (
-				document.getElementById("printDiscountType") as HTMLInputElement
-			).checked;
-			const vatPercentage =
-				parseFloat(
-					(
-						document.getElementById(
-							"printVatPercentage"
-						) as HTMLInputElement
-					).value
-				) || 0;
-			const vatScope = (
-				document.getElementById("printVatScope") as HTMLSelectElement
-			).value;
-			const adminExpenses =
-				parseFloat(
-					(
-						document.getElementById(
-							"printAdminExpenses"
-						) as HTMLInputElement
-					).value
-				) || 0;
-			const medicalTestsAmount =
-				parseFloat(
-					(
-						document.getElementById(
-							"printMedicalTestsAmount"
-						) as HTMLInputElement
-					).value
-				) || 0;
-
-			// Calculate totals
-			let servicesTotal = 0;
-			let drugsTotal = 0;
-			let suppliesTotal = 0;
-			this.customBillItems.forEach((item) => {
-				const lineTotal = item.quantity * item.unit_price;
-				if (item.type === "service") {
-					servicesTotal += lineTotal;
-				} else if (item.type === "drug") {
-					drugsTotal += lineTotal;
-				} else if (item.type === "supply") {
-					suppliesTotal += lineTotal;
-				}
-			});
-
-			const subtotal = servicesTotal + drugsTotal + suppliesTotal + medicalTestsAmount;
-
-			const discountAmount = includeDiscount
-				? isDiscountPercentage
-					? (subtotal * discount) / 100
-					: discount
-				: 0;
-
-			const totalAfterDiscount = subtotal - discountAmount;
-
-			// Calculate VAT based on scope
-			// Include supplies with drugs for VAT calculation as requested
-			let vatBase = 0;
-			if (subtotal > 0) {
-				switch (vatScope) {
-					case "services":
-						vatBase =
-							servicesTotal -
-							discountAmount * (servicesTotal / subtotal);
-						break;
-					case "drugs":
-						vatBase =
-							(drugsTotal + suppliesTotal) -
-							discountAmount * ((drugsTotal + suppliesTotal) / subtotal);
-						break;
-					case "both":
-					default:
-						vatBase = totalAfterDiscount;
-						break;
-				}
-			}
-
-			const vatAmount = ((vatBase + adminExpenses) * vatPercentage) / 100;
-			const totalAmount =
-				totalAfterDiscount + vatAmount + adminExpenses;
+			const calc = this.getCalculatedBilling();
 
 			// Create custom bill object
 			const customBill = {
 				...this.customBillData.bill,
-				discount: includeDiscount ? discount : 0, // Keep original discount value for display/recalc
-				discount_type: isDiscountPercentage ? "percentage" : "fixed",
-				vat_percentage: vatPercentage,
-				vat_amount: vatAmount, // Pass calculated VAT amount
-				administrative_expenses: adminExpenses,
-				medical_tests_amount: medicalTestsAmount,
-				total_amount: totalAmount,
-				show_discount: includeDiscount,
-				vat_scope: vatScope || "both",
-				servicesTotal,
-				drugsTotal,
-				suppliesTotal
+				discount: calc.includeDiscount ? calc.discount : 0, // Keep original discount value for display/recalc
+				discount_type: calc.isDiscountPercentage ? "percentage" : "fixed",
+				vat_percentage: calc.vatPercentage,
+				vat_amount: calc.vatAmount, // Pass calculated VAT amount
+				administrative_expenses: calc.adminExpenses,
+				medical_tests_amount: calc.medicalTestsAmount,
+				total_amount: calc.totalAmount,
+				show_discount: calc.includeDiscount,
+				vat_scope_custom: calc.vatScope,
+				discount_scope: calc.discountScope,
+				servicesTotal: calc.servicesTotal,
+				drugsTotal: calc.drugsTotal,
+				suppliesTotal: calc.suppliesTotal
 			};
 
 			// Generate PDF with custom data
