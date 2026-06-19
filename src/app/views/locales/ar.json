@@ -54,7 +54,9 @@
 		"quantity": "كمية",
 		"unknown": "غير معروف",
 		"discharged": "تم الخروج",
-		"default": "افتراضي"
+		"default": "افتراضي",
+		"baseTotal": "الإجمالي",
+		"finalTotal": "الإجمالي الكلي"
 	},
 	"sidebar": {
 		"dashboard": "لوحة القيادة",
@@ -361,6 +363,7 @@
 		"createManualPayment": "إنشاء دفعة يدوية",
 		"createManualPaymentFor": "إنشاء دفعة يدوية لـ {{name}}",
 		"savePayment": "حفظ الدفعة",
+		"servicePayments": "مدفوعات الخدمات",
 		"tabs": {
 			"employees": "الموظفون",
 			"doctors": "الأطباء",
@@ -724,7 +727,8 @@
 			"admitted": "مُدخل حالياً",
 			"notAdmitted": "غير مُدخل",
 			"active": "نشط",
-			"inactive": "غير نشط"
+			"inactive": "غير نشط",
+			"stopped": "متوقف"
 		},
 		"serviceTypes": {
 			"once": "مرة واحدة",
@@ -1053,7 +1057,8 @@
 			"phone": "الهاتف",
 			"insuranceFormId": "رقم نموذج التأمين",
 			"insuranceCardId": "رقم بطاقة التأمين",
-			"noActiveAdmission": "لا يوجد دخول نشط"
+			"noActiveAdmission": "لا يوجد دخول نشط",
+			"medicalTests": "الفحوصات الطبية"
 		},
 		"report": {
 			"summary": "ملخص التقرير",
@@ -1075,7 +1080,11 @@
 			"grandTotal": "الإجمالي الكلي",
 			"noData": "لا توجد بيانات متاحة للفترة المحددة",
 			"generatedOn": "تم الإنشاء في",
-			"companyName": "اسم الشركة"
+			"companyName": "اسم الشركة",
+			"grossTotal": "الإجمالي",
+			"discount": "الخصم",
+			"medicalTests": "الفحوصات الطبية",
+			"netTotal": "الإجمالي الصافي"
 		},
 		"paymentHistory": {
 			"paymentAmount": "مبلغ الدفع",
@@ -1717,7 +1726,10 @@
 			"services": "الخدمات",
 			"drugs": "الأدوية",
 			"supplies": "المستلزمات الطبية",
-			"medicalTests": "الفحوصات الطبية"
+			"medicalTests": "الفحوصات الطبية",
+			"adminExpenses": "المصاريف الإدارية",
+			"vat": "ضريبة قيمة مضافة",
+			"outstanding": "الباقي المستحق"
 		},
 		"doctorCard": {
 			"patients": "مرضى"

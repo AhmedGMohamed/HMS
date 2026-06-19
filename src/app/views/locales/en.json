@@ -54,7 +54,9 @@
 		"quantity": "Quantity",
 		"unknown": "Unknown",
 		"discharged": "Discharged",
-		"default": "Default"
+		"default": "Default",
+		"baseTotal": "Gross Total",
+		"finalTotal": "Grand Total"
 	},
 	"sidebar": {
 		"dashboard": "Dashboard",
@@ -360,6 +362,7 @@
 		"createManualPaymentFor": "Create Manual Payment for {{name}}",
 		"savePayment": "Save Payment",
 		"servicePrices": "Service Prices",
+		"servicePayments": "Service Payments",
 		"tabs": {
 			"employees": "Employees",
 			"doctors": "Doctors",
@@ -722,7 +725,8 @@
 			"admitted": "Currently Admitted",
 			"notAdmitted": "Not Admitted",
 			"active": "Active",
-			"inactive": "Inactive"
+			"inactive": "Inactive",
+			"stopped": "Stopped"
 		},
 		"serviceTypes": {
 			"once": "One Time",
@@ -1054,7 +1058,8 @@
 			"phone": "Phone",
 			"insuranceFormId": "Insurance Form ID",
 			"insuranceCardId": "Insurance Card ID",
-			"noActiveAdmission": "No active admission"
+			"noActiveAdmission": "No active admission",
+			"medicalTests": "Medical Tests"
 		},
 		"report": {
 			"summary": "Report Summary",
@@ -1078,7 +1083,11 @@
 			"grandTotal": "Grand Total",
 			"noData": "No data available for the selected period",
 			"generatedOn": "Generated on",
-			"companyName": "Company Name"
+			"companyName": "Company Name",
+			"grossTotal": "Gross Total",
+			"discount": "Discount",
+			"medicalTests": "Medical Tests",
+			"netTotal": "Net Total"
 		},
 		"paymentHistory": {
 			"paymentAmount": "Payment Amount",
@@ -1720,7 +1729,10 @@
 			"services": "Services",
 			"drugs": "Drugs",
 			"supplies": "Medical Supplies",
-			"medicalTests": "Medical Tests"
+			"medicalTests": "Medical Tests",
+			"adminExpenses": "Admin. Expenses",
+			"vat": "VAT",
+			"outstanding": "Outstanding amount"
 		},
 		"doctorCard": {
 			"patients": "Patients"
