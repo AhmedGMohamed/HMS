@@ -51,6 +51,7 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 - **Asset copying:** `copyDist` copies views, assets, and CSS into `dist-electron/` with `copyfiles`. The Electron builder packages from `dist-electron/`.
 - **i18n check:** `npm run check-i18n` audits `src/app/views/locales/en.json` and `ar.json` against keys used in `views/js/**/*.ts` and `views/**/*.html`.
 - **Design Style** `design.md` contains all the design principles for future iterations, with the current design principles to be replaced with the contents of that file.
+- 
 
 ## Commands Reference
 
