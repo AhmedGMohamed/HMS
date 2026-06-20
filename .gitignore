@@ -34,3 +34,4 @@ check-i18n-keys.js
 *.zip
 *.rar
 .env
+.litellm
