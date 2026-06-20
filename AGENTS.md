@@ -5,7 +5,7 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 ## Quick Start
 
 - `npm install`
-- Create `.env` from `.ENV-EXAMPLE` and fill values (see [Environment](#environment)).
+- `.env` exists with values (hidden from the LLM for security purposes), with the variables listed in `.ENV-EXAMPLE` (see [Environment](#environment)).
 - Ensure PostgreSQL is running and accessible.
 
 ## Build & Run
@@ -50,6 +50,7 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 - **Renderer is NOT a modern SPA bundler setup.** Views are plain HTML files with vanilla TS/JS in `src/app/views/js/`. Do not assume Vite/Webpack for the frontend.
 - **Asset copying:** `copyDist` copies views, assets, and CSS into `dist-electron/` with `copyfiles`. The Electron builder packages from `dist-electron/`.
 - **i18n check:** `npm run check-i18n` audits `src/app/views/locales/en.json` and `ar.json` against keys used in `views/js/**/*.ts` and `views/**/*.html`.
+- **Design Style** `design.md` contains all the design principles for future iterations, with the current design principles to be replaced with the contents of that file.
 
 ## Commands Reference
 
@@ -59,6 +60,5 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 | `npm run dev:e` | Run Electron (requires build) |
 | `npm run dev:te` | Build then run Electron |
 | `npm run dist` | Build + package Windows MSI |
-| `npm test` | Run all Jasmine specs |
 | `npm run lint` | Run ESLint |
 | `npm run check-i18n` | Check translation keys |
