@@ -1,4 +1,9 @@
-# HMS Frontend Refactor — React + Vite + Tailwind + shadcn/ui
+# HMS Frontend Refactor — React 19 + Vite 6 + Tailwind v4 + shadcn/ui
+> **Product:** Hospital Management System (HMS) — Electron + Express + PostgreSQL desktop app  
+> **Scope:** Live UI/UX design system for the React 19 + Vite 6 + Tailwind v4 + shadcn/ui frontend  
+> **Companion document:** `design.md` (design system, principles, tokens, and component standards)
+> **Date:** June 2026
+
 ### Detailed Implementation Plan (Rev 2)
 
 > **Backend:** Express + PostgreSQL — **completely untouched**
@@ -17,11 +22,11 @@
 | 3 | Dev mode | **Browser only.** Vite dev server + Express backend. No Electron during development. |
 | 4 | Testing | **Deferred.** Jasmine backend tests remain untouched. |
 | 5 | Tailwind Version | **Tailwind v4** (CSS-first `@theme` config). |
-| 6 | shadcn/ui Style | **`new-york` variant** for improved data density. |
 | 7 | Dev Proxy | Express runs on port **`3000`** (from `.env`). Vite will proxy `/api` requests to `localhost:3000`. |
 | 8 | Auth Storage | **Cookie-only**. The API client will rely on the browser sending the `auth` cookie. No `Authorization: Bearer` header. |
 | 9 | Reports Architecture | Each report type is a separate lazy-loaded component, avoiding a monolithic `reports.ts` equivalent. |
 | 10 | Nurses Page | **Deprecated.** Will be removed from navigation and not migrated. |
+| 11 | Employees Page | Employees page contains Employees, Doctors & Nurses. Each in a separate tab. |
 | 11 | Global Search | The backend lacks a unified search endpoint. The top-bar search (`Ctrl+K`) will initially only search navigation links/modules. Entity-specific search remains on individual pages. |
 
 ---
@@ -125,19 +130,22 @@ New scripts:
 "build": "npm run build:renderer && tsc --project ./src/electron/tsconfig.json && npm run copyDist"
 ```
 
-New **devDependencies:**
-- `vite`, `@vitejs/plugin-react`
-- `react`, `react-dom`, `@types/react`, `@types/react-dom`
+New **dependencies**
+- `react`, `react-dom`
 - `react-router-dom`
-- `tailwindcss`, `@tailwindcss/vite` (v4) OR `tailwindcss postcss autoprefixer` (v3)
 - `lucide-react`
 - `class-variance-authority`, `clsx`, `tailwind-merge`
 - `zustand`
 - `react-hook-form`, `@hookform/resolvers`, `zod`
 - `react-i18next`, `i18next`, `i18next-browser-languagedetector`
 - `sonner` (toast notifications)
-- `concurrently`
 - `@radix-ui/*` (installed via shadcn CLI)
+
+New **devDependencies:**
+- `vite`, `@vitejs/plugin-react`
+- `@types/react`, `@types/react-dom`
+- `tailwindcss`, `@tailwindcss/vite` (v4)
+- `concurrently`
 
 Remove after migration is complete:
 - `bootstrap`, `@popperjs/core`, `toastr`, `sweetalert2`
@@ -318,11 +326,7 @@ export interface PaginatedResponse<T> {
 ```bash
 cd src/renderer
 npx shadcn@latest init
-npx shadcn@latest add button input select dialog table card badge \
-  dropdown-menu tooltip tabs separator sheet sonner scroll-area \
-  avatar skeleton command popover calendar checkbox radio-group \
-  switch progress alert breadcrumb pagination form label textarea \
-  collapsible alert-dialog
+npx shadcn@latest add button input select dialog table card badge dropdown-menu tooltip tabs separator sheet sonner scroll-area avatar skeleton command popover calendar checkbox radio-group switch progress alert breadcrumb pagination form label textarea collapsible alert-dialog
 ```
 
 ---
@@ -395,7 +399,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     credentials: 'include',  // sends auth cookie automatically
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init.headers,
     },
     ...init,
