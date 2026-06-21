@@ -1,130 +1,262 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+
+/* ----------------------------------------------------------------
+   Type system — design.md §4.2
+   Inter Variable handles Latin (incl. numerals);
+   Noto Sans Arabic handles Arabic glyphs in [dir="rtl"];
+   JetBrains Mono handles IDs / codes. font-display: swap is on by
+   default in the @fontsource imports.
+   ---------------------------------------------------------------- */
+@import "@fontsource/noto-sans-arabic/400.css";
+@import "@fontsource/noto-sans-arabic/500.css";
+@import "@fontsource/noto-sans-arabic/600.css";
+@import "@fontsource/noto-sans-arabic/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+/* ============================================================
+   HMS Healthcare Design Tokens (design.md §4.1)
+   Primitive palette exposed as Tailwind semantic tokens via
+   the @theme block. These are the hex source-of-truth.
+   ============================================================ */
+@theme {
+    --color-primary: #0077B6;
+    --color-primary-light: #DBEAFE;
+    --color-primary-dark: #005A8C;
+    --color-secondary: #00A896;
+    --color-secondary-light: #CCFBF1;
+    --color-accent: #059669;
+
+    /* Status */
+    --color-success: #10B981;
+    --color-success-light: #D1FAE5;
+    --color-success-dark: #047857;
+    --color-warning: #F59E0B;
+    --color-warning-light: #FEF3C7;
+    --color-danger: #EF4444;
+    --color-danger-light: #FEE2E2;
+    --color-info: #0EA5E9;
+    --color-info-light: #E0F2FE;
+
+    /* Surfaces & text */
+    --color-background: #F0F9FF;
+    --color-surface: #FFFFFF;
+    --color-surface-muted: #F8FAFC;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-text-tertiary: #64748B;
+    --color-border: #E2E8F0;
+    --color-border-strong: #CBD5E1;
+    --color-disabled: #94A3B8;
+    --color-disabled-bg: #F1F5F9;
+
+    /* Typography */
     --font-heading: var(--font-sans);
-    --font-sans: 'Inter Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
+    --font-sans: 'Inter Variable', 'Noto Sans Arabic', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Radius (synced with --radius: 0.5rem / 8px) */
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: calc(var(--radius) * 0.75);
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-xl: calc(var(--radius) * 1.5);
+    --radius-2xl: calc(var(--radius) * 2);
+
+    /* Shadows (design.md §4.4) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgba(15, 23, 42, 0.05);
+    --shadow-focus: 0 0 0 2px #FFFFFF, 0 0 0 4px #0077B6;
 }
 
-:root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+/* ============================================================
+   shadcn/ui bridge (design.md §11.2)
+   Maps design.md hex values into shadcn's oklch CSS variables
+   so generated primitives resolve to the Healthcare palette.
+   ALSO mirrors them into Tailwind v4's --color-* namespace via
+   @theme inline so utilities resolve (bg-background, text-foreground,
+   border-border, etc.).
+   ============================================================ */
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    :root {
+        /* Surfaces */
+        --background: oklch(0.97 0.013 230);             /* #F0F9FF sky-tint */
+        --foreground: oklch(0.20 0.04 257);              /* #0F172A slate */
+
+        --card: oklch(1 0 0);                            /* #FFFFFF */
+        --card-foreground: oklch(0.20 0.04 257);
+
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.20 0.04 257);
+
+        /* Brand: primary = #0077B6 */
+        --primary: oklch(0.495 0.144 232);
+        --primary-foreground: oklch(1 0 0);
+
+        /* secondary = #00A896 */
+        --secondary: oklch(0.522 0.101 184);
+        --secondary-foreground: oklch(1 0 0);
+
+        --muted: oklch(0.977 0.008 230);                 /* #F8FAFC */
+        --muted-foreground: oklch(0.471 0.04 257);       /* #475569 */
+
+        /* Accent — emerald (#059669) */
+        --accent: oklch(0.524 0.135 156);
+        --accent-foreground: oklch(1 0 0);
+
+        /* Status: danger = #EF4444 */
+        --destructive: oklch(0.628 0.225 25);
+        --destructive-foreground: oklch(1 0 0);
+
+        --border: oklch(0.916 0.012 250);                /* #E2E8F0 */
+        --input: oklch(0.916 0.012 250);
+        --ring: oklch(0.495 0.144 232);                  /* primary as focus ring */
+
+        /* Chart palette — design.md §4.1 semantic mapping */
+        --chart-1: oklch(0.495 0.144 232);               /* primary */
+        --chart-2: oklch(0.522 0.101 184);               /* secondary */
+        --chart-3: oklch(0.628 0.225 25);                /* danger */
+        --chart-4: oklch(0.682 0.155 70);                /* warning */
+        --chart-5: oklch(0.584 0.143 150);               /* success/accent */
+
+        --radius: 0.5rem;
+
+        --sidebar: oklch(1 0 0);
+        --sidebar-foreground: oklch(0.20 0.04 257);
+        --sidebar-primary: oklch(0.495 0.144 232);
+        --sidebar-primary-foreground: oklch(1 0 0);
+        --sidebar-accent: oklch(0.97 0.013 230);
+        --sidebar-accent-foreground: oklch(0.20 0.04 257);
+        --sidebar-border: oklch(0.916 0.012 250);
+        --sidebar-ring: oklch(0.495 0.144 232);
     }
-  body {
-    @apply bg-background text-foreground;
+
+    .dark {
+        --background: oklch(0.16 0.02 250);
+        --foreground: oklch(0.97 0.005 250);
+
+        --card: oklch(0.20 0.025 250);
+        --card-foreground: oklch(0.97 0.005 250);
+
+        --popover: oklch(0.20 0.025 250);
+        --popover-foreground: oklch(0.97 0.005 250);
+
+        --primary: oklch(0.62 0.13 232);
+        --primary-foreground: oklch(0.16 0.02 250);
+        --secondary: oklch(0.62 0.10 184);
+        --secondary-foreground: oklch(0.16 0.02 250);
+
+        --muted: oklch(0.25 0.02 250);
+        --muted-foreground: oklch(0.70 0.015 250);
+        --accent: oklch(0.62 0.13 156);
+        --accent-foreground: oklch(0.16 0.02 250);
+
+        --destructive: oklch(0.65 0.20 25);
+        --destructive-foreground: oklch(0.97 0.005 250);
+
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --ring: oklch(0.62 0.13 232);
+
+        --sidebar: oklch(0.20 0.025 250);
+        --sidebar-foreground: oklch(0.97 0.005 250);
+        --sidebar-primary: oklch(0.62 0.13 232);
+        --sidebar-primary-foreground: oklch(0.16 0.02 250);
+        --sidebar-accent: oklch(0.25 0.02 250);
+        --sidebar-accent-foreground: oklch(0.97 0.005 250);
+        --sidebar-border: oklch(1 0 0 / 10%);
+        --sidebar-ring: oklch(0.62 0.13 232);
     }
-  html {
-    @apply font-sans;
+
+    * {
+        @apply border-border;
     }
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "kern" 1, "liga" 1;
+    }
+    html {
+        @apply font-sans;
+        -webkit-text-size-adjust: 100%;
+        /* iOS auto-zoom safeguard — never go below 16px */
+        font-size: 16px;
+    }
+
+    /* ----------------------------------------------------------------
+       RTL first-class (design.md §5, accessibility §8)
+       When <html dir="rtl"> is set by RTLSync in App.tsx, swap the
+       font stack so Arabic glyphs become first-class citizens.
+       Punctuation, numbers, and layout flip automatically.
+       ---------------------------------------------------------------- */
+    [dir="rtl"] {
+        font-family: 'Noto Sans Arabic', 'Inter Variable', system-ui, sans-serif;
+        letter-spacing: 0;
+    }
+}
+
+/* ============================================================
+   Reduced-motion guard (design.md §10, accessibility §8)
+   Neutralizes animations/transitions for users with the OS-level
+   prefers-reduced-motion preference.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================================
+   Tabular figures utility (design.md §4.2)
+   Apply to table cells, KPIs, currency, anywhere digits must
+   stay column-aligned while values update.
+   ============================================================ */
+@utility tabular-nums {
+    font-variant-numeric: tabular-nums;
 }
