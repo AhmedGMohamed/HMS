@@ -24,7 +24,7 @@
 		// tell TypeScript to allow downlevelIteration
 		"downlevelIteration": true
 	},
-	"include": ["src", "src/app/assets/js/pdfmake/build/vfs_fonts.js", "dist-electron/electron/views/js/bootstrap/bootstrap.bundle.min.js", "src/app/check-i18n-keys.js"],
+	"include": ["src", "src/app/assets/js/pdfmake/build/vfs_fonts.js", "build/electron/views/js/bootstrap/bootstrap.bundle.min.js", "src/app/check-i18n-keys.js"],
 	"exclude": ["src/electron", "src/app/tests"]
 }
 

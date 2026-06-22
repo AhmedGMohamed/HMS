@@ -65,7 +65,7 @@ export const NAV_CONFIG: NavigationItem[] = [
   {
     id: "services",
     label: "sidebar.services",
-    icon: "ClipboardPulse",
+    icon: "HeartPulse",
     url: "/services",
     permission: "manage_services",
   },
