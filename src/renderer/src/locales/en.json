@@ -2064,5 +2064,28 @@
 		"status": {
 			"lowStock": "Low Stock"
 		}
+	},
+	"topbar": {
+		"search": "Search",
+		"toggleLanguage": "Toggle language",
+		"openMenu": "Open user menu"
+	},
+	"breadcrumbs": {
+		"admin": "Administration",
+		"adminUsers": "Users",
+		"adminRoles": "Roles",
+		"ellipsis": "…"
+	},
+	"breadcrumb": {
+		"detail": "Record"
+	},
+	"userMenu": {
+		"profile": "Profile",
+		"settings": "Settings",
+		"signedInAs": "Signed in as {{role}}"
+	},
+	"navigation": {
+		"switchToArabic": "العربية",
+		"switchToEnglish": "English"
 	}
 }

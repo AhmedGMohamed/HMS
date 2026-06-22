@@ -1,5 +1,5 @@
 {
-	"spec_dir": "/dist-electron/app/tests",
+	"spec_dir": "/build/app/tests",
 	"spec_files": [
 		"**/*[sS]pec.js"
 	],

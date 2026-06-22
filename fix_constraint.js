@@ -1,4 +1,4 @@
-import { query } from "./dist-electron/app/models/database/connection.js";
+import { query } from "./build/app/models/database/connection.js";
 
 async function fixConstraint() {
     try {

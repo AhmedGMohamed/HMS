@@ -401,9 +401,9 @@ Mapped to shadcn `<Button>` variants. Always 40px tall (`h-10`) for comfortable 
 - Icon-only buttons **always** get `aria-label`; never rely on visual alone.
 - No emoji used in place of icons anywhere in UI — including breadcrumbs, status indicators, and notifications.
 
-### 6.8 Charts (Chart.js wrappers)
+### 6.8 Charts (shadcn/ui Chart + Recharts v3)
 
-HMS uses **Chart.js** (already in deps) wrapped in React components: `<RevenueLineChart>`, `<DonutChart>`. Rule: **never** let a page render raw Chart.js — always go through the wrappers so design tokens drive chart color.
+HMS uses **shadcn/ui Chart** (built on **Recharts v3**) wrapped in app-level React components: `<RevenueLineChart>`, `<PatientServicesDonut>`, plus per-report chart wrappers in `components/charts/`. Rule: **never** let a page render a raw Recharts primitive — always go through the wrappers so design tokens drive chart color and accessibility guarantees (skeleton/empty/srSummary) are enforced.
 
 - All chart colors derive from semantic tokens (e.g., `success`, `primary`, `warning`).
 - Tabular figures in axis labels; legend below chart; tooltip on hover includes the unit ("EGP", "patients", "days").
@@ -575,7 +575,7 @@ This is required — handing clinic staff who must use the app for long shifts, 
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| **Framework** | **React 19** + **Vite 6** | Dev server on `:5173`, production builds to `dist-renderer/` |
+| **Framework** | **React 19** + **Vite 6** | Dev server on `:5173`, production builds to `dist-electron/renderer/` |
 | **Routing** | `react-router-dom` v7+ | Client-side SPA, Express catch-all serves `index.html` |
 | **Styling** | **TailwindCSS v4** (CSS-first `@theme`) | Tailwind v4 Vite plugin (`@tailwindcss/vite`), no `tailwind.config.js` |
 | **UI primitives** | **shadcn/ui** | Owned by HMS (`src/renderer/src/components/ui/`), not a dependency |
@@ -584,7 +584,7 @@ This is required — handing clinic staff who must use the app for long shifts, 
 | **i18n** | `react-i18next` + `i18next-browser-languagedetector` | All `en.json` / `ar.json` keys migrated verbatim |
 | **Toasts** | `sonner` (`richColors`, `top-right`) | Replaces `toastr` and `sweetalert2` |
 | **Icons** | `lucide-react` | Same icon family used inside shadcn |
-| **Charts** | `chart.js` (wrapped in `<RevenueLineChart>` / `<DonutChart>`) | Design tokens drive palette |
+| **Charts** | `recharts` v3 (via shadcn/ui `Chart` + app-level wrappers `<RevenueLineChart>` / `<PatientServicesDonut>`) | Design tokens drive palette; lazy-loaded on Dashboard and Reports only |
 | **PDF** | `pdfmake` + `@digicole/pdfmake-rtl` (via the `usePDF()` hook) | Bill receipts |
 | **Class merging** | `class-variance-authority`, `clsx`, `tailwind-merge` (the `cn()` util) | — |
 
@@ -659,7 +659,7 @@ The full phase-by-phase execution plan, scripts, file structure, and route map l
 | **6g — Reports** | `ReportsPage` orchestrator + `Reports/types/*` lazy-loaded components | The big-bundle page; this is the moment bundle budget is enforced |
 | **6h — Admin: Users + Roles** | Users, Roles | — |
 | **6i — Services + Price Lists** | Services, Price Lists | Final CRUD pair — confirms `Dialog` form pattern works everywhere |
-| **7 — Express Integration** | `src/app/index.ts` static-serve of `dist-renderer/`; SPA catch-all | Verify `index.html` loads from Electron-built `.exe` on a clean profile |
+| **7 — Express Integration** | `src/app/index.ts` static-serve of `dist-electron/renderer/`; SPA catch-all | Verify `index.html` loads from Electron-built `.exe` on a clean profile |
 | **8 — Polish, Accessibility, Cleanup** | Reduced-motion media query; animations; a11y audit; delete `views/`; remove bootstrap/toastr/sweetalert2 | Pass axe + Lighthouse a11y with **0 critical/serious issues**; visually unified across all 14 pages; Smoke test in RTL mode for every page |
 
 **Total estimated duration:** ~28 working days (per implementation plan § Timeline).

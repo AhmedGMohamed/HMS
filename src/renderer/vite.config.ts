@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(__dirname, "../../dist-renderer"),
+      outDir: path.resolve(__dirname, "../../build/renderer"),
       emptyOutDir: true,
     },
   }

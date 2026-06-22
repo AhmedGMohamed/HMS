@@ -2061,5 +2061,28 @@
 		"status": {
 			"lowStock": "مخزون منخفض"
 		}
+	},
+	"topbar": {
+		"search": "بحث",
+		"toggleLanguage": "تبديل اللغة",
+		"openMenu": "فتح قائمة المستخدم"
+	},
+	"breadcrumbs": {
+		"admin": "الإدارة",
+		"adminUsers": "المستخدمون",
+		"adminRoles": "الأدوار",
+		"ellipsis": "…"
+	},
+	"breadcrumb": {
+		"detail": "السجل"
+	},
+	"userMenu": {
+		"profile": "الملف الشخصي",
+		"settings": "الإعدادات",
+		"signedInAs": "مسجَّل الدخول كـ {{role}}"
+	},
+	"navigation": {
+		"switchToArabic": "العربية",
+		"switchToEnglish": "English"
 	}
 }

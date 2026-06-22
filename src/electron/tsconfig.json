@@ -4,23 +4,33 @@
 		"strict": false,
 		// tell TypeScript to generate ESM Syntax
 		"target": "ES2020",
-
-		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"lib": [
+			"ES2020",
+			"DOM",
+			"DOM.Iterable"
+		],
 		// tell TypeScript to require ESM Syntax as input (including .js file imports)
 		"module": "NodeNext",
 		// define where to put generated JS
-		"outDir": "../../dist-electron",
+		"outDir": "../../build",
 		// ignore errors from dependencies
 		"skipLibCheck": true,
-
 		// tell TypeScript to allow downlevelIteration
 		"downlevelIteration": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"allowSyntheticDefaultImports": true,
 		"forceConsistentCasingInFileNames": true,
-		"types": ["node"]
+		"types": [
+			"node"
+		]
 	},
-	"include": ["../**/*.ts", "../**/*.cts", "../../dist-electron/electron/views/js/bootstrap/bootstrap.bundle.min.js"],
-	"exclude": ["**/sweetalert2/**"]
+	"include": [
+		"../**/*.ts",
+		"../**/*.cts",
+		"../../build/electron/views/js/bootstrap/bootstrap.bundle.min.js"
+	],
+	"exclude": [
+		"**/sweetalert2/**"
+	]
 }

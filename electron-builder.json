@@ -1,17 +1,17 @@
 {
 	"appId": "com.ahmed-gamal.hms",
 	"files": [
-		"dist-electron/**/*",
-		"!dist-electron/app/**/*"
+		"build/**/*",
+		"!build/app/**/*"
 	],
 	"extraResources": [
-		"dist-electron/electron/preload.cjs",
-		"dist-electron/electron/views/**/*",
-		"dist-electron/electron/utils/**/*",
+		"build/electron/preload.cjs",
+		"build/electron/views/**/*",
+		"build/electron/utils/**/*",
 		"src/electron/assets/**/*",
 		"src/app/assets/**/*"
 	],
-	"icon": "./dist-electron/electron/assets/desktopIcon.png",
+	"icon": "./build/electron/assets/desktopIcon.png",
 	"mac": {
 		"target": "dmg"
 	},

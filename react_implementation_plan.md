@@ -57,7 +57,7 @@ The server exposes `GET /navigation` returning a filtered nav tree based on the 
 d:\Work\HMS\
 ├── src/
 │   ├── app/              ← EXPRESS BACKEND (only index.ts + page.routes.ts change)
-│   │   ├── index.ts      ← Add static serve of dist-renderer/ + SPA catch-all
+│   │   ├── index.ts      ← Add static serve of dist-electron/renderer/ + SPA catch-all
 │   │   ├── routes/
 │   │   │   └── page.routes.ts  ← Remove individual page routes; keep /navigation
 │   │   └── ... (all other files unchanged)
@@ -140,6 +140,7 @@ New **dependencies**
 - `react-i18next`, `i18next`, `i18next-browser-languagedetector`
 - `sonner` (toast notifications)
 - `@radix-ui/*` (installed via shadcn CLI)
+- `recharts` (peer dep of shadcn/ui `Chart`; only imported via `components/ui/chart.tsx` + chart wrappers in `components/charts/`)
 
 New **devDependencies:**
 - `vite`, `@vitejs/plugin-react`
@@ -148,10 +149,11 @@ New **devDependencies:**
 - `concurrently`
 
 Remove after migration is complete:
-- `bootstrap`, `@popperjs/core`, `toastr`, `sweetalert2`
+- `bootstrap`, `@popperjs/core`, `toastr`, `sweetalert2`, `chart.js`
 
 Keep:
-- `chart.js`, `pdfmake`, `@digicole/pdfmake-rtl` (wrapped in React components/hooks)
+- `recharts` (peer dep for shadcn/ui Chart; only used via `components/ui/chart.tsx`)
+- `pdfmake`, `@digicole/pdfmake-rtl` (wrapped in React components/hooks)
 
 #### [NEW] `src/renderer/` — Vite project root
 
@@ -172,7 +174,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: path.resolve(__dirname, '../dist-renderer'),
+    outDir: path.resolve(__dirname, '../dist-electron/renderer'),
     emptyOutDir: true,
   }
 })
@@ -326,7 +328,7 @@ export interface PaginatedResponse<T> {
 ```bash
 cd src/renderer
 npx shadcn@latest init
-npx shadcn@latest add button input select dialog table card badge dropdown-menu tooltip tabs separator sheet sonner scroll-area avatar skeleton command popover calendar checkbox radio-group switch progress alert breadcrumb pagination form label textarea collapsible alert-dialog
+npx shadcn@latest add button input select dialog table card badge dropdown-menu tooltip tabs separator sheet sonner scroll-area avatar skeleton command popover calendar checkbox radio-group switch progress alert breadcrumb pagination form label textarea collapsible alert-dialog chart
 ```
 
 ---
@@ -674,8 +676,21 @@ Internals:
 ```
 
 #### Chart wrappers
-`src/renderer/src/components/charts/RevenueLineChart.tsx` — Chart.js line chart, typed props, design token colors, RTL-aware legend
-`src/renderer/src/components/charts/DonutChart.tsx` — Chart.js doughnut chart wrapper
+Built on the shadcn/ui **Chart** primitive (`<ChartContainer>`, `<ChartTooltip>`, `<ChartTooltipContent>`, `<ChartLegend>`, `<ChartLegendContent>`) which wrap **Recharts v3** primitives (`<LineChart>`, `<BarChart>`, `<PieChart>`, `<ResponsiveContainer>`). The `chart` shadcn component copies `components/ui/chart.tsx` into the project — pages **never** import Recharts directly, only these wrappers.
+
+`src/renderer/src/components/charts/RevenueLineChart.tsx` — typed props (`data: TimeSeriesPoint[]`, `series: { revenue?, profit? }`), exports a `ChartConfig` object that maps each series to a CSS variable (e.g., `theme: 'var(--color-primary)'`). Legend below chart per `design.md` §6.8; skeleton placeholder during load matching exact dimensions (no CLS); `<EmptyState>` when zero data; `srSummary` prop renders a screen-reader-only `<table>` summary.
+
+`src/renderer/src/components/charts/PatientServicesDonut.tsx` — doughnut variant for revenue-by-category and patient-by-gender (replaces the old `DonutChart.tsx`; honors the revenue/profit toggle from §6.2).
+
+`src/renderer/src/components/charts/index.ts` — barrel re-exporting all wrappers for cleaner page imports.
+
+`src/renderer/src/components/charts/useChartConfig.ts` — small shared helper if multiple wrappers need a chart-config factory.
+
+**Theming:** shadcn v3 ChartConfig supports CSS variable color values natively in Recharts (`fill: 'var(--color-primary)'`); no JS color resolution required. All chart colors must derive from the `--color-*` tokens defined in Phase 1.
+
+**Accessibility:** every chart wrapper enforces an `srSummary` prop (falls back to a Sonner warning in dev if absent) and provides `<EmptyState>` for zero-data rather than an empty axis frame (per `design.md` §6.8).
+
+**Bundle / lazy-loading:** Recharts adds ~100KB gzipped. Wrappers are imported via `React.lazy()` from Dashboard and Reports pages only, so Recharts does not ship in the Login or shell bundles. Fallback is a `<Skeleton>` matching chart dimensions.
 
 ---
 
@@ -746,8 +761,9 @@ DashboardPage.tsx
   └─ if hasPermission('view_dashboard'):
        AdminDashboard.tsx
          - StatCards: active patients, today revenue, today profit, low stock, near expiry
+         - Charts here come from `@/components/charts/*` (shadcn Chart + Recharts v3 lazy-loaded); see Phase 4.
          - RevenueLineChart.tsx (revenue + profit datasets, last 30 days)
-         - DonutChart.tsx (patient services vs pharmacy; revenue/profit toggle)
+         - PatientServicesDonut.tsx (patient services vs pharmacy; revenue/profit toggle)
          - RecentActivityTable.tsx (last 10 audit log entries)
   └─ else:
        UserDashboard.tsx
@@ -923,6 +939,23 @@ Reports/types/ (one file per report type, code-split via React.lazy):
   - EmployeeReport.tsx
   - VaultReport.tsx
   - (additional types discovered from reports.ts analysis during migration)
+
+**Charts in reports** — Each report-type component composes chart wrappers from `@/components/charts/*` (shadcn Chart / Recharts v3, lazy-loaded). The existing chart types from `reports.html` map roughly to:
+
+  - Patient Trends → `<LineChart>` (`<RevenueLineChart>` variant or inline)
+  - Patient Distribution (payment/gender) → `<PatientServicesDonut>`
+  - Average Stay Duration → `<BarChart>` (horizontal)
+  - Revenue Trends → `<RevenueLineChart>`
+  - Admissions vs Discharges → `<BarChart>` (grouped)
+  - Top 10 Services by Revenue → `<BarChart>` (horizontal, sorted)
+  - Top 10 Drugs by Revenue → `<BarChart>` (horizontal, sorted)
+  - Staff Utilization → `<BarChart>` (stacked)
+  - Hours Worked by Employee → `<BarChart>` (horizontal)
+  - Attendance Status Distribution → `<PatientServicesDonut>` variant
+  - Payment Timeline → `<LineChart>` with success-tokens palette
+  - Payment Type Distribution → `<PatientServicesDonut>` variant
+
+  All chart instances are lazy via `React.lazy()` and wrapped in `<Suspense>` with a `<Skeleton>` fallback so the Reports bundle stays lean.
 ```
 
 ---
@@ -967,7 +1000,7 @@ PriceListsPage.tsx — DataTable + Add/Edit Dialog (list name, effective date, p
 import path from 'path'
 
 // Add BEFORE apiRoutes:
-const rendererDist = path.join(__dirname, '../../dist-renderer')
+const rendererDist = path.join(__dirname, '../../dist-electron/renderer')
 app.use(express.static(rendererDist))
 
 // Replace the old static middlewares for /css, /js, /locales (remove them):
@@ -987,7 +1020,7 @@ Remove all individual `sendFile` page routes. Keep only the `/navigation` route 
 
 #### [MODIFY] `package.json` — update `copyDist`
 ```json
-"copyDist": "... existing commands ... && copyfiles -u 2 ./dist-renderer/**/* ./dist-electron/renderer"
+"copyDist": "... existing commands ... && copyfiles -u 2 ./dist-electron/renderer/**/* ./build/renderer"
 ```
 
 ---
@@ -1061,11 +1094,11 @@ Open `http://localhost:5173` in the browser. Hot module replacement (HMR) is act
 ## Production Build
 
 ```bash
-npm run build          # 1) vite build → dist-renderer/
-                       # 2) tsc → dist-electron/
-                       # 3) copyDist → combines into dist-electron/
+npm run build          # 1) vite build → dist-electron/renderer/
+                       # 2) tsc → build/
+                       # 3) copyDist → combines into build/
 npm run dev:e          # Electron loads from configured serverUrl (Express)
-                       # Express serves dist-renderer/ as static files
+                       # Express serves renderer/ as static files
 ```
 
 ---
