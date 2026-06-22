@@ -1,21 +1,74 @@
-import { Button } from "@/components/ui/button"
+import { lazy, Suspense } from "react"
+import { Routes, Route, Navigate } from "react-router-dom"
 
-export function App() {
-  return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
-  )
+import { AppShell } from "@/components/layout/AppShell"
+import { PrivateRoute } from "@/components/common/PrivateRoute"
+import { PermissionRoute } from "@/components/common/PermissionRoute"
+import { AdminRoute } from "@/components/common/AdminRoute"
+import { RTLSync } from "@/components/common/RTLSync"
+
+const LoginPage = lazy(() => import("@/pages/Login/LoginPage"))
+const DashboardPage = lazy(() => import("@/pages/Dashboard/DashboardPage"))
+const PatientsPage = lazy(() => import("@/pages/Patients/PatientsPage"))
+const DrugsPage = lazy(() => import("@/pages/Drugs/DrugsPage"))
+const SuppliesPage = lazy(() => import("@/pages/Supplies/SuppliesPage"))
+const EmployeesPage = lazy(() => import("@/pages/Employees/EmployeesPage"))
+const DoctorsPage = lazy(() => import("@/pages/Doctors/DoctorsPage"))
+const ClockingPage = lazy(() => import("@/pages/Clocking/ClockingPage"))
+const VaultPage = lazy(() => import("@/pages/Vault/VaultPage"))
+const InsurancePage = lazy(() => import("@/pages/Insurance/InsurancePage"))
+const ReportsPage = lazy(() => import("@/pages/Reports/ReportsPage"))
+const ServicesPage = lazy(() => import("@/pages/Services/ServicesPage"))
+const PriceListsPage = lazy(() => import("@/pages/PriceLists/PriceListsPage"))
+const UsersPage = lazy(() => import("@/pages/Admin/Users/UsersPage"))
+const RolesPage = lazy(() => import("@/pages/Admin/Roles/RolesPage"))
+const NotFoundPage = lazy(() => import("@/pages/NotFound/NotFoundPage"))
+
+/**
+ * Suspense fallback for lazy chunks. Renders nothing visible — the
+ * surrounding pages keep their own loading chrome. Avoids a layout
+ * shift on chunk swaps.
+ */
+function SilentFallback() {
+  return <div className="min-h-svh animate-pulse bg-background" />
 }
 
-export default App
+export default function App() {
+  return (
+    <>
+      <RTLSync />
+      <Suspense fallback={<SilentFallback />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+
+          <Route element={<PrivateRoute />}>
+            <Route element={<PermissionRoute />}>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/patients" element={<PatientsPage />} />
+                <Route path="/drugs" element={<DrugsPage />} />
+                <Route path="/supplies" element={<SuppliesPage />} />
+                <Route path="/employees" element={<EmployeesPage />} />
+                <Route path="/doctors" element={<DoctorsPage />} />
+                <Route path="/clocking" element={<ClockingPage />} />
+                <Route path="/vault" element={<VaultPage />} />
+                <Route path="/insurance" element={<InsurancePage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/price-lists" element={<PriceListsPage />} />
+
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin/users" element={<UsersPage />} />
+                  <Route path="/admin/roles" element={<RolesPage />} />
+                </Route>
+              </Route>
+            </Route>
+          </Route>
+
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
+    </>
+  )
+}
