@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/store/authStore"
 import { ApiError } from "./errors"
+import { toCamel } from "./caseKeys"
 
 const BASE = "/api"
 
@@ -49,7 +50,7 @@ async function request<T>(
   }
 
   if (res.status === 204) return undefined as T
-  return (await res.json()) as T
+  return toCamel((await res.json()) as unknown) as T
 }
 
 export const api = {
