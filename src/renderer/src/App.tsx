@@ -6,6 +6,7 @@ import { PrivateRoute } from "@/components/common/PrivateRoute"
 import { PermissionRoute } from "@/components/common/PermissionRoute"
 import { AdminRoute } from "@/components/common/AdminRoute"
 import { RTLSync } from "@/components/common/RTLSync"
+import { DevOnly } from "@/components/common/DevOnly"
 
 const LoginPage = lazy(() => import("@/pages/Login/LoginPage"))
 const DashboardPage = lazy(() => import("@/pages/Dashboard/DashboardPage"))
@@ -23,6 +24,9 @@ const PriceListsPage = lazy(() => import("@/pages/PriceLists/PriceListsPage"))
 const UsersPage = lazy(() => import("@/pages/Admin/Users/UsersPage"))
 const RolesPage = lazy(() => import("@/pages/Admin/Roles/RolesPage"))
 const NotFoundPage = lazy(() => import("@/pages/NotFound/NotFoundPage"))
+const ComponentsDemoPage = lazy(
+  () => import("@/pages/_dev/ComponentsDemo/ComponentsDemoPage")
+)
 
 /**
  * Suspense fallback for lazy chunks. Renders nothing visible — the
@@ -67,6 +71,17 @@ export default function App() {
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
+
+          {/* Phase-4 component demo. Visible only in dev builds; production
+              redirects to /dashboard (handled inside DevOnly). */}
+          <Route
+            path="/__dev/components"
+            element={
+              <DevOnly>
+                <ComponentsDemoPage />
+              </DevOnly>
+            }
+          />
         </Routes>
       </Suspense>
     </>

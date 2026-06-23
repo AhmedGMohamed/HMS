@@ -1,34 +1,59 @@
 import type { ReactNode } from "react"
-import { Inbox } from "lucide-react"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import { cn } from "@/lib/utils"
 
-/**
- * Skeleton implementation for Phase 2 placeholders.
- *
- * Phase 4 will extend this with SVG illustrations, primary-action
- * affordances, and the design.md §6 density rules. The current minimal
- * shape (icon + title + description + optional action) is enough for
- * 14+ module placeholders to compile and run.
- */
 export interface EmptyStateProps {
   title: string
   description?: string
+  /** Optional icon node. Falls back to nothing — the Empty primitive
+   * provides its own centred layout when no media is given. */
   icon?: ReactNode
+  /** Optional action affordance (CTA button, link, etc.). */
   action?: ReactNode
+  className?: string
 }
 
-export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
+/**
+ * Inline empty-state used by DataTable, charts, and module placeholders.
+ *
+ * Phase 4 migration: swapped the bespoke div rectangle for the shadcn
+ * `<Empty>` primitives (`Empty/EmptyHeader/EmptyMedia/EmptyTitle/
+ * EmptyDescription/EmptyContent`). The public contract (title /
+ * description / icon / action) is preserved so the 14 module placeholders
+ * keep compiling without a caller migration.
+ */
+export function EmptyState({
+  title,
+  description,
+  icon,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-surface-muted/40 px-6 py-12 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-light text-primary">
-        {icon ?? <Inbox className="size-6" aria-hidden />}
-      </div>
-      <div className="space-y-1">
-        <p className="text-base font-medium text-foreground">{title}</p>
-        {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
+    <Empty
+      role="region"
+      className={cn(
+        "border-dashed border-border bg-surface-muted/40",
+        className
+      )}
+    >
+      <EmptyHeader>
+        {icon ? (
+          <EmptyMedia variant="icon">{icon}</EmptyMedia>
         ) : null}
-      </div>
-      {action}
-    </div>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   )
 }
