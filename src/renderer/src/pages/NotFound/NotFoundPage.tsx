@@ -10,10 +10,8 @@ export default function NotFoundPage() {
   return (
     <div className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center gap-6 p-6">
       <PageHeader
-        title={t("errors.notFoundTitle", { defaultValue: "Page not found" })}
-        subtitle={t("errors.notFoundDescription", {
-          defaultValue: "The page you were looking for doesn't exist.",
-        })}
+        title={t("errors.notFoundTitle")}
+        subtitle={t("errors.notFoundDescription")}
       />
       <EmptyState
         icon={<Home className="size-6" aria-hidden />}
@@ -21,7 +19,7 @@ export default function NotFoundPage() {
         description="Check the URL or use the back-to-dashboard shortcut below."
         action={
           <Button asChild>
-            <Link to="/dashboard">Back to dashboard</Link>
+            <Link to="/dashboard">{t("errors.backToDashboard")}</Link>
           </Button>
         }
       />

@@ -100,7 +100,7 @@ export function PatientServicesDonut({
     <div className={className}>
       <ChartContainer
         config={config}
-        className="aspect-square h-[var(--donut-chart-height,260px)] w-full"
+        className="aspect-square h-(--donut-chart-height,260px) w-full"
       >
         <PieChart accessibilityLayer>
           <ChartTooltip
