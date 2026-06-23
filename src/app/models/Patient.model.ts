@@ -18,13 +18,41 @@ import {
 import BillModel from "./Bill.model.js";
 
 export class PatientModel {
-	async getAllPatients(): Promise<Patient[]> {
-		const sql = `
-            SELECT * FROM Patient 
-            ORDER BY name;
-        `;
-		const result = await query(sql);
-		return result.rows;
+	async getAllPatients(
+		pagination?: { offset?: number; limit?: number; q?: string }
+	): Promise<{ rows: Patient[]; total: number }> {
+		const offset = Math.max(0, pagination?.offset ?? 0)
+		const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
+		const q = pagination?.q?.trim()
+
+		let baseSql = `SELECT * FROM Patient`
+		const params: unknown[] = []
+		if (q) {
+			baseSql += ` WHERE name ILIKE $%1% OR national_id ILIKE %$1%`
+			params.push(q)
+			params.push(limit, offset)
+		} else {
+			params.push(limit, offset)
+		}
+		baseSql += ` ORDER BY name`
+		baseSql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`
+
+		let total: number
+		let countSql = ""
+		let countParams = []
+		if (q) {
+			countSql = `SELECT COUNT(*) AS c FROM Patient WHERE name ILIKE %$1% OR national_id ILIKE %$1%`
+			countParams.push(q)
+		} else {
+			countSql = `SELECT COUNT(*) AS c FROM Patient`
+		}
+
+		const [result, count] = await Promise.all([
+			query(baseSql, params),
+			query(countSql, countParams)
+		])
+		total = Number(count.rows[0]?.c ?? 0)
+		return { rows: result.rows, total }
 	}
 
 	async getPatientById(patientId: number): Promise<Patient | null> {

@@ -2,6 +2,10 @@
 import { Request, Response } from "express";
 import UserModel from "../models/User.model.js";
 import { CreateUserDTO, UpdateUserDTO } from "../utils/types/users.js";
+import {
+	parsePagination,
+	buildPage
+} from "../utils/pagination.js";
 
 export class UserController {
 	async createUser(req: Request, res: Response) {
@@ -89,10 +93,15 @@ export class UserController {
 		}
 	}
 
-	async getAllUsers(_req: Request, res: Response) {
+	async getAllUsers(req: Request, res: Response) {
 		try {
-			const users = await UserModel.getAllUsers();
-			res.json(users);
+			const pagination = parsePagination(req);
+			const qRaw = req.query?.q;
+			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const { rows, total } = await UserModel.getAllUsers(
+				{ offset: pagination.offset, limit: pagination.limit, q }
+			);
+			res.json(buildPage(rows, total, pagination));
 		} catch (error) {
 			console.error("Error fetching users:", error);
 			res.status(500).json({ error: "Failed to fetch users" });

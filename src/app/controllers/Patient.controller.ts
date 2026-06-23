@@ -7,12 +7,21 @@ import {
 	DischargePatientDTO
 } from "../utils/types/patients.js";
 import DrugUsageModel from "../models/DrugUsage.model.js";
+import {
+	parsePagination,
+	buildPage
+} from "../utils/pagination.js";
 
 export class PatientController {
-	async getAllPatients(_req: Request, res: Response) {
+	async getAllPatients(req: Request, res: Response) {
 		try {
-			const patients = await PatientModel.getAllPatients();
-			res.status(200).json(patients);
+			const pagination = parsePagination(req);
+			const qRaw = req.query?.q;
+			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const { rows, total } = await PatientModel.getAllPatients(
+				{ offset: pagination.offset, limit: pagination.limit, q }
+			);
+			res.status(200).json(buildPage(rows, total, pagination));
 		} catch (error) {
 			console.error("Error fetching patients:", error);
 			res.status(500).json({ error: "Failed to fetch patients" });
