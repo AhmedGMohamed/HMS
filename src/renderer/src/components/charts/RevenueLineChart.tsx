@@ -90,7 +90,7 @@ export function RevenueLineChart({
     <div className={className}>
       <ChartContainer
         config={config}
-        className="aspect-video h-[var(--revenue-chart-height,260px)] w-full"
+        className="aspect-video h-(--revenue-chart-height,260px) w-full"
       >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart

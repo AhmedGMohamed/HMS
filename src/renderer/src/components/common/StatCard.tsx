@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -30,6 +30,11 @@ export interface StatCardProps {
   onClick?: () => void
   /** Optional accent ring; default is neutral. */
   emphasis?: "default" | "warning" | "success"
+  /**
+   * Optional insight/contextual line rendered in a muted footer beneath
+   * the value. Accepts string or ReactNode (for inline links/buttons).
+   */
+  footer?: ReactNode
   className?: string
 }
 
@@ -55,6 +60,7 @@ export function StatCard({
   href,
   onClick,
   emphasis = "default",
+  footer,
   className,
 }: StatCardProps) {
   const ringClass =
@@ -74,7 +80,7 @@ export function StatCard({
         className
       )}
     >
-      <CardHeader className="!gap-0 px-4 pt-3 pb-0">
+      <CardHeader className="gap-0 px-4 pt-3 pb-0">
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
@@ -113,6 +119,15 @@ export function StatCard({
           </Badge>
         ) : null}
       </CardContent>
+      {footer ? (
+        <CardFooter className="px-4 pb-3 pt-1">
+          {loading ? (
+            <Skeleton className="h-3 w-32" />
+          ) : (
+            <span className="text-xs text-muted-foreground">{footer}</span>
+          )}
+        </CardFooter>
+      ) : null}
     </Card>
   )
 

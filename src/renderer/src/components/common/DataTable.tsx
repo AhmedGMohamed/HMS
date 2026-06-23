@@ -178,14 +178,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
   return (
     <Card className="overflow-hidden border border-border shadow-xs">
       {showToolbar ? (
-        <CardHeader className="!gap-2 border-b border-border px-4 py-3">
+        <CardHeader className="gap-2 border-b border-border px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 items-center gap-2">{toolbar}</div>
             {showSearch ? (
               <div className="relative sm:max-w-xs sm:flex-1">
                 <SearchIcon
                   aria-hidden
-                  className="pointer-events-none absolute top-1/2 start-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+                  className="pointer-events-none absolute top-1/2 inset-s-2.5 size-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   type="search"
@@ -205,7 +205,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     variant="ghost"
                     size="icon-xs"
                     aria-label="Clear search"
-                    className="absolute end-1.5 top-1/2 -translate-y-1/2"
+                    className="absolute inset-e-1.5 top-1/2 -translate-y-1/2"
                     onClick={() => search!.onChange("")}
                   >
                     <XIcon />
@@ -323,13 +323,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </div>
       </CardContent>
       {showPagination && pagination ? (
-          <DataTablePagination
-            page={pagination.page}
-            pageSize={pagination.pageSize}
-            total={pagination.total}
-            onPageChange={pagination.onPageChange}
-            onPageSizeChange={pagination.onPageSizeChange}
-          />
+        <DataTablePagination
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+        />
       ) : null}
     </Card>
   )
