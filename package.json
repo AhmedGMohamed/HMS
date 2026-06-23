@@ -19,7 +19,9 @@
 		"format": "prettier --write \"**/*.{ts,tsx}\"",
 		"typecheck": "tsc --noEmit",
 		"dist": "npm run build & electron-builder --win --x64",
-		"check-i18n": "node src/app/check-i18n-keys.js"
+		"check-i18n": "node src/app/check-i18n-keys.js && node src/renderer/scripts/check-i18n.mjs",
+		"check-i18n:legacy": "node src/app/check-i18n-keys.js",
+		"check-i18n:renderer": "node src/renderer/scripts/check-i18n.mjs"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",
