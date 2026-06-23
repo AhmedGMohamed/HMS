@@ -1,12 +1,21 @@
 import { Request, Response } from "express";
 import DrugCardModel from "../models/DrugCard.model.js";
 import { CreateDrugCardDTO, UpdateDrugCardDTO } from "../utils/types/drugs.js";
+import {
+	parsePagination,
+	buildPage
+} from "../utils/pagination.js";
 
 export class DrugCardController {
-	async getAllDrugCards(_req: Request, res: Response) {
+	async getAllDrugCards(req: Request, res: Response) {
 		try {
-			const drugs = await DrugCardModel.getAllDrugCards();
-			res.json(drugs);
+			const pagination = parsePagination(req);
+			const qRaw = req.query?.q;
+			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const { rows, total } = await DrugCardModel.getAllDrugCards(
+				{ offset: pagination.offset, limit: pagination.limit, q }
+			);
+			res.json(buildPage(rows, total, pagination));
 		} catch (error) {
 			console.error("Error fetching drug cards:", error);
 			res.status(500).json({ error: "Failed to fetch drug cards" });

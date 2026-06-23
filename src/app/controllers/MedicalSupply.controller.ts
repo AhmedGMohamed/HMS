@@ -5,11 +5,23 @@ import {
     UpdateMedicalSupplyDTO
 } from "../utils/types/medicalSupplies.js";
 
+import { Request, Response } from "express";
+import MedicalSupplyModel from "../models/MedicalSupply.model.js";
+import {
+    parsePagination,
+    buildPage
+} from "../utils/pagination.js";
+
 export class MedicalSupplyController {
-    async getAllMedicalSupplies(_req: Request, res: Response) {
+    async getAllMedicalSupplies(req: Request, res: Response) {
         try {
-            const supplies = await MedicalSupplyModel.getAllMedicalSupplies();
-            res.json(supplies);
+            const pagination = parsePagination(req);
+            const qRaw = req.query?.q;
+            const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+            const { rows, total } = await MedicalSupplyModel.getAllMedicalSupplies(
+                { offset: pagination.offset, limit: pagination.limit, q }
+            );
+            res.status(200).json(buildPage(rows, total, pagination));
         } catch (error) {
             console.error("Error fetching medical supplies:", error);
             res.status(500).json({ error: "Failed to fetch medical supplies" });

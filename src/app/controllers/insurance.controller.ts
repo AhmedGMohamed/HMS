@@ -8,28 +8,33 @@ import {
 	InsuranceReportFilters,
 	PatientReportFilters
 } from "../utils/types/insurance.js";
+import {
+	parsePagination,
+	buildPage
+} from "../utils/pagination.js";
 
 class InsuranceController {
 	// Insurance Company Management
 
 	async getAllInsuranceCompanies(
-		_req: Request,
+		req: Request,
 		res: Response
 	): Promise<void> {
 		try {
-			const insuranceCompanies =
-				await InsuranceModel.getAllInsuranceCompanies();
-			res.json({
-				success: true,
-				data: insuranceCompanies,
-				message: "Insurance companies retrieved successfully"
-			});
+			const pagination = parsePagination(req);
+			const qRaw = req.query?.q;
+			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const { rows, total } = await InsuranceModel.getAllInsuranceCompanies(
+				{ offset: pagination.offset, limit: pagination.limit, q }
+			);
+			res.json(
+				buildPage(rows, total, pagination)
+			);
 		} catch (error) {
 			console.error("Error getting insurance companies:", error);
 			res.status(500).json({
 				success: false,
-				message: "Failed to retrieve insurance companies",
-				error: error instanceof Error ? error.message : "Unknown error"
+				message: "Failed to retrieve insurance companies"
 			});
 		}
 	}

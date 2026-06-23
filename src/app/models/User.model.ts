@@ -204,20 +204,53 @@ export class UserModel {
 		}
 	}
 
-	async getAllUsers(): Promise<UserWithRole[]> {
+	async getAllUsers(
+		pagination?: { offset?: number; limit?: number; q?: string }
+	): Promise<{ rows: UserWithRole[]; total: number }> {
 		try {
-			const sql = `
-                SELECT u.user_id, u.username, u.role_id, u.created_at,
-                       r.name as role_name
-                FROM "User" u
-                JOIN Role r ON u.role_id = r.role_id
-                ORDER BY u.username
-            `;
-			const result = await query(sql);
+			const offset = Math.max(0, pagination?.offset ?? 0)
+			const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
+			const q = pagination?.q?.trim()
 
-			return result.rows;
+			let sql: string
+			const params: unknown[] = []
+			if (q) {
+				sql = `
+                    SELECT u.user_id, u.username, u.role_id, u.created_at,
+                           r.name as role_name
+                    FROM "User" u
+                    JOIN Role r ON u.role_id = r.role_id
+                    WHERE u.username ILIKE %$1%
+                    ORDER BY u.username
+                    LIMIT $2 OFFSET $3
+                `
+				params.push(q, limit, offset)
+			} else {
+				sql = `
+                    SELECT u.user_id, u.username, u.role_id, u.created_at,
+                           r.name as role_name
+                    FROM "User" u
+                    JOIN Role r ON u.role_id = r.role_id
+                    ORDER BY u.username
+                    LIMIT $1 OFFSET $2
+                `
+				params.push(limit, offset)
+			}
+			const countSql = q
+				? `SELECT COUNT(*) AS c FROM "User" WHERE username ILIKE %$1%`
+				: `SELECT COUNT(*) AS c FROM "User"`
+
+
+			const [result, countRes] = await Promise.all([
+				query(sql, params),
+				query(countSql, q ? [q] : [])
+			])
+			return {
+				rows: result.rows,
+				total: Number(countRes.rows[0]?.c ?? 0),
+			}
 		} catch (error) {
-			throw error;
+			throw error
 		}
 	}
 

@@ -9,17 +9,40 @@ import {
 } from "../utils/types/drugs.js";
 
 export class DrugCardModel {
-	async getAllDrugCards(): Promise<DrugCard[]> {
+	async getAllDrugCards(
+		pagination?: { offset?: number; limit?: number; q?: string }
+	): Promise<{ rows: DrugCard[]; total: number }> {
 		try {
-			const sql = `
-                SELECT * 
-                FROM DrugCard 
-                ORDER BY name;
-            `;
-			const result = await query(sql);
-			return result.rows;
+			const offset = Math.max(0, pagination?.offset ?? 0)
+			const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
+			const q = pagination?.q?.trim()
+
+			let sql: string
+			const params: unknown[] = []
+			if (q) {
+				sql = `SELECT * FROM DrugCard WHERE name ILIKE %$1% ORDER BY name LIMIT $2 OFFSET $3`
+				params.push(q, limit, offset)
+			} else {
+				sql = `SELECT * FROM DrugCard ORDER BY name LIMIT $1 OFFSET $2`
+				params.push(limit, offset)
+			}
+			const countSql = q
+				? `SELECT COUNT(*) AS c FROM DrugCard WHERE name ILIKE %$1%`
+				: `SELECT COUNT(*) AS c FROM DrugCard`
+			
+			const [result, countRes] = await Promise.all([
+				query(sql, params),
+				query(
+					countSql,
+					q ? [q] : []
+				)
+			])
+			return {
+				rows: result.rows,
+				total: Number(countRes.rows[0]?.c ?? 0),
+			}
 		} catch (error) {
-			throw error;
+			throw error
 		}
 	}
 
