@@ -72,7 +72,7 @@ function SidebarGroupedItem({
             <Icon aria-hidden />
             <span className="truncate">{t(item.label)}</span>
             <ChevronRight
-              className="ms-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+              className="ms-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden"
               aria-hidden
             />
           </SidebarMenuButton>
