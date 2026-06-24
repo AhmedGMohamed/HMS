@@ -23,7 +23,7 @@ export function usePermission() {
 
   const hasRole = (role: Role): boolean => user?.role === role
 
-  const isAdmin = (): boolean => user?.role === "Admin"
+  const isAdmin = (): boolean => user?.role == "Admin"
 
   return { user, hasPermission, hasRole, isAdmin }
 }
