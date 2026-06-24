@@ -2,21 +2,30 @@ import { useMemo } from "react"
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
+  SidebarFooter,
+  SidebarHeader as SidebarHeaderSlot,
   SidebarMenu,
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/store/authStore"
-import { NAV_CONFIG, filterNavForUser } from "@/lib/navigation"
-import { SidebarProfile } from "./SidebarProfile"
-import { SidebarNavItem } from "./SidebarNavItem"
 import { useUIStore } from "@/store/uiStore"
+import { NAV_CONFIG, filterNavForUser } from "@/lib/navigation"
+import { SidebarAppHeader } from "./SidebarHeader"
+import { SidebarUserProfile } from "./SidebarUserProfile"
+import { SidebarNavItem } from "./SidebarNavItem"
 
 /**
  * Composition of the shadcn `<Sidebar>` primitives + the HMS
- * navigation tree (NAV_CONFIG, filtered by the current user's
- * permissions by `filterNavForUser`). Hidden away from `<AppShell>`
- * so the AppShell layout can stay narrow and review-friendly.
+ * navigation tree (NAV_CONFIG, filtered by `filterNavForUser`).
+ *
+ *   ┌─────────────────────────────────┐
+ *   │ <SidebarHeader>                │  logo + wordmark + collapse
+ *   ├─────────────────────────────────┤
+ *   │ <SidebarContent>               │
+ *   │   SidebarMenu (filterNav tree) │
+ *   ├─────────────────────────────────┤
+ *   │ <SidebarFooter>                │  user profile + kebab
+ *   └─────────────────────────────────┘
  *
  * Collapsed state comes from the shadcn `SidebarProvider`'s own
  * cookie (see Phase 3 plan §Decisions). Direction (`side`) flips
@@ -35,16 +44,19 @@ export function SidebarShell() {
       collapsible="icon"
       dir={direction}
     >
-      <SidebarHeader>
-        <SidebarProfile />
-      </SidebarHeader>
-      <SidebarContent>
+      <SidebarHeaderSlot>
+        <SidebarAppHeader />
+      </SidebarHeaderSlot>
+      <SidebarContent className="my-4">
         <SidebarMenu>
           {items.map((item) => (
             <SidebarNavItem key={item.id} item={item} />
           ))}
         </SidebarMenu>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarUserProfile />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

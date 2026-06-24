@@ -12,12 +12,12 @@ import { useUIStore } from "@/store/uiStore"
  *
  *   ┌─────────────────────────────────────────────────────────────┐
  *   │ Sidebar (SidebarShell)        │ Inset (main column)         │
- *   │ ─ Header (SidebarProfile)     │  ┌ TopBar (sticky h-16) ──┐ │
+ *   │ ─ Header (SidebarAppHeader)   │  ┌ TopBar (sticky h-16) ──┐ │
  *   │ ─ Content (NAV_CONFIG items)  │  │ Breadcrumb · Toggle  · │ │
- *   │ ─ Footer                      │  │                       │ │
- *   │ ─ Rail (collapse control)     │  ├───────────────────────┤ │
- *   │                              │  │ <Outlet /> (scroll)   │ │
- *   │                              │  └───────────────────────┘ │
+ *   │ ─ Footer (SidebarUserProfile) │  │                        │ │
+ *   │ ─ Rail (collapse control)     │  ├────────────────────────┤ │
+ *   │                               │  │ <Outlet /> (scroll)    │ │
+ *   │                               │  └────────────────────────┘ │
  *   └─────────────────────────────────────────────────────────────┘
  *
  * Mobile: the sidebar becomes an off-canvas drawer driven by the

@@ -1,3 +1,4 @@
+import * as React from "react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -5,7 +6,6 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,37 +20,32 @@ import { getInitials } from "@/lib/utils"
 import { LogoutConfirmation } from "./LogoutConfirmation"
 
 /**
- * Avatar → DropdownMenu rendered in the TopBar.
+ * Dropdown-menu host. Renders the shadcn `<DropdownMenu>` Root
+ * with its content (Profile stub · Settings stub · Logout) and
+ * the confirm-on-sign-out AlertDialog.
  *
- * - Header: full username + role badge.
- * - Profile / Settings: disabled (decision #3); grey, `aria-disabled`,
- *   no-op on click. Real actions land in Phase 6h.
- * - Logout: opens `<LogoutConfirmation>` (AlertDialog).
+ * Consumers place **one or more** `<UserMenuTrigger>` siblings
+ * inside it — multiple triggers are bound to the same Root and
+ * visually swap based on a parent's `data-collapsible` selector
+ * (used by the sidebar to switch between expanded and icon-only
+ * states).
+ *
+ * Owned state:
+ *   - `open` of the dropdown.
+ *   - `logoutOpen` for the AlertDialog confirm.
  */
-export function UserMenu() {
+export function UserMenuBody({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const [open, setOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
 
   if (!user) return null
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-9 rounded-full p-0"
-            aria-label={t("topbar.openMenu")}
-          >
-            <Avatar className="size-8">
-              <AvatarFallback className="bg-primary-light text-primary text-xs font-semibold">
-                {getInitials(user.username)}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        {children}
         <DropdownMenuContent align="end" sideOffset={8} className="min-w-56">
           <DropdownMenuLabel className="flex flex-col gap-1">
             <span className="font-medium text-foreground">{user.username}</span>
@@ -71,10 +66,12 @@ export function UserMenu() {
             <span>{t("userMenu.settings")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={(event) => {
-            event.preventDefault()
-            setLogoutOpen(true)
-          }}>
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setLogoutOpen(true)
+            }}
+          >
             <LogOut aria-hidden />
             <span>{t("sidebar.logout")}</span>
           </DropdownMenuItem>
@@ -82,5 +79,51 @@ export function UserMenu() {
       </DropdownMenu>
       <LogoutConfirmation open={logoutOpen} onOpenChange={setLogoutOpen} />
     </>
+  )
+}
+
+/**
+ * Trigger primitive — must be invoked as a direct child of
+ * `<UserMenuBody>`. Wraps shadcn's `<DropdownMenuTrigger asChild>`
+ * so callers can supply their own element via the `asChild` pattern.
+ */
+export function UserMenuTrigger({
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuTrigger>) {
+  return (
+    <DropdownMenuTrigger asChild {...props}>
+      {children}
+    </DropdownMenuTrigger>
+  )
+}
+
+/**
+ * Legacy TopBar-style avatar shortcut. No longer mounted in the
+ * primary chrome (design.md §5.1 relocated the user menu to the
+ * sidebar footer) but kept exported so the dev playground and any
+ * unmigrated consumer keeps compiling.
+ */
+export function UserMenu() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  if (!user) return null
+
+  return (
+    <UserMenuBody>
+      <UserMenuTrigger>
+        <button
+          type="button"
+          className="flex size-9 items-center justify-center rounded-full p-0 outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent focus-visible:ring-2"
+          aria-label={t("topbar.openMenu")}
+        >
+          <Avatar className="size-8">
+            <AvatarFallback className="bg-primary-light text-primary text-xs font-semibold">
+              {getInitials(user.username)}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </UserMenuTrigger>
+    </UserMenuBody>
   )
 }

@@ -81,7 +81,10 @@
 		"profile": "Profile",
 		"userManagement": "User Management",
 		"management": "Management",
-		"reports": "Reports"
+		"reports": "Reports",
+		"brand": "HealthCore+",
+		"toggleSidebar": "Toggle sidebar",
+		"openUserMenu": "Open user menu"
 	},
 	"dashboard": {
 		"title": "HMS - Dashboard",

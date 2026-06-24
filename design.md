@@ -217,8 +217,8 @@ shadcn's `--radius` CSS variable scales all radii. Default `0.5rem` is tuned for
 - Default control height: **40px** (`h-10`) for buttons & inputs — meets 44pt minimum tap target when paired with 4px padding.
 - Table row height: **48px** (`h-12`) — comfortable hover affordance.
 - Dialog padding: **24px** for `<DialogContent>` body; **16px** for footer.
-- Sidebar collapsed width: **64px** (`w-16`); expanded: **256px** (`w-64`).
-- TopBar height: **64px** (`h-16`), sticky.
+- Sidebar collapsed width: **48px** (`w-12`); expanded: **256px** (`w-64`).
+- TopBar height: **48px** (`h-12`), sticky.
 - Card padding: **16px** (`p-4`); compact variant `p-3` (12px) for KPI cards on the dashboard.
 
 ### 4.4 Shadows & Elevation
@@ -253,8 +253,9 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Sidebar (Sidebar.tsx)   │ Main Column                               │
 │ ─────────────────────── │ ──────────────────────────────────────────│
-│ ▸ Mini profile (Avatar) │ TopBar (TopBar.tsx) — sticky, h-16        │
-│       username+role     │  Breadcrumb │ Title │ Search │ Lang │ ... │
+│ ▸ Header                │ TopBar (TopBar.tsx) — sticky, h-12        │
+|   LogoIcon+"HealthCore+"|
+│   Collapse button       │  Breadcrumb │ Title │ Search │ Lang │ ... │
 │ ▸ Nav items(Collapsible)|                                           │
 │   · Dashboard           │ <main> page content (routes render here)  │
 │   · User Management ▼   │                                           │
@@ -264,8 +265,8 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 │   · Employees (locked)  │  Pagination/Summary                       │
 │   · ...                 │                                           │
 │ ──────────────────────  │                                           │
-│ ▸ Collapse button       │                                           │
-│       (PanelLeftClose)  │                                           │
+│ ▸ User Profile          │                                           │
+│    Profile    kebabIcon │                                           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -276,16 +277,18 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 - Active link detection via `useLocation().pathname` (exact match); active item gets `bg-primary-light text-primary border-s-2 border-primary` (uses `border-s` so it mirrors in RTL).
 - Nested items ("User Management") use shadcn `<Collapsible>` so they can stay expanded when the sidebar is collapsed.
 - Tooltip on collapsed nav: shadcn `<Tooltip>` shows the label on hover/focus.
-- Mini profile sits at the top of the sidebar — `<Avatar>` initials + name + role badge; profile hidden when collapsed.
+- HMS logo icon sits at top, with "HealthCore+" next to it. "Health" is in the primary color, while "Core" and "+" in secondary color. The "+" is a superscript on top of "Core". Collapse Button sits on the right side, and replaces the HMS Logo when the sidebar is collapsed.
 - Logout uses shadcn `<AlertDialog>` for confirmation → `authStore.logout()` → navigate to `/login`.
 - Permission-locked items get a small `Lock` icon and `aria-disabled`.
+- User Profile: user profile image (letter placeholder if no image), name & role badge under. user menu on right side on clickable kebab icon
+- User menu: shadcn `<DropdownMenu>` with username, role badge, "Settings" stub, "Logout".
 
 **TopBar (TopBar.tsx) behavior**
-- Sticky at the top (`sticky top-0 z-30`), 64px tall, `--surface` background with `shadow-sm`.
+- Sticky at the top (`sticky top-0 z-30`), 48px tall, `--surface` background with `shadow-sm`.
 - Breadcrumb: auto-generated from `useLocation()` + a route-to-label map; uses shadcn `<Breadcrumb>`. Ellipsizes middle segments past depth 4.
 - Global search (`Ctrl+K` / `Cmd+K`): shadcn `<Command>` dialog (Phase 8). Initially navigates to module pages only (entity search deferred).
 - Language toggle: button → `uiStore.setLanguage()`; `RTLSync` updates `<html dir>` and `i18n.changeLanguage()`.
-- User menu: shadcn `<DropdownMenu>` with username, role badge, "Settings" stub, "Logout".
+
 
 **RTL behavior**
 - Sidebar automatically shifts to the right edge because the layout uses `inline-start` positioning via `border-s` and `ms-*` utilities — never `ml-*`/`mr-*`.

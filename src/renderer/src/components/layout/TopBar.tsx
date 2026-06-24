@@ -5,14 +5,17 @@ import {
 } from "@/components/ui/sidebar"
 import { Breadcrumbs } from "./Breadcrumbs"
 import { LanguageToggle } from "./LanguageToggle"
-import { UserMenu } from "./UserMenu"
 
 /**
- * Sticky TopBar — `<h-16> | border-b | bg-surface`.
+ * Sticky TopBar — `<h-12> | border-b | bg-surface`.
  *
  * Layout:
  *   - Left: hamburger on mobile only (`md:hidden`), then `<Breadcrumbs />`.
- *   - Right cluster: `<LanguageToggle />`, `<UserMenu />`.
+ *   - Right cluster: `<LanguageToggle />`.
+ *
+ * Per design.md §5.1 the user menu has moved out of the TopBar into
+ * the sidebar footer (`<SidebarUserProfile />`). The layout is intentionally
+ * left-justified because no other action groups live here.
  *
  * At `md+` the persistent sidebar replaces the hamburger; `<SidebarRail>`
  * inside the sidebar provides the desktop collapse control.
@@ -34,7 +37,6 @@ export function TopBar() {
       <Breadcrumbs />
       <div className="ms-auto flex items-center gap-2">
         <LanguageToggle />
-        <UserMenu />
       </div>
     </header>
   )

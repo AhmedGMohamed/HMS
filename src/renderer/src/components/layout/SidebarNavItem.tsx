@@ -66,7 +66,7 @@ function SidebarGroupedItem({
 
   return (
     <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
-      <SidebarMenuItem>
+      <SidebarMenuItem className="px-2">
         <CollapsibleTrigger asChild>
           <SidebarMenuButton isActive={isActive} tooltip={t(item.label)}>
             <Icon aria-hidden />
@@ -118,7 +118,7 @@ function SidebarLeafItem({
   const Icon = getIcon(item.icon)
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className="px-2">
       <SidebarMenuButton
         asChild
         isActive={isActive}

@@ -82,7 +82,10 @@
 		"userManagement": "إدارة المستخدمين",
 		"management": "الإدارة",
 		"reports": "التقارير",
-		"unknown": "غير معروف"
+		"unknown": "غير معروف",
+		"brand": "هيلث كور بلس",
+		"toggleSidebar": "تبديل الشريط الجانبي",
+		"openUserMenu": "فتح قائمة المستخدم"
 	},
 	"dashboard": {
 		"title": "نظام إدارة المستشفى - لوحة القيادة",
