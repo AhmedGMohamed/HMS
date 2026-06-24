@@ -91,3 +91,62 @@ export interface Auditable {
   updatedAt?: string
   createdBy?: number
 }
+
+/* ----------------------------------------------------------------
+   Dashboard
+   Mirrors the server-side contract in
+   `src/app/utils/types/dashboard.d.ts`. All field names are
+   camelCase because the renderer auto-maps snake_case keys at the
+   `lib/api.ts` boundary. `todayInsurancePayments` is optional in the
+   user-statistics projection; admins always receive a number.
+   ---------------------------------------------------------------- */
+
+export interface DashboardStatistics {
+  activePatientsCount: number
+  todayRevenue: number
+  todayProfit: number
+  lowStockItemsCount: number
+  nearExpiryItemsCount: number
+  todayInsurancePayments?: number
+}
+
+/** 30-day revenue + profit breakdown per day. */
+export interface DashboardChartPoint {
+  /** ISO `YYYY-MM-DD` so axis rendering is timezone-agnostic. */
+  date: string
+  revenue: number
+  profit: number
+  patientRevenue: number
+  pharmacyRevenue: number
+  insuranceRevenue: number
+  patientProfit: number
+  pharmacyProfit: number
+  insuranceProfit: number
+}
+
+/** Audit-log entry used by the dashboard recent-activity widget. */
+export interface AuditLogRecord {
+  logId: number
+  userId: number
+  actionType: string
+  details: {
+    url?: string
+    description?: string
+    params?: Record<string, unknown>
+    query?: Record<string, unknown>
+    body?: unknown
+  }
+  /** ISO datetime. */
+  timestamp: string
+  username?: string
+}
+
+/* ----------------------------------------------------------------
+   Domain enums for the Login flow.
+   ---------------------------------------------------------------- */
+
+export type LoginErrorKind =
+  | "invalid-credentials"
+  | "rate-limited"
+  | "network"
+  | "server-error"

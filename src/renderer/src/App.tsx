@@ -7,6 +7,7 @@ import { PermissionRoute } from "@/components/common/PermissionRoute"
 import { AdminRoute } from "@/components/common/AdminRoute"
 import { RTLSync } from "@/components/common/RTLSync"
 import { DevOnly } from "@/components/common/DevOnly"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 const LoginPage = lazy(() => import("@/pages/Login/LoginPage"))
 const DashboardPage = lazy(() => import("@/pages/Dashboard/DashboardPage"))
@@ -42,47 +43,49 @@ export default function App() {
     <>
       <RTLSync />
       <Suspense fallback={<SilentFallback />}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
+        <TooltipProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route element={<PrivateRoute />}>
-            <Route element={<PermissionRoute />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/patients" element={<PatientsPage />} />
-                <Route path="/drugs" element={<DrugsPage />} />
-                <Route path="/supplies" element={<SuppliesPage />} />
-                <Route path="/employees" element={<EmployeesPage />} />
-                <Route path="/doctors" element={<DoctorsPage />} />
-                <Route path="/clocking" element={<ClockingPage />} />
-                <Route path="/vault" element={<VaultPage />} />
-                <Route path="/insurance" element={<InsurancePage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/services" element={<ServicesPage />} />
-                <Route path="/price-lists" element={<PriceListsPage />} />
+            <Route element={<PrivateRoute />}>
+              <Route element={<PermissionRoute />}>
+                <Route element={<AppShell />}>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/patients" element={<PatientsPage />} />
+                  <Route path="/drugs" element={<DrugsPage />} />
+                  <Route path="/supplies" element={<SuppliesPage />} />
+                  <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/doctors" element={<DoctorsPage />} />
+                  <Route path="/clocking" element={<ClockingPage />} />
+                  <Route path="/vault" element={<VaultPage />} />
+                  <Route path="/insurance" element={<InsurancePage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/services" element={<ServicesPage />} />
+                  <Route path="/price-lists" element={<PriceListsPage />} />
 
-                <Route element={<AdminRoute />}>
-                  <Route path="/admin/users" element={<UsersPage />} />
-                  <Route path="/admin/roles" element={<RolesPage />} />
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin/users" element={<UsersPage />} />
+                    <Route path="/admin/roles" element={<RolesPage />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
+            <Route path="*" element={<NotFoundPage />} />
 
-          {/* Phase-4 component demo. Visible only in dev builds; production
+            {/* Phase-4 component demo. Visible only in dev builds; production
               redirects to /dashboard (handled inside DevOnly). */}
-          <Route
-            path="/__dev/components"
-            element={
-              <DevOnly>
-                <ComponentsDemoPage />
-              </DevOnly>
-            }
-          />
-        </Routes>
+            <Route
+              path="/__dev/components"
+              element={
+                <DevOnly>
+                  <ComponentsDemoPage />
+                </DevOnly>
+              }
+            />
+          </Routes>
+        </TooltipProvider>
       </Suspense>
     </>
   )

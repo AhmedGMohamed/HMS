@@ -65,7 +65,7 @@ function SidebarGroupedItem({
   const Icon = getIcon(item.icon)
 
   return (
-    <Collapsible asChild defaultOpen={isActive}>
+    <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton isActive={isActive} tooltip={t(item.label)}>
@@ -89,7 +89,7 @@ function SidebarGroupedItem({
                     isActive={childActive}
                     onClick={child.url ? () => onNavigate(child.url!) : undefined}
                   >
-                    <button type="button">
+                    <button type="button" className="w-full cursor-pointer">
                       <ChildIcon aria-hidden />
                       <span className="truncate">{t(child.label)}</span>
                     </button>
@@ -125,7 +125,7 @@ function SidebarLeafItem({
         tooltip={t(item.label)}
         onClick={() => onNavigate(item.url!)}
       >
-        <button type="button">
+        <button type="button" className="cursor-pointer">
           <Icon aria-hidden />
           <span className="truncate">{t(item.label)}</span>
         </button>
