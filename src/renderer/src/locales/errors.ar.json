@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "genericError": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
+    "validationError": "يرجى التحقق من النموذج بحثاً عن أخطاء.",
+    "unauthorized": "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+    "notFound": "المورد المطلوب غير موجود.",
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundDescription": "لم نتمكن من العثور على الصفحة التي كنت تبحث عنها.",
+    "backToDashboard": "العودة إلى لوحة القيادة",
+    "serverError": "خطأ في الخادم. يرجى الاتصال بالدعم.",
+    "fieldRequired": "هذا الحقل مطلوب",
+    "invalidFormat": "تنسيق غير صالح",
+    "invalidEmail": "عنوان بريد إلكتروني غير صالح",
+    "invalidPhone": "رقم هاتف غير صالح",
+    "invalidDate": "تاريخ غير صالح",
+    "authError": "خطأ في المصادقة",
+    "loadDashboardError": "فشل تحميل لوحة القيادة",
+    "loadStatisticsError": "فشل تحميل إحصائيات لوحة القيادة",
+    "loadChartError": "فشل تحميل بيانات الرسم البياني",
+    "loadActivityError": "فشل تحميل النشاط الأخير",
+    "loadFeaturesError": "فشل تحميل الميزات المتاحة"
+  }
+}

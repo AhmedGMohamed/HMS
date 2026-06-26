@@ -1,0 +1,45 @@
+{
+  "users": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة المستخدمين",
+    "title": "إدارة المستخدمين",
+    "createNewUser": "إنشاء مستخدم جديد",
+    "editUser": "تعديل المستخدم",
+    "searchPlaceholder": "البحث عن المستخدمين...",
+    "selectRole": "اختر دورًا",
+    "filters": {
+      "allRoles": "جميع الأدوار",
+      "allStatus": "جميع الحالات"
+    },
+    "table": {
+      "username": "اسم المستخدم",
+      "role": "الدور",
+      "createdDate": "تاريخ الإنشاء",
+      "status": "الحالة"
+    },
+    "fields": {
+      "username": "اسم المستخدم",
+      "password": "كلمة المرور",
+      "role": "الدور"
+    },
+    "validation": {
+      "usernameLength": "يجب أن يكون اسم المستخدم بين 3 و 50 حرفًا",
+      "passwordLength": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+      "roleRequired": "يرجى اختيار دور"
+    },
+    "messages": {
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteSuccess": "تم حذف المستخدم",
+      "createSuccess": "تم إنشاء المستخدم بنجاح",
+      "updateSuccess": "تم تحديث المستخدم بنجاح",
+      "loadError": "فشل تحميل المستخدمين",
+      "saveError": "فشل حفظ المستخدم",
+      "deleteError": "فشل حذف المستخدم"
+    },
+    "buttons": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "saving": "جاري الحفظ..."
+    }
+  }
+}

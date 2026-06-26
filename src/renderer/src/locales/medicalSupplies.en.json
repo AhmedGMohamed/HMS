@@ -1,0 +1,116 @@
+{
+  "medicalSupplies": {
+    "pageTitle": "HMS - Medical Supplies Management",
+    "title": "Medical Supplies Management",
+    "stats": {
+      "totalSupplies": "Total Supplies",
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "totalValue": "Total Value"
+    },
+    "buttons": {
+      "createSupply": "Create New Supply",
+      "manageWarehouses": "Manage Warehouses",
+      "addWarehouse": "Add New Warehouse",
+      "saveWarehouse": "Save Warehouse",
+      "addShipment": "Add Shipment"
+    },
+    "searchPlaceholder": "Search medical supplies...",
+    "placeholders": {
+      "selectWarehouse": "Select Warehouse",
+      "frequency": "e.g., 8 hours"
+    },
+    "table": {
+      "supplyName": "Supply Name",
+      "manufacturer": "Manufacturer",
+      "provider": "Provider",
+      "autoRenew": "Auto Renew",
+      "totalStock": "Total Stock",
+      "warehouseName": "Warehouse Name",
+      "location": "Location",
+      "totalShipments": "Total Shipments"
+    },
+    "modals": {
+      "createSupply": "Create New Medical Supply",
+      "editSupply": "Edit Medical Supply",
+      "addShipment": "Add New Shipment",
+      "editShipment": "Edit Shipment",
+      "warehouseManagement": "Warehouse Management",
+      "addWarehouse": "Add New Warehouse",
+      "editWarehouse": "Edit Warehouse"
+    },
+    "fields": {
+      "supplyName": "Supply Name",
+      "manufacturer": "Manufacturer",
+      "provider": "Provider",
+      "saleQuantity": "Sale Quantity",
+      "minStockAlert": "Minimum Stock Alert",
+      "isObligatoryContinuous": "Is Obligatory Continuous",
+      "frequency": "Frequency (hours)",
+      "warehouse": "Warehouse",
+      "quantity": "Quantity",
+      "buyPrice": "Buy Price",
+      "expiryDate": "Expiry Date",
+      "prices": "Selling Prices",
+      "warehouseName": "Warehouse Name",
+      "location": "Location",
+      "expiry": "Expiry"
+    },
+    "sections": {
+      "additionalSettings": "Additional Settings",
+      "sellingPrices": "Selling Prices",
+      "existingWarehouses": "Existing Warehouses"
+    },
+    "help": {
+      "minStockAlert": "Alert when stock falls below this amount",
+      "frequency": "Time interval between administrations (if continuous)",
+      "expiryDate": "Optional"
+    },
+    "validation": {
+      "supplyNameLength": "Supply name must be at least 3 characters long",
+      "saleQuantityMin": "Sale quantity must be greater than 0",
+      "warehouseRequired": "Please select a warehouse",
+      "quantityMin": "Please enter a valid quantity",
+      "buyPriceRequired": "Please enter a valid buy price",
+      "warehouseNameLength": "Warehouse name must be at least 3 characters long",
+      "locationLength": "Location must be at least 5 characters long"
+    },
+    "confirmations": {
+      "deleteSupplyTitle": "Delete Supply?",
+      "deleteSupplyText": "This action cannot be undone.",
+      "deleteShipmentTitle": "Delete Shipment?",
+      "deleteShipmentText": "This action cannot be undone.",
+      "deleteWarehouseTitle": "Delete Warehouse?",
+      "deleteWarehouseText": "This action cannot be undone."
+    },
+    "messages": {
+      "loadInitialDataError": "Failed to load initial data",
+      "loadSuppliesError": "Failed to load medical supplies",
+      "loadPriceListsError": "Failed to load price lists",
+      "loadWarehousesError": "Failed to load warehouses",
+      "noShipments": "No shipments available for this supply",
+      "deleteSuccess": "Supply deleted successfully",
+      "deleteError": "Failed to delete supply",
+      "updateSuccess": "Supply updated successfully",
+      "createSuccess": "Supply created successfully",
+      "saveError": "Failed to save supply",
+      "shipmentUpdateSuccess": "Shipment updated successfully",
+      "shipmentCreateSuccess": "Shipment created successfully",
+      "shipmentSaveError": "Failed to save shipment",
+      "shipmentDeleteSuccess": "Shipment deleted successfully",
+      "shipmentDeleteError": "Failed to delete shipment",
+      "warehouseUpdateSuccess": "Warehouse updated successfully",
+      "warehouseCreateSuccess": "Warehouse created successfully",
+      "warehouseSaveError": "Failed to save warehouse",
+      "warehouseDeleteSuccess": "Warehouse deleted successfully",
+      "warehouseDeleteError": "Failed to delete warehouse"
+    },
+    "frequency": {
+      "every": "Every",
+      "hours": "hours"
+    },
+    "status": {
+      "lowStock": "Low Stock"
+    }
+  }
+}

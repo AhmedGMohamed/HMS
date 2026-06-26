@@ -1,0 +1,30 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "patients": "Patients",
+    "services": "Services",
+    "pharmacy": "Pharmacy",
+    "drugs": "Drugs",
+    "supplies": "Medical Supplies",
+    "medicalSupplies": "Medical Supplies",
+    "employees": "Employees",
+    "doctors": "Doctors",
+    "nurses": "Nurses",
+    "clocking": "Clock In/Out",
+    "insurance": "Insurance Companies",
+    "vault": "Vault",
+    "priceLists": "Price Lists",
+    "admin": "Administration",
+    "users": "Users",
+    "roles": "Roles & Permissions",
+    "settings": "Settings",
+    "logout": "Logout",
+    "profile": "Profile",
+    "userManagement": "User Management",
+    "management": "Management",
+    "reports": "Reports",
+    "brand": "HealthCore+",
+    "toggleSidebar": "Toggle sidebar",
+    "openUserMenu": "Open user menu"
+  }
+}

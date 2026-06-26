@@ -1,0 +1,57 @@
+{
+  "roles": {
+    "pageTitle": "HMS - Role Management",
+    "title": "Role Management",
+    "createNewRole": "Create New Role",
+    "editRole": "Edit Role",
+    "fields": {
+      "roleName": "Role Name",
+      "permissions": "Permissions"
+    },
+    "validation": {
+      "roleNameLength": "Role name must be between 3 and 50 characters"
+    },
+    "permissions": {
+      "view_dashboard": "View Dashboard",
+      "manage_patients": "Manage Patients",
+      "view_patients": "View Patients",
+      "manage_services": "Manage Services",
+      "manage_billing": "Manage Billing",
+      "manage_pharmacy": "Manage Pharmacy",
+      "manage_shipments": "Manage Shipments",
+      "manage_insurance": "Manage Insurance",
+      "manage_employees": "Manage Employees",
+      "view_vault": "View Vault",
+      "manage_vault": "Manage Vault",
+      "manage_reports": "Manage Reports",
+      "manage_settings": "Manage Settings",
+      "manage_users": "Manage Users",
+      "manage_prices": "Manage Prices",
+      "manage_payments": "Manage Payments",
+      "manage_clocking": "Manage Clocking",
+      "view_reports": "View Reports",
+      "view_only": "View Only"
+    },
+    "permissionsHelp": "Select the permissions for this role. Users assigned this role will have access to these features.",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "permissionsLabel": "Permissions",
+    "noPermissions": "No permissions assigned",
+    "messages": {
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmText": "This action cannot be undone!",
+      "deleteSuccess": "Role has been deleted",
+      "createSuccess": "Role successfully created",
+      "updateSuccess": "Role successfully updated",
+      "loadError": "Failed to load roles",
+      "saveError": "Failed to save role",
+      "deleteError": "Failed to delete role",
+      "cannotDeleteAdmin": "Admin role cannot be deleted"
+    },
+    "buttons": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "saving": "Saving..."
+    }
+  }
+}

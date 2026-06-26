@@ -7,6 +7,7 @@
 	"author": "Ahmed G. Mohamed",
 	"scripts": {
 		"test": "jasmine",
+		"test:renderer": "vitest run --config src/renderer/vitest.config.ts",
 		"dev:e": "electron .",
 		"dev:te": "npm run build & electron .",
 		"dev:server": "nodemon src/app/index.ts",
@@ -102,11 +103,13 @@
 		"jasmine-es6-promise-matchers": "^2.1.2",
 		"jasmine-spec-reporter": "^7.0.0",
 		"jasmine-ts": "^0.4.0",
+		"jsdom": "^25.0.0",
 		"nodemon": "^3.1.9",
 		"prettier": "^3.8.4",
 		"prettier-plugin-tailwindcss": "^0.8.0",
 		"typescript": "~5.7.2",
 		"typescript-eslint": "^8.24.1",
-		"vite": "^8.0.16"
+		"vite": "^8.0.16",
+		"vitest": "^2.1.0"
 	}
 }

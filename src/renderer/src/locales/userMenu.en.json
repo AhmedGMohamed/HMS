@@ -1,0 +1,7 @@
+{
+  "userMenu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "signedInAs": "Signed in as {{role}}"
+  }
+}

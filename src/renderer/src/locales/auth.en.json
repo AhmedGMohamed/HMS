@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "rememberMe": "Remember Me",
+    "forgotPassword": "Forgot Password?",
+    "loginError": "Invalid username or password",
+    "sessionExpired": "Your session has expired. Please login again.",
+    "welcomeBack": "Welcome Back",
+    "loginToContinue": "Login to continue to Hospital Management System",
+    "logoutConfirmation": "Logout Confirmation",
+    "logoutConfirmText": "Are you sure you want to logout?",
+    "logoutSuccess": "Logged Out Successfully",
+    "logoutSuccessText": "You have been logged out of the system."
+  }
+}

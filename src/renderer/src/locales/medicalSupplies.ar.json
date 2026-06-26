@@ -1,0 +1,116 @@
+{
+  "medicalSupplies": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة المستلزمات الطبية",
+    "title": "إدارة المستلزمات الطبية",
+    "stats": {
+      "totalSupplies": "إجمالي المستلزمات",
+      "inStock": "متوفر في المخزون",
+      "lowStock": "مخزون منخفض",
+      "totalValue": "القيمة الإجمالية"
+    },
+    "buttons": {
+      "createSupply": "إضافة مستلزم جديد",
+      "manageWarehouses": "إدارة المستودعات",
+      "addWarehouse": "إضافة مستودع جديد",
+      "saveWarehouse": "حفظ المستودع",
+      "addShipment": "إضافة شحنة"
+    },
+    "searchPlaceholder": "البحث عن مستلزمات طبية...",
+    "placeholders": {
+      "selectWarehouse": "اختر المستودع",
+      "frequency": "مثال: 8 ساعات"
+    },
+    "table": {
+      "supplyName": "اسم المستلزم",
+      "manufacturer": "الشركة المصنعة",
+      "provider": "المورد",
+      "autoRenew": "تجديد تلقائي",
+      "totalStock": "إجمالي المخزون",
+      "warehouseName": "اسم المستودع",
+      "location": "الموقع",
+      "totalShipments": "إجمالي الشحنات"
+    },
+    "modals": {
+      "createSupply": "إضافة مستلزم طبي جديد",
+      "editSupply": "تعديل مستلزم طبي",
+      "addShipment": "إضافة شحنة جديدة",
+      "editShipment": "تعديل الشحنة",
+      "warehouseManagement": "إدارة المستودعات",
+      "addWarehouse": "إضافة مستودع جديد",
+      "editWarehouse": "تعديل المستودع"
+    },
+    "fields": {
+      "supplyName": "اسم المستلزم",
+      "manufacturer": "الشركة المصنعة",
+      "provider": "المورد",
+      "saleQuantity": "كمية البيع",
+      "minStockAlert": "تنبيه الحد الأدنى للمخزون",
+      "isObligatoryContinuous": "صرف مستمر إلزامي",
+      "frequency": "التكرار (ساعات)",
+      "warehouse": "المستودع",
+      "quantity": "الكمية",
+      "buyPrice": "سعر الشراء",
+      "expiryDate": "تاريخ الانتهاء",
+      "prices": "أسعار البيع",
+      "warehouseName": "اسم المستودع",
+      "location": "الموقع",
+      "expiry": "الانتهاء"
+    },
+    "sections": {
+      "additionalSettings": "إعدادات إضافية",
+      "sellingPrices": "أسعار البيع",
+      "existingWarehouses": "المستودعات الحالية"
+    },
+    "help": {
+      "minStockAlert": "تنبيه عند انخفاض المخزون عن هذا الحد",
+      "frequency": "الفترة الزمنية بين الجرعات (إذا كان مستمراً)",
+      "expiryDate": "اختياري"
+    },
+    "validation": {
+      "supplyNameLength": "يجب أن يكون اسم المستلزم 3 أحرف على الأقل",
+      "saleQuantityMin": "يجب أن تكون كمية البيع أكبر من 0",
+      "warehouseRequired": "يرجى اختيار مستودع",
+      "quantityMin": "يرجى إدخال كمية صحيحة",
+      "buyPriceRequired": "يرجى إدخال سعر شراء صحيح",
+      "warehouseNameLength": "يجب أن يكون اسم المستودع 3 أحرف على الأقل",
+      "locationLength": "يجب أن يكون الموقع 5 أحرف على الأقل"
+    },
+    "confirmations": {
+      "deleteSupplyTitle": "حذف المستلزم؟",
+      "deleteSupplyText": "لا يمكن التراجع عن هذا الإجراء.",
+      "deleteShipmentTitle": "حذف الشحنة؟",
+      "deleteShipmentText": "لا يمكن التراجع عن هذا الإجراء.",
+      "deleteWarehouseTitle": "حذف المستودع؟",
+      "deleteWarehouseText": "لا يمكن التراجع عن هذا الإجراء."
+    },
+    "messages": {
+      "loadInitialDataError": "فشل تحميل البيانات الأولية",
+      "loadSuppliesError": "فشل تحميل المستلزمات الطبية",
+      "loadPriceListsError": "فشل تحميل قوائم الأسعار",
+      "loadWarehousesError": "فشل تحميل المستودعات",
+      "noShipments": "لا توجد شحنات متاحة لهذا المستلزم",
+      "deleteSuccess": "تم حذف المستلزم بنجاح",
+      "deleteError": "فشل حذف المستلزم",
+      "updateSuccess": "تم تحديث المستلزم بنجاح",
+      "createSuccess": "تم إضافة المستلزم بنجاح",
+      "saveError": "فشل حفظ المستلزم",
+      "shipmentUpdateSuccess": "تم تحديث الشحنة بنجاح",
+      "shipmentCreateSuccess": "تم إضافة الشحنة بنجاح",
+      "shipmentSaveError": "فشل حفظ الشحنة",
+      "shipmentDeleteSuccess": "تم حذف الشحنة بنجاح",
+      "shipmentDeleteError": "فشل حذف الشحنة",
+      "warehouseUpdateSuccess": "تم تحديث المستودع بنجاح",
+      "warehouseCreateSuccess": "تم إضافة المستودع بنجاح",
+      "warehouseSaveError": "فشل حفظ المستودع",
+      "warehouseDeleteSuccess": "تم حذف المستودع بنجاح",
+      "warehouseDeleteError": "فشل حذف المستودع"
+    },
+    "frequency": {
+      "every": "كل",
+      "hours": "ساعات"
+    },
+    "status": {
+      "lowStock": "مخزون منخفض"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "roles": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة الأدوار",
+    "title": "إدارة الأدوار",
+    "createNewRole": "إنشاء دور جديد",
+    "editRole": "تعديل الدور",
+    "fields": {
+      "roleName": "اسم الدور",
+      "permissions": "الصلاحيات"
+    },
+    "validation": {
+      "roleNameLength": "يجب أن يكون اسم الدور بين 3 و 50 حرفًا"
+    },
+    "permissions": {
+      "view_dashboard": "عرض لوحة القيادة",
+      "manage_patients": "إدارة المرضى",
+      "view_patients": "عرض المرضى",
+      "manage_services": "إدارة الخدمات",
+      "manage_billing": "إدارة الفواتير",
+      "manage_pharmacy": "إدارة الصيدلية",
+      "manage_shipments": "إدارة شحنات الأدوية",
+      "manage_insurance": "إدارة التأمين",
+      "manage_employees": "إدارة الموظفين",
+      "view_vault": "عرض الخزينة",
+      "manage_vault": "إدارة الخزينة",
+      "manage_reports": "إدارة التقارير",
+      "manage_settings": "إدارة الإعدادات",
+      "manage_users": "إدارة المستخدمين",
+      "manage_prices": "إدارة الأسعار",
+      "manage_payments": "إدارة المدفوعات",
+      "manage_clocking": "إدارة الحضور والانصراف",
+      "view_reports": "عرض التقارير",
+      "view_only": "عرض فقط"
+    },
+    "permissionsHelp": "اختر الصلاحيات لهذا الدور. سيتمكن المستخدمون المعينون لهذا الدور من الوصول إلى هذه الميزات.",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "permissionsLabel": "الصلاحيات",
+    "noPermissions": "لا توجد صلاحيات معينة",
+    "messages": {
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteSuccess": "تم حذف الدور",
+      "createSuccess": "تم إنشاء الدور بنجاح",
+      "updateSuccess": "تم تحديث الدور بنجاح",
+      "loadError": "فشل تحميل الأدوار",
+      "saveError": "فشل حفظ الدور",
+      "deleteError": "فشل حذف الدور",
+      "cannotDeleteAdmin": "لا يمكن حذف دور المسؤول"
+    },
+    "buttons": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "saving": "جاري الحفظ..."
+    }
+  }
+}

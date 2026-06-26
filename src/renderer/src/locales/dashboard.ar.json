@@ -1,0 +1,79 @@
+{
+  "dashboard": {
+    "title": "نظام إدارة المستشفى - لوحة القيادة",
+    "welcome": "مرحباً بعودتك، {{name}}",
+    "subtitle": "إليك ما يحدث اليوم",
+    "overview": "نظرة عامة",
+    "statistics": "الإحصائيات",
+    "quickActions": "الإجراءات السريعة",
+    "recentActivity": "النشاط الأخير",
+    "metrics": {
+      "totalPatients": "إجمالي المرضى",
+      "activePatients": "المرضى النشطين",
+      "admittedPatients": "المرضى المحجوزين",
+      "quickCheckPatients": "مرضى الكشف السريع",
+      "totalRevenue": "إجمالي الإيرادات",
+      "todayRevenue": "إيرادات اليوم",
+      "pendingPayments": "المدفوعات المعلقة",
+      "insuranceClaims": "مطالبات التأمين",
+      "totalEmployees": "إجمالي الموظفين",
+      "doctorsOnDuty": "الأطباء المناوبون",
+      "nursesOnDuty": "الممرضات المناوبات",
+      "pendingServices": "الخدمات المعلقة",
+      "lowStockAlerts": "عناصر المخزون المنخفض",
+      "expiringDrugs": "الأدوية المقتربة من انتهاء الصلاحية",
+      "todayProfit": "ربح اليوم"
+    },
+    "charts": {
+      "revenueOverTime": "نظرة عامة على الإيرادات والأرباح (آخر 30 يومًا)",
+      "distribution": "توزيع الإيرادات",
+      "revenue": "الإيرادات",
+      "profit": "الأرباح",
+      "patientServices": "خدمات المرضى",
+      "pharmacySales": "مبيعات الصيدلية"
+    },
+    "table": {
+      "user": "المستخدم",
+      "action": "الإجراء",
+      "details": "التفاصيل"
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "unread": "إشعارات غير مقروءة"
+    },
+    "userDashboard": {
+      "availableFeatures": "الميزات المتاحة",
+      "description": "الوصول إلى ميزات النظام المتاحة لك أدناه:",
+      "loadingFeatures": "جاري تحميل الميزات المتاحة...",
+      "noFeatures": "لا توجد ميزات إضافية متاحة",
+      "categories": {
+        "patientCare": "رعاية المرضى",
+        "employeeManagement": "إدارة الموظفين",
+        "pharmacy": "الصيدلية",
+        "administration": "الإدارة",
+        "system": "النظام",
+        "other": "أخرى"
+      }
+    },
+    "featureDescriptions": {
+      "patients": "إدارة سجلات المرضى والمعلومات الطبية",
+      "admissions": "معالجة دخول وخروج المرضى",
+      "employees": "إدارة موظفي المستشفى وسجلات الموظفين",
+      "doctors": "ملفات الأطباء وإدارة الطاقم الطبي",
+      "nurses": "إدارة طاقم التمريض والتعيينات",
+      "clocking": "تتبع الوقت وحضور الموظفين",
+      "pharmacy": "إدارة مخزون الأدوية والوصفات الطبية",
+      "inventory": "إدارة المخزون وإمدادات الأدوية",
+      "services": "خدمات المستشفى وخيارات العلاج",
+      "price_lists": "تسعير الخدمات وإدارة التأمين",
+      "vault": "نظرة عامة مالية وتتبع الإيرادات",
+      "reports": "تقارير النظام والتحليلات",
+      "users": "حسابات مستخدمي النظام والتحكم في الوصول",
+      "roles": "إدارة أدوار المستخدمين والصلاحيات",
+      "permissions": "أمان النظام وصلاحيات الوصول",
+      "insurance": "إدارة شركات التأمين والمطالبات",
+      "supplies": "إدارة المستلزمات والمعدات الطبية",
+      "onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الموظفين"
+    }
+  }
+}

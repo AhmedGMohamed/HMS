@@ -1,0 +1,71 @@
+{
+  "clocking": {
+    "pageTitle": "نظام إدارة المستشفى - تسجيل الحضور",
+    "title": "تسجيل الحضور",
+    "subtitle": "إدارة سجلات الحضور والانصراف",
+    "buttons": {
+      "newClockIn": "تسجيل حضور جديد",
+      "clockOut": "تسجيل الانصراف",
+      "confirmClockOut": "نعم، سجل الانصراف الآن",
+      "saving": "جاري الحفظ..."
+    },
+    "tabs": {
+      "active": "الحضور النشط",
+      "history": "السجل"
+    },
+    "table": {
+      "employeeName": "اسم الموظف",
+      "clockInTime": "وقت الحضور",
+      "clockOutTime": "وقت الانصراف",
+      "duration": "المدة",
+      "payDeduction": "خصم من الراتب"
+    },
+    "filters": {
+      "searchEmployee": "البحث عن موظف"
+    },
+    "placeholders": {
+      "searchEmployee": "البحث بالاسم...",
+      "selectEmployee": "اختر الموظف"
+    },
+    "modals": {
+      "newClockIn": "تسجيل حضور جديد",
+      "editClockIn": "تعديل تسجيل الحضور"
+    },
+    "fields": {
+      "employee": "الموظف",
+      "clockInTime": "وقت الحضور",
+      "clockOutTime": "وقت الانصراف",
+      "payDeduction": "خصم من الراتب"
+    },
+    "help": {
+      "optionalClockOut": "اختياري - اتركه فارغاً لتسجيل حضور نشط",
+      "payDeduction": "اختياري - أدخل أي مبلغ خصم من الراتب"
+    },
+    "duration": {
+      "hoursMinutes": "{{hours}} ساعة {{minutes}} دقيقة",
+      "minutes": "{{minutes}} دقيقة"
+    },
+    "validation": {
+      "employeeRequired": "الرجاء اختيار موظف.",
+      "clockInTimeRequired": "الرجاء إدخال وقت الحضور.",
+      "clockOutAfterClockIn": "يجب أن يكون وقت الانصراف بعد وقت الحضور."
+    },
+    "messages": {
+      "noActiveClockIns": "لا توجد سجلات حضور نشطة",
+      "noHistoryFound": "لم يتم العثور على سجل للفلاتر المحددة",
+      "loadEmployeesError": "فشل تحميل الموظفين",
+      "loadClockInsError": "فشل في تحميل سجلات الحضور",
+      "createSuccess": "تم إنشاء سجل الحضور بنجاح",
+      "updateSuccess": "تم تحديث سجل الحضور بنجاح",
+      "saveError": "فشل في حفظ سجل الحضور",
+      "clockOutConfirmTitle": "تسجيل الخروج الآن؟",
+      "clockOutConfirmText": "سيتم تسجيل خروج الموظف بالوقت الحالي.",
+      "clockOutSuccess": "تم تسجيل خروج الموظف بنجاح",
+      "clockOutError": "فشل في تسجيل الخروج",
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteSuccess": "تم حذف سجل الحضور بنجاح",
+      "deleteError": "فشل في حذف سجل الحضور"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Login to continue to Hospital Management System",
+    "username": "Username",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "hint": "Use your hospital credentials to access the system.",
+    "invalidCredentials": "Invalid username or password",
+    "rateLimited": "Too many attempts. Try again in a minute.",
+    "lockedOutTitle": "Account temporarily locked",
+    "lockedOutText": "You have exceeded the maximum number of failed attempts. Please wait a minute before trying again.",
+    "serverErrorTitle": "We couldn't sign you in",
+    "serverErrorText": "Something went wrong on our side. Please try again.",
+    "brandTitle": "Hospital Management System",
+    "brandSubtitle": "Clinical workspace"
+  }
+}

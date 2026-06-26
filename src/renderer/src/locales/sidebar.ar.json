@@ -1,0 +1,31 @@
+{
+  "sidebar": {
+    "dashboard": "لوحة القيادة",
+    "patients": "المرضى",
+    "services": "الخدمات",
+    "pharmacy": "الصيدلية",
+    "drugs": "الأدوية",
+    "supplies": "المستلزمات الطبية",
+    "medicalSupplies": "المستلزمات الطبية",
+    "employees": "الموظفون",
+    "doctors": "الأطباء",
+    "nurses": "الممرضات",
+    "clocking": "تسجيل الحضور والانصراف",
+    "insurance": "شركات التأمين",
+    "vault": "الخزينة",
+    "priceLists": "قوائم الأسعار",
+    "admin": "الإدارة",
+    "users": "المستخدمون",
+    "roles": "الأدوار والصلاحيات",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
+    "userManagement": "إدارة المستخدمين",
+    "management": "الإدارة",
+    "reports": "التقارير",
+    "unknown": "غير معروف",
+    "brand": "هيلث كور بلس",
+    "toggleSidebar": "تبديل الشريط الجانبي",
+    "openUserMenu": "فتح قائمة المستخدم"
+  }
+}
