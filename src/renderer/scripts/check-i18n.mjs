@@ -43,7 +43,6 @@ const DEFAULTS = {
   localeDir: "src/renderer/src/locales",
   locales: ["en", "ar"],
 }
-
 const ANSI = {
   reset: "\x1b[0m",
   red: "\x1b[31m",
@@ -208,16 +207,33 @@ function main() {
   }
   log(`Unique keys used in code: ${used.size}`, "bold")
 
-  // Load locales
+  // Load locales. With the per-namespace layout, each locale is split
+  // into `<namespace>.<lang>.json` files. We merge them all into one
+  // virtual tree per locale so the rest of the audit can stay naive.
   const locales = {}
   for (const loc of args.locales) {
-    const file = path.join(localeAbs, `${loc}.json`)
-    if (!fs.existsSync(file)) {
-      log(`Missing locale file: ${path.relative(repoRoot, file)}`, "red")
-      process.exit(2)
+    const nsSuffix = `.${loc}.json`
+    const nsFiles = walk(localeAbs, [".json"])
+      .filter((f) => path.basename(f).endsWith(nsSuffix))
+      .filter((f) => !path.basename(f).endsWith(`.${loc}`)) // exclude bare `en.json` (legacy)
+    if (nsFiles.length === 0) {
+      const legacy = path.join(localeAbs, `${loc}.json`)
+      if (!fs.existsSync(legacy)) {
+        log(`Missing locale file: ${path.relative(repoRoot, legacy)}`, "red")
+        process.exit(2)
+      }
+      locales[loc] = readJSON(legacy)
+    } else {
+      const merged = {}
+      for (const f of nsFiles) {
+        const nsName = path.basename(f).replace(`.${loc}.json`, "")
+        const payload = readJSON(f)
+        merged[nsName] = payload[nsName] ?? payload
+      }
+      locales[loc] = merged
+      log(`✓ Loaded ${nsFiles.length} namespace files for ${loc}`, "green")
     }
-    locales[loc] = readJSON(file)
-    log(`✓ Loaded ${loc}.json (${collectKeyPaths(locales[loc]).length} keys)`, "green")
+    log(`✓ ${loc}: ${collectKeyPaths(locales[loc]).length} keys`, "green")
   }
 
   // MISSING

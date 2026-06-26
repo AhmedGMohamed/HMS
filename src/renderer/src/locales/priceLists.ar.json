@@ -1,0 +1,86 @@
+{
+  "priceLists": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة قوائم الأسعار",
+    "title": "إدارة قوائم الأسعار",
+    "buttons": {
+      "createPriceList": "إضافة قائمة أسعار جديدة",
+      "createFirst": "إنشاء أول قائمة أسعار",
+      "makeDefault": "نعم، اجعلها افتراضية",
+      "saving": "جاري الحفظ...",
+      "addPrices": "إضافة أسعار",
+      "skipForNow": "تخطي في الوقت الحالي"
+    },
+    "modals": {
+      "createPriceList": "إضافة قائمة أسعار جديدة",
+      "editPriceList": "تعديل قائمة الأسعار",
+      "addPrices": "إضافة أسعار إلى قائمة الأسعار"
+    },
+    "fields": {
+      "priceListName": "اسم قائمة الأسعار",
+      "setAsDefault": "تعيين كقائمة افتراضية",
+      "price": "السعر",
+      "requirePrepayment": "يتطلب دفع مقدم",
+      "prepaymentType": "نوع الدفع المقدم",
+      "prepaymentAmount": "مبلغ الدفع المقدم",
+      "warehouse": "المستودع",
+      "quantity": "الكمية",
+      "expiry": "تاريخ الانتهاء"
+    },
+    "prepaymentTypes": {
+      "fixed": "مبلغ ثابت",
+      "percentage": "نسبة مئوية"
+    },
+    "tabs": {
+      "services": "الخدمات",
+      "drugs": "شحنات الأدوية",
+      "supplies": "المستلزمات الطبية"
+    },
+    "placeholders": {
+      "searchServices": "البحث عن خدمات...",
+      "searchDrugs": "البحث عن أدوية...",
+      "searchSupplies": "البحث عن مستلزمات..."
+    },
+    "serviceTypes": {
+      "once": "مرة واحدة",
+      "hourly": "كل ساعة",
+      "daily": "يومياً"
+    },
+    "status": {
+      "default": "افتراضي",
+      "hasPrice": "تم تحديد السعر"
+    },
+    "stats": {
+      "services": "الخدمات",
+      "drugs": "الأدوية",
+      "supplies": "المستلزمات الطبية"
+    },
+    "help": {
+      "defaultNote": "ملاحظة: تعيين هذه القائمة كافتراضية سيزيل الحالة الافتراضية من أي قائمة أسعار أخرى",
+      "addPricesInfo": "أضف أسعار الخدمات وشحنات الأدوية لقائمة الأسعار هذه. اترك فارغًا لتخطي العناصر"
+    },
+    "validation": {
+      "nameLength": "يجب أن يكون اسم قائمة الأسعار 3 أحرف على الأقل"
+    },
+    "messages": {
+      "noPriceLists": "لم يتم العثور على قوائم أسعار. قم بإنشاء أول قائمة أسعار للبدء.",
+      "loadError": "فشل تحميل قوائم الأسعار",
+      "createSuccess": "تم إنشاء قائمة الأسعار بنجاح",
+      "updateSuccess": "تم تحديث قائمة الأسعار بنجاح",
+      "saveError": "فشل حفظ قائمة الأسعار",
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteWithAssociationsWarning": "قائمة الأسعار هذه مرتبطة بـ {{services}} خدمة و {{drugs}} دواء. حذفها سيزيل هذه الارتباطات. لا يمكن التراجع عن هذا الإجراء!",
+      "deleteSuccess": "تم حذف قائمة الأسعار",
+      "deleteError": "فشل حذف قائمة الأسعار",
+      "changeDefaultTitle": "تغيير قائمة الأسعار الافتراضية؟",
+      "changeDefaultText": "سيؤدي هذا إلى إزالة الحالة الافتراضية من قائمة الأسعار الافتراضية الحالية.",
+      "noServices": "لم يتم العثور على خدمات",
+      "noDrugs": "لم يتم العثور على شحنات أدوية",
+      "noSupplies": "لم يتم العثور على مستلزمات طبية",
+      "pricesSaveError": "فشل حفظ الأسعار",
+      "pricesAddedSuccess": "تم إضافة {{services}} أسعار خدمات و {{drugs}} أسعار أدوية بنجاح",
+      "addPricesNow": "إضافة الأسعار الآن؟",
+      "addPricesNowText": "هل ترغب في إضافة أسعار للخدمات والأدوية إلى قائمة الأسعار هذه الآن؟"
+    }
+  }
+}

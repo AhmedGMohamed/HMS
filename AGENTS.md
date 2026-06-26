@@ -49,7 +49,8 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 - **Build uses `&`** in package.json scripts, which on Windows runs commands in parallel via PowerShell background jobs. If a build seems incomplete, run steps sequentially.
 - **Renderer is NOT a modern SPA bundler setup.** Views are plain HTML files with vanilla TS/JS in `src/app/views/js/`. Do not assume Vite/Webpack for the frontend.
 - **Asset copying:** `copyDist` copies views, assets, and CSS into `build/` with `copyfiles`. The Electron builder packages from `build/`.
-- **i18n check:** `npm run check-i18n` audits `src/app/views/locales/en.json` and `ar.json` against keys used in `views/js/**/*.ts` and `views/**/*.html`.
+- **i18n check:** `npm run check-i18n` audits (a) legacy `src/app/views/locales/{en,ar}.json` against `views/js/**/*.ts` & `views/**/*.html`, and (b) renderer's split layout under `src/renderer/src/locales/` against the React source tree.
+- **Renderer i18n split:** `src/renderer/src/locales/<ns>.<lang>.json` — one file per (namespace, locale) pair. **Baked on boot** (static-imported in `i18n.ts`): `common`, `sidebar`, `navigation`, `topbar`, `breadcrumbs`, `breadcrumb`, `userMenu`, `errors`, `auth`, `success`. **Lazy per-page:** `login`, `dashboard`, `patients`, `pharmacy`, `services`, `vault`, `reports`, `insurance`, `users`, `roles`, `employees`, `clocking`, `medicalSupplies`, `priceLists`. Pages opt in via `lazyLoadWithNamespace(callbackfn, namespace)`. The monolithic `en.json` / `ar.json` were deleted from `src/renderer/src/locales/`; the legacy Express-served copies still live under `src/app/views/locales/`.
 - **Design Style** `design.md` contains all the design principles for future iterations, with the current design principles to be replaced with the contents of that file.
 - 
 
@@ -62,4 +63,6 @@ Repository: Hospital Management System (HMS) — Electron + Express + PostgreSQL
 | `npm run dev:te` | Build then run Electron |
 | `npm run dist` | Build + package Windows MSI |
 | `npm run lint` | Run ESLint |
-| `npm run check-i18n` | Check translation keys |
+| `npm run check-i18n` | Check translation keys (legacy + renderer) |
+| `npm run check-i18n:legacy` | Check translation keys (legacy only) |
+| `npm run check-i18n:renderer` | Check translation keys (renderer only) |

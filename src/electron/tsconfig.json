@@ -26,11 +26,11 @@
 		]
 	},
 	"include": [
-		"../**/*.ts",
-		"../**/*.cts",
+		"**/*.ts",
 		"../../build/electron/views/js/bootstrap/bootstrap.bundle.min.js"
 	],
 	"exclude": [
+		"../renderer",
 		"**/sweetalert2/**"
 	]
 }

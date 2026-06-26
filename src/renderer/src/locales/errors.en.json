@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "genericError": "An error occurred. Please try again.",
+    "networkError": "Network error. Please check your connection.",
+    "validationError": "Please check the form for errors.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "We couldn't find the page you were looking for.",
+    "backToDashboard": "Back to dashboard",
+    "serverError": "Server error. Please contact support.",
+    "fieldRequired": "This field is required",
+    "invalidFormat": "Invalid format",
+    "invalidEmail": "Invalid email address",
+    "invalidPhone": "Invalid phone number",
+    "invalidDate": "Invalid date",
+    "authError": "Authentication Error",
+    "loadDashboardError": "Failed to load dashboard",
+    "loadStatisticsError": "Failed to load dashboard statistics",
+    "loadChartError": "Failed to load chart data",
+    "loadActivityError": "Failed to load recent activity",
+    "loadFeaturesError": "Failed to load available features"
+  }
+}

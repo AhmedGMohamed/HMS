@@ -11,10 +11,12 @@
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
     }
   },
   "include": [

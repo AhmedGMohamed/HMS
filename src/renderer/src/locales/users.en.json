@@ -1,0 +1,45 @@
+{
+  "users": {
+    "pageTitle": "HMS - User Management",
+    "title": "User Management",
+    "createNewUser": "Create New User",
+    "editUser": "Edit User",
+    "searchPlaceholder": "Search users...",
+    "selectRole": "Select a role",
+    "filters": {
+      "allRoles": "All Roles",
+      "allStatus": "All Status"
+    },
+    "table": {
+      "username": "Username",
+      "role": "Role",
+      "createdDate": "Created Date",
+      "status": "Status"
+    },
+    "fields": {
+      "username": "Username",
+      "password": "Password",
+      "role": "Role"
+    },
+    "validation": {
+      "usernameLength": "Username must be between 3 and 50 characters",
+      "passwordLength": "Password must be at least 8 characters long",
+      "roleRequired": "Please select a role"
+    },
+    "messages": {
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmText": "This action cannot be undone!",
+      "deleteSuccess": "User has been deleted",
+      "createSuccess": "User successfully created",
+      "updateSuccess": "User successfully updated",
+      "loadError": "Failed to load users",
+      "saveError": "Failed to save user",
+      "deleteError": "Failed to delete user"
+    },
+    "buttons": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "saving": "Saving..."
+    }
+  }
+}

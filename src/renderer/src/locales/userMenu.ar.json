@@ -1,0 +1,7 @@
+{
+  "userMenu": {
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "signedInAs": "مسجَّل الدخول كـ {{role}}"
+  }
+}

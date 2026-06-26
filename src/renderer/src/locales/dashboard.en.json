@@ -1,0 +1,78 @@
+{
+  "dashboard": {
+    "title": "HMS - Dashboard",
+    "welcome": "Welcome back, {{name}}",
+    "subtitle": "Here's what's happening today",
+    "overview": "Overview",
+    "statistics": "Statistics",
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "metrics": {
+      "totalPatients": "Total Patients",
+      "activePatients": "Active Patients",
+      "admittedPatients": "Admitted Patients",
+      "quickCheckPatients": "Quick Check Patients",
+      "totalRevenue": "Total Revenue",
+      "todayRevenue": "Today's Revenue",
+      "pendingPayments": "Pending Payments",
+      "insuranceClaims": "Insurance Claims",
+      "totalEmployees": "Total Employees",
+      "doctorsOnDuty": "Doctors On Duty",
+      "nursesOnDuty": "Nurses On Duty",
+      "pendingServices": "Pending Services",
+      "lowStockAlerts": "Low Stock Drugs",
+      "expiringDrugs": "Near Expiry Drugs",
+      "todayProfit": "Today's Profit"
+    },
+    "charts": {
+      "revenueOverTime": "Revenue & Profit Overview (Last 30 Days)",
+      "distribution": "Revenue Distribution",
+      "revenue": "Revenue",
+      "profit": "Profit",
+      "patientServices": "Patient Services",
+      "pharmacySales": "Pharmacy Sales"
+    },
+    "table": {
+      "user": "User",
+      "action": "Action",
+      "details": "Details"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "unread": "unread notifications"
+    },
+    "userDashboard": {
+      "availableFeatures": "Available Features",
+      "description": "Access your available system features below:",
+      "loadingFeatures": "Loading available features...",
+      "noFeatures": "No additional features available",
+      "categories": {
+        "patientCare": "Patient Care",
+        "employeeManagement": "Employee Management",
+        "pharmacy": "Pharmacy",
+        "administration": "Administration",
+        "system": "System",
+        "other": "Other"
+      }
+    },
+    "featureDescriptions": {
+      "patients": "Manage patient records and medical information",
+      "admissions": "Handle patient admissions and discharges",
+      "employees": "Manage hospital staff and employee records",
+      "doctors": "Doctor profiles and medical staff management",
+      "nurses": "Nursing staff management and assignments",
+      "clocking": "Employee time tracking and attendance",
+      "pharmacy": "Medication inventory and prescription management",
+      "inventory": "Stock management and drug supplies",
+      "services": "Hospital services and treatment options",
+      "price_lists": "Service pricing and insurance management",
+      "vault": "Financial overview and revenue tracking",
+      "reports": "System reports and analytics",
+      "users": "System user accounts and access control",
+      "roles": "User roles and permission management",
+      "permissions": "System security and access permissions",
+      "insurance": "Insurance company management and claims",
+      "supplies": "Medical supplies and equipment management"
+    }
+  }
+}

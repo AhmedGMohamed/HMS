@@ -8,25 +8,104 @@ import { AdminRoute } from "@/components/common/AdminRoute"
 import { RTLSync } from "@/components/common/RTLSync"
 import { DevOnly } from "@/components/common/DevOnly"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { lazyLoadWithNamespace } from "@/lib/localeLoader"
 
-const LoginPage = lazy(() => import("@/pages/Login/LoginPage"))
-const DashboardPage = lazy(() => import("@/pages/Dashboard/DashboardPage"))
-const PatientsPage = lazy(() => import("@/pages/Patients/PatientsPage"))
-const DrugsPage = lazy(() => import("@/pages/Drugs/DrugsPage"))
-const SuppliesPage = lazy(() => import("@/pages/Supplies/SuppliesPage"))
-const EmployeesPage = lazy(() => import("@/pages/Employees/EmployeesPage"))
-const DoctorsPage = lazy(() => import("@/pages/Doctors/DoctorsPage"))
-const ClockingPage = lazy(() => import("@/pages/Clocking/ClockingPage"))
-const VaultPage = lazy(() => import("@/pages/Vault/VaultPage"))
-const InsurancePage = lazy(() => import("@/pages/Insurance/InsurancePage"))
-const ReportsPage = lazy(() => import("@/pages/Reports/ReportsPage"))
-const ServicesPage = lazy(() => import("@/pages/Services/ServicesPage"))
-const PriceListsPage = lazy(() => import("@/pages/PriceLists/PriceListsPage"))
-const UsersPage = lazy(() => import("@/pages/Admin/Users/UsersPage"))
-const RolesPage = lazy(() => import("@/pages/Admin/Roles/RolesPage"))
+const LoginPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Login/LoginPage"),
+    "login"
+  )
+)
+const DashboardPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Dashboard/DashboardPage"),
+    "dashboard"
+  )
+)
+const PatientsPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Patients/PatientsPage"),
+    "patients"
+  )
+)
+const DrugsPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Drugs/DrugsPage"),
+    "pharmacy"
+  )
+)
+const SuppliesPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Supplies/SuppliesPage"),
+    "medicalSupplies"
+  )
+)
+const EmployeesPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Employees/EmployeesPage"),
+    "employees"
+  )
+)
+const DoctorsPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Doctors/DoctorsPage"),
+    "employees"
+  )
+)
+const ClockingPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Clocking/ClockingPage"),
+    "clocking"
+  )
+)
+const VaultPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Vault/VaultPage"),
+    "vault"
+  )
+)
+const InsurancePage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Insurance/InsurancePage"),
+    "insurance"
+  )
+)
+const ReportsPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Reports/ReportsPage"),
+    "reports"
+  )
+)
+const ServicesPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Services/ServicesPage"),
+    "services"
+  )
+)
+const PriceListsPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/PriceLists/PriceListsPage"),
+    "priceLists"
+  )
+)
+const UsersPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Admin/Users/UsersPage"),
+    "users"
+  )
+)
+const RolesPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Admin/Roles/RolesPage"),
+    "roles"
+  )
+)
 const NotFoundPage = lazy(() => import("@/pages/NotFound/NotFoundPage"))
 const ComponentsDemoPage = lazy(
-  () => import("@/pages/_dev/ComponentsDemo/ComponentsDemoPage")
+  lazyLoadWithNamespace(
+    () => import("@/pages/_dev/ComponentsDemo/ComponentsDemoPage"),
+    ["dashboard", "patients"]
+  )
 )
 
 /**
