@@ -119,7 +119,7 @@ export default function LoginPage() {
                 aria-label={
                   showPassword ? t("login.hidePassword") : t("login.showPassword")
                 }
-                className="absolute end-1 top-1/2 -translate-y-1/2"
+                className="absolute inset-e-1 top-1/2 -translate-y-1/2"
               >
                 {showPassword ? (
                   <EyeOffIcon aria-hidden />
