@@ -6,6 +6,7 @@
     "patientDetails": "Patient Details",
     "searchPlaceholder": "Search patient by name...",
     "noPatients": "No patients found",
+    "emptyTableSearchDesc": "Try a different search term.",
     "buttons": {
       "registerPatient": "Register New Patient",
       "pastAdmissions": "Past Admissions",
@@ -65,6 +66,9 @@
       "patient": "Patient"
     },
     "table": {
+      "id": "ID",
+      "name": "Name",
+      "nationalId":"National ID",
       "admitted": "Admitted",
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
@@ -214,6 +218,8 @@
       "noNursesAssignedToPatient": "No nurses assigned to this patient"
     },
     "help": {
+      "admitOnRegisterHint": "When checked the patient is admitted immediately after creation. You'll be asked for diagnosis, quick-check note, and attending staff.",
+      "referringDoctorOptional": "Optional — leave blank if no physician referred the patient.",
       "quickCheckInfo": "Quick check admissions don't auto-add services",
       "dischargeTimeInfo": "Leave empty to use current time",
       "editStaffAssignmentInfo": "Select or deselect staff members to update the patient's care team. Changes will take effect immediately.",

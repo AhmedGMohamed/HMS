@@ -6,6 +6,7 @@
     "patientDetails": "تفاصيل المريض",
     "searchPlaceholder": "البحث عن مريض بالاسم...",
     "noPatients": "لم يتم العثور على مرضى",
+    "emptyTableSearchDesc": "جرّب مصطلح بحث مختلف.",
     "buttons": {
       "registerPatient": "تسجيل مريض جديد",
       "pastAdmissions": "الإقامات السابقة",
@@ -65,6 +66,9 @@
       "patient": "المريض"
     },
     "table": {
+      "id": "ID",
+      "name": "الاسم",
+      "nationalId": "الرقم القومي",
       "admitted": "مُدخل",
       "quantity": "الكمية",
       "unitPrice": "سعر الوحدة",
@@ -214,6 +218,8 @@
       "noNursesAssignedToPatient": "لا يوجد ممرضون معينون لهذا المريض"
     },
     "help": {
+      "admitOnRegisterHint": "عند التفعيل، سيتم إدخال المريض فوراً بعد إنشائه. سيُطلب منك التشخيص، وملاحظة الفحص السريع، والطاقم المعالج.",
+      "referringDoctorOptional": "اختياري — اتركه فارغاً إن لم يكن هناك طبيب محيل.",
       "quickCheckInfo": "إدخالات الفحص السريع لا تضيف الخدمات تلقائياً",
       "dischargeTimeInfo": "اترك فارغاً لاستخدام الوقت الحالي",
       "editStaffAssignmentInfo": "حدد أو ألغ تحديد أعضاء الفريق الطبي لتحديث فريق رعاية المريض. ستسري التغييرات على الفور.",

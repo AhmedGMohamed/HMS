@@ -5,9 +5,9 @@
 		"!build/app/**/*"
 	],
 	"extraResources": [
-		"build/electron/preload.cjs",
-		"build/electron/views/**/*",
-		"build/electron/utils/**/*",
+		"dist-electron/electron/preload.cjs",
+		"dist-electron/electron/views/**/*",
+		"dist-electron/electron/utils/**/*",
 		"src/electron/assets/**/*",
 		"src/app/assets/**/*"
 	],

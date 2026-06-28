@@ -1,6 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 
 export interface ListDataState<T> {
@@ -80,7 +86,17 @@ export function usePaginationState(options: UseListDataOptions = {}) {
  */
 export interface PaginatedFetcher<T> {
   params: { page: number; pageSize: number; search: string }
-  fetch: () => Promise<{ data: T[]; total: number } | T[]>
+  /**
+   * Function called by the hook. Receives the latest
+   * `{ page, pageSize, search }` so the closure can pass it on
+   * to the API endpoint (typically as query-string parameters).
+   * Callers don't need to memoize the closure — the hook
+   * reads it through a ref so a fresh identity on each render is
+   * loop-safe.
+   */
+  fetch: (
+    params: { page: number; pageSize: number; search: string }
+  ) => Promise<{ data: T[]; total: number } | T[]>
 }
 
 export interface UseListDataConfig<T> extends UseListDataOptions {
@@ -102,6 +118,25 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
 
+  /**
+   * Stable ref mirroring the latest fetch closure. Inlining this
+   * pattern lets callers pass a fresh `fetch` arrow function on
+   * every render without us causing an infinite loop. The effect
+   * depends only on stable primitives; the ref is read at execution
+   * time so the latest closure (with up-to-date page/pageSize/search)
+   * is fired regardless of how often the parent re-renders.
+   *
+   * The ref update lives in `useLayoutEffect` so the write happens
+   * after render but before the browser paints, satisfying the
+   * react-hooks compat linter's "no refs in render" rule.
+   */
+  const fetchRef = useRef(fetcher.fetch)
+  useLayoutEffect(() => {
+    fetchRef.current = fetcher.fetch
+  }, [fetcher.fetch])
+
+  const { page, pageSize, debouncedSearch } = pagination
+
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
@@ -111,8 +146,8 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
-    fetcher
-      .fetch()
+    fetchRef
+      .current({ page, pageSize, search: debouncedSearch })
       .then((res) => {
         if (cancelled) return
         if (Array.isArray(res)) {
@@ -134,14 +169,7 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     return () => {
       cancelled = true
     }
-  }, [
-    enabled,
-    fetcher,
-    pagination.page,
-    pagination.pageSize,
-    pagination.debouncedSearch,
-    nonce,
-  ])
+  }, [enabled, page, pageSize, debouncedSearch, nonce])
 
   // Auto-clamp page on empty result set (avoid leaving the user stuck
   // on a page that no longer exists). Reads `pagination.setPage` via

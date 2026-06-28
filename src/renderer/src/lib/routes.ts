@@ -28,7 +28,7 @@ const ROUTES: RouteEntry[] = [
   { pattern: "/login", requirement: { mode: "public" } },
   { pattern: "/dashboard", requirement: { mode: "private" } },
 
-  { pattern: "/patients", requirement: { mode: "permission", permission: "manage_patients" } },
+  { pattern: "/patients", requirement: { mode: "permission", permission: "view_patients" } },
   { pattern: "/drugs", requirement: { mode: "permission", permission: "manage_pharmacy" } },
   { pattern: "/supplies", requirement: { mode: "permission", permission: "manage_pharmacy" } },
   { pattern: "/employees", requirement: { mode: "permission", permission: "manage_employees" } },
