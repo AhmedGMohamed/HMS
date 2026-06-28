@@ -15,7 +15,7 @@ const router = Router();
 router.get(
 	"/",
 	verifyToken,
-	checkPermission("manage_patients"),
+	checkPermission("view_patients"),
 	auditLogger,
 	(req, res) => PatientController.getAllPatients(req, res)
 );

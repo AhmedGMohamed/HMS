@@ -4,9 +4,6 @@ import {
     CreateMedicalSupplyDTO,
     UpdateMedicalSupplyDTO
 } from "../utils/types/medicalSupplies.js";
-
-import { Request, Response } from "express";
-import MedicalSupplyModel from "../models/MedicalSupply.model.js";
 import {
     parsePagination,
     buildPage

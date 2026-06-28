@@ -28,21 +28,33 @@ export class PatientModel {
 		let baseSql = `SELECT * FROM Patient`
 		const params: unknown[] = []
 		if (q) {
-			baseSql += ` WHERE name ILIKE $%1% OR national_id ILIKE %$1%`
-			params.push(q)
+			baseSql += ` WHERE name ILIKE $1 OR national_id ILIKE $1`
+			params.push(`%${q}%`)
 			params.push(limit, offset)
 		} else {
 			params.push(limit, offset)
 		}
-		baseSql += ` ORDER BY name`
-		baseSql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`
+		baseSql += ` ORDER BY`
+		if (q) {
+			baseSql += ` CASE
+                    		WHEN LOWER(name) = LOWER($1) THEN 1
+							WHEN national_id = $1 THEN 2
+                    		WHEN LOWER(name) LIKE LOWER($1) || '%' THEN 3
+                    		WHEN national_id LIKE $1 || '%' THEN 4
+                    		ELSE 5
+                		END,`
+		}
+		baseSql += ` name LIMIT $${params.length - 1} OFFSET $${params.length}`
 
 		let total: number
 		let countSql = ""
 		let countParams = []
 		if (q) {
-			countSql = `SELECT COUNT(*) AS c FROM Patient WHERE name ILIKE %$1% OR national_id ILIKE %$1%`
-			countParams.push(q)
+			countSql = `SELECT COUNT(*) AS c 
+			FROM Patient 
+			WHERE name ILIKE $1 OR national_id ILIKE $1
+			GROUP BY name, national_id`
+			countParams.push(`%${q}%`)
 		} else {
 			countSql = `SELECT COUNT(*) AS c FROM Patient`
 		}
