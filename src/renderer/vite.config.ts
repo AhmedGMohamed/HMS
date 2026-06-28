@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(__dirname, "../../build/renderer"),
+      outDir: path.resolve(__dirname, "../../dist-electron/renderer"),
       emptyOutDir: true,
     },
   }

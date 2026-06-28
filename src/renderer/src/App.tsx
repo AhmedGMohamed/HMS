@@ -8,7 +8,9 @@ import { AdminRoute } from "@/components/common/AdminRoute"
 import { RTLSync } from "@/components/common/RTLSync"
 import { DevOnly } from "@/components/common/DevOnly"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { DirectionProvider } from "@/components/ui/direction"
 import { lazyLoadWithNamespace } from "@/lib/localeLoader"
+import { useUIStore } from "@/store/uiStore"
 
 const LoginPage = lazy(
   lazyLoadWithNamespace(
@@ -25,6 +27,12 @@ const DashboardPage = lazy(
 const PatientsPage = lazy(
   lazyLoadWithNamespace(
     () => import("@/pages/Patients/PatientsPage"),
+    "patients"
+  )
+)
+const PatientDetailPage = lazy(
+  lazyLoadWithNamespace(
+    () => import("@/pages/Patients/PatientDetailPage"),
     "patients"
   )
 )
@@ -118,53 +126,68 @@ function SilentFallback() {
 }
 
 export default function App() {
+  /* Wire Radix's `<DirectionProvider>` to the same Zustand store the
+     `<RTLSync>` headless component reads for `<html dir>`. Without
+     this wrapper, `useDirection()` inside any Radix primitive
+     (Tabs, DropdownMenu, …) defaults to `"ltr"` and the primitive
+     hardcodes `dir="ltr"` on its root, which **overrides** the
+     ancestor `<html dir="rtl">` cascade for the entire subtree.
+     The Dashboard didn't expose this because it ships no Radix
+     tabs; the Patients page uses `<Tabs orientation="vertical">`
+     and so its DataTable was pinned LTR. */
+  const language = useUIStore((s) => s.language)
+  const dir = language === "ar" ? "rtl" : "ltr"
+
   return (
     <>
       <RTLSync />
       <Suspense fallback={<SilentFallback />}>
-        <TooltipProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <DirectionProvider dir={dir}>
+          <TooltipProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
-            <Route element={<PrivateRoute />}>
-              <Route element={<PermissionRoute />}>
-                <Route element={<AppShell />}>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/patients" element={<PatientsPage />} />
-                  <Route path="/drugs" element={<DrugsPage />} />
-                  <Route path="/supplies" element={<SuppliesPage />} />
-                  <Route path="/employees" element={<EmployeesPage />} />
-                  <Route path="/doctors" element={<DoctorsPage />} />
-                  <Route path="/clocking" element={<ClockingPage />} />
-                  <Route path="/vault" element={<VaultPage />} />
-                  <Route path="/insurance" element={<InsurancePage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/services" element={<ServicesPage />} />
-                  <Route path="/price-lists" element={<PriceListsPage />} />
+              <Route element={<PrivateRoute />}>
+                <Route element={<PermissionRoute />}>
+                  <Route element={<AppShell />}>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/patients" element={<PatientsPage />} />
+                    <Route path="/patients/:id" element={<PatientDetailPage />} />
+                    <Route path="/drugs" element={<DrugsPage />} />
+                    <Route path="/supplies" element={<SuppliesPage />} />
+                    <Route path="/employees" element={<EmployeesPage />} />
+                    <Route path="/doctors" element={<DoctorsPage />} />
+                    <Route path="/clocking" element={<ClockingPage />} />
+                    <Route path="/vault" element={<VaultPage />} />
+                    <Route path="/insurance" element={<InsurancePage />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/services" element={<ServicesPage />} />
+                    <Route path="/price-lists" element={<PriceListsPage />} />
 
-                  <Route element={<AdminRoute />}>
-                    <Route path="/admin/users" element={<UsersPage />} />
-                    <Route path="/admin/roles" element={<RolesPage />} />
+                    <Route element={<AdminRoute />}>
+                      <Route path="/admin/users" element={<UsersPage />} />
+                      <Route path="/admin/roles" element={<RolesPage />} />
+                    </Route>
                   </Route>
                 </Route>
               </Route>
-            </Route>
 
-            <Route path="*" element={<NotFoundPage />} />
+              <Route path="*" element={<NotFoundPage />} />
 
-            {/* Phase-4 component demo. Visible only in dev builds; production
+              {/* Phase-4 component demo. Visible only in dev builds; production
               redirects to /dashboard (handled inside DevOnly). */}
-            <Route
-              path="/__dev/components"
-              element={
-                <DevOnly>
-                  <ComponentsDemoPage />
-                </DevOnly>
-              }
-            />
-          </Routes>
-        </TooltipProvider>
+              <Route
+                path="/__dev/components"
+                element={
+                  <DevOnly>
+                    <ComponentsDemoPage />
+                  </DevOnly>
+                }
+              />
+            </Routes>
+          </TooltipProvider>
+        </DirectionProvider>
       </Suspense>
     </>
   )

@@ -13,9 +13,10 @@
 		"dev:server": "nodemon src/app/index.ts",
 		"dev:renderer": "vite --config src/renderer/vite.config.ts",
 		"build:renderer": "vite build --config src/renderer/vite.config.ts",
-		"build": "npm run build:renderer && tsc --project ./src/electron/tsconfig.json & npm run copyDist",
+		"build:app": "tsc --project ./src/electron/tsconfig.json && tsc --project ./src/app/tsconfig.json",
+		"build": "npm run build:renderer && npm run build:app & npm run copyDist",
 		"build:t": "npm run build & npm test",
-		"copyDist": "copyfiles -u 3 ./src/electron/assets/**/* ./build/electron/assets && copyfiles -u 3 ./src/electron/views/**/*.html ./build/electron/views && copyfiles -u 3 ./src/electron/views/**/*.css ./build/electron/views && copyfiles -e \"./**/*.ts\" -u 3 ./src/app/views/**/* ./build/app/views && copyfiles -u 3 ./src/app/assets/**/* ./build/app/assets",
+		"copyDist": "copyfiles -u 3 ./src/electron/assets/**/* ./dist-electron/electron/assets && copyfiles -u 3 ./src/electron/views/**/*.html ./dist-electron/electron/views && copyfiles -u 3 ./src/electron/views/**/*.css ./dist-electron/electron/views && copyfiles -e \"./**/*.ts\" -u 3 ./src/app/views/**/* ./dist-electron/app/views && copyfiles -u 3 ./src/app/assets/**/* ./dist-electron/app/assets",
 		"lint": "eslint .",
 		"format": "prettier --write \"**/*.{ts,tsx}\"",
 		"typecheck": "tsc --noEmit",
@@ -84,7 +85,7 @@
 		"@types/jasmine-es6-promise-matchers": "^0.0.36",
 		"@types/jsonwebtoken": "^9.0.9",
 		"@types/node": "^26.0.0",
-		"@types/pdfmake": "^0.2.11",
+		"@types/pdfmake": "^0.2.13",
 		"@types/pg": "^8.11.11",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
@@ -110,6 +111,6 @@
 		"typescript": "~5.7.2",
 		"typescript-eslint": "^8.24.1",
 		"vite": "^8.0.16",
-		"vitest": "^2.1.0"
+		"vitest": "^4.1.9"
 	}
 }

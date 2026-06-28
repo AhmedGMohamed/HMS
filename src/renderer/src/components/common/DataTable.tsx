@@ -268,10 +268,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                           : t("common.noData"))
                       }
                       description={
-                        emptyDescription ??
-                        (search?.value
-                          ? "Try a different search term."
-                          : "Data will appear here once it's loaded.")
+                        emptyDescription ?? t("patients.emptyTableSearchDesc")
                       }
                       action={emptyAction}
                     />
@@ -375,7 +372,7 @@ function DataTableSkeleton({ columns, density }: DataTableSkeletonProps) {
       {Array.from({ length: columns }, (_, j) => (
         <TableCell
           key={j}
-          className={cn(`${rowHeight} p-2 align-middle`, j === 0 && "w-1/4")}
+          className={`${rowHeight} p-2 align-middle`}
         >
           <Skeleton className="h-4 w-full" />
         </TableCell>
