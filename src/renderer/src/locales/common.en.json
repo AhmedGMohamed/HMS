@@ -56,6 +56,11 @@
     "discharged": "Discharged",
     "default": "Default",
     "baseTotal": "Gross Total",
-    "finalTotal": "Grand Total"
+    "finalTotal": "Grand Total",
+    "logo": {
+      "health": "Health",
+      "core": "Core",
+      "plus": "+"
+    }
   }
 }
