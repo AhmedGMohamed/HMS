@@ -89,16 +89,16 @@ export function HmsWordmark({
       {...rest}
     >
       <span aria-hidden className="text-primary">
-        Health
+        {t("common.logo.health")}
       </span>
       <span aria-hidden className="text-secondary font-light">
-        Core
+        {t("common.logo.core")}
       </span>
       <sup
         aria-hidden
         className="align-super font-bold leading-none text-secondary font-"
       >
-        +
+        {t("common.logo.plus")}
       </sup>
     </span>
   )

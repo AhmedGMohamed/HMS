@@ -56,6 +56,11 @@
     "discharged": "تم الخروج",
     "default": "افتراضي",
     "baseTotal": "الإجمالي",
-    "finalTotal": "الإجمالي الكلي"
+    "finalTotal": "الإجمالي الكلي",
+    "logo": {
+      "health": "هيلث",
+      "core": "كور",
+      "plus": "+"
+    }
   }
 }
