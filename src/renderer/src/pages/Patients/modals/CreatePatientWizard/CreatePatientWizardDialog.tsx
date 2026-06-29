@@ -98,7 +98,7 @@ export function CreatePatientWizardDialog({
         insuranceId: null,
         insuranceCardId: "",
         insuranceFormId: "",
-        pricingListId: null,
+        pricelistId: null,
       },
       admission: {
         admitOnSave: false,
@@ -274,14 +274,12 @@ export function CreatePatientWizardDialog({
           values.payment.paymentType === "insurance"
             ? values.payment.insuranceFormId ?? null
             : null,
-        guardianName:
-          values.guardian.guardianName?.trim() || null,
-        guardianPhone:
-          values.guardian.guardianPhone?.trim() || null,
-        guardianNationalId:
-          values.guardian.guardianNationalId?.trim() || null,
-        guardianAddress:
-          values.guardian.guardianAddress?.trim() || null,
+        guardianInfo: {
+          name: values.guardian.guardianName?.trim() || null,
+          phone: values.guardian.guardianPhone?.trim() || null,
+          nationalId: values.guardian.guardianNationalId?.trim() || null,
+          address: values.guardian.guardianAddress?.trim() || null,
+        },
         referringDoctorId:
           values.medical.referringDoctorId ?? null,
         admitPatient: values.admission.admitOnSave,
@@ -289,7 +287,7 @@ export function CreatePatientWizardDialog({
         attendingNurseIds: values.admission.attendingNurseIds,
         diagnosis: values.admission.diagnosis || null,
         isActive: false,
-        pricingListId: values.payment.pricingListId ?? null,
+        pricelistId: values.payment.pricelistId ?? null,
         quickCheck: values.admission.quickCheck || null,
       })
       toast.success(t("patients.messages.patientCreated"))

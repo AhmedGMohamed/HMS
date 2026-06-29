@@ -60,7 +60,12 @@ export interface Patient {
   phone: string | null;
   address: string | null;
   paymentType: PaymentType;
-  /** Always present on `/api/patients` (controller joins the company) */
+  /**
+   * Flattened insurance columns populated by the controller's
+   * `LEFT JOIN InsuranceCompany`. `insuranceCompanyName` is duplicated
+   * on its own for the legacy list endpoint; `insurance` carries the
+   * structured per-patient fields.
+   */
   insurance: PatientInsurance;
   insuranceCompanyName: string | null;
   guardianName: string | null;
@@ -69,11 +74,11 @@ export interface Patient {
   guardianAddress: string | null;
   referringDoctorId: number | null;
   referringDoctorName: string | null;
-  pricingListId: number | null;
+  pricelistId: number | null;
   /**
    * Server keeps `is_active` as the admission lens. The legacy code
    * mixes `is_active = "currently admitted"` with `registration_date`,
-   * so the front-end renders one `admission status` from this flag.
+   * so the front-end renders one "admission status" from this flag.
    */
   isActive: boolean;
   registrationDate: string;
