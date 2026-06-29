@@ -104,7 +104,7 @@ export const wizardPaymentSchema = z
     insuranceId: z.number().int().positive().nullable().optional(),
     insuranceCardId: z.string().trim().optional(),
     insuranceFormId: z.string().trim().optional(),
-    pricingListId: z.number().int().positive().nullable().optional(),
+    pricelistId: z.number().int().positive().nullable().optional(),
   })
   .superRefine((v, ctx) => {
     if (v.paymentType === "insurance") {
@@ -190,7 +190,7 @@ export const wizardSchema = z
     insuranceId: wizardPaymentSchema.shape.insuranceId,
     insuranceCardId: wizardPaymentSchema.shape.insuranceCardId,
     insuranceFormId: wizardPaymentSchema.shape.insuranceFormId,
-    pricingListId: wizardPaymentSchema.shape.pricingListId,
+    pricelistId: wizardPaymentSchema.shape.pricelistId,
 
     admitOnSave: wizardAdmissionSchema.shape.admitOnSave,
     diagnosis: wizardAdmissionSchema.shape.diagnosis,

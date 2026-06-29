@@ -188,7 +188,7 @@ export function PatientWizardPaymentStep() {
         ) : (
           <NativeSelect
             id="patient-payment-pricelist"
-            {...form.register("payment.pricingListId", {
+            {...form.register("payment.pricelistId", {
               setValueAs: (v) =>
                 v === "" || v == null ? null : Number(v),
             })}
