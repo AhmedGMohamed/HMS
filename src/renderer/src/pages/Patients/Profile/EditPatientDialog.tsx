@@ -36,7 +36,7 @@ import {
 import type {
   InsuranceCompany,
   Patient,
-  PriceList,
+  Pricelist,
   Gender
 } from "@/pages/Patients/types/patient"
 import { ApiError } from "@/lib/errors"
@@ -97,7 +97,7 @@ export function EditPatientDialog({
      afterwards. Mirrors the wizard's payment-step loader so we don't
      need a server-roundtrip per field edit. */
   const [insuranceList, setInsuranceList] = useState<InsuranceCompany[]>([])
-  const [priceLists, setPriceLists] = useState<PriceList[]>([])
+  const [pricelists, setPriceLists] = useState<Pricelist[]>([])
   const [loadingLookups, setLoadingLookups] = useState(false)
 
   useEffect(() => {
@@ -412,10 +412,10 @@ export function EditPatientDialog({
               <NativeSelectOption value="">
                 {t("patients.fields.default")}
               </NativeSelectOption>
-              {priceLists.map((pl) => (
+              {pricelists.map((pl) => (
                 <NativeSelectOption
-                  key={pl.priceListId}
-                  value={pl.priceListId}
+                  key={pl.pricelistId}
+                  value={pl.pricelistId}
                 >
                   {pl.name}
                 </NativeSelectOption>
@@ -465,10 +465,10 @@ function patientToFormDefaults(patient: Patient): EditPatientValues {
     nationalId: patient.nationalId ?? "",
     phone: patient.phone ?? "",
     address: patient.address ?? "",
-    guardianName: patient.guardianInfo.name ?? "",
-    guardianPhone: patient.guardianInfo.phone ?? "",
-    guardianNationalId: patient.guardianInfo.nationalId ?? "",
-    guardianAddress: patient.guardianInfo.address ?? "",
+    guardianName: patient.guardianInfo?.name ?? "",
+    guardianPhone: patient.guardianInfo?.phone ?? "",
+    guardianNationalId: patient.guardianInfo?.nationalId ?? "",
+    guardianAddress: patient.guardianInfo?.address ?? "",
     paymentType: patient.paymentType ?? "cash",
     insuranceId: patient.insurance?.insuranceId ?? null,
     insuranceCardId: patient.insurance?.insuranceCardId ?? "",

@@ -17,7 +17,7 @@ import type {
   Patient,
   PatientAssignment,
   PatientHistory,
-  PriceList,
+  Pricelist,
   Service,
   ServicePrice,
 } from "@/pages/Patients/types/patient"
@@ -217,11 +217,11 @@ export function listInsuranceCompanies() {
 }
 
 export function listPriceLists() {
-  return api.get<PriceList[]>("/price-lists")
+  return api.get<Pricelist[]>("/price-lists")
 }
 
 export function getDefaultPriceList() {
-  return api.get<PriceList>("/price-lists/default")
+  return api.get<Pricelist>("/price-lists/default")
 }
 
 export function listPriceListServices(priceListId: number) {

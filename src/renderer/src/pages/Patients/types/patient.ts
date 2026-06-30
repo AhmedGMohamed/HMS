@@ -48,8 +48,8 @@ export interface PatientInsurance {
   insuranceCardId: string | null;
   insuranceFormId: string | null;
   /** Default price list used when insurance is the payment method. */
-  priceListId: number | null;
-  priceListName: string | null;
+  pricelistId: number | null;
+  pricelistName: string | null;
 }
 
 export interface PatientGuardian {
@@ -83,15 +83,9 @@ export interface Patient {
    * flat accessors.
    */
   guardianInfo: PatientGuardian;
-  /**
-   * @deprecated Flat sibling fields kept for transitional parity with
-   * the wizard's current 4-step shape (T3 leftover). Future phase
-   * unifies everything under `Patient.guardian`. Both shapes mirror
-   * the same row until the wizard contract is migrated.
-   */
   referringDoctorId: number | null;
   referringDoctorName: string | null;
-  pricelistId: number | null;
+  pricelistId: number;
   /**
    * Server keeps `is_active` as the admission lens. The legacy code
    * mixes `is_active = "currently admitted"` with `registration_date`,
@@ -116,7 +110,7 @@ export interface PatientHistory {
   quickCheck: string | null;
   diagnosis: string | null;
   pricelistId: number | null;
-  priceListName: string | null;
+  pricelistName: string | null;
   attendingDoctorIds: number[];
   attendingNurseIds: number[];
   /** Joined names — only on enriched views (`/{id}/admissions/:hId/details`). */
@@ -287,18 +281,18 @@ export interface InsuranceCompany {
   name: string;
   contactInfo: string | null;
   pricelistId: number;
-  priceListName: string;
+  pricelistName: string;
 }
 
-export interface PriceList {
-  priceListId: number;
+export interface Pricelist {
+  pricelistId: number;
   name: string;
   isDefault: boolean;
 }
 
 export interface ServicePrice {
   serviceId: number;
-  priceListId: number;
+  pricelistId: number;
   price: number;
 }
 
