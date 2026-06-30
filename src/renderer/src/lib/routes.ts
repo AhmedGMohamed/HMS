@@ -7,12 +7,17 @@
  * route here, you also need to add it on the server (or rely on the
  * server's 401/403 to surface).
  *
- * Routes marked `private: true` are reachable by any authenticated user.
- * `adminOnly: true` restricts to the Admin role. `permission` further
- * narrows access. Multiple matches (root paths) are fine — first match
- * wins.
+ * Routes marked `mode: "private"` are reachable by any authenticated
+ * user. `mode: "permission"` further narrows access.
+ *
+ * Matching order:
+ *   1. Exact match (e.g. `/patients` resolves the literal row).
+ *   2. Longest prefix match where `path === pattern` OR
+ *      `path.startsWith(pattern + "/")`. This covers parametric
+ *      sub-routes (e.g. `/patients/123` matches `/patients`) without
+ *      forcing a row per dynamic segment.
+ *   3. Default: `{ mode: "private" }`.
  */
-
 type RouteRequirement =
   | { mode: "public" }
   | { mode: "private" }
@@ -45,8 +50,19 @@ const ROUTES: RouteEntry[] = [
 ]
 
 export function findRouteRequirement(path: string): RouteRequirement {
-  const match = ROUTES.find((r) => r.pattern === path)
-  return match?.requirement ?? { mode: "private" }
+  /* 1. Exact match wins. */
+  const exact = ROUTES.find((r) => r.pattern === path)
+  if (exact) return exact.requirement
+
+  /* 2. Longest prefix match. We avoid `/patients` matching `/patientsx`
+     by requiring either equality OR a trailing slash separator after
+     the registered pattern. */
+  const prefixes = ROUTES.filter(
+    (r) => path === r.pattern || path.startsWith(r.pattern + "/")
+  )
+  if (prefixes.length === 0) return { mode: "private" }
+  const best = prefixes.sort((a, b) => b.pattern.length - a.pattern.length)[0]
+  return best.requirement
 }
 
 export type { RouteRequirement }

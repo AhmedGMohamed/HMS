@@ -263,6 +263,13 @@ function parseLegacyList<T>(res: T[] | PageEnvelope<T>): T[] {
    Payload types
    ---------------------------------------------------------------- */
 
+export interface GuardianPayload {
+  name?: string | null
+  phone?: string | null
+  nationalId?: string | null
+  address?: string | null
+}
+
 export interface CreatePatientPayload {
   name: string
   nationalId?: string | null
@@ -273,17 +280,20 @@ export interface CreatePatientPayload {
   insuranceId?: number | null
   insuranceCardId?: string | null
   insuranceFormId?: string | null
-  guardianName?: string | null
-  guardianPhone?: string | null
-  guardianNationalId?: string | null
-  guardianAddress?: string | null
+  /**
+   * Guardian fields compiled into the JSONB column
+   * `Patient.guardian_info`. Server writes via `JSON.stringify(...)`
+   * inside `Patient.model.updatePatient`. After `toSnake`, this key
+   * becomes `guardian_info` server-side — matching the column name.
+   */
+  guardianInfo?: GuardianPayload | null
   referringDoctorId?: number | null
   admitPatient: boolean
   attendingDoctorIds: number[]
   attendingNurseIds: number[]
   diagnosis?: string | null
   isActive?: boolean
-  pricingListId?: number | null
+  pricelistId?: number | null
   quickCheck?: boolean | null
 }
 
@@ -297,7 +307,7 @@ export interface AdmitPatientPayload {
   quickCheck?: string | null
   attendingDoctorIds: number[]
   attendingNurseIds: number[]
-  pricingListId?: number | null
+  pricelistId?: number | null
 }
 
 export interface DischargePatientPayload {

@@ -248,6 +248,82 @@ export type WizardAdmissionValues = z.infer<typeof wizardAdmissionSchema>
 export type WizardMedicalValues = z.infer<typeof wizardMedicalSchema>
 export type WizardValues = z.infer<typeof wizardSchema>
 
+/**
+ * Edit Patient dialog schema (T4).
+ *
+ * Slices the master `wizardSchema` down to fields a non-admission
+ * patient edit supports. Diagnosis / quickCheck / attending staff
+ * live on the admission record and are intentionally excluded —
+ * those land in their own dialogs in T7/T9 alongside their own
+ * flow control.
+ *
+ * Gender accepts the empty string in form state so the dialog can
+ * prefill a row whose stored value pre-dates the enum (sentinel: the
+ * patient has `gender: ""` rather than null because the server's
+ * legacy type never normalized). A `superRefine` enforces the real
+ * enum at submit time so we never post a blank gender to the server.
+ *
+ * Insurance fields stay optional unless `paymentType === "insurance"`,
+ * matching the wizard's insurance-rule toggle.
+ */
+export const editPatientSchema = z
+  .object({
+    name: wizardBasicSchema.shape.name,
+    gender: z.union([
+      z.literal("male"),
+      z.literal("female"),
+      z.literal("other"),
+      z.literal(""),
+    ]),
+    nationalId: wizardBasicSchema.shape.nationalId,
+    phone: wizardBasicSchema.shape.phone,
+    address: wizardBasicSchema.shape.address,
+
+    guardianName: wizardGuardianSchema.shape.guardianName,
+    guardianPhone: wizardGuardianSchema.shape.guardianPhone,
+    guardianNationalId: wizardGuardianSchema.shape.guardianNationalId,
+    guardianAddress: wizardGuardianSchema.shape.guardianAddress,
+
+    paymentType: wizardPaymentSchema.shape.paymentType,
+    insuranceId: wizardPaymentSchema.shape.insuranceId,
+    insuranceCardId: wizardPaymentSchema.shape.insuranceCardId,
+    insuranceFormId: wizardPaymentSchema.shape.insuranceFormId,
+    pricelistId: wizardPaymentSchema.shape.pricelistId,
+  })
+  .superRefine((value, ctx) => {
+    if (value.gender === "") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["gender"],
+        message: VALIDATION_KEYS.gender,
+      })
+    }
+    if (value.paymentType !== "insurance") return
+    if (!value.insuranceId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["insuranceId"],
+        message: VALIDATION_KEYS.insuranceCompany,
+      })
+    }
+    if (!value.insuranceCardId || value.insuranceCardId.trim().length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["insuranceCardId"],
+        message: VALIDATION_KEYS.insuranceCompany,
+      })
+    }
+    if (!value.insuranceFormId || value.insuranceFormId.trim().length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["insuranceFormId"],
+        message: VALIDATION_KEYS.insuranceCompany,
+      })
+    }
+  })
+
+export type EditPatientValues = z.infer<typeof editPatientSchema>
+
 /** Per-step schemas in wizard-render order. */
 export const wizardStepSchemas = [
   wizardBasicSchema,
