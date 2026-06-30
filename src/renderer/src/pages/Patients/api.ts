@@ -85,7 +85,7 @@ export function dischargePatient(id: number, payload: DischargePatientPayload) {
 }
 
 export function getCurrentAdmission(id: number) {
-  return api.get<PatientHistory | null>(`/patients/${id}/admission/current`)
+  return api.get<PatientHistory | null>(`/patients/${id}/admissions/current`)
 }
 
 export function listPastAdmissions(id: number) {
@@ -204,16 +204,16 @@ export function listAvailableNurses() {
   return api.get<Nurse[]>(`/employees/nurses/available`)
 }
 
-export function listInsuranceCompanies() {
+export async function listInsuranceCompanies() {
   /**
    * The Patient.controller endpoints + Insurance.controller are
    * different. Insurance page exposes a paginated envelope; the
    * patient page's `loadInsuranceCompanies` reads `result.data`
    * (legacy `result.data || []` pattern). We accept either shape.
    */
-  return api
+  const res = await api
     .get<InsuranceCompany[] | PageEnvelope<InsuranceCompany>>(`/insurance-companies`)
-    .then((res) => parseLegacyList<InsuranceCompany>(res))
+  return parseLegacyList<InsuranceCompany>(res)
 }
 
 export function listPriceLists() {

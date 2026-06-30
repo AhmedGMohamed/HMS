@@ -57,16 +57,6 @@ router.get(
 	(req, res) => PatientController.getCurrentAdmissionsWithStaff(req, res)
 );
 
-// Get specific patient by ID
-router.get(
-	"/:id",
-	verifyToken,
-	checkPermission("view_patients"),
-	validateId,
-	auditLogger,
-	(req, res) => PatientController.getPatientById(req, res)
-);
-
 // Get patient history
 router.get(
 	"/:id/history",
@@ -89,7 +79,7 @@ router.get(
 
 // Get current admission
 router.get(
-	"/:id/admission/current",
+	"/:id/admissions/current",
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
@@ -106,6 +96,16 @@ router.get(
 	validateHistoryId,
 	auditLogger,
 	(req, res) => PatientController.getAdmissionDetails(req, res)
+);
+
+// Get specific patient by ID
+router.get(
+	"/:id",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientById(req, res)
 );
 
 // Create new patient

@@ -54,7 +54,7 @@ export class PatientController {
 				= await PatientModel.getPatientById(patientId);
 
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
@@ -164,15 +164,14 @@ export class PatientController {
 			const updatedPatient = await PatientModel.updatePatient(updateData);
 
 			if (!updatedPatient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
 			res.status(200).json(updatedPatient);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (
+			if (
+				error.message === "Patient not found" ||
 				error.message === "Doctor not found" ||
 				error.message === "Insurance company not found" ||
 				error.message ===
@@ -222,18 +221,13 @@ export class PatientController {
 			);
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is already admitted") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (
+			if (error.message === "Patient not found" ||
 				error.message ===
-				"Pricelist on admission does not match insurance pricelist"
+				"Pricelist on admission does not match insurance pricelist" ||
+				error.message === "Patient is already admitted" ||
+				error.message === "Doctor not found" ||
+				error.message === "No services to auto-add"
 			) {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "No services to auto-add") {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error admitting patient:", error);
@@ -261,9 +255,10 @@ export class PatientController {
 			const result = await PatientModel.dischargePatient(dischargeData);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Patient is not currently admitted"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error discharging patient:", error);
@@ -290,7 +285,7 @@ export class PatientController {
 			// Validate patient exists
 			const patient = await PatientModel.getPatientById(patientId);
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
@@ -312,7 +307,7 @@ export class PatientController {
 			// Validate patient exists
 			const patient = await PatientModel.getPatientById(patientId);
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
@@ -322,7 +317,7 @@ export class PatientController {
 			);
 
 			if (!admissionDetails) {
-				res.status(404).json({ error: "Admission not found" });
+				res.status(400).json({ error: "Admission not found" });
 				return;
 			}
 
@@ -341,7 +336,7 @@ export class PatientController {
 			const admission = await PatientModel.getCurrentAdmission(patientId);
 
 			if (!admission) {
-				res.status(404).json({ error: "No current admission found" });
+				res.status(400).json({ error: "No current admission found" });
 				return;
 			}
 
@@ -386,9 +381,10 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Patient is not currently admitted"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating diagnosis:", error);
@@ -422,12 +418,14 @@ export class PatientController {
 
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Service not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Service not found") {
-				res.status(400).json({ error: error.message });
+			} else if (
+				error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message })
 			} else {
 				console.error("Error adding service to patient:", error);
 				res.status(500).json({
@@ -449,10 +447,11 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Active service not found") {
-				res.status(404).json({ error: error.message });
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Active service not found"
+			) {
+				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error stopping service for patient:", error);
 				res.status(500).json({
@@ -474,12 +473,13 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Active service not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Active service not found") {
-				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message });
 			} else {
 				console.error("Error removing service from patient:", error);
 				res.status(500).json({
@@ -501,12 +501,13 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Drug usage not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Drug usage not found") {
-				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message });
 			} else {
 				console.error("Error removing drug from patient:", error);
 				res.status(500).json({
