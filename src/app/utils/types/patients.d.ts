@@ -10,6 +10,7 @@ export interface Patient {
 	insurance_id: number | null;
 	insurance_card_id: string | null;
 	insurance_form_id: string | null;
+	pricelist_id: number;
 	guardian_info: {
 		name: string;
 		phone: string;
@@ -108,6 +109,7 @@ export interface UpdatePatientDTO {
 		add?: number[]; // Nurses to add
 		remove?: number[]; // Nurses to remove
 	};
+	pricelist_id?: number;
 }
 
 export interface AdmitPatientDTO {
@@ -178,6 +180,7 @@ export interface InsuranceCompany {
 	insurance_id: number;
 	name: string;
 	contact_info: string | null;
+	patient_count: number;
 	pricelist_id: number | null;
 	last_cleared_date: Date;
 }

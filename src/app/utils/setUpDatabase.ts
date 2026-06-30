@@ -40,6 +40,14 @@ async function initDB() {
 		CREATE TYPE shift_type AS ENUM ('morning', 'night');
 		CREATE TYPE vat_scope_type AS ENUM ('services', 'drugs', 'both');
 		CREATE TYPE vault_manual_payment_type AS ENUM ('addition', 'deduction');
+		-- Function Used for patient default pricelise_id on creation
+		CREATE OR REPLACE FUNCTION get_default_pricelist_id() 
+		RETURNS INTEGER LANGUAGE sql STABLE AS $$
+		    SELECT pricelist_id 
+		    FROM PriceList 
+		    WHERE is_default = true 
+		    LIMIT 1;
+		$$;
 		-- Core tables
 		CREATE TABLE IF NOT EXISTS Role (
 			role_id SERIAL PRIMARY KEY,
@@ -155,6 +163,7 @@ async function initDB() {
 			insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
 			insurance_form_id VARCHAR(255),
 			insurance_card_id VARCHAR(255),
+			pricelist_id INTEGER REFERENCES PriceList(pricelist_id) DEFAULT get_default_pricelist_id(),
 			guardian_info JSONB,
 			quick_check BOOLEAN DEFAULT false,
 			is_active BOOLEAN DEFAULT true,

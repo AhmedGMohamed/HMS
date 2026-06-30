@@ -16,6 +16,7 @@ import {
 	PaymentPatientAssociation
 } from "../utils/types/employees.js";
 import BillModel from "./Bill.model.js";
+import { resolve } from "dns";
 
 export class PatientModel {
 	async getAllPatients(
@@ -25,7 +26,9 @@ export class PatientModel {
 		const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
 		const q = pagination?.q?.trim()
 
-		let baseSql = `SELECT * FROM Patient`
+		let baseSql = `
+			SELECT p.*, ic.name as insurance_company_name FROM Patient p
+            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id`
 		const params: unknown[] = []
 		if (q) {
 			baseSql += ` WHERE name ILIKE $1 OR national_id ILIKE $1`
@@ -97,25 +100,27 @@ export class PatientModel {
 			// Validate insurance company if provided
 			if (data.insurance_id) {
 				const insuranceCheck = await query(
-					"SELECT insurance_id FROM InsuranceCompany WHERE insurance_id = $1",
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
 					[data.insurance_id]
 				);
 				if (insuranceCheck.rows.length === 0) {
 					throw new Error("Insurance company not found");
 				}
+				data.pricelist_id = insuranceCheck.rows[0].pricelist_id;
+			} else if (data.payment_type !== "insurance" && !data.pricelist_id) {
+				// Fall back to the system default price list for non-insurance patients
+				const defPl = await query(
+					"SELECT pricelist_id FROM PriceList WHERE is_default = true LIMIT 1"
+				);
+				if (defPl.rows.length > 0) {
+					data.pricelist_id = defPl.rows[0].pricelist_id;
+				}
 			}
 
-			// Create patient (removed quick_check from patient creation)
-			const patientSql = `
-                INSERT INTO Patient (
-                    name, national_id, gender, phone, address, payment_type,
-                    insurance_id, insurance_card_id, insurance_form_id, guardian_info,
-                    referring_doctor_id, is_active, created_by_user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                RETURNING *;
-            `;
-
-			const patientResult = await query(patientSql, [
+			const columns = ['name', 'national_id', 'gender', 'phone', 'address', 'payment_type',
+				'insurance_id', 'insurance_card_id', 'insurance_form_id',
+				'guardian_info', 'referring_doctor_id', 'is_active', 'created_by_user_id'];
+			const values = [
 				data.name,
 				data.national_id,
 				data.gender,
@@ -128,8 +133,22 @@ export class PatientModel {
 				data.guardian_info ? JSON.stringify(data.guardian_info) : null,
 				data.referring_doctor_id || null,
 				data.is_active || false,
-				data.created_by_user_id
-			]);
+				data.created_by_user_id];
+			const placeholders = columns.map((_, ind) => `$${ind}`);
+			
+			if (data.pricelist_id) {
+				columns.push("pricelist_id")
+				values.push(data.pricelist_id)
+				placeholders.push(`$${placeholders.length + 1}`)
+			}
+
+			const patientSql = `
+                INSERT INTO Patient (${columns.join(", ")})
+				VALUES (${placeholders.join(", ")})
+                RETURNING *;
+            `;
+
+			const patientResult = await query(patientSql, values);
 
 			const newPatient = patientResult.rows[0];
 
@@ -188,15 +207,50 @@ export class PatientModel {
 				}
 			}
 
-			// Validate insurance company if provided
-			if (data.insurance_id) {
+			// Compute the effective payment_type and insurance_id after this update
+			const effectivePaymentType =
+				data.payment_type ?? existingPatient.payment_type;
+			let effectiveInsuranceId =
+				data.insurance_id !== undefined
+					? data.insurance_id
+					: existingPatient.insurance_id;
+
+			// Resolve the insurance's authoritative pricelist (if insurance applies)
+			let insurancePricelistId: number | null | undefined = undefined;
+			if (
+				effectivePaymentType === "insurance" &&
+				effectiveInsuranceId
+			) {
 				const insuranceCheck = await query(
-					"SELECT insurance_id FROM InsuranceCompany WHERE insurance_id = $1",
-					[data.insurance_id]
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
+					[effectiveInsuranceId]
 				);
 				if (insuranceCheck.rows.length === 0) {
 					throw new Error("Insurance company not found");
 				}
+				insurancePricelistId =
+					insuranceCheck.rows[0].pricelist_id;
+			}
+
+			// Decide what Patient.pricelist_id should be after this update
+			let resolvedPricelistId: number | undefined = undefined;
+			let pricelistIdChangedForPatient = false;
+			if (effectivePaymentType === "insurance") {
+				// For insurance patients, the insurance's pricelist is authoritative
+				resolvedPricelistId = insurancePricelistId;
+				if (data.pricelist_id !== undefined) {
+					// Caller-supplied value is ignored for insurance patients
+					data.pricelist_id = resolvedPricelistId;
+				}
+				pricelistIdChangedForPatient =
+					(existingPatient.pricelist_id ?? null) !==
+					(resolvedPricelistId ?? null);
+			} else if (data.pricelist_id !== undefined) {
+				// Free-for-all on non-insurance patients
+				resolvedPricelistId = data.pricelist_id;
+				pricelistIdChangedForPatient =
+					(existingPatient.pricelist_id ?? null) !==
+					(resolvedPricelistId ?? null);
 			}
 
 			const updateFields: string[] = [];
@@ -211,17 +265,27 @@ export class PatientModel {
 			Object.entries(data).forEach(([key, value]) => {
 				if (key !== "patient_id" && value !== undefined) {
 					if (key === "guardian_info" && value) {
-						updateFields.push(`${key} = $${paramCount}`);
+						updateFields.push(`guardian_info = $${paramCount}`);
 						values.push(JSON.stringify(value));
 						paramCount++;
 					} else if (
 						key !== "attending_doctors" &&
 						key !== "attending_nurses" &&
 						key !== "diagnosis" &&
-						key !== "quick_check" // Skip quick_check as it's now admission-level
+						key !== "quick_check" && // Skip quick_check as it's now admission-level
+						key !== "pricelist_id" // pricelist_id is set explicitly below using the resolved value
 					) {
+						// !!!!!!!!! THIS WILL ALLOW SQL INJECTION ATTACKS IN KEYS - FIX IMMEDIATELY
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(value);
+						paramCount++;
+					} else if (
+						key === "pricelist_id" &&
+						pricelistIdChangedForPatient &&
+						resolvedPricelistId
+					) {
+						updateFields.push(`pricelist_id = $${paramCount}`);
+						values.push(resolvedPricelistId);
 						paramCount++;
 					}
 				}
@@ -239,12 +303,32 @@ export class PatientModel {
 			if (updateFields.length > 0) {
 				values.push(data.patient_id);
 				const sql = `
-                    UPDATE Patient 
+                    UPDATE Patient
                     SET ${updateFields.join(", ")}
                     WHERE patient_id = $${paramCount}
                     RETURNING *;
                 `;
 				await query(sql, values);
+			}
+
+			// Cascade pricelist change to the open admission (if any)
+			if (
+				pricelistIdChangedForPatient &&
+				resolvedPricelistId !== undefined &&
+				resolvedPricelistId !== null
+			) {
+				const openAdmission = await this.getCurrentAdmission(
+					data.patient_id
+				);
+				if (openAdmission) {
+					await query(
+						`UPDATE PatientHistory
+                         SET pricelist_id = $1
+                         WHERE patient_history_id = $2
+                           AND discharge_time IS NULL`,
+						[resolvedPricelistId, openAdmission.patient_history_id]
+					);
+				}
 			}
 
 			// Handle attending doctors updates if patient is currently admitted
@@ -498,6 +582,19 @@ export class PatientModel {
 
 			// Validate price list if provided
 			let pricelistId = data.pricelist_id;
+			// For insurance patients, the insurance's pricelist is authoritative.
+			// Re-sync from the patient row (which itself mirrors insurance.pricelist_id).
+			if (patient.payment_type === "insurance" && patient.insurance_id) {
+				const insuranceCheck = await query(
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
+					[patient.insurance_id]
+				);
+
+				if (insuranceCheck.rows.length === 0) {
+					throw new Error(`Insurance company with supplied ID does not exist`)
+				}
+				pricelistId = insuranceCheck.rows[0].pricelist_id
+			}
 			if (pricelistId) {
 				const plCheck = await query(
 					"SELECT pricelist_id FROM PriceList WHERE pricelist_id = $1",
