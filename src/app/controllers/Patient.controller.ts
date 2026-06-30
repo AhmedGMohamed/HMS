@@ -4,13 +4,16 @@ import {
 	CreatePatientDTO,
 	UpdatePatientDTO,
 	AdmitPatientDTO,
-	DischargePatientDTO
+	DischargePatientDTO,
+	Patient,
+	InsuranceCompany
 } from "../utils/types/patients.js";
 import DrugUsageModel from "../models/DrugUsage.model.js";
 import {
 	parsePagination,
 	buildPage
 } from "../utils/pagination.js";
+import InsuranceModel from "../models/Insurance.model.js";
 
 export class PatientController {
 	async getAllPatients(req: Request, res: Response) {
@@ -41,11 +44,29 @@ export class PatientController {
 	async getPatientById(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const patient = await PatientModel.getPatientById(patientId);
+			const patient: Patient &
+				Partial<Record<"insurance", Partial<InsuranceCompany &
+				{
+					insurance_card_id: string | null,
+					insurance_form_id: string | null
+				}
+				>>>
+				= await PatientModel.getPatientById(patientId);
 
 			if (!patient) {
 				res.status(404).json({ error: "Patient not found" });
 				return;
+			}
+
+			if (patient.insurance_id) {
+				const insurance: Partial<InsuranceCompany> & Partial<{ insurance_card_id: string | null, insurance_form_id: string | null }> = await InsuranceModel.getInsuranceCompanyById(patient.insurance_id)
+				// Remove unnecessary keys
+				delete insurance.contact_info
+				delete insurance.patient_count
+				delete insurance.last_cleared_date
+				insurance.insurance_card_id = patient.insurance_card_id
+				insurance.insurance_form_id = patient.insurance_form_id
+				patient.insurance = insurance
 			}
 
 			res.status(200).json(patient);
@@ -101,9 +122,12 @@ export class PatientController {
 
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Insurance company not found") {
+			if (
+				error.message === "Doctor not found" ||
+				error.message === "Insurance company not found" ||
+				error.message ===
+				"Insurance ID should not be provided when payment type is not insurance"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error creating patient:", error);
@@ -148,9 +172,14 @@ export class PatientController {
 		} catch (error: any) {
 			if (error.message === "Patient not found") {
 				res.status(404).json({ error: error.message });
-			} else if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Insurance company not found") {
+			} else if (
+				error.message === "Doctor not found" ||
+				error.message === "Insurance company not found" ||
+				error.message ===
+				"Insurance ID is required when payment type is insurance" ||
+				error.message ===
+				"Insurance ID should not be provided when payment type is not insurance"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating patient:", error);
@@ -198,6 +227,11 @@ export class PatientController {
 			} else if (error.message === "Patient is already admitted") {
 				res.status(400).json({ error: error.message });
 			} else if (error.message === "Doctor not found") {
+				res.status(400).json({ error: error.message });
+			} else if (
+				error.message ===
+				"Pricelist on admission does not match insurance pricelist"
+			) {
 				res.status(400).json({ error: error.message });
 			} else if (error.message === "No services to auto-add") {
 				res.status(400).json({ error: error.message });
