@@ -52,6 +52,13 @@ export interface PatientInsurance {
   priceListName: string | null;
 }
 
+export interface PatientGuardian {
+  name: string | null
+  phone: string | null
+  nationalId: string | null
+  address: string | null
+}
+
 export interface Patient {
   patientId: number;
   name: string;
@@ -68,10 +75,20 @@ export interface Patient {
    */
   insurance: PatientInsurance;
   insuranceCompanyName: string | null;
-  guardianName: string | null;
-  guardianPhone: string | null;
-  guardianNationalId: string | null;
-  guardianAddress: string | null;
+  /**
+   * Guardian sub-shape — when `Patient.guardian_info` JSONB is
+   * populated, the boundary serializer (`toCamel`) recurses into it
+   * so the renderer sees a nested object. When `guardian_info` is NULL
+   * the server still returns all fields as null and we fall back to
+   * flat accessors.
+   */
+  guardianInfo: PatientGuardian;
+  /**
+   * @deprecated Flat sibling fields kept for transitional parity with
+   * the wizard's current 4-step shape (T3 leftover). Future phase
+   * unifies everything under `Patient.guardian`. Both shapes mirror
+   * the same row until the wizard contract is migrated.
+   */
   referringDoctorId: number | null;
   referringDoctorName: string | null;
   pricelistId: number | null;
