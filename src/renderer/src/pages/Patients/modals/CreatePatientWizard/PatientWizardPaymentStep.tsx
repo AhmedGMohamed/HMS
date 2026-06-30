@@ -14,7 +14,7 @@ import {
 import type { WizardFormShape } from "./CreatePatientWizardDialog"
 import type {
   InsuranceCompany,
-  PriceList,
+  Pricelist,
 } from "@/pages/Patients/types/patient"
 import {
   listInsuranceCompanies,
@@ -42,7 +42,7 @@ export function PatientWizardPaymentStep() {
     form.formState.errors.payment?.insuranceFormId?.message
 
   const [insuranceList, setInsuranceList] = useState<InsuranceCompany[]>([])
-  const [priceLists, setPriceLists] = useState<PriceList[]>([])
+  const [pricelists, setPriceLists] = useState<Pricelist[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -196,10 +196,10 @@ export function PatientWizardPaymentStep() {
             <NativeSelectOption value="">
               {t("patients.fields.default")}
             </NativeSelectOption>
-            {priceLists.map((pl) => (
+            {pricelists.map((pl) => (
               <NativeSelectOption
-                key={pl.priceListId}
-                value={pl.priceListId}
+                key={pl.pricelistId}
+                value={pl.pricelistId}
               >
                 {pl.name}
               </NativeSelectOption>

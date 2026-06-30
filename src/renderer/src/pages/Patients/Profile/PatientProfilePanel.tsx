@@ -316,7 +316,7 @@ function paymentInfoRows(
       label: t("patients.fields.insuranceCompany"),
       value:
         patient.insuranceCompanyName ??
-        patient.insurance?.priceListName ??
+        patient.insurance?.pricelistName ??
         "—",
     },
     {
@@ -329,7 +329,7 @@ function paymentInfoRows(
     },
     {
       label: t("patients.fields.priceList"),
-      value: patient.insurance?.priceListName ?? "—",
+      value: patient.insurance?.pricelistName ?? "—",
     },
   ]
 }
