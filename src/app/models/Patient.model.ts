@@ -937,6 +937,20 @@ export class PatientModel {
 		return result.rows[0] || null;
 	}
 
+	async getCurrentAdmissionId(patientId: number): Promise<number | null> {
+		const sql = `
+			SELECT ph.patient_history_id
+			FROM PatientHistory ph
+			WHERE ph.patient_id = $1
+			AND ph.discharge_time IS NULL
+			ORDER BY ph.admission_time DESC
+			LIMIT 1;
+		`
+
+		const result = await query(sql, [patientId])
+		return result.rows[0]?.patient_history_id as number || null
+	}
+
 	async getCurrentAdmissionsWithStaff(): Promise<
 		{
 			patient_id: number;
@@ -1293,12 +1307,13 @@ export class PatientModel {
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
-                    patient_id, service_id, start_date, is_active, last_renewed
-                ) VALUES ($1, $2, $3, $4, NULL)
+                    patient_id, active_service_id, service_id, start_date, is_active, last_renewed
+                ) VALUES ($1, $2, $3, $4, $5, NULL)
                 RETURNING *;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
 				patientId,
+				currentAdmission.patient_history_id,
 				serviceId,
 				startDate,
 				is_active
@@ -1677,11 +1692,11 @@ export class PatientModel {
 			// Add to active patient services
 			const isOnce = service.service_type === "once";
 			const insertedServiceResult = await query(
-				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${isOnce ? " end_date," : ""
+				`INSERT INTO ActivePatientService (patient_id, patient_history_id, service_id, start_date,${isOnce ? " end_date," : ""
 				} is_active, last_renewed) 
-                 	 VALUES ($1, $2, CURRENT_TIMESTAMP,${isOnce ? " CURRENT_TIMESTAMP," : ""
+                 	 VALUES ($1, $2, $3, CURRENT_TIMESTAMP,${isOnce ? " CURRENT_TIMESTAMP," : ""
 				} ${isOnce ? "false," : "true,"} NULL) RETURNING *`,
-				[patientId, service.service_id]
+				[patientId, currentAdmission.patient_history_id, service.service_id]
 			);
 
 			const insertedService = insertedServiceResult.rows[0];
@@ -1965,37 +1980,44 @@ export class PatientModel {
 		return result.rows;
 	}
 
-	async getPatientServices(patient_id: number): Promise<any[]> {
-		const sql = `
-            SELECT aps.*, s.name, s.service_type
+	async getPatientServices(patient_id: number, onlyCurrent: boolean): Promise<any[]> {
+		let patientHistoryId = await this.getCurrentAdmissionId(patient_id);
+		if (!patientHistoryId && onlyCurrent) {
+			return [];
+		}
+		let params = [patient_id]
+		if (onlyCurrent)
+			params.push(patientHistoryId)
+
+		let sql = `
+			SELECT aps.*, s.name, s.service_type
             FROM ActivePatientService aps
             JOIN Service s ON aps.service_id = s.service_id
-            WHERE aps.patient_id = $1
-            ORDER BY aps.start_date DESC;
-        `;
-		const { rows } = await query(sql, [patient_id]);
+			WHERE aps.patient_id = $1`;
+		sql += onlyCurrent ?
+			" AND aps.patient_history_id = $2" : "";
+		sql += ` ORDER BY aps.start_date DESC;`;
+
+		const { rows } = await query(sql, params);
 		return rows;
 	}
 
-	async getPatientDrugs(patient_id: number): Promise<any[]> {
+	async getPatientDrugs(patient_id: number, onlyCurrent: boolean): Promise<any[]> {
 		try {
-			let currentAdmission = await this.getCurrentAdmission(patient_id);
-			if (!currentAdmission) {
-				throw new Error("Patient is not currently admitted");
-			}
-			const sql = `
+			let patientHistoryId = await this.getCurrentAdmissionId(patient_id);
+			let params = [patient_id];
+			if (onlyCurrent)
+				params.push(patientHistoryId)
+			let sql = `
 				SELECT du.*, dc.name as drug_name, dc.unit_conversion, dt.quantity as initial_quantity, dt.timestamp as start_date
 				FROM DrugUsage du
 				JOIN DrugCard dc ON du.drug_id = dc.drug_id
 				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
-				WHERE du.patient_id = $1
-				AND du.patient_history_id = $2
-				ORDER BY du.last_administered DESC NULLS LAST;
-			`;
-			const { rows } = await query(sql, [
-				patient_id,
-				currentAdmission.patient_history_id
-			]);
+				WHERE du.patient_id = $1`
+			sql += onlyCurrent ? ` AND du.patient_history_id = $2` : "";
+			sql += ` ORDER BY du.last_administered DESC NULLS LAST`;
+			
+			const { rows } = await query(sql, params);
 			return rows;
 		} catch (error) {
 			throw error;

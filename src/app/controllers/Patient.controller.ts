@@ -557,10 +557,10 @@ export class PatientController {
 		}
 	}
 
-	async getPatientServices(req: Request, res: Response): Promise<void> {
+	async getPatientServices(req: Request, res: Response, onlyCurrent = false): Promise<void> {
 		try {
 			const patientId = parseInt(req.params.id);
-			const services = await PatientModel.getPatientServices(patientId);
+			const services = await PatientModel.getPatientServices(patientId, onlyCurrent);
 			res.json(services);
 		} catch (error) {
 			console.error("Error fetching patient services:", error);
@@ -568,10 +568,10 @@ export class PatientController {
 		}
 	}
 
-	async getPatientDrugs(req: Request, res: Response): Promise<void> {
+	async getPatientDrugs(req: Request, res: Response, onlyCurrent = false): Promise<void> {
 		try {
 			const patientId = parseInt(req.params.id);
-			const drugs = await PatientModel.getPatientDrugs(patientId);
+			const drugs = await PatientModel.getPatientDrugs(patientId, onlyCurrent);
 			res.json(drugs);
 		} catch (error) {
 			console.error("Error fetching patient drugs:", error);
