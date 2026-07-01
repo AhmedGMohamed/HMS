@@ -174,6 +174,7 @@ async function initDB() {
 		CREATE TABLE IF NOT EXISTS ActivePatientService (
 			active_service_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),
+			patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 			service_id INTEGER REFERENCES Service(service_id),
 			start_date TIMESTAMP NOT NULL,
 			end_date TIMESTAMP,

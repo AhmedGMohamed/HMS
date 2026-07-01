@@ -213,8 +213,17 @@ router.get(
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
+	auditLogger,
 	(req, res) => PatientController.getPatientServices(req, res)
 );
+
+router.get(
+	"/:id/admissions/current/services",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientServices(req, res, true))
 
 // Get patient drugs
 router.get(
@@ -222,7 +231,17 @@ router.get(
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
+	auditLogger,
 	(req, res) => PatientController.getPatientDrugs(req, res)
+);
+// Get patient drugs
+router.get(
+	"/:id/admissions/current/drugs",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientDrugs(req, res, true)
 );
 
 export default router;
