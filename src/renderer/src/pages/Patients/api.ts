@@ -107,7 +107,7 @@ export function listCurrentAdmissionsWithStaff() {
    ---------------------------------------------------------------- */
 
 export function listAssignedServices(id: number) {
-  return api.get<ActivePatientService[]>(`/patients/${id}/services`)
+  return api.get<ActivePatientService[]>(`/patients/${id}/admissions/current/services`)
 }
 
 export function addService(id: number, payload: { serviceId: number; startDate?: string }) {
@@ -132,7 +132,7 @@ export function removeService(id: number, activeServiceId: number) {
    ---------------------------------------------------------------- */
 
 export function listAssignedDrugs(id: number) {
-  return api.get<DrugUsage[]>(`/patients/${id}/drugs`)
+  return api.get<DrugUsage[]>(`/patients/${id}/admissions/current/drugs`)
 }
 
 export function addDrug(id: number, payload: AddDrugPayload) {

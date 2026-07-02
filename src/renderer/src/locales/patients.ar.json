@@ -257,7 +257,9 @@
     "messages": {
       "loadInitialDataError": "فشل تحميل البيانات الأولية",
       "noServicesAssigned": "لا توجد خدمات معينة",
+      "noServicesAssignedDesc": "انقر +Add لإضافة أول خدمة. تظل الخدمات المتوقفة ظاهرة حتى إزالتها.",
       "noDrugsAssigned": "لا توجد أدوية معينة",
+      "noDrugsAssignedDesc": "انقر +Add لصرف دواء. تُخصم الأدوية من شحنة مختارة.",
       "noAvailableServices": "لم يتم العثور على خدمات متاحة",
       "noAvailableDrugs": "لم يتم العثور على أدوية متاحة",
       "patientMustBeAdmitted": "يجب إدخال المريض لإضافة الخدمات",
@@ -280,6 +282,7 @@
       "supplyRemoved": "تم إزالة المستلزم بنجاح",
       "supplyAdministered": "تم إعطاء المستلزم بنجاح",
       "noSuppliesAssigned": "لا توجد مستلزمات طبية مسندة",
+      "noSuppliesAssignedDesc": "انقر +Add لصرف مستلزم طبي. تقتصر الكمية على المخزون المتبقي في الشحنة.",
       "suppliesUsed": "المستلزمات المستخدمة",
       "noSuppliesUsed": "لا توجد مستلزمات طبية مستخدمة",
       "noSuppliesFound": "لا توجد مستلزمات طبية",
