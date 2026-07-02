@@ -170,10 +170,26 @@ export interface Service {
    * Booleans only on enriched payloads (e.g. `/api/services` returns
    * them; legacy `Service` rows on auto-add endpoints sometimes omit).
    */
-  type?: ServiceType;
+  serviceType?: ServiceType;
   autoAddOnAdmission?: boolean;
   autoRenew?: boolean;
   defaultPrice?: number;
+  prices: ServicePrice[]
+  drugs: ServiceDrug[] | null
+}
+
+export interface ServicePrice {
+  pricelistOd: number;
+  price: number;
+  requiresPrepayment: boolean
+  prepaymentType: "fixed" | "percentage" | null;
+  prepaymentAmount: number | null
+}
+
+export interface ServiceDrug {
+  serviceId: number;
+  drugId: number
+  name: string
 }
 
 export interface ActivePatientService {

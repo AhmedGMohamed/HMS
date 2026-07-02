@@ -24,6 +24,9 @@ import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 
 import { usePatientProfile } from "@/pages/Patients/Profile/usePatientProfile"
 import { PatientProfilePanel } from "@/pages/Patients/Profile/PatientProfilePanel"
+import { AssignedServicesPanel } from "@/pages/Patients/Assigned/AssignedServicesPanel"
+import { AssignedDrugsPanel } from "@/pages/Patients/Assigned/AssignedDrugsPanel"
+import { AssignedSuppliesPanel } from "@/pages/Patients/Assigned/AssignedSuppliesPanel"
 
 type DetailTab = "profile" | "assigned" | "billing" | "admissions"
 
@@ -150,10 +153,10 @@ export default function PatientDetailPage() {
             />
           </TabsContent>
 
-          <TabsContent value="assigned">
-            <EmptyState
-              title={t("patients.tabLabels.assigned")}
-              description={t("patients.tabLabels.assignedDescription")}
+          <TabsContent value="assigned" className="flex flex-col gap-4">
+            <AssignedLayout
+              patientId={patientId}
+              admission={profile.admission}
             />
           </TabsContent>
 
@@ -193,5 +196,27 @@ function PatientDetailNotFound() {
         </Button>
       }
     />
+  )
+}
+
+/**
+ * T5.5 — Wrapper for the Assigned tab body: three sibling cards
+ * (Services / Drugs / Supplies). Each card mounts its own hook so
+ * loading states don't block the others. Permission gating is
+ * delegated to each panel.
+ */
+function AssignedLayout({
+  patientId,
+  admission,
+}: {
+  patientId: number
+  admission: import("@/pages/Patients/types/patient").PatientHistory | null
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <AssignedServicesPanel patientId={patientId} currentAdmission={admission} />
+      <AssignedDrugsPanel patientId={patientId} currentAdmission={admission} />
+      <AssignedSuppliesPanel patientId={patientId} currentAdmission={admission} />
+    </div>
   )
 }

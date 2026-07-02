@@ -257,7 +257,9 @@
     "messages": {
       "loadInitialDataError": "Failed to load initial data",
       "noServicesAssigned": "No services assigned",
+      "noServicesAssignedDesc": "Click +Add to assign your first service. Stopped services stay visible until removed.",
       "noDrugsAssigned": "No drugs assigned",
+      "noDrugsAssignedDesc": "Click +Add to dispense a drug. Drugs reduce stock from a chosen shipment.",
       "noAvailableServices": "No available services found",
       "noAvailableDrugs": "No available drugs found",
       "patientMustBeAdmitted": "Patient must be admitted to add services",
@@ -281,6 +283,7 @@
       "supplyRemoved": "Supply removed successfully",
       "supplyAdministered": "Supply administered successfully",
       "noSuppliesAssigned": "No supplies assigned",
+      "noSuppliesAssignedDesc": "Click +Add to dispense a medical supply. Quantity is capped by shipment remaining stock.",
       "suppliesUsed": "Supplies used",
       "noSuppliesUsed": "No medical supplies used",
       "noSuppliesFound": "No medical supplies found",
