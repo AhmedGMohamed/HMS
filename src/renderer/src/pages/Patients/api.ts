@@ -332,13 +332,13 @@ export interface AddSupplyPayload {
 }
 
 export interface UpdateBillPayload {
-  discountType: "percent" | "fixed"
-  discount: number
-  discountScope: import("@/pages/Patients/types/patient").DiscountScope
-  administrativeExpenses: number
-  medicalTestsAmount: number
-  vatPercentage: number
-  vatScope: import("@/pages/Patients/types/patient").VatScope
+  discountType?: "percent" | "fixed"
+  discount?: number
+  discountScope?: import("@/pages/Patients/types/patient").DiscountScope
+  administrativeExpenses?: number
+  medicalTestsAmount?: number
+  vatPercentage?: number
+  vatScope?: import("@/pages/Patients/types/patient").VatScope
   paidAmount?: number
 }
 

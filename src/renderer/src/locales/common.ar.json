@@ -13,6 +13,7 @@
     "no": "لا",
     "deleteConfirm": "نعم، احذفها",
     "loading": "جاري التحميل...",
+    "saving": "جاري الحفظ...",
     "noData": "لا توجد بيانات متاحة",
     "error": "خطأ",
     "success": "نجح",
@@ -61,6 +62,9 @@
       "health": "هيلث",
       "core": "كور",
       "plus": "+"
+    },
+    "permission": {
+      "requires_manage_patients": "يتطلب صلاحية إدارة المرضى"
     }
   }
 }

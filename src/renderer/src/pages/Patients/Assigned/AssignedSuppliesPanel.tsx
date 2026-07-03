@@ -41,7 +41,7 @@ export function AssignedSuppliesPanel({
   const canManage = hasPermission("manage_patients")
   const canAdd = canManage && currentAdmission != null
 
-  const list = useAssignedSupplies(patientId)
+  const list = useAssignedSupplies(patientId, currentAdmission)
   const [addOpen, setAddOpen] = useState(false)
   const [activeGroup, setActiveGroup] = useState<{
     name: string

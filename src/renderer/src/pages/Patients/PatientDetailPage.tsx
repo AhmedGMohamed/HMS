@@ -27,6 +27,7 @@ import { PatientProfilePanel } from "@/pages/Patients/Profile/PatientProfilePane
 import { AssignedServicesPanel } from "@/pages/Patients/Assigned/AssignedServicesPanel"
 import { AssignedDrugsPanel } from "@/pages/Patients/Assigned/AssignedDrugsPanel"
 import { AssignedSuppliesPanel } from "@/pages/Patients/Assigned/AssignedSuppliesPanel"
+import { BillingPanel } from "@/pages/Patients/Billing/BillingPanel"
 
 type DetailTab = "profile" | "assigned" | "billing" | "admissions"
 
@@ -161,9 +162,9 @@ export default function PatientDetailPage() {
           </TabsContent>
 
           <TabsContent value="billing">
-            <EmptyState
-              title={t("patients.tabLabels.billing")}
-              description={t("patients.tabLabels.billingDescription")}
+            <BillingPanel
+              patientId={patientId}
+              admission={profile.admission}
             />
           </TabsContent>
 

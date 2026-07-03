@@ -118,6 +118,18 @@
         "supplies": "المستلزمات",
         "tests": "الفحوصات",
         "all": "الكل"
+      },
+      "discountPercentUnit": "قيمة النسبة تطبق على الفئات المحددة",
+      "discountFixedUnit": "مبلغ ثابت بالجنيه يُخصم من الفئات المحددة",
+      "discountTypeLabel": "نوع الخصم",
+      "discountTypePercent": "خصم بالنسبة المئوية",
+      "discountTypePercentHint": "احتساب الخصم كنسبة من الفئات المؤهلة",
+      "vatPercentHint": "من 0 إلى 100% تطبق بعد الخصم",
+      "billIdLabel": "معرّف الفاتورة",
+      "explicitSaveHint": "اضغط زر تحديث الحسابات للحفظ",
+      "empty": {
+        "notAdmittedTitle": "لا توجد إقامة نشطة",
+        "notAdmittedDesc": "لا تنشأ فاتورة إلا بعد دخول المريض. عندما تبدأ الإقامة، تصبح هذه التبويبة نشطة."
       }
     },
     "gender": {
@@ -288,6 +300,9 @@
       "noSuppliesFound": "لا توجد مستلزمات طبية",
       "paymentProcessed": "تم معالجة الدفع بنجاح",
       "billingUpdated": "تم تحديث معلومات الفواتير بنجاح",
+      "paymentRecorded": "تم تسجيل الدفعة بنجاح",
+      "paymentRecordingError": "فشل تسجيل الدفعة",
+      "paymentAmountZero": "أدخل مبلغ دفع أكبر من صفر",
       "savePatientError": "فشل حفظ المريض",
       "admitPatientError": "فشل إدخال المريض",
       "dischargePatientError": "فشل تسريح المريض",
