@@ -1059,6 +1059,7 @@ export class PatientModel {
 		const sql = `
     	    SELECT 
     	        ph.patient_history_id,
+				ph.bill_id,
 				ph.quick_check,
     	        ph.diagnosis,
     	        ph.admission_time,
@@ -2160,13 +2161,13 @@ export class PatientModel {
 			const billDetailResult = await query(
 				`
 				INSERT INTO BillDetail (
-					bill_id, medical_supply_shipment_id, quantity,
-					unit_price, sale_type
+					bill_id, charge_type, medical_supply_shipment_id,
+					quantity, unit_price, sale_type
 				)
-				VALUES ($1, $2, $3, $4, 'admitted')
+				VALUES ($1, $2, $3, $4, $5, 'admitted')
 				RETURNING bill_detail_id
 			`,
-				[currentAdmission.bill_id, shipmentId, quantity, price]
+				[currentAdmission.bill_id, "supply", shipmentId, quantity, price]
 			);
 
 			// Update bill total

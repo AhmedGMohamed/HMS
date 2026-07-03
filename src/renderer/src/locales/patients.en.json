@@ -118,6 +118,18 @@
         "supplies": "Supplies",
         "tests": "Tests",
         "all": "All"
+      },
+      "discountPercentUnit": "% value applies to selected categories",
+      "discountFixedUnit": "EGP flat amount deducts from selected categories",
+      "discountTypeLabel": "Discount mode",
+      "discountTypePercent": "% percentage",
+      "discountTypePercentHint": "Treat discount as % of discountable categories",
+      "vatPercentHint": "0–100% applied proportionally after discount",
+      "billIdLabel": "Bill ID",
+      "explicitSaveHint": "Click Update Calculations to commit",
+      "empty": {
+        "notAdmittedTitle": "No active admission",
+        "notAdmittedDesc": "A bill is only generated after the patient is admitted. Once the admission starts, this tab will become active."
       }
     },
     "gender": {
@@ -289,6 +301,9 @@
       "noSuppliesFound": "No medical supplies found",
       "paymentProcessed": "Payment processed successfully",
       "billingUpdated": "Billing information updated successfully",
+      "paymentRecorded": "Payment recorded successfully",
+      "paymentRecordingError": "Failed to record payment",
+      "paymentAmountZero": "Enter a payment amount greater than zero",
       "savePatientError": "Failed to save patient",
       "admitPatientError": "Failed to admit patient",
       "dischargePatientError": "Failed to discharge patient",

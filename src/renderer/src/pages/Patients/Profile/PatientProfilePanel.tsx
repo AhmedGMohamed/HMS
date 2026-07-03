@@ -355,14 +355,14 @@ function medicalInfoRows(
     {
       label: t("patients.fields.attendingDoctors"),
       value:
-        admission && admission.assignedDoctors.length > 0
+        admission && admission.assignedDoctors && admission.assignedDoctors.length > 0
           ? admission.assignedDoctors.map((d) => d.name).join(", ")
           : "—",
     },
     {
       label: t("patients.fields.attendingNurses"),
       value:
-        admission && admission.assignedNurses.length > 0
+        admission && admission.assignedNurses && admission.assignedNurses.length > 0
           ? admission.assignedNurses.map((n) => n.name).join(", ")
           : "—",
     },

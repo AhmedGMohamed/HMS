@@ -9,9 +9,13 @@ import {
 } from "@/pages/Patients/api"
 import type {
   MedicalSupplyUsage,
+  PatientHistory,
 } from "@/pages/Patients/types/patient"
 import { ApiError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
+import {
+  dispatchBillChanged,
+} from "@/pages/Patients/Billing/lib/billEvents"
 
 export interface UseAssignedSuppliesResult {
   supplies: MedicalSupplyUsage[]
@@ -22,7 +26,8 @@ export interface UseAssignedSuppliesResult {
 }
 
 export function useAssignedSupplies(
-  patientId: number
+  patientId: number,
+  currentAdmission: PatientHistory | null
 ): UseAssignedSuppliesResult {
   const { t } = useTranslation()
   const [supplies, setSupplies] = useState<MedicalSupplyUsage[]>([])
@@ -60,6 +65,12 @@ export function useAssignedSupplies(
       try {
         await removeSupply(patientId, usageId)
         toast.success(t("patients.messages.supplyRemoved"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: currentAdmission?.patientHistoryId ?? null,
+          source: "supplies",
+          reason: "supply-removed",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -70,7 +81,7 @@ export function useAssignedSupplies(
         throw err
       }
     },
-    [patientId, refresh, t]
+    [patientId, currentAdmission, refresh, t]
   )
 
   return { supplies, loading, error, refresh, remove }

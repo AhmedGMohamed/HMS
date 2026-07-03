@@ -15,6 +15,9 @@ import type {
 } from "@/pages/Patients/types/patient"
 import { ApiError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
+import {
+  dispatchBillChanged,
+} from "@/pages/Patients/Billing/lib/billEvents"
 
 export interface UseAssignedDrugsResult {
   drugs: DrugUsage[]
@@ -85,6 +88,12 @@ export function useAssignedDrugs(
           patientHistoryId,
         })
         toast.success(t("patients.messages.drugAdded"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId,
+          source: "drugs",
+          reason: "drug-added",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -105,6 +114,12 @@ export function useAssignedDrugs(
       try {
         await removeDrug(patientId, drugUsageId)
         toast.success(t("patients.messages.drugRemoved"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: currentAdmission?.patientHistoryId ?? null,
+          source: "drugs",
+          reason: "drug-removed",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -115,7 +130,7 @@ export function useAssignedDrugs(
         throw err
       }
     },
-    [patientId, refresh, t]
+    [patientId, currentAdmission, refresh, t]
   )
 
   const administer = useCallback(
@@ -133,6 +148,12 @@ export function useAssignedDrugs(
       try {
         await administerDrug(drugUsageId, { remainingQuantity: nextRemaining })
         toast.success(t("patients.messages.drugAdministered"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: currentAdmission?.patientHistoryId ?? null,
+          source: "drugs",
+          reason: "drug-administered",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -143,7 +164,7 @@ export function useAssignedDrugs(
         throw err
       }
     },
-    [drugs, refresh, t]
+    [drugs, currentAdmission, patientId, refresh, t]
   )
 
   return { drugs, loading, error, refresh, add, remove, administer }

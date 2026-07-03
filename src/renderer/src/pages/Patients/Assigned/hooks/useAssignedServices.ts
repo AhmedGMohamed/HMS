@@ -12,6 +12,9 @@ import {
 import type { ActivePatientService } from "@/pages/Patients/types/patient"
 import { ApiError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
+import {
+  dispatchBillChanged,
+} from "@/pages/Patients/Billing/lib/billEvents"
 
 export interface UseAssignedServicesResult {
   services: ActivePatientService[]
@@ -71,6 +74,12 @@ export function useAssignedServices(
       try {
         await addService(patientId, { serviceId })
         toast.success(t("patients.messages.serviceAdded"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: null,
+          source: "services",
+          reason: "service-added",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -87,6 +96,12 @@ export function useAssignedServices(
       try {
         await stopService(patientId, activeServiceId)
         toast.success(t("patients.messages.serviceStopped"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: null,
+          source: "services",
+          reason: "service-stopped",
+        })
         refresh()
       } catch (err) {
         toast.error(
@@ -103,6 +118,12 @@ export function useAssignedServices(
       try {
         await removeService(patientId, activeServiceId)
         toast.success(t("patients.messages.serviceRemoved"))
+        dispatchBillChanged({
+          patientId,
+          patientHistoryId: null,
+          source: "services",
+          reason: "service-removed",
+        })
         refresh()
       } catch (err) {
         toast.error(

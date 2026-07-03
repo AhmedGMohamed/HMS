@@ -205,7 +205,7 @@ function ServiceRow({
         <td className="py-2">
           {new Date(row.startDate).toLocaleString()}
         </td>
-        <td className="py-2">{row.service?.type ?? "—"}</td>
+        <td className="py-2">{row.service?.serviceType ?? "—"}</td>
         <td className="py-2">
           <Badge variant={row.isActive ? "default" : "secondary"}>
             {t(

@@ -104,6 +104,7 @@ export interface Patient {
 export interface PatientHistory {
   patientHistoryId: number;
   patientId: number;
+  billId: number;
   admissionTime: string;
   dischargeTime: string | null;
   leaveReason: LeaveReason | null;
@@ -111,11 +112,11 @@ export interface PatientHistory {
   diagnosis: string | null;
   pricelistId: number | null;
   pricelistName: string | null;
-  attendingDoctorIds: number[];
-  attendingNurseIds: number[];
+  attendingDoctorIds: number[] | null;
+  attendingNurseIds: number[] | null;
   /** Joined names — only on enriched views (`/{id}/admissions/:hId/details`). */
-  assignedDoctors: AssignedStaff[];
-  assignedNurses: AssignedStaff[];
+  assignedDoctors: AssignedStaff[] | null;
+  assignedNurses: AssignedStaff[] | null;
 }
 
 export interface AssignedStaff {
@@ -132,6 +133,7 @@ export interface AssignedStaff {
 
 export interface Bill {
   billId: number;
+  billDetails: BillDetail[];
   patientHistoryId: number;
   totalAmount: number;
   paidAmount: number;
@@ -142,7 +144,27 @@ export interface Bill {
   medicalTestsAmount: number;
   vatPercentage: number;
   vatScope: VatScope;
+  /** The JSONB array that drives the multi-scope UI — server's
+   * `vat_scope_custom` column. `vatScope` is the legacy single-
+   * value enum column (`"services"|"drugs"|"both"`), kept for
+   * backward compat on PUT but NOT used in the renderer's scope UI. */
+  vatScopeCustom: VatScope;
   paidAt: string | null;
+}
+
+export interface BillDetail {
+  billDetailId: number;
+  chargeType: "service" | "drug" | "supply";
+  drugName: string | null;
+  drugShipmentId: number | null
+  generatedAt: string;
+  medicalSupplyName: string | null
+  medicalSupplyShipmentId: number | null;
+  quantity: number;
+  saleType: "admitted" | "outside" | "check";
+  serviceId: number | null;
+  serviceName: string | null;
+  unitPrice: number;
 }
 
 export interface DiscountScope {
@@ -370,4 +392,8 @@ export interface BillingSnapshot {
   totalFee: number;
   paidAmount: number;
   balance: number;
+  /** Legacy label — positive balance the facility is owed */
+  remainingFacility: number;
+  /** Legacy label — negative balance displayed as positive (overpayment) */
+  remainingPatient: number;
 }
