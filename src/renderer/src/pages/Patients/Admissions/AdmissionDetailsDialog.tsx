@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import {
@@ -41,6 +41,14 @@ import {
   formatCurrency,
   formatDateTime,
 } from "@/pages/Patients/Admissions/lib/admissionFormat"
+import {
+  groupAdmissionDrugs,
+  groupAdmissionServices,
+  groupAdmissionSupplies,
+  type AdmissionDrugGroup,
+  type AdmissionServiceGroup,
+  type AdmissionSupplyGroup,
+} from "@/pages/Patients/Admissions/lib/groupingAdmission"
 import { useUIStore } from "@/store/uiStore"
 import { usePermission } from "@/hooks/usePermission"
 import { getPatient } from "@/pages/Patients/api"
@@ -137,6 +145,17 @@ export function AdmissionDetailsDialog({
   const drugsTotal = details?.drugsTotal ?? 0
   const suppliesTotal = details?.suppliesTotal ?? 0
   const testsTotal = details?.bill?.medicalTestsAmount ?? 0
+
+  /* ---- Group rows by (id, unitPrice) — see lib/groupingAdmission.ts ---- */
+  const groupedServices = useMemo(
+    () => groupAdmissionServices(services),
+    [services]
+  )
+  const groupedDrugs = useMemo(() => groupAdmissionDrugs(drugs), [drugs])
+  const groupedSupplies = useMemo(
+    () => groupAdmissionSupplies(supplies),
+    [supplies]
+  )
 
   const discountLabelText = `${t("patients.billing.discount")} ${getDiscountScopeString(bill?.discountScope)}`
   const vatLabelText = `${t("patients.billing.vatPercentage")} ${getVatScopeString(bill?.vatScopeCustom)}`
@@ -449,10 +468,10 @@ export function AdmissionDetailsDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {services.map((s, i) => (
+                      {groupedServices.map((g, i) => (
                         <ServiceRow
-                          key={`svc-${s.activeServiceId ?? i}`}
-                          row={s}
+                          key={`svc-${g.serviceId}-${g.unitPrice}-${i}`}
+                          group={g}
                           language={language}
                         />
                       ))}
@@ -487,10 +506,10 @@ export function AdmissionDetailsDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {drugs.map((d, i) => (
+                      {groupedDrugs.map((g, i) => (
                         <DrugRow
-                          key={`drug-${d.drugUsageId ?? i}`}
-                          row={d}
+                          key={`drug-${g.drugId}-${g.unitPrice}-${i}`}
+                          group={g}
                           language={language}
                         />
                       ))}
@@ -530,10 +549,10 @@ export function AdmissionDetailsDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {supplies.map((s, i) => (
+                  {groupedSupplies.map((g, i) => (
                     <SupplyRow
-                      key={`sup-${s.supplyUsageId ?? i}`}
-                      row={s}
+                      key={`sup-${g.supplyId}-${g.unitPrice}-${i}`}
+                      group={g}
                       language={language}
                     />
                   ))}
@@ -628,87 +647,76 @@ function FeesLabelSmall({ children }: { children: React.ReactNode }) {
 }
 
 function ServiceRow({
-  row,
+  group,
   language,
 }: {
-  row: import("@/pages/Patients/types/patient").ActivePatientService
+  group: AdmissionServiceGroup
   language: "en" | "ar"
 }) {
   return (
     <TableRow>
-      <TableCell className="text-sm">
-        {row.service?.name ?? "—"}
+      <TableCell className="text-sm">{group.serviceName}</TableCell>
+      <TableCell className="text-end tabular-nums text-sm">
+        {group.quantity}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {row.quantity ?? 1}
+        {formatCurrency(group.unitPrice, language)}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(row.unitPrice ?? 0, language)}
-      </TableCell>
-      <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(
-          row.totalCost ?? (row.unitPrice ?? 0) * (row.quantity ?? 0),
-          language
-        )}
+        {formatCurrency(group.totalCost, language)}
       </TableCell>
     </TableRow>
   )
 }
 
 function DrugRow({
-  row,
+  group,
   language,
 }: {
-  row: import("@/pages/Patients/types/patient").DrugUsage
+  group: AdmissionDrugGroup
   language: "en" | "ar"
 }) {
   return (
     <TableRow>
-      <TableCell className="text-sm">{row.drug?.name ?? "—"}</TableCell>
+      <TableCell className="text-sm">{group.drugName}</TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {row.remainingQuantity ?? row.initialQuantity ?? "—"}
+        {group.quantity}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(row.unitPrice ?? 0, language)}
+        {formatCurrency(group.unitPrice, language)}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(
-          row.totalCost ??
-          (row.unitPrice ?? 0) *
-          (row.remainingQuantity ?? row.initialQuantity ?? 0),
-          language
-        )}
+        {formatCurrency(group.totalCost, language)}
       </TableCell>
     </TableRow>
   )
 }
 
 function SupplyRow({
-  row,
+  group,
   language,
 }: {
-  row: import("@/pages/Patients/types/patient").MedicalSupplyUsage
+  group: AdmissionSupplyGroup
   language: "en" | "ar"
 }) {
   return (
     <TableRow>
-      <TableCell className="text-sm">{row.supply?.name ?? "—"}</TableCell>
+      <TableCell className="text-sm">{group.supplyName}</TableCell>
       <TableCell className="text-xs">
-        {row.supply?.manufacturer ?? row.supply?.provider ?? "—"}
+        {/* Manufacturer/provider aren't part of the group shape (the
+            first row carries them); we leave the column here for
+            layout parity but render a thin "—" placeholder for
+            past admissions where multiple source rows merged. */}
+        —
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {row.remainingQuantity ?? row.initialQuantity ?? "—"}
+        {group.quantity}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(row.unitPrice ?? 0, language)}
+        {formatCurrency(group.unitPrice, language)}
       </TableCell>
       <TableCell className="text-end tabular-nums text-sm">
-        {formatCurrency(
-          row.totalCost ??
-          (row.unitPrice ?? 0) *
-          (row.remainingQuantity ?? row.initialQuantity ?? 0),
-          language
-        )}
+        {formatCurrency(group.totalCost, language)}
       </TableCell>
     </TableRow>
   )
