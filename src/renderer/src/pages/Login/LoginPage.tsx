@@ -72,7 +72,7 @@ export default function LoginPage() {
         <form
           onSubmit={form.handleSubmit(submit)}
           noValidate
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-3 mt-4"
           aria-disabled={loading || lockedUntilMs !== null}
         >
           <Field>

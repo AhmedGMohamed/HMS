@@ -36,6 +36,7 @@
       "assignedServices": "Assigned Services",
       "assignedDrugs": "Assigned Drugs",
       "assignedSupplies": "Assigned Medical Supplies",
+      "financialSummary": "Financial Summary",
       "billingInfo": "Billing Information"
     },
     "fields": {
