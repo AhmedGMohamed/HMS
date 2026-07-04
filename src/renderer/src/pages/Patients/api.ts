@@ -1,7 +1,6 @@
 import { api } from "@/lib/api"
 import type {
   ActivePatientService,
-  AdmissionDetails,
   Bill,
   ClockedInStaff,
   Doctor,
@@ -89,13 +88,15 @@ export function getCurrentAdmission(id: number) {
 }
 
 export function listPastAdmissions(id: number) {
-  return api.get<PatientHistory[]>(`/patients/${id}/admissions/past`)
+  return api.get<
+    import("@/pages/Patients/Admissions/hooks/usePastAdmissions").PastAdmissionSummary[]
+  >(`/patients/${id}/admissions/past`)
 }
 
 export function getAdmissionDetails(id: number, historyId: number) {
-  return api.get<AdmissionDetails>(
-    `/patients/${id}/admissions/${historyId}/details`
-  )
+  return api.get<
+    import("@/pages/Patients/Admissions/lib/admissionsShape").AdmissionDetailsRaw
+  >(`/patients/${id}/admissions/${historyId}/details`)
 }
 
 export function listCurrentAdmissionsWithStaff() {

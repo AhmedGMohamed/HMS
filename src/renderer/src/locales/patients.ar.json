@@ -36,6 +36,7 @@
       "assignedServices": "الخدمات المسندة",
       "assignedDrugs": "الأدوية المسندة",
       "assignedSupplies": "المستلزمات الطبية المخصصة",
+      "financialSummary": "الملخص المالي",
       "billingInfo": "معلومات الفواتير"
     },
     "fields": {
