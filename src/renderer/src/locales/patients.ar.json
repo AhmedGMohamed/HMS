@@ -81,7 +81,10 @@
       "lastAdministered": "آخر إعطاء",
       "notAdministeredYet": "لم يتم الإعطاء بعد",
       "available": "المتاح",
-      "dateAdded": "تاريخ الإضافة"
+      "dateAdded": "تاريخ الإضافة",
+      "manufacturer": "المصنع",
+      "largerQuantity": "الكمية الكبري",
+      "smallerQuantity": "الكمية الصغري"
     },
     "billing": {
       "servicesTotal": "إجمالي الخدمات",

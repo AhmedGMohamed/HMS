@@ -108,7 +108,9 @@ export function AssignedDrugsPanel({
               group={group}
               onView={() =>
                 setActiveGroup({
-                  name: list.drugs.find((r) => r.drugId === drugId)?.drug?.name ?? "",
+                  name:
+                    group.rows[0]?.drugName ??
+                    "",
                   rows: group.rows,
                 })
               }
@@ -152,7 +154,7 @@ function DrugGroupRow({
   onView: () => void
 }) {
   const { t } = useTranslation()
-  const drugName = group.rows[0]?.drug?.name ?? "—"
+  const drugName = group.rows[0]?.drugName ?? "—"
   const qty = group.totalInitial
   const remaining = group.totalRemaining
   return (

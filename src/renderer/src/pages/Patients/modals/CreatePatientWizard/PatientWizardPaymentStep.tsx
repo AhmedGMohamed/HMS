@@ -14,7 +14,7 @@ import {
 import type { WizardFormShape } from "./CreatePatientWizardDialog"
 import type {
   InsuranceCompany,
-  Pricelist,
+  PriceList,
 } from "@/pages/Patients/types/patient"
 import {
   listInsuranceCompanies,
@@ -42,7 +42,7 @@ export function PatientWizardPaymentStep() {
     form.formState.errors.payment?.insuranceFormId?.message
 
   const [insuranceList, setInsuranceList] = useState<InsuranceCompany[]>([])
-  const [pricelists, setPriceLists] = useState<Pricelist[]>([])
+  const [pricelists, setPriceLists] = useState<PriceList[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

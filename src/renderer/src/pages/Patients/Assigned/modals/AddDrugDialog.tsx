@@ -136,7 +136,7 @@ export function AddDrugDialog({
   }, [drugs, search])
 
   const selectedDrug = drugs.find((d) => d.drugId === selectedDrugId) ?? null
-  const availableShipments = shipments.filter((s) => s.remainingQuantity > 0)
+  const availableShipments = shipments.filter((s) => s.quantity > 0)
 
   function onDrugPicked(drugId: number) {
     setSelectedDrugId(drugId)
@@ -179,7 +179,16 @@ export function AddDrugDialog({
                   <thead>
                     <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="py-2 text-start font-medium">
-                        {t("patients.table.dateAdded")}
+                        {t("patients.fields.fullName")}
+                      </th>
+                      <th className="py-2 text-start font-medium">
+                        {t("patients.table.manufacturer")}
+                      </th>
+                      <th className="py-2 text-start font-medium">
+                        {t("patients.table.largerQuantity")}
+                      </th>
+                      <th className="py-2 text-start font-medium">
+                        {t("patients.table.smallerQuantity")}
                       </th>
                       <th className="py-2 text-end font-medium">
                         {t("common.actions")}
@@ -191,14 +200,25 @@ export function AddDrugDialog({
                       <tr key={d.drugId} className="border-t border-border">
                         <td className="py-2 font-medium text-foreground">
                           {d.name}
+                        </td>
+                        <td>
                           {d.manufacturer ? (
                             <Badge variant="outline" className="ms-2">
                               {d.manufacturer}
                             </Badge>
                           ) : null}
+                        </td>
+                        <td>
                           {d.unitConversion ? (
                             <Badge variant="outline" className="ms-2">
-                              {d.unitConversion.smallerUnit}
+                              {d.unitConversion.larger}
+                            </Badge>
+                          ) : null}
+                        </td>
+                        <td>
+                          {d.unitConversion ? (
+                            <Badge variant="outline" className="ms-2">
+                              {d.unitConversion.smaller}
                             </Badge>
                           ) : null}
                         </td>
@@ -272,10 +292,10 @@ export function AddDrugDialog({
                           #{s.shipmentId}
                         </td>
                         <td className="py-2 tabular-nums">
-                          {s.remainingQuantity}
+                          {s.quantity}
                         </td>
                         <td className="py-2 text-muted-foreground">
-                          {s.unitCost}
+                          {s.unitCost ?? "—"}
                         </td>
                         <td className="py-2 text-end">
                           <Button
@@ -332,11 +352,21 @@ export function AddDrugDialog({
               (s) => s.shipmentId === qtyDrugId
             )
             if (!shipment) return
+            // server's createDrugUsage requires a non-null `price`.
+            // We don't have the patient's pricelist-based price on
+            // the wire yet, so pick the first entry from the
+            // server-aggregated `prices[]`. Real pricing lands in T6
+            // alongside the billing flow.
+            const price =
+              shipment.prices[0]?.price ??
+              shipment.unitCost ??
+              shipment.quantityInLargerUnit ??
+              quantity
             await onAdded({
               drugId: selectedDrug.drugId,
               shipmentId: shipment.shipmentId,
               quantity,
-              price: shipment.unitCost * total,
+              price,
             })
             setQtyDrugId(null)
             setSelectedDrugId(null)

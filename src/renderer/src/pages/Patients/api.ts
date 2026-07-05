@@ -2,6 +2,7 @@ import { api } from "@/lib/api"
 import type {
   ActivePatientService,
   Bill,
+  BillDetail,
   ClockedInStaff,
   Doctor,
   DrugCard,
@@ -16,9 +17,8 @@ import type {
   Patient,
   PatientAssignment,
   PatientHistory,
-  Pricelist,
+  PriceList,
   Service,
-  ServicePrice,
 } from "@/pages/Patients/types/patient"
 
 interface PageEnvelope<T> {
@@ -112,7 +112,7 @@ export function listAssignedServices(id: number) {
 }
 
 export function addService(id: number, payload: { serviceId: number; startDate?: string }) {
-  return api.post<{ service: ActivePatientService }>(
+  return api.post<{ service: ActivePatientService; billDetail: BillDetail | null }>(
     `/patients/${id}/services`,
     payload
   )
@@ -125,7 +125,7 @@ export function stopService(id: number, activeServiceId: number) {
 }
 
 export function removeService(id: number, activeServiceId: number) {
-  return api.delete<void>(`/patients/${id}/services/${activeServiceId}`)
+  return api.delete<ActivePatientService>(`/patients/${id}/services/${activeServiceId}`)
 }
 
 /* ----------------------------------------------------------------
@@ -137,15 +137,17 @@ export function listAssignedDrugs(id: number) {
 }
 
 export function addDrug(id: number, payload: AddDrugPayload) {
-  return api.post<{ usageId: number }>(`/patients/${id}/drugs`, payload)
+  return api.post<DrugUsage>(`/patients/${id}/drugs`, payload)
 }
 
 export function administerDrug(usageId: number, payload: { remainingQuantity: number }) {
-  return api.put<void>(`/pharmacy/drugs/usages/${usageId}`, payload)
+  return api.put<DrugUsage>(`/pharmacy/drugs/usages/${usageId}`, payload)
 }
 
-export function removeDrug(id: number, drugUsageId: number) {
-  return api.delete<void>(`/patients/${id}/drugs/${drugUsageId}`)
+export function removeDrug(id: number, usageId: number) {
+  return api.delete<DrugUsage & { shipmentId: number; transactionId: number; transactionQuantity: number }>(
+    `/patients/${id}/drugs/${usageId}`
+  )
 }
 
 /* ----------------------------------------------------------------
@@ -158,18 +160,8 @@ export function listAssignedSupplies(id: number) {
   )
 }
 
-export function listAvailableSupplies() {
-  return api.get<MedicalSupply[]>(`/pharmacy/medical-supplies`)
-}
-
-export function listSupplyShipments(supplyId: number) {
-  return api.get<MedicalSupplyShipment[]>(
-    `/pharmacy/medical-supply-usages/available-shipments/${supplyId}`
-  )
-}
-
 export function addSupply(id: number, payload: AddSupplyPayload) {
-  return api.post<{ usageId: number }>(
+  return api.post<{ usageId: number; billDetailId: number; transactionId: number }>(
     `/pharmacy/medical-supply-usages/patient/${id}`,
     payload
   )
@@ -218,15 +210,17 @@ export async function listInsuranceCompanies() {
 }
 
 export function listPriceLists() {
-  return api.get<Pricelist[]>("/price-lists")
+  return api.get<PriceList[] | PageEnvelope<PriceList>>(
+    "/price-lists"
+  ).then((res) => parseLegacyList<PriceList>(res))
 }
 
 export function getDefaultPriceList() {
-  return api.get<Pricelist>("/price-lists/default")
+  return api.get<PriceList>("/price-lists/default")
 }
 
 export function listPriceListServices(priceListId: number) {
-  return api.get<ServicePrice[]>(
+  return api.get<{ pricelistId: number; price: number }[]>(
     `/price-lists/${priceListId}/services`
   )
 }
@@ -236,11 +230,31 @@ export function listServices() {
 }
 
 export function listDrugCards() {
-  return api.get<DrugCard[]>("/pharmacy/drugs/cards")
+  return api
+    .get<DrugCard[] | PageEnvelope<DrugCard>>(("/pharmacy/drugs/cards"))
+    .then((res) => parseLegacyList<DrugCard>(res))
 }
 
 export function listDrugShipments(drugId: number) {
   return api.get<DrugShipment[]>(`/pharmacy/drugs/shipments/drug/${drugId}`)
+}
+
+/* ----------------------------------------------------------------
+   Medical-supply admin endpoints (pacakged-envelope paginated)
+   ---------------------------------------------------------------- */
+
+export function listAvailableSupplies() {
+  return api
+    .get<
+      MedicalSupply[] | PageEnvelope<MedicalSupply>
+    >("/pharmacy/medical-supplies")
+    .then((res) => parseLegacyList<MedicalSupply>(res))
+}
+
+export function listSupplyShipments(supplyId: number) {
+  return api.get<MedicalSupplyShipment[]>(
+    `/pharmacy/medical-supply-usages/available-shipments/${supplyId}`
+  )
 }
 
 /* ----------------------------------------------------------------

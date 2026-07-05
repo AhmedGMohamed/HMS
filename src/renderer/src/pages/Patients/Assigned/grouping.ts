@@ -8,6 +8,14 @@
  *
  * Group inputs come straight from the API endpoints that already
  * return camelCased payloads (through the `lib/api.ts` boundary).
+ *
+ * Wire shape (T6+):
+ *  - `ActivePatientService`: `isActive`, `serviceId`, flat `name` /
+ *    `serviceType` (no nested `service` object).
+ *  - `DrugUsage`: `usageId`, `drugId`, flat `drugName` /
+ *    `unitConversion.{larger, smaller, ratio}` (no nested `drug`).
+ *  - `MedicalSupplyUsage`: `usageId`, `supplyId`, flat `supplyName` /
+ *    `patientName` / `isActive`.
  */
 
 import type {
@@ -23,7 +31,9 @@ export interface AssignedServiceGroup {
   /** Heuristic for "all stopped" vs "active" badge. */
   isFullyStopped: boolean
   isActive: boolean
-  /** Sum of `quantity` across rows. */
+  /** Sum of `quantity` across rows. Wire doesn't carry quantity on
+   *  the assigned endpoint, so we default to 1 per row. The legacy
+   *  `addServiceToPatient` defaults the new row to quantity=1. */
   quantity: number
 }
 
@@ -61,12 +71,12 @@ export function groupAssignedServices(
         rows: [row],
         isFullyStopped: !row.isActive,
         isActive: row.isActive,
-        quantity: row.quantity ?? 1,
+        quantity: 1,
       })
       continue
     }
     existing.rows.push(row)
-    existing.quantity += row.quantity ?? 1
+    existing.quantity += 1
     if (row.isActive) existing.isActive = true
     if (existing.isFullyStopped && row.isActive) existing.isFullyStopped = false
   }
@@ -79,9 +89,11 @@ export function groupAssignedDrugs(
   const out = new Map<number, AssignedDrugGroup>()
   for (const row of rows) {
     const existing = out.get(row.drugId)
-    const unit = row.drug?.unitConversion?.smallerUnit ?? null
+    const unit = row.unitConversion?.smaller ?? null
     const lastAdministeredTime =
-      row.lastAdministered != null ? new Date(row.lastAdministered).getTime() : null
+      row.lastAdministered != null
+        ? new Date(row.lastAdministered).getTime()
+        : null
     if (!existing) {
       out.set(row.drugId, {
         kind: "drug",
@@ -130,18 +142,4 @@ export function groupAssignedSupplies(
     existing.totalRemaining += row.remainingQuantity
   }
   return out
-}
-
-/**
- * Compare two ISO date strings. Returns the more-recent one (or `null`
- * if both are empty / invalid). Used by the assigned panels' headers
- * when we want to surface "Last updated at <relative>".
- */
-export function pickMostRecent<T extends string | null | undefined>(
-  a: T,
-  b: T
-): T {
-  if (!a) return b
-  if (!b) return a
-  return new Date(a).getTime() >= new Date(b).getTime() ? a : b
 }

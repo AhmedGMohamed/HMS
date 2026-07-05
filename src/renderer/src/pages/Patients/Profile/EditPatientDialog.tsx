@@ -36,7 +36,7 @@ import {
 import type {
   InsuranceCompany,
   Patient,
-  Pricelist,
+  PriceList,
   Gender
 } from "@/pages/Patients/types/patient"
 import { ApiError } from "@/lib/errors"
@@ -97,7 +97,7 @@ export function EditPatientDialog({
      afterwards. Mirrors the wizard's payment-step loader so we don't
      need a server-roundtrip per field edit. */
   const [insuranceList, setInsuranceList] = useState<InsuranceCompany[]>([])
-  const [pricelists, setPriceLists] = useState<Pricelist[]>([])
+  const [pricelists, setPriceLists] = useState<PriceList[]>([])
   const [loadingLookups, setLoadingLookups] = useState(false)
 
   useEffect(() => {

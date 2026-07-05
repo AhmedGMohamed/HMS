@@ -98,8 +98,7 @@ export function AssignedServicesPanel({
               onView={() =>
                 setActiveGroup({
                   name:
-                    list.services.find((r) => r.serviceId === serviceId)
-                      ?.service?.name ??
+                    group.rows[0]?.name ??
                     t("patients.buttons.view"),
                   rows: group.rows,
                 })
@@ -146,7 +145,7 @@ function ServiceGroupRow({
   onView: () => void
 }) {
   const { t } = useTranslation()
-  const name = group.rows[0]?.service?.name ?? "—"
+  const name = group.rows[0]?.name ?? "—"
   const statusLabel = group.isFullyStopped
     ? t("patients.status.stopped")
     : group.isActive

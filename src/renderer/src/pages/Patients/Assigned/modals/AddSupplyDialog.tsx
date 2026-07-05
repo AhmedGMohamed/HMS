@@ -143,11 +143,15 @@ export function AddSupplyDialog({
     const shipment = shipments.find((s) => s.shipmentId === qtyShipmentId)
     if (!shipment) return
     if (currentAdmissionId == null) return
+    const price =
+      shipment.prices[0]?.price ??
+      shipment.buyPrice * quantity ??
+      quantity
     await addSupply(patientId, {
       supplyId: selectedSupply.supplyId,
       shipmentId: shipment.shipmentId,
       quantity,
-      price: shipment.unitCost * quantity,
+      price,
       patientHistoryId: currentAdmissionId,
     })
     onOpenChange(false)
@@ -274,7 +278,7 @@ export function AddSupplyDialog({
                         <td className="py-2 tabular-nums">#{s.shipmentId}</td>
                         <td className="py-2 tabular-nums">{s.quantity}</td>
                         <td className="py-2 text-muted-foreground">
-                          {s.unitCost}
+                          {s.buyPrice}
                         </td>
                         <td className="py-2 text-end">
                           <Button

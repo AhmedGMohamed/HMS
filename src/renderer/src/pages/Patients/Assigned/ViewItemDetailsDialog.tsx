@@ -43,8 +43,8 @@ interface ServiceOnlyProps extends SharedBaseProps {
 interface DrugOnlyProps extends SharedBaseProps {
   kind: "drug"
   rows: DrugUsage[]
-  onAdministerDrug: (drugUsageId: number) => Promise<unknown> | void
-  onRemoveDrug: (drugUsageId: number) => Promise<unknown> | void
+  onAdministerDrug: (usageId: number) => Promise<unknown> | void
+  onRemoveDrug: (usageId: number) => Promise<unknown> | void
 }
 
 interface SupplyOnlyProps extends SharedBaseProps {
@@ -205,7 +205,7 @@ function ServiceRow({
         <td className="py-2">
           {new Date(row.startDate).toLocaleString()}
         </td>
-        <td className="py-2">{row.service?.serviceType ?? "—"}</td>
+        <td className="py-2">{row.serviceType}</td>
         <td className="py-2">
           <Badge variant={row.isActive ? "default" : "secondary"}>
             {t(
@@ -303,7 +303,7 @@ function DrugTable(
       <tbody>
         {props.rows.map((row) => (
           <DrugRow
-            key={row.drugUsageId}
+            key={row.usageId}
             row={row}
             canManage={props.canManage}
             onAdminister={props.onAdministerDrug}
@@ -335,7 +335,7 @@ function DrugRow({
   const handleAdminister = async () => {
     setAdministering(true)
     try {
-      await onAdminister(row.drugUsageId)
+      await onAdminister(row.usageId)
     } finally {
       setAdministering(false)
     }
@@ -398,7 +398,7 @@ function DrugRow({
         onConfirm={async () => {
           setRemoving(true)
           try {
-            await onRemove(row.drugUsageId)
+            await onRemove(row.usageId)
             setConfirmRemove(false)
           } catch {
             setRemoving(false)
@@ -441,7 +441,7 @@ function SupplyTable(
       <tbody>
         {props.rows.map((row) => (
           <SupplyRow
-            key={row.supplyUsageId}
+            key={row.usageId}
             row={row}
             canManage={props.canManage}
             onRemove={props.onRemoveSupply}
@@ -501,7 +501,7 @@ function SupplyRow({
         onConfirm={async () => {
           setRemoving(true)
           try {
-            await onRemove(row.supplyUsageId)
+            await onRemove(row.usageId)
             setConfirmRemove(false)
           } catch {
             setRemoving(false)
