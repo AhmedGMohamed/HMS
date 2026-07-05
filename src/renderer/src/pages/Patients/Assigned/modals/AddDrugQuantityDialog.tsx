@@ -52,10 +52,10 @@ export function AddDrugQuantityDialog({
 }: AddDrugQuantityDialogProps) {
   const { t } = useTranslation()
   const unit = drug.unitConversion
-  const available = shipment?.remainingQuantity ?? 0
+  const available = shipment?.quantity ?? 0
   const ratio = unit?.ratio ?? 1
-  const smallerUnit = unit?.smallerUnit ?? ""
-  const largerUnit = unit?.largerUnit ?? ""
+  const smallerUnit = unit?.smaller ?? ""
+  const largerUnit = unit?.larger ?? ""
 
   const maxLarger = Math.floor(available / ratio)
   const maxSmaller = available

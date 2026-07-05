@@ -25,8 +25,8 @@ export interface UseAssignedDrugsResult {
   error: Error | null
   refresh: () => void
   add: (args: AddDrugArgs) => Promise<void>
-  remove: (drugUsageId: number) => Promise<void>
-  administer: (drugUsageId: number) => Promise<void>
+  remove: (usageId: number) => Promise<void>
+  administer: (usageId: number) => Promise<void>
 }
 
 export interface AddDrugArgs {
@@ -110,9 +110,9 @@ export function useAssignedDrugs(
   )
 
   const remove = useCallback(
-    async (drugUsageId: number) => {
+    async (usageId: number) => {
       try {
-        await removeDrug(patientId, drugUsageId)
+        await removeDrug(patientId, usageId)
         toast.success(t("patients.messages.drugRemoved"))
         dispatchBillChanged({
           patientId,
@@ -134,8 +134,8 @@ export function useAssignedDrugs(
   )
 
   const administer = useCallback(
-    async (drugUsageId: number) => {
-      const row = drugs.find((d) => d.drugUsageId === drugUsageId)
+    async (usageId: number) => {
+      const row = drugs.find((d) => d.usageId === usageId)
       if (!row) {
         toast.error(t("patients.messages.noRemainingQuantity"))
         throw new Error("missing row")
@@ -146,7 +146,7 @@ export function useAssignedDrugs(
       }
       const nextRemaining = Math.max(0, row.remainingQuantity - 1)
       try {
-        await administerDrug(drugUsageId, { remainingQuantity: nextRemaining })
+        await administerDrug(usageId, { remainingQuantity: nextRemaining })
         toast.success(t("patients.messages.drugAdministered"))
         dispatchBillChanged({
           patientId,

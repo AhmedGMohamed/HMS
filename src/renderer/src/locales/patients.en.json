@@ -81,7 +81,10 @@
       "lastAdministered": "Last Administered",
       "notAdministeredYet": "Not administered yet",
       "available": "Available",
-      "dateAdded": "Date Added"
+      "dateAdded": "Date Added",
+      "manufacturer": "Manufacturer",
+      "largerQuantity": "Larger Quantity",
+      "smallerQuantity": "Smaller Quantity"
     },
     "billing": {
       "servicesTotal": "Services Total",

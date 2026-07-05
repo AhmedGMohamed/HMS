@@ -35,10 +35,10 @@ export class MedicalSupplyUsageController {
     async addMedicalSupplyToPatient(req: Request, res: Response) {
         try {
             const patientId = parseInt(req.params.patientId);
-            const { supplyId, shipmentId, quantity, price } = req.body;
+            const { supply_id, shipment_id, quantity, price } = req.body;
 
             // Validate required fields
-            if (!supplyId || !shipmentId || !quantity || !price) {
+            if (!supply_id || !shipment_id || !quantity || !price) {
                 res.status(400).json({
                     error: "Supply ID, shipment ID, quantity, and price are required"
                 });
@@ -59,8 +59,8 @@ export class MedicalSupplyUsageController {
             const userId = (req as any).user.userId;
             const result = await PatientModel.addMedicalSupplyToPatient(
                 patientId,
-                supplyId,
-                shipmentId,
+                supply_id,
+                shipment_id,
                 quantity,
                 price,
                 userId

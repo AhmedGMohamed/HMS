@@ -22,11 +22,13 @@
  */
 
 import type {
-  ActivePatientService,
-  DrugUsage,
-  MedicalSupplyUsage,
   ServiceType,
 } from "@/pages/Patients/types/patient"
+import type {
+  AdmissionDrugRow,
+  AdmissionServiceRow,
+  AdmissionSupplyRow,
+} from "@/pages/Patients/Admissions/lib/admissionsShape"
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -48,7 +50,7 @@ export interface AdmissionServiceGroup {
 }
 
 export function groupAdmissionServices(
-  rows: ReadonlyArray<ActivePatientService>
+  rows: ReadonlyArray<AdmissionServiceRow>
 ): AdmissionServiceGroup[] {
   const out: AdmissionServiceGroup[] = []
   const byKey = new Map<string, AdmissionServiceGroup>()
@@ -60,9 +62,9 @@ export function groupAdmissionServices(
     if (!group) {
       group = {
         serviceId: row.serviceId,
-        serviceName: row.service?.name ?? "—",
+        serviceName: row.serviceName ?? "—",
         serviceType:
-          row.service?.serviceType ??
+          row.serviceType ??
           "once",
         unitPrice,
         quantity: 0,
@@ -73,7 +75,7 @@ export function groupAdmissionServices(
       out.push(group)
     }
     group.quantity += Number(row.quantity ?? 0)
-    group.billDetailIds.push(row.activeServiceId)
+    group.billDetailIds.push(row.billDetailId)
   }
 
   for (const group of out) {
@@ -97,7 +99,7 @@ export interface AdmissionDrugGroup {
 }
 
 export function groupAdmissionDrugs(
-  rows: ReadonlyArray<DrugUsage>
+  rows: ReadonlyArray<AdmissionDrugRow>
 ): AdmissionDrugGroup[] {
   const out: AdmissionDrugGroup[] = []
   const byKey = new Map<string, AdmissionDrugGroup>()
@@ -109,7 +111,7 @@ export function groupAdmissionDrugs(
     if (!group) {
       group = {
         drugId: row.drugId,
-        drugName: row.drug?.name ?? "—",
+        drugName: row.drugName ?? "—",
         unitPrice,
         quantity: 0,
         totalCost: 0,
@@ -118,8 +120,8 @@ export function groupAdmissionDrugs(
       byKey.set(key, group)
       out.push(group)
     }
-    group.quantity += Number(row.initialQuantity ?? 0)
-    group.billDetailIds.push(row.drugUsageId)
+    group.quantity += Number(row.quantity ?? 0)
+    group.billDetailIds.push(row.billDetailId)
   }
 
   for (const group of out) {
@@ -143,7 +145,7 @@ export interface AdmissionSupplyGroup {
 }
 
 export function groupAdmissionSupplies(
-  rows: ReadonlyArray<MedicalSupplyUsage>
+  rows: ReadonlyArray<AdmissionSupplyRow>
 ): AdmissionSupplyGroup[] {
   const out: AdmissionSupplyGroup[] = []
   const byKey = new Map<string, AdmissionSupplyGroup>()
@@ -155,7 +157,7 @@ export function groupAdmissionSupplies(
     if (!group) {
       group = {
         supplyId: row.supplyId,
-        supplyName: row.supply?.name ?? "—",
+        supplyName: row.supplyName ?? "—",
         unitPrice,
         quantity: 0,
         totalCost: 0,
@@ -164,8 +166,8 @@ export function groupAdmissionSupplies(
       byKey.set(key, group)
       out.push(group)
     }
-    group.quantity += Number(row.initialQuantity ?? 0)
-    group.billDetailIds.push(row.supplyUsageId)
+    group.quantity += Number(row.quantity ?? 0)
+    group.billDetailIds.push(row.billDetailId)
   }
 
   for (const group of out) {

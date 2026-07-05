@@ -1,46 +1,54 @@
 /**
  * Patients module — domain types.
  *
- * These mirror the snake_case server responses that flow through the
- * `lib/api.ts` boundary (which camel-cases them via `caseKeys.toCamel`).
- * Every domain property here is **camelCase** — the legacy code's
- * `patient_id` / `national_id` / `payment_type` show up here as
- * `patientId` / `nationalId` / `paymentType`.
+ * Wire-shape types. The boundary `lib/api.ts:request` runs `toCamel`
+ * on every response so every field here is camelCase even though
+ * the server emits snake_case. Field names match the actual SQL
+ * columns/aliases that Express returns — no invented joins, no
+ * nested nesting the backend doesn't produce.
  *
- * Sub-shapes are exported individually so pages can import only what
- * they need: detail pages import `Patient`, billing flows import
- * `Bill` / `BillDetail`, etc. The big `*WithInsurance` and
- * `*WithStaff` aliases are reserved for the server's "enriched"
- * rows — every Patient emitted by `/api/patients` already carries
- * `insuranceCompanyName` because the controller joins it.
+ * The legacy `patients.html` + `patients.ts` assumed joined objects
+ * for `Service` / `DrugCard` / `MedicalSupply` and used properties
+ * like `unitCost` / `totalCost` / `shipmentId` that the live
+ * server doesn't emit on the assigned endpoints. T5 reworks the
+ * renderer around the actual fields with no adapter layer — every
+ * property below is the wire key, post-toCamel.
  *
- * NOTE: the legacy code base uses **column-naming drift** — some
- * endpoints return `attending_doctor_ids` (number[]) while others
- * return `attending_doctors` (object array). Adapters in
- * `adapters/patient.ts` normalize once so feature code only ever
- * sees one shape.
+ * Sections:
+ *   1. Enums
+ *   2. Patient
+ *   3. Admission lifecycle
+ *   4. Bill
+ *   5. Bill line items — services / drugs / supplies
+ *   6. Lookups
+ *   7. Staff status panel
+ *   8. Detail payload (T7)
+ *   9. Bill calculation snapshot
  */
 
 /* ----------------------------------------------------------------
-   Enums
+   1. Enums
    ---------------------------------------------------------------- */
 
 export type PaymentType = "cash" | "credit" | "insurance";
+
 export type LeaveReason =
   | "improvement"
   | "death"
   | "transfer"
   | "as_desired";
+
 export type DismissalReason = LeaveReason;
+
 export type Gender = "male" | "female" | "other";
-export type ServiceType =
-  | "once"
-  | "hourly"
-  | "daily";
+
+/** Wire type for `Service.service_type` is a free-floating string. */
+export type ServiceType = "once" | "hourly" | "daily" | (string & {});
+
 export type EmployeeType = "doctor" | "nurse" | "other";
 
 /* ----------------------------------------------------------------
-   Patient
+   2. Patient
    ---------------------------------------------------------------- */
 
 export interface PatientInsurance {
@@ -53,10 +61,10 @@ export interface PatientInsurance {
 }
 
 export interface PatientGuardian {
-  name: string | null
-  phone: string | null
-  nationalId: string | null
-  address: string | null
+  name: string | null;
+  phone: string | null;
+  nationalId: string | null;
+  address: string | null;
 }
 
 export interface Patient {
@@ -67,38 +75,34 @@ export interface Patient {
   phone: string | null;
   address: string | null;
   paymentType: PaymentType;
-  /**
-   * Flattened insurance columns populated by the controller's
-   * `LEFT JOIN InsuranceCompany`. `insuranceCompanyName` is duplicated
-   * on its own for the legacy list endpoint; `insurance` carries the
-   * structured per-patient fields.
-   */
+  /** Flattened insurance columns populated by the controller's
+   *  LEFT JOIN. `insurance` is duplicated for legacy compat and
+   *  drives the Edit-dialog form. */
   insurance: PatientInsurance;
   insuranceCompanyName: string | null;
-  /**
-   * Guardian sub-shape — when `Patient.guardian_info` JSONB is
-   * populated, the boundary serializer (`toCamel`) recurses into it
-   * so the renderer sees a nested object. When `guardian_info` is NULL
-   * the server still returns all fields as null and we fall back to
-   * flat accessors.
-   */
-  guardianInfo: PatientGuardian;
+  /** Guardian columns — server stores inside the JSONB `guardian_info`
+   *  column; `toCamel` recurses so the renderer sees a nested object.
+   *  When the JSONB is NULL the keys are still present with nulls. */
+  guardianInfo: PatientGuardian | null;
+  /** DELETED — `PatientProfilePanel` historically read flat
+   *  `guardianName` etc. forwarders in case the wire dropped the
+   *  JSONB null. The server always returns nested `guardianInfo`,
+   *  so these forwarders are gone. Kept references use `guardianInfo`. */
+  guardianName: string | null;
+  guardianPhone: string | null;
+  guardianNationalId: string | null;
+  guardianAddress: string | null;
   referringDoctorId: number | null;
   referringDoctorName: string | null;
-  pricelistId: number;
-  /**
-   * Server keeps `is_active` as the admission lens. The legacy code
-   * mixes `is_active = "currently admitted"` with `registration_date`,
-   * so the front-end renders one "admission status" from this flag.
-   */
+  pricelistId: number | null;
   isActive: boolean;
   registrationDate: string;
-  /** True when patient payload was created via "Quick Check" pathway */
+  /** Set when the patient was created via the Quick-Check pathway. */
   isQuickCheck: boolean;
 }
 
 /* ----------------------------------------------------------------
-   Admission lifecycle
+   3. Admission lifecycle
    ---------------------------------------------------------------- */
 
 export interface PatientHistory {
@@ -114,7 +118,7 @@ export interface PatientHistory {
   pricelistName: string | null;
   attendingDoctorIds: number[] | null;
   attendingNurseIds: number[] | null;
-  /** Joined names — only on enriched views (`/{id}/admissions/:hId/details`). */
+  /** Joined names — only on `/api/patients/:id/admissions/:hId/details`. */
   assignedDoctors: AssignedStaff[] | null;
   assignedNurses: AssignedStaff[] | null;
 }
@@ -128,7 +132,7 @@ export interface AssignedStaff {
 }
 
 /* ----------------------------------------------------------------
-   Bill
+   4. Bill
    ---------------------------------------------------------------- */
 
 export interface Bill {
@@ -144,10 +148,7 @@ export interface Bill {
   medicalTestsAmount: number;
   vatPercentage: number;
   vatScope: VatScope;
-  /** The JSONB array that drives the multi-scope UI — server's
-   * `vat_scope_custom` column. `vatScope` is the legacy single-
-   * value enum column (`"services"|"drugs"|"both"`), kept for
-   * backward compat on PUT but NOT used in the renderer's scope UI. */
+  /** `Bill.vat_scope_custom` (JSONB array) drives the multi-scope UI. */
   vatScopeCustom: VatScope;
   paidAt: string | null;
 }
@@ -156,9 +157,9 @@ export interface BillDetail {
   billDetailId: number;
   chargeType: "service" | "drug" | "supply";
   drugName: string | null;
-  drugShipmentId: number | null
+  drugShipmentId: number | null;
   generatedAt: string;
-  medicalSupplyName: string | null
+  medicalSupplyName: string | null;
   medicalSupplyShipmentId: number | null;
   quantity: number;
   saleType: "admitted" | "outside" | "check";
@@ -174,136 +175,224 @@ export interface DiscountScope {
   onTests: boolean;
 }
 
-export interface VatScope {
-  onServices: boolean;
-  onDrugs: boolean;
-  onSupplies: boolean;
-  onTests: boolean;
-}
+export type VatScope = DiscountScope;
 
 /* ----------------------------------------------------------------
-   Bill line items — services / drugs / supplies
+   5. Bill line items — services / drugs / supplies
    ---------------------------------------------------------------- */
 
+/** `unit_conversion` SQL emits `{ratio, larger, smaller}` — flat keys. */
+export interface UnitConversion {
+  larger: string;
+  smaller: string;
+  ratio: number;
+}
+
+/**
+ * `/api/services` envelope. The server joins `Service` with its
+ * `prices[]` (ServicePrice) and `drugs[]` (ServiceDrug joined with
+ * `DrugCard` for `drug_name`). After toCamel: pricing structures are
+ * flat arrays on the row.
+ */
 export interface Service {
   serviceId: number;
   name: string;
-  /**
-   * Booleans only on enriched payloads (e.g. `/api/services` returns
-   * them; legacy `Service` rows on auto-add endpoints sometimes omit).
-   */
-  serviceType?: ServiceType;
-  autoAddOnAdmission?: boolean;
-  autoRenew?: boolean;
-  defaultPrice?: number;
-  prices: ServicePrice[]
-  drugs: ServiceDrug[] | null
+  serviceType: ServiceType;
+  /** Server `auto_renew` → boolean. */
+  autoRenew: boolean;
+  /** Server `auto_add_on_admission` → boolean. */
+  autoAddOnAdmission: boolean;
+  prices: ServicePriceEntry[];
+  drugs: ServiceDrugWithName[] | null;
 }
 
-export interface ServicePrice {
-  pricelistOd: number;
+export interface ServicePriceEntry {
+  pricelistId: number;
   price: number;
-  requiresPrepayment: boolean
-  prepaymentType: "fixed" | "percentage" | null;
-  prepaymentAmount: number | null
+  requiresPrepayment: boolean;
+  prepaymentType: string | null;
+  prepaymentAmount: number | null;
 }
 
-export interface ServiceDrug {
+export interface ServiceDrugWithName {
+  /** ServiceDrug.service_id */
   serviceId: number;
-  drugId: number
-  name: string
+  /** ServiceDrug.drug_id */
+  drugId: number;
+  /** DrugCard.name join */
+  name: string;
 }
 
+/**
+ * `/api/patients/:id/admissions/current/services` envelope. The
+ * `ActivePatientService` core fields plus the joined `Service.name`
+ * and `Service.service_type` (aliased flat). No nested `Service`
+ * object — wire confirms there isn't one.
+ */
 export interface ActivePatientService {
   activeServiceId: number;
-  serviceId: number;
   patientId: number;
-  patientHistoryId: number | null;
+  serviceId: number;
   startDate: string;
   endDate: string | null;
   isActive: boolean;
-  quantity: number;
-  unitPrice: number;
-  totalCost: number;
-  service?: Service;
-  /** Charge types concatenated by legacy (e.g. "Daily,Hourly") — pre-grouped. */
-  chargeTypes?: string;
+  lastRenewed: string | null;
+  patientHistoryId: number;
+  /** `Service.name` join — flat. */
+  name: string;
+  /** `Service.service_type` join — flat. */
+  serviceType: ServiceType;
 }
 
+/**
+ * `/api/pharmacy/drugs/cards` paginated envelope element. The server
+ * SELECTs `*` from `DrugCard`; its `unit_conversion` JSONB column is
+ * returned as a nested object (after toCamel: `larger`/`smaller`).
+ */
 export interface DrugCard {
   drugId: number;
   name: string;
   manufacturer: string | null;
-  unitConversion?: UnitConversion;
+  provider: string | null;
+  isObligatoryContinuous: boolean;
+  saleQuantity: number;
+  frequency: string | null;
+  minStockAlert: number | null;
+  maxDaysExpiryAlert: number | null;
+  unitConversion: UnitConversion;
+  createdByUserId: number;
 }
 
-export interface UnitConversion {
-  largerUnit: string;
-  smallerUnit: string;
-  ratio: number;
-}
-
+/**
+ * `/api/pharmacy/drugs/shipments/drug/:drugId` envelope — wire emits
+ * `ds.*` plus drug_name, warehouse_name, unit_conversion,
+ * quantity_in_larger_unit, prices[].
+ */
 export interface DrugShipment {
   shipmentId: number;
   drugId: number;
+  warehouseId: number;
+  /** `DrugShipment.quantity` (current stock) */
   quantity: number;
-  remainingQuantity: number;
-  unitCost: number;
+  /** `DrugShipment.unit_cost` — not selected in this query, will be
+   *  added back via the prices[] join if needed. */
+  unitCost: number | null;
   expiryDate: string | null;
+  drugName: string;
+  warehouseName: string;
+  /** Flattened from `DrugCard.unit_conversion` JSONB. */
+  unitConversion: UnitConversion;
+  /** Server-computed: `quantity / ratio` (cast to int). */
+  quantityInLargerUnit: number;
+  /** Server-aggregated prices: `Select DISTINCT pricelist_id, price,
+   *  requires_prepayment, prepayment_type, prepayment_amount` plus
+   *  joined `pricelist.name`. */
+  prices: DrugShipmentPrice[];
 }
 
+export interface DrugShipmentPrice {
+  pricelistId: number;
+  price: number;
+  requiresPrepayment: boolean;
+  prepaymentType: string | null;
+  prepaymentAmount: number | null;
+}
+
+/**
+ * `/api/patients/:id/admissions/current/drugs` envelope. The server's
+ * SELECT: `du.*, dc.name as drug_name, dc.unit_conversion,
+ * dt.quantity as initial_quantity, dt.timestamp as start_date`.
+ * No `unit_price` / `total_cost` columns are emitted.
+ */
 export interface DrugUsage {
-  drugUsageId: number;
+  /** `DrugUsage.usage_id` — aliased. */
+  usageId: number;
+  patientId: number;
   drugId: number;
-  shipmentId: number;
+  transactionId: number;
   patientHistoryId: number;
-  initialQuantity: number;
   remainingQuantity: number;
-  unitPrice: number;
-  totalCost: number;
-  startDate: string | null;
   lastAdministered: string | null;
-  drug?: DrugCard;
+  /** Flattened from `DrugCard.name`. */
+  drugName: string;
+  /** Flattened from `DrugCard.unit_conversion` JSONB. */
+  unitConversion: UnitConversion;
+  /** `DrugTransaction.quantity` join. */
+  initialQuantity: number;
+  /** `DrugTransaction.timestamp` join. */
+  startDate: string | null;
 }
 
+/**
+ * `/api/pharmacy/medical-supplies` paginated envelope element.
+ * SELECT: `* from MedicalSupply`. Wire does not include
+ * `unit_conversion` because supplies have none.
+ */
 export interface MedicalSupply {
   supplyId: number;
   name: string;
   manufacturer: string | null;
   provider: string | null;
-  unitConversion?: UnitConversion;
+  isObligatoryContinuous: boolean;
+  saleQuantity: number;
+  frequency: string | null;
+  minStockAlert: number;
+  createdByUserId: number;
 }
 
+/**
+ * `/api/pharmacy/medical-supply-usages/available-shipments/:supplyId`
+ * envelope. Wire returns `shipment_id, warehouse_name, quantity,
+ * buy_price, prices[], expiry_date`.
+ */
 export interface MedicalSupplyShipment {
   shipmentId: number;
-  supplyId: number;
+  warehouseName: string;
   quantity: number;
-  remainingQuantity: number;
-  unitCost: number;
+  /** Server `MedicalSupplyShipment.buy_price`. */
+  buyPrice: number;
   expiryDate: string | null;
+  prices: MedicalSupplyShipmentPrice[];
 }
 
+export interface MedicalSupplyShipmentPrice {
+  pricelistName: string;
+  pricelistId: number;
+  price: number;
+  requiresPrepayment: boolean;
+  prepaymentType: string | null;
+  prepaymentAmount: number | null;
+}
+
+/**
+ * `/api/pharmacy/medical-supply-usages/patient-history/:patientId`
+ * envelope. Wire emits `usage_id, patient_id, patient_name,
+ * supply_id, supply_name, transaction_id, initial_quantity,
+ * remaining_quantity, start_date, last_administered, is_active`.
+ */
 export interface MedicalSupplyUsage {
-  supplyUsageId: number;
+  usageId: number;
+  patientId: number;
+  patientName: string;
   supplyId: number;
-  shipmentId: number;
-  patientHistoryId: number;
+  supplyName: string;
+  transactionId: number;
   initialQuantity: number;
   remainingQuantity: number;
-  unitPrice: number;
-  totalCost: number;
   startDate: string | null;
-  supply?: MedicalSupply;
+  lastAdministered: string | null;
+  /** Server-computed `remaining_quantity > 0`. */
+  isActive: boolean;
 }
 
 /* ----------------------------------------------------------------
-   Lookups
+   6. Lookups
    ---------------------------------------------------------------- */
 
 export interface Doctor {
   doctorId: number;
   name: string;
-  doctorType?: "attending" | "referring" | "supervising" | string;
+  doctorType?: "attending" | "referring" | "supervising" | (string & {});
   specialization?: string;
   isAvailable?: boolean;
 }
@@ -322,20 +411,16 @@ export interface InsuranceCompany {
   pricelistName: string;
 }
 
-export interface Pricelist {
+export interface PriceList {
+  /** `PriceList.pricelist_id` column — post-toCamel stays `pricelistId`
+   *  (the source is a single snake-segment "pricelist", not "priceList"). */
   pricelistId: number;
   name: string;
   isDefault: boolean;
 }
 
-export interface ServicePrice {
-  serviceId: number;
-  pricelistId: number;
-  price: number;
-}
-
 /* ----------------------------------------------------------------
-   Staff status panel — clock-in + assignment summary
+   7. Staff status panel — clock-in + assignment summary
    ---------------------------------------------------------------- */
 
 export interface ClockedInStaff {
@@ -343,9 +428,7 @@ export interface ClockedInStaff {
   employeeType: EmployeeType;
   name: string;
   clockInTime: string;
-  /** Patient history ids where this employee is documented as assigned. */
   assignedPatientIds: number[];
-  /** Convenience pre-computed by the API → caller may treat as a hint. */
   available: boolean;
 }
 
@@ -361,7 +444,7 @@ export interface PatientAssignment {
 }
 
 /* ----------------------------------------------------------------
-   Detail payload (the `/{id}/admissions/:historyId/details` endpoint)
+   8. Detail payload (T7 — `/admissions/:historyId/details`)
    ---------------------------------------------------------------- */
 
 export interface AdmissionDetails {
@@ -377,7 +460,7 @@ export interface AdmissionDetails {
 }
 
 /* ----------------------------------------------------------------
-   Bill calculation snapshot — derived client-side from `Bill + lines`
+   9. Bill calculation snapshot — derived client-side from `Bill + lines`
    ---------------------------------------------------------------- */
 
 export interface BillingSnapshot {
@@ -392,8 +475,8 @@ export interface BillingSnapshot {
   totalFee: number;
   paidAmount: number;
   balance: number;
-  /** Legacy label — positive balance the facility is owed */
+  /** Legacy label — positive balance the facility is owed. */
   remainingFacility: number;
-  /** Legacy label — negative balance displayed as positive (overpayment) */
+  /** Legacy label — negative balance displayed as positive (overpayment). */
   remainingPatient: number;
 }

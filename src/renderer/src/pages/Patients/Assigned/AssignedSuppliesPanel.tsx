@@ -93,8 +93,7 @@ export function AssignedSuppliesPanel({
               onView={() =>
                 setActiveGroup({
                   name:
-                    list.supplies.find((r) => r.supplyId === supplyId)?.supply
-                      ?.name ?? "",
+                    group.rows[0]?.supplyName ?? "",
                   rows: group.rows,
                 })
               }
@@ -139,7 +138,7 @@ function SupplyGroupRow({
   onView: () => void
 }) {
   const { t } = useTranslation()
-  const name = group.rows[0]?.supply?.name ?? "—"
+  const name = group.rows[0]?.supplyName ?? "—"
   return (
     <AssignedItemRow
       name={name}

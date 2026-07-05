@@ -1308,7 +1308,7 @@ export class PatientModel {
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
-                    patient_id, active_service_id, service_id, start_date, is_active, last_renewed
+                    patient_id, patient_history_id, service_id, start_date, is_active, last_renewed
                 ) VALUES ($1, $2, $3, $4, $5, NULL)
                 RETURNING *;
             `;

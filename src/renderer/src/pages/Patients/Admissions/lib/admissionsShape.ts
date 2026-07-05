@@ -6,25 +6,26 @@
  * reads **camelCase keys only** — never snake_case.
  *
  * Helpers here map the flat, top-level `getAdmissionDetails` payload
- * into the typed renderer domain shapes (`PatientHistory`, `Bill`,
- * `ActivePatientService`, `DrugUsage`, `MedicalSupplyUsage`,
- * `AssignedStaff`). The input types below describe the exact form of
- * the payload once it has been camelCased; the output types are the
- * canonical renderer-side domain models, unchanged from T1.
+ * into typed renderer-domain shapes. Note that this endpoint returns
+ * `BillDetail` rows enriched with billing arithmetic (`quantity`,
+ * `unitPrice`, `totalCost`) and partial joins — distinct from the
+ * Assigned-tab endpoints that return raw `ActivePatientService` /
+ * `DrugUsage` / `MedicalSupplyUsage` rows. We model them as their own
+ * richer types (`AdmissionServiceRow`, `AdmissionDrugRow`,
+ * `AdmissionSupplyRow`) rather than reusing the slimmer assigned-tab
+ * shapes.
+ *
+ * The input types below describe the exact form of the payload once
+ * it has been camelCased; the output types are the canonical
+ * admission-detail renderer-side domain models.
  */
 
 import type {
-  ActivePatientService,
   AssignedStaff,
   Bill,
   DiscountScope,
-  DrugCard,
-  DrugUsage,
   LeaveReason,
-  MedicalSupply,
-  MedicalSupplyUsage,
   PatientHistory,
-  Service,
   ServiceType,
   UnitConversion,
   VatScope,
@@ -187,12 +188,12 @@ export function parseUnitConversion(
       const parsed = JSON.parse(value)
       if (
         parsed &&
-        typeof parsed.largerUnit === "string" &&
-        typeof parsed.smallerUnit === "string"
+        typeof parsed.larger === "string" &&
+        typeof parsed.smaller === "string"
       ) {
         return {
-          largerUnit: parsed.largerUnit,
-          smallerUnit: parsed.smallerUnit,
+          larger: parsed.larger,
+          smaller: parsed.smaller,
           ratio:
             typeof parsed.ratio === "number"
               ? parsed.ratio
@@ -276,7 +277,87 @@ export function coerceBill(raw: AdmissionDetailsRaw): Bill {
 
 /* ----------------------------------------------------------------
  * Row hydrators
- * ---------------------------------------------------------------- */
+ * ----------------------------------------------------------------
+ *
+ * The admission-details endpoint returns `BillDetail` rows enriched
+ * with billing arithmetic and partial joins — a *richer* shape than
+ * the Assigned-tab endpoints' flat `ActivePatientService` /
+ * `DrugUsage` / `MedicalSupplyUsage` rows. We model those rows as
+ * their own types so the coerce / grouping code stops fighting the
+ * assigned-tab types. The line-item consumer (`AdmissionDetailsDialog`)
+ * reads only the `.quantity`, `.unitPrice`, `.totalCost` fields
+ * surfaced here.
+ */
+
+/**
+ * Per-admission service row. Mirrors the `ServiceRowRaw` SQL join —
+ * the bill-detail columns (id, price breakdown, charge type) plus the
+ * minimal `Service` metadata (name, type) the endpoint joins flat.
+ */
+export interface AdmissionServiceRow {
+  /** `BillDetail.bill_detail_id` — the row's primary key. */
+  billDetailId: number
+  serviceId: number
+  patientId: number
+  patientHistoryId: number
+  serviceName: string
+  serviceType: ServiceType
+  /** Quantity billed for this row — differs per service-type. */
+  quantity: number
+  unitPrice: number
+  /** `quantity * unitPrice` recomputed client-side (server-emitted). */
+  totalCost: number
+  /** `BillDetail.generated_at`. */
+  generatedAt: string
+  chargeType: string
+  /** Past admission — always `false`; kept for callers that branch
+   *  on "is this row still actively being billed". */
+  isActive: false
+  /** `PatientHistory.discharge_time` (forwarded via CoerceServiceRowContext). */
+  endDate: string | null
+}
+
+/**
+ * Per-admission drug row. Mirrors `DrugRowRaw` — adds `unitPrice`,
+ * `totalCost`, `drugShipmentId`, plus the partial `DrugCard` join
+ * (`drug_name`, `manufacturer`, `unit_conversion`, `expiry_date`)
+ * the endpoint's SQL selects.
+ */
+export interface AdmissionDrugRow {
+  billDetailId: number
+  drugId: number
+  patientHistoryId: number
+  drugName: string
+  manufacturer: string | null
+  /** Parsed from the `DrugCard.unit_conversion` JSONB column. May
+   *  be `null` when the column was missing/invalid. */
+  unitConversion: UnitConversion | null
+  expiryDate: string | null
+  drugShipmentId: number
+  quantity: number
+  unitPrice: number
+  totalCost: number
+  generatedAt: string
+  chargeType: string
+}
+
+/**
+ * Per-admission medical-supply row. Mirrors `SupplyRowRaw` — same
+ * shape minus `unitConversion` (supplies have none).
+ */
+export interface AdmissionSupplyRow {
+  billDetailId: number
+  supplyId: number
+  patientHistoryId: number
+  supplyName: string
+  manufacturer: string | null
+  medicalSupplyShipmentId: number
+  quantity: number
+  unitPrice: number
+  totalCost: number
+  generatedAt: string
+  chargeType: string
+}
 
 export interface CoerceServiceRowContext {
   patientId: number
@@ -287,27 +368,21 @@ export interface CoerceServiceRowContext {
 export function coerceServiceRow(
   raw: ServiceRowRaw,
   ctx: CoerceServiceRowContext
-): ActivePatientService {
-  const service: Service = {
-    serviceId: raw.serviceId,
-    name: raw.serviceName,
-    serviceType: raw.serviceType,
-    prices: [],
-    drugs: null,
-  }
+): AdmissionServiceRow {
   return {
-    activeServiceId: raw.billDetailId,
+    billDetailId: raw.billDetailId,
     serviceId: raw.serviceId,
     patientId: ctx.patientId,
     patientHistoryId: ctx.patientHistoryId,
-    startDate: raw.generatedAt,
-    endDate: ctx.dischargeTime,
-    isActive: false,
+    serviceName: raw.serviceName,
+    serviceType: raw.serviceType,
     quantity: parseDec(raw.quantity),
     unitPrice: parseDec(raw.unitPrice),
     totalCost: parseDec(raw.totalCost),
-    service,
-    chargeTypes: raw.serviceType ? String(raw.serviceType) : undefined,
+    generatedAt: raw.generatedAt,
+    chargeType: raw.chargeType,
+    isActive: false,
+    endDate: ctx.dischargeTime,
   }
 }
 
@@ -319,26 +394,21 @@ export interface CoerceDrugRowContext {
 export function coerceDrugRow(
   raw: DrugRowRaw,
   ctx: CoerceDrugRowContext
-): DrugUsage {
-  const drug: DrugCard = {
-    drugId: raw.drugId,
-    name: raw.drugName,
-    manufacturer: raw.manufacturer,
-    unitConversion: parseUnitConversion(raw.unitConversion),
-  }
-  const quantity = parseDec(raw.quantity)
+): AdmissionDrugRow {
   return {
-    drugUsageId: raw.billDetailId,
+    billDetailId: raw.billDetailId,
     drugId: raw.drugId,
-    shipmentId: raw.drugShipmentId,
     patientHistoryId: ctx.patientHistoryId,
-    initialQuantity: quantity,
-    remainingQuantity: quantity,
+    drugName: raw.drugName,
+    manufacturer: raw.manufacturer,
+    unitConversion: parseUnitConversion(raw.unitConversion) ?? null,
+    expiryDate: raw.expiryDate,
+    drugShipmentId: raw.drugShipmentId,
+    quantity: parseDec(raw.quantity),
     unitPrice: parseDec(raw.unitPrice),
     totalCost: parseDec(raw.totalCost),
-    startDate: raw.generatedAt,
-    lastAdministered: raw.generatedAt,
-    drug,
+    generatedAt: raw.generatedAt,
+    chargeType: raw.chargeType,
   }
 }
 
@@ -350,25 +420,19 @@ export interface CoerceSupplyRowContext {
 export function coerceSupplyRow(
   raw: SupplyRowRaw,
   ctx: CoerceSupplyRowContext
-): MedicalSupplyUsage {
-  const supply: MedicalSupply = {
-    supplyId: raw.supplyId,
-    name: raw.medicalSupplyName,
-    manufacturer: raw.manufacturer,
-    provider: null,
-  }
-  const quantity = parseDec(raw.quantity)
+): AdmissionSupplyRow {
   return {
-    supplyUsageId: raw.billDetailId,
+    billDetailId: raw.billDetailId,
     supplyId: raw.supplyId,
-    shipmentId: raw.medicalSupplyShipmentId,
     patientHistoryId: ctx.patientHistoryId,
-    initialQuantity: quantity,
-    remainingQuantity: quantity,
+    supplyName: raw.medicalSupplyName,
+    manufacturer: raw.manufacturer,
+    medicalSupplyShipmentId: raw.medicalSupplyShipmentId,
+    quantity: parseDec(raw.quantity),
     unitPrice: parseDec(raw.unitPrice),
     totalCost: parseDec(raw.totalCost),
-    startDate: raw.generatedAt,
-    supply,
+    generatedAt: raw.generatedAt,
+    chargeType: raw.chargeType,
   }
 }
 
@@ -415,9 +479,9 @@ export function coerceStaffRow<
 export interface HydratedAdmissionDetails {
   admission: PatientHistory
   bill: Bill
-  services: ActivePatientService[]
-  drugs: DrugUsage[]
-  supplies: MedicalSupplyUsage[]
+  services: AdmissionServiceRow[]
+  drugs: AdmissionDrugRow[]
+  supplies: AdmissionSupplyRow[]
   servicesTotal: number
   drugsTotal: number
   suppliesTotal: number
