@@ -1,5 +1,4 @@
 import type {
-  Bill,
   DiscountScope,
   VatScope,
 } from "@/pages/Patients/types/patient"
@@ -63,22 +62,4 @@ export function vatScopeToServer(scope: VatScope): string[] {
   if (scope.onSupplies) keys.push("supplies")
   if (scope.onTests) keys.push("tests")
   return keys
-}
-
-/* ----------------------------------------------------------------
- * discountType — server stores 'percentage' | 'fixed'; renderer
- * uses the shorter 'percent' | 'fixed' to match our upstream
- * discriminator.
- * ---------------------------------------------------------------- */
-
-export function discountTypeFromServer(
-  value: string | null | undefined
-): Bill["discountType"] {
-  return value === "percentage" ? "percent" : "fixed"
-}
-
-export function discountTypeToServer(
-  value: Bill["discountType"]
-): "percentage" | "fixed" {
-  return value === "percent" ? "percentage" : "fixed"
 }

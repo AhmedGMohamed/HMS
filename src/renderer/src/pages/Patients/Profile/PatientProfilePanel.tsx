@@ -19,6 +19,7 @@ import { usePermission } from "@/hooks/usePermission"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 
 import type {
+  Bill,
   Patient,
   PatientHistory,
 } from "@/pages/Patients/types/patient"
@@ -31,9 +32,11 @@ import { EditPatientDialog } from "@/pages/Patients/Profile/EditPatientDialog"
 interface PatientProfilePanelProps {
   patient: Patient | null
   admission: PatientHistory | null
+  bill: Bill | null
   loading: boolean
   error: Error | null
   onRefresh: () => void
+  onPrintBill: () => void
 }
 
 /**
@@ -47,15 +50,17 @@ interface PatientProfilePanelProps {
  * Discharge / Print Bill. The implicit visibility toggle on
  * Admit/Discharge matches the legacy `updateActionButtons()`
  * (Admit only when `!is_active`, Discharge only when `is_active`).
- * Admit/Discharge/PrintBill toasts are connections to the eventual
- * T7/T9/T6 dialogs.
+ * Admit/Discharge toasts connect to the eventual T7/T9 dialogs;
+ * Print Bill dispatches to the top-level pdfShell.
  */
 export function PatientProfilePanel({
   patient,
   admission,
+  bill,
   loading,
   error,
   onRefresh,
+  onPrintBill,
 }: PatientProfilePanelProps) {
   const { t } = useTranslation()
   useEnsureNamespace("patients")
@@ -110,7 +115,9 @@ export function PatientProfilePanel({
       <ActionBar
         patient={patient}
         canManage={canManage}
+        bill={bill}
         onEdit={() => setEditOpen(true)}
+        onPrintBill={onPrintBill}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -145,10 +152,12 @@ export function PatientProfilePanel({
 interface ActionBarProps {
   patient: Patient
   canManage: boolean
+  bill: Bill | null
   onEdit: () => void
+  onPrintBill: () => void
 }
 
-function ActionBar({ patient, canManage, onEdit }: ActionBarProps) {
+function ActionBar({ patient, canManage, bill, onEdit, onPrintBill }: ActionBarProps) {
   const { t } = useTranslation()
   return (
     <div
@@ -214,10 +223,14 @@ function ActionBar({ patient, canManage, onEdit }: ActionBarProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() =>
-          toast.info(t("common.loading"), {
-            description: t("patients.buttons.printBill"),
-          })
+        onClick={onPrintBill}
+        disabled={!canManage || !bill}
+        title={
+          !bill
+            ? t("patients.fields.admissionNotActive")
+            : !canManage
+              ? t("common.permission.requires_manage_patients")
+              : undefined
         }
       >
         <PrinterIcon aria-hidden className="me-2 size-4" />

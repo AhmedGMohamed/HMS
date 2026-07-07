@@ -12,7 +12,7 @@ import type {
 export interface BillingFormSchema {
   medicalTestsAmount: number
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: VatScope

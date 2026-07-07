@@ -34,7 +34,7 @@ import type {
 import {
   discountScopeFromServer,
   vatScopeFromServer,
-} from "@/pages/Patients/Billing/lib/billingTransformers"
+} from "@/pages/Patients/lib/billingTransformers"
 
 /* ----------------------------------------------------------------
  * Input types (post-toCamel server payloads)
@@ -263,7 +263,7 @@ export function coerceBill(raw: AdmissionDetailsRaw): Bill {
     totalAmount: parseDec(raw.totalAmount),
     paidAmount: parseDec(raw.paidAmount),
     discountType:
-      raw.discountType === "percentage" ? "percent" : "fixed",
+      raw.discountType === "percentage" ? "percentage" : "fixed",
     discount: parseDec(raw.discount),
     discountScope,
     vatPercentage: parseDec(raw.vatPercentage),

@@ -14,7 +14,7 @@ const round2 = (n: number): number =>
 export interface BillingFormDefaults {
   medicalTestsAmount: number
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: VatScope
@@ -29,7 +29,7 @@ export interface BillingFormValues {
   medicalTestsAmount: number
   paidAmount: number
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: VatScope
@@ -95,7 +95,7 @@ export function billToFormDefaults(bill: Bill | null): BillingFormDefaults {
     medicalTestsAmount: bill.medicalTestsAmount ?? 0,
     discount: bill.discount ?? 0,
     discountType:
-      bill.discountType === "percent" || bill.discountType === "fixed"
+      bill.discountType === "percentage" || bill.discountType === "fixed"
         ? bill.discountType
         : "fixed",
     discountScope: bill.discountScope ?? ALL_SCOPE,

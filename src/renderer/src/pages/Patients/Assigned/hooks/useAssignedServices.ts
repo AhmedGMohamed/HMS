@@ -14,7 +14,7 @@ import { ApiError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
 import {
   dispatchBillChanged,
-} from "@/pages/Patients/Billing/lib/billEvents"
+} from "@/pages/Patients/lib/billEvents"
 
 export interface UseAssignedServicesResult {
   services: ActivePatientService[]

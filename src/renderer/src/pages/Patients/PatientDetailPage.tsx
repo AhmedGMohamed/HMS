@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
@@ -29,6 +29,9 @@ import { AssignedDrugsPanel } from "@/pages/Patients/Assigned/AssignedDrugsPanel
 import { AssignedSuppliesPanel } from "@/pages/Patients/Assigned/AssignedSuppliesPanel"
 import { BillingPanel } from "@/pages/Patients/Billing/BillingPanel"
 import { AdmissionsPanel } from "@/pages/Patients/Admissions/AdmissionsPanel"
+import { useBill } from "@/pages/Patients/Billing/hooks/useBill"
+import { usePrintBill } from "@/pages/Patients/print/hooks/usePrintBill"
+import { PrintBillConfirmDialog } from "@/pages/Patients/print/dialogs/PrintBillConfirmDialog"
 
 type DetailTab = "profile" | "assigned" | "billing" | "admissions"
 
@@ -88,6 +91,21 @@ export default function PatientDetailPage() {
 
   const profile = usePatientProfile(patientId)
 
+  /* ---- Print Bill (current admission) ----
+     The page owns the dialog control so it doesn't matter which sub-
+     panel triggers it. The bill is loaded lazily via `useBill` once
+     `admission.billId` resolves. */
+  const billId = profile.admission?.billId ?? null
+  const billRes = useBill(billId)
+  const bill = billRes.bill
+  const print = usePrintBill()
+  const [printConfirmOpen, setPrintConfirmOpen] = useState(false)
+
+  function onPrintBill() {
+    if (bill == null) return
+    setPrintConfirmOpen(true)
+  }
+
   if (!Number.isFinite(patientId) || patientId <= 0) {
     return <PatientDetailNotFound />
   }
@@ -116,7 +134,7 @@ export default function PatientDetailPage() {
             ) : null
           }
         />
-        
+
         <div className="flex w-full justify-between">
           <Button asChild variant="ghost" size="sm" className="self-start p-0">
             <Link to="/patients">
@@ -149,9 +167,11 @@ export default function PatientDetailPage() {
             <PatientProfilePanel
               patient={profile.patient}
               admission={profile.admission}
+              bill={bill}
               loading={profile.loading}
               error={profile.error}
               onRefresh={profile.refresh}
+              onPrintBill={onPrintBill}
             />
           </TabsContent>
 
@@ -174,6 +194,25 @@ export default function PatientDetailPage() {
           </TabsContent>
         </div>
       </Tabs>
+
+      <PrintBillConfirmDialog
+        open={printConfirmOpen}
+        onOpenChange={setPrintConfirmOpen}
+        patient={profile.patient}
+        bill={bill}
+        billDetails={bill?.billDetails ?? []}
+        printing={print.printing}
+        onConfirm={() => {
+          setPrintConfirmOpen(false)
+          if (!profile.patient || !bill) return
+          void print.trigger({
+            patient: profile.patient,
+            bill,
+            billDetails: bill.billDetails ?? [],
+            language: "en",
+          })
+        }}
+      />
     </div>
   )
 }

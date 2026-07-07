@@ -35,7 +35,7 @@ export function BillingVatSection({
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Field>
-        <FieldLabel htmlFor="billing-vat-percent">
+        <FieldLabel htmlFor="billing-vat-percentage">
           {t("patients.billing.vatPercentage")}
         </FieldLabel>
         <InputGroup>
@@ -43,7 +43,7 @@ export function BillingVatSection({
             <InputGroupText>%</InputGroupText>
           </InputGroupAddon>
           <InputGroupInput
-            id="billing-vat-percent"
+            id="billing-vat-percentage"
             type="number"
             inputMode="decimal"
             min="0"

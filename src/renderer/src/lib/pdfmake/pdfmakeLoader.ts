@@ -30,6 +30,7 @@ export interface PdfMake {
   addVirtualFileSystem: (vfs: Record<string, string>) => void
   addFonts: (fonts: Record<string, unknown>) => void
   setFonts: (fonts: Record<string, unknown>) => void
+  fonts: Record<string, Record<string, string>>
   vfs?: Record<string, string>
 }
 
@@ -43,7 +44,8 @@ interface PdfDocument {
 
 declare global {
   interface Window {
-    pdfMake?: PdfMake
+    pdfMake?: PdfMake,
+    vfs?: any;
   }
 }
 
@@ -72,10 +74,35 @@ export function loadPdfMake(): Promise<PdfMake> {
     )
 
     const pdfMake = typeof window !== "undefined" ? window.pdfMake : undefined
+    console.log(pdfMake)
     if (!pdfMake) {
       throw new Error(
         "[patients/pdfmake] window.pdfMake did not register after UMD load."
       )
+    }
+
+    if (typeof window !== "undefined" && typeof window.pdfMake !== "undefined") {
+      window.pdfMake.vfs = { ...window.vfs };
+      window.pdfMake.fonts = {
+        "Roboto": {
+          normal: "Roboto-Regular.ttf",
+          bold: "Roboto-Medium.ttf",
+          italics: "Roboto-Italic.ttf",
+          bolditalics: "Roboto-MediumItalic.ttf"
+        },
+        "Nillima": {
+          normal: "Nillima.ttf",
+          bold: "Nillima.ttf",
+          italics: "Nillima.ttf",
+          bolditalics: "Nillima.ttf"
+        },
+        "Noto Sans": {
+          normal: "NotoSansArabic-Regular.ttf",
+          bold: "NotoSansArabic-Bold.ttf",
+          italics: "NotoSansArabic-Bold.ttf",
+          bolditalics: "NotoSansArabic-Bold.ttf"
+        }
+      };
     }
     return pdfMake
   })()

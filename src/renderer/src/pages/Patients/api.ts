@@ -347,7 +347,7 @@ export interface AddSupplyPayload {
 }
 
 export interface UpdateBillPayload {
-  discountType?: "percent" | "fixed"
+  discountType?: "percentage" | "fixed"
   discount?: number
   discountScope?: import("@/pages/Patients/types/patient").DiscountScope
   administrativeExpenses?: number

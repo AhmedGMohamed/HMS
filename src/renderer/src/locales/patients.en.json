@@ -194,14 +194,51 @@
       "pastAdmissions": "Past Admissions",
       "admissionDetails": "Admission Details",
       "editStaffAssignment": "Edit Staff Assignment",
-      "settleBill": "Settle Bill"
+      "settleBill": "Settle Bill",
+      "printBillConfirm": "Confirm Print"
+    },
+    "billingPrint": {
+      "title": "PATIENT BILL",
+      "billDetailsHeader": "BILL DETAILS",
+      "patient": "Patient:",
+      "phone": "Phone:",
+      "paymentType": "Payment Type:",
+      "billId": "Bill ID:",
+      "billDate": "Date:",
+      "statusPaid": "Paid",
+      "statusPending": "Pending",
+      "description": "Description",
+      "date": "Date",
+      "type": "Type",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "typeService": "Service",
+      "typeDrug": "Drug",
+      "typeSupply": "Medical Supply",
+      "typeTest": "Medical Test",
+      "typeUnknown": "Unknown",
+      "unknownItem": "Unknown Item",
+      "subtotal": "Subtotal:",
+      "admin": "Administrative:",
+      "medicalTests": "Medical Tests:",
+      "paidRow": "Paid:",
+      "totalRow": "Total:",
+      "balance": "Balance:",
+      "discount": "Discount",
+      "vat": "VAT",
+      "scopeSeparator": ", "
+    },
+    "pdfShelf": {
+      "page": "Page {{current}} of {{total}}"
     },
     "print": {
       "billItems": "Bill Items",
       "patientInfo": "Patient Information",
       "billingSummary": "Billing Summary",
       "billId": "Bill ID",
-      "includeDiscount": "Include discount in print"
+      "includeDiscount": "Include discount in print",
+      "overNotice": "...and {{count}} more rows in the PDF"
     },
     "tabs": {
       "allPatients": "All Patients",
@@ -256,7 +293,8 @@
       "dischargeTimeInfo": "Leave empty to use current time",
       "editStaffAssignmentInfo": "Select or deselect staff members to update the patient's care team. Changes will take effect immediately.",
       "settleBillInfo": "Update the paid amount for this past admission. This will adjust the balance accordingly.",
-      "settleBillAmountInfo": "Enter the total amount that has been paid for this admission (not just the additional payment)"
+      "settleBillAmountInfo": "Enter the total amount that has been paid for this admission (not just the additional payment)",
+      "printBillIntro": "Review the items below. Click Print Bill to open the PDF in your default viewer."
     },
     "validation": {
       "nameRequired": "Please enter a valid name (at least 2 characters)",
@@ -322,6 +360,10 @@
       "administerSupplyError": "Failed to administer supply",
       "paymentError": "Failed to process payment",
       "billingUpdateError": "Failed to update billing information",
+      "printBillGenerated": "Bill ready for printing",
+      "printBillError": "Failed to print bill",
+      "printBillLoading": "Preparing PDF…",
+      "printBillMissing": "Patient or bill data is unavailable",
       "loadPatientsError": "Failed to load patients list",
       "loadAdmissionsError": "Failed to load past admissions",
       "loadAdmissionDetailsError": "Failed to load admission details",
