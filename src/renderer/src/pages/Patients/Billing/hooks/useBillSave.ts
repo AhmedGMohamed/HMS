@@ -14,13 +14,12 @@ import { ApiError } from "@/lib/errors"
 import { updateBill } from "@/pages/Patients/api"
 import {
   discountScopeToServer,
-  discountTypeToServer,
   vatScopeToServer,
-} from "@/pages/Patients/Billing/lib/billingTransformers"
+} from "@/pages/Patients/lib/billingTransformers"
 
 export interface BillSaveInput {
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: VatScope
@@ -60,7 +59,7 @@ export function useBillSave(
 
   const snakePayload = useMemo(
     () => ({
-      discount_type: discountTypeToServer(input.discountType),
+      discount_type: input.discountType,
       discount: input.discount,
       discount_scope: discountScopeToServer(input.discountScope),
       vat_percentage: input.vatPercentage,

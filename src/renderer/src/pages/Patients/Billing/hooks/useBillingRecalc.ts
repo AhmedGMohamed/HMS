@@ -7,7 +7,7 @@ import type {
   DiscountScope,
 } from "@/pages/Patients/types/patient"
 
-import { recalcBilling } from "@/pages/Patients/Billing/lib/billingMath"
+import { recalcBilling } from "@/pages/Patients/lib/billingMath"
 
 export interface BillingFormValues {
   servicesTotal: number
@@ -16,7 +16,7 @@ export interface BillingFormValues {
   medicalTestsAmount: number
   paidAmount: number
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: import("@/pages/Patients/types/patient").VatScope
@@ -56,7 +56,7 @@ export function useBillingRecalc(values: BillingFormValues): BillingSnapshot {
       vatScope: values.vatScope,
       administrativeExpenses,
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     servicesTotal,
     drugsTotal,

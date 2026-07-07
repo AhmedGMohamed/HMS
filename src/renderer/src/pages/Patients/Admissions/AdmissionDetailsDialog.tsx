@@ -311,7 +311,7 @@ export function AdmissionDetailsDialog({
                 </DetailRow>
                 <DetailRow label={discountLabelText}>
                   {bill?.discount != null
-                    ? bill.discountType === "percent"
+                    ? bill.discountType === "percentage"
                       ? `${bill.discount}%`
                       : formatCurrency(bill.discount, language)
                     : formatCurrency(0, language)}
@@ -563,7 +563,7 @@ export function AdmissionDetailsDialog({
         ) : null}
 
         <DialogFooter className="flex flex-row flex-wrap justify-end gap-2">
-          <Button variant="outline" disabled onClick={onPrintClick}>
+          <Button variant="outline" onClick={onPrintClick}>
             <PrinterIcon aria-hidden className="me-1.5 size-4" />
             {t("patients.buttons.printBill")}
           </Button>

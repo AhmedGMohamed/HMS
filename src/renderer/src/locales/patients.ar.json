@@ -194,14 +194,51 @@
       "pastAdmissions": "الإقامات السابقة",
       "admissionDetails": "تفاصيل الإقامة",
       "editStaffAssignment": "تعديل تعيين الموظفين",
-      "settleBill": "تسوية الفاتورة"
+      "settleBill": "تسوية الفاتورة",
+      "printBillConfirm": "تأكيد الطباعة"
+    },
+    "billingPrint": {
+      "title": "فاتورة المريض",
+      "billDetailsHeader": "تفاصيل الفاتورة",
+      "patient": "المريض:",
+      "phone": "الهاتف:",
+      "paymentType": "طريقة الدفع:",
+      "billId": "رقم الفاتورة:",
+      "billDate": "التاريخ:",
+      "statusPaid": "مدفوعة",
+      "statusPending": "معلقة",
+      "description": "الوصف",
+      "date": "التاريخ",
+      "type": "النوع",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "total": "الإجمالي",
+      "typeService": "خدمة",
+      "typeDrug": "دواء",
+      "typeSupply": "مستلزم طبي",
+      "typeTest": "فحص طبي",
+      "typeUnknown": "غير معروف",
+      "unknownItem": "عنصر غير معروف",
+      "subtotal": "المجموع الفرعي:",
+      "admin": "مصاريف إدارية:",
+      "medicalTests": "فحوصات طبية:",
+      "paidRow": "مدفوع:",
+      "totalRow": "الإجمالي:",
+      "balance": "الرصيد:",
+      "discount": "الخصم",
+      "vat": "ضريبة القيمة المضافة",
+      "scopeSeparator": "، "
+    },
+    "pdfShelf": {
+      "page": "صفحة {{current}} من {{total}}"
     },
     "print": {
       "billItems": "بنود الفاتورة",
       "patientInfo": "معلومات المريض",
       "billingSummary": "ملخص الفاتورة",
       "billId": "رقم الفاتورة",
-      "includeDiscount": "تضمين الخصم في الطباعة"
+      "includeDiscount": "تضمين الخصم في الطباعة",
+      "overNotice": "...وعدد {{count}} صفوف إضافية في الـ PDF"
     },
     "tabs": {
       "allPatients": "جميع المرضى",
@@ -256,7 +293,8 @@
       "dischargeTimeInfo": "اترك فارغاً لاستخدام الوقت الحالي",
       "editStaffAssignmentInfo": "حدد أو ألغ تحديد أعضاء الفريق الطبي لتحديث فريق رعاية المريض. ستسري التغييرات على الفور.",
       "settleBillInfo": "تحديث المبلغ المدفوع لهذا الإدخال السابق. سيتم تعديل الرصيد وفقًا لذلك.",
-      "settleBillAmountInfo": "أدخل المبلغ الإجمالي المدفوع لهذا الإدخال (وليس فقط الدفعة الإضافية)"
+      "settleBillAmountInfo": "أدخل المبلغ الإجمالي المدفوع لهذا الإدخال (وليس فقط الدفعة الإضافية)",
+      "printBillIntro": "راجع البنود أدناه. اضغط على 'طباعة الفاتورة' لفتح الـ PDF في العارض الافتراضي."
     },
     "validation": {
       "nameRequired": "يرجى إدخال اسم صحيح (حرفان على الأقل)",
@@ -323,6 +361,10 @@
       "administerSupplyError": "فشل إعطاء المستلزم",
       "paymentError": "فشل معالجة الدفع",
       "billingUpdateError": "فشل تحديث معلومات الفواتير",
+      "printBillGenerated": "الفاتورة جاهزة للطباعة",
+      "printBillError": "فشل في طباعة الفاتورة",
+      "printBillLoading": "جاري إعداد الـ PDF…",
+      "printBillMissing": "بيانات المريض أو الفاتورة غير متوفرة",
       "loadPatientError": "فشل تحميل بيانات المريض",
       "loadPatientsError": "فشل تحميل قائمة المرضى",
       "loadAdmissionsError": "فشل تحميل الإقامات السابقة",

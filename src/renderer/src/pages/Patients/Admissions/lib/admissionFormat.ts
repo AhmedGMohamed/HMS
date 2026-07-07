@@ -75,15 +75,15 @@ export function formatDateTime(
  * identical to T6's `formatCurrency` to ensure consistency across
  * Billing tab and Admissions tab).
  */
-export function formatCurrency(value: number, language?: "en" | "ar"): string {
+export function formatCurrency(value: number, language?: "en" | "ar", currency = true): string {
   const v = Number.isFinite(value) ? value : 0
   // Match the legacy's "EGP 1,234.50" / "1,234.50 ج.م" pattern.
   const tmp = new Intl.NumberFormat(
     language === "ar" ? "ar-EG" : "en-GB",
     { minimumFractionDigits: 2, maximumFractionDigits: 2 }
   ).format(v)
-  if (language === "ar") return `${tmp} ج.م`
-  return `EGP ${tmp}`
+  if (language === "ar") return `${tmp}${currency ? " ج.م" : ""}`
+  return `${currency ? "EGP " : ""}${tmp}`
 }
 
 /**

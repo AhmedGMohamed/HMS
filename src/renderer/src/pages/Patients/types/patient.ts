@@ -141,7 +141,7 @@ export interface Bill {
   patientHistoryId: number;
   totalAmount: number;
   paidAmount: number;
-  discountType: "percent" | "fixed";
+  discountType: "percentage" | "fixed";
   discount: number;
   discountScope: DiscountScope;
   administrativeExpenses: number;

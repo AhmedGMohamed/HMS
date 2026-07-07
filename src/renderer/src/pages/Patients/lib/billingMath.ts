@@ -11,7 +11,7 @@ export interface RecalcInputs {
   medicalTestsAmount: number
   paidAmount: number
   discount: number
-  discountType: "percent" | "fixed"
+  discountType: "percentage" | "fixed"
   discountScope: DiscountScope
   vatPercentage: number
   vatScope: VatScope
@@ -55,7 +55,7 @@ export function recalcBilling(input: RecalcInputs): BillingSnapshot {
 
   let discountAmount = 0
   if (discountableAmount > 0 && discountValue > 0) {
-    if (input.discountType === "percent") {
+    if (input.discountType === "percentage") {
       discountAmount = (discountableAmount * discountValue) / 100
     } else {
       discountAmount = discountValue

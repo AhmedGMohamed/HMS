@@ -33,7 +33,7 @@ import {
 } from "@/pages/Patients/Billing/hooks/useBillSave"
 import {
   useBillChangeSubscription,
-} from "@/pages/Patients/Billing/lib/billEvents"
+} from "@/pages/Patients/lib/billEvents"
 import {
   BillingTotalsSection,
 } from "@/pages/Patients/Billing/sections/BillingTotalsSection"
@@ -58,7 +58,7 @@ import type { BillingFormSchema } from "@/pages/Patients/Billing/lib/billingForm
 import {
   discountScopeFromServer,
   vatScopeFromServer,
-} from "@/pages/Patients/Billing/lib/billingTransformers"
+} from "@/pages/Patients/lib/billingTransformers"
 
 interface BillingFormProps {
   patientId: number

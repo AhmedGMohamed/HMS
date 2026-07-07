@@ -30,7 +30,7 @@ export interface BillingDiscountSectionProps {
  * 4× discount-scope checkboxes. The "Discount Total" output
  * lives in `BillingFeesSection`.
  *
- * The percent toggle writes a string ("percent" | "fixed") into
+ * The percent toggle writes a string ("percentage" | "fixed") into
  * RHF so `useBillingRecalc` can read it directly without mapping.
  */
 export function BillingDiscountSection({
@@ -39,7 +39,7 @@ export function BillingDiscountSection({
   discountTypeFieldName,
 }: BillingDiscountSectionProps) {
   const { t } = useTranslation()
-  const discountType = form.watch(discountTypeFieldName) === "percent"
+  const discountType = form.watch(discountTypeFieldName) === "percentage"
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -79,16 +79,16 @@ export function BillingDiscountSection({
           {t("patients.billing.discountTypeLabel")}
         </FieldLabel>
         <label
-          htmlFor="billing-discount-percent"
+          htmlFor="billing-discount-percentage"
           className="border-input bg-background hover:bg-accent/40 flex h-9 w-fit items-center gap-2 rounded-md border px-3 text-sm shadow-xs transition-colors has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50"
         >
           <Checkbox
-            id="billing-discount-percent"
+            id="billing-discount-percentage"
             checked={discountType}
             onCheckedChange={(v) =>
               form.setValue(
                 discountTypeFieldName,
-                v === true ? "percent" : "fixed",
+                v === true ? "percentage" : "fixed",
                 { shouldDirty: true }
               )
             }
