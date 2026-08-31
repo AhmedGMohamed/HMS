@@ -439,11 +439,11 @@ export class PatientController {
 	async stopServiceForPatient(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const serviceId = parseInt(req.params.serviceId);
+			const activeServiceId = parseInt(req.params.activeServiceId);
 
 			const result = await PatientModel.stopServiceForPatient(
 				patientId,
-				serviceId
+				activeServiceId
 			);
 			res.status(200).json(result);
 		} catch (error: any) {

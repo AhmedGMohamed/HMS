@@ -21,6 +21,7 @@ export interface Patient {
 	is_active: boolean;
 	registration_date: Date;
 	referring_doctor_id: number | null;
+	referring_doctor_name: string | null;
 	created_by_user_id: number;
 	insurance_company_name?: string; // Joined from InsuranceCompany
 }

@@ -179,7 +179,7 @@ router.post(
 
 // Stop service for patient (deactivate but keep billing)
 router.patch(
-	"/:id/services/:serviceId/stop",
+	"/:id/services/:activeServiceId/stop",
 	verifyToken,
 	checkPermission("manage_patients"),
 	validateId,

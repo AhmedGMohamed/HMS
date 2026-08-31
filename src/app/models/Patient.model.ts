@@ -16,7 +16,6 @@ import {
 	PaymentPatientAssociation
 } from "../utils/types/employees.js";
 import BillModel from "./Bill.model.js";
-import { resolve } from "dns";
 
 export class PatientModel {
 	async getAllPatients(
@@ -72,9 +71,10 @@ export class PatientModel {
 
 	async getPatientById(patientId: number): Promise<Patient | null> {
 		const sql = `
-            SELECT p.*, ic.name as insurance_company_name
+            SELECT p.*, e.name as referring_doctor_name, ic.name as insurance_company_name
             FROM Patient p
             LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+			LEFT JOIN Employee e ON p.referring_doctor_id = e.employee_id
             WHERE p.patient_id = $1;
         `;
 		const result = await query(sql, [patientId]);
@@ -135,7 +135,7 @@ export class PatientModel {
 				data.is_active || false,
 				data.created_by_user_id];
 			const placeholders = columns.map((_, ind) => `$${ind}`);
-			
+
 			if (data.pricelist_id) {
 				columns.push("pricelist_id")
 				values.push(data.pricelist_id)
@@ -645,7 +645,8 @@ export class PatientModel {
 			// Add attending doctors to PatientDoctor
 			for (const doctorId of data.attending_doctors) {
 				await query(
-					"INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+					`INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT (patient_id, doctor_id) DO UPDATE SET
+					assigned_at = NOW(), unassigned_at = NULL`,
 					[data.patient_id, doctorId]
 				);
 
@@ -662,7 +663,8 @@ export class PatientModel {
 			if (data.attending_nurses && data.attending_nurses.length > 0) {
 				for (const nurseId of data.attending_nurses) {
 					await query(
-						"INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+						`INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT (patient_id, nurse_id) DO UPDATE SET
+						assigned_at = NOW(), unassigned_at = NULL`,
 						[data.patient_id, nurseId]
 					);
 
@@ -923,11 +925,11 @@ export class PatientModel {
 				   array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as attending_nurses,
     	           array_agg(DISTINCT pn.nurse_id) FILTER (WHERE pn.nurse_id IS NOT NULL) as attending_nurse_ids
     	    FROM PatientHistory ph
-    	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id
+    	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id AND pd.unassigned_at IS NULL
     	    LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id AND pd.unassigned_at IS NULL
-    	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id
+    	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id AND pd.unassigned_at IS NULL
 			LEFT JOIN PatientNurse pn ON ph.patient_id = pn.patient_id AND pn.unassigned_at IS NULL
-    	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id
+    	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id AND pn.unassigned_at IS NULL
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
     	    GROUP BY ph.patient_history_id
     	    ORDER BY ph.admission_time DESC
@@ -1415,18 +1417,18 @@ export class PatientModel {
 	// Updated method: Stop service (deactivate but keep billing)
 	async stopServiceForPatient(
 		patientId: number,
-		serviceId: number
+		activeServiceId: number
 	): Promise<any> {
 		await query("BEGIN");
 		try {
 			// Find active service
 			const activeServiceSql = `
                 SELECT * FROM ActivePatientService 
-                WHERE patient_id = $1 AND service_id = $2 AND is_active = true;
+                WHERE patient_id = $1 AND active_service_id = $2 AND is_active = true;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
 				patientId,
-				serviceId
+				activeServiceId
 			]);
 
 			if (activeServiceResult.rows.length === 0) {
@@ -1784,7 +1786,7 @@ export class PatientModel {
 		quantity: number,
 		billId: number,
 		userId: number,
-		chargeType: string = "manual"
+		chargeType: string = "drug"
 	): Promise<void> {
 		const currentAdmission = await this.getCurrentAdmission(patientId);
 		if (!currentAdmission) {
@@ -2017,7 +2019,7 @@ export class PatientModel {
 				WHERE du.patient_id = $1`
 			sql += onlyCurrent ? ` AND du.patient_history_id = $2` : "";
 			sql += ` ORDER BY du.last_administered DESC NULLS LAST`;
-			
+
 			const { rows } = await query(sql, params);
 			return rows;
 		} catch (error) {
