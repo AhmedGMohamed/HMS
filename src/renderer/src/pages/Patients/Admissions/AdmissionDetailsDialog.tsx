@@ -701,7 +701,7 @@ function SupplyRow({
 }) {
   return (
     <TableRow>
-      <TableCell className="text-sm">{group.supplyName}</TableCell>
+      <TableCell className="text-sm">{group.medicalSupplyName}</TableCell>
       <TableCell className="text-xs">
         {/* Manufacturer/provider aren't part of the group shape (the
             first row carries them); we leave the column here for

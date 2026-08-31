@@ -103,7 +103,7 @@ export function synthesiseBillFromAdmissionDetails(
       drugName: null,
       drugShipmentId: null,
       generatedAt: sourceRow?.generatedAt ?? "",
-      medicalSupplyName: g.supplyName,
+      medicalSupplyName: g.medicalSupplyName,
       medicalSupplyShipmentId:
         sourceRow?.medicalSupplyShipmentId ?? null,
       quantity: g.quantity,
