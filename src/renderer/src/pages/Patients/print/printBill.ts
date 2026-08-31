@@ -45,6 +45,7 @@ import {
   type PrintItemRow,
 } from "@/pages/Patients/print/lib/groupPrintBillItems"
 import { buildPrintPreview } from "@/pages/Patients/print/lib/buildPrintPreview"
+import { t } from "i18next"
 
 export interface BuildBillBodyInputs {
   patient: Patient
@@ -418,10 +419,28 @@ export function buildBillBodyContent(
     },
   ])
 
+  let discountScopeTextArr: string[] = []
+  discountScopeArr.forEach(s => {
+    console.log(s)
+    switch (s.toLowerCase()) {
+      case "services":
+        discountScopeTextArr.push(t("patients.billingPrint.typeService"))
+        break;
+      case "drugs":
+        discountScopeTextArr.push(t("patients.billingPrint.typeDrug"))
+        break;
+      case "supplies":
+        discountScopeTextArr.push(t("patients.billingPrint.typeSupply"))
+        break;
+      case "tests":
+        discountScopeTextArr.push(t("patients.billingPrint.typeTest"))
+        break;
+    }
+  })
   if (discount > 0) {
     summaryRows.push([
       {
-        text: `${discountType === "percentage" ? discount + "% " : ""} ${labels.discount(discountScopeArr.join(labels.scopeSeparator))}`,
+        text: `${discountType === "percentage" ? discount + "% " : ""} ${labels.discount(discountScopeTextArr.join(labels.scopeSeparator))}`,
         color: COLOR.textSecondary,
         fontSize: 9,
       },

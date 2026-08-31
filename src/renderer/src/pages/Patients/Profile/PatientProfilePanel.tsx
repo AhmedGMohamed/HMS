@@ -3,13 +3,12 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
-import { toast } from "sonner"
 import {
-  HistoryIcon,
   PencilIcon,
   HospitalIcon,
   LogOutIcon,
   PrinterIcon,
+  UsersIcon,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,7 +26,11 @@ import {
   ProfileSectionCard,
   type ProfileSectionRow,
 } from "@/pages/Patients/Profile/ProfileSectionCard"
-import { EditPatientDialog } from "@/pages/Patients/Profile/EditPatientDialog"
+import { EditPatientDialog } from "@/pages/Patients/Profile/Dialogs/EditPatientDialog"
+import { EditDiagnosisDialog } from "@/pages/Patients/Profile/Dialogs/EditDiagnosisDialog"
+import { AdmitPatientDialog } from "@/pages/Patients/Profile/Dialogs/AdmitPatientDialog"
+import { DischargePatientDialog } from "@/pages/Patients/Profile/Dialogs/DischargePatientDialog"
+import { EditStaffAssignmentDialog } from "@/pages/Patients/Profile/Dialogs/EditStaffAssignmentDialog"
 
 interface PatientProfilePanelProps {
   patient: Patient | null
@@ -68,6 +71,10 @@ export function PatientProfilePanel({
   const canManage = hasPermission("manage_patients")
 
   const [editOpen, setEditOpen] = useState(false)
+  const [admitOpen, setAdmitOpen] = useState(false)
+  const [dischargeOpen, setDischargeOpen] = useState(false)
+  const [diagnosisEditOpen, setDiagnosisEditOpen] = useState(false)
+  const [staffEditOpen, setStaffEditOpen] = useState(false)
 
   if (loading && !patient) {
     return (
@@ -117,6 +124,9 @@ export function PatientProfilePanel({
         canManage={canManage}
         bill={bill}
         onEdit={() => setEditOpen(true)}
+        onAdmit={() => setAdmitOpen(true)}
+        onDischarge={() => setDischargeOpen(true)}
+        onEditStaff={() => setStaffEditOpen(true)}
         onPrintBill={onPrintBill}
       />
 
@@ -135,7 +145,9 @@ export function PatientProfilePanel({
         />
         <ProfileSectionCard
           title={t("patients.sections.medicalInfo")}
-          rows={medicalInfoRows(t, patient, admission)}
+          rows={medicalInfoRows(t, patient, admission, canManage, () =>
+            setDiagnosisEditOpen(true)
+          )}
         />
       </div>
 
@@ -143,6 +155,36 @@ export function PatientProfilePanel({
         patient={patient}
         open={editOpen}
         onOpenChange={setEditOpen}
+        onSaved={onRefresh}
+      />
+
+      <AdmitPatientDialog
+        open={admitOpen}
+        onOpenChange={setAdmitOpen}
+        patient={patient}
+        onAdmitted={onRefresh}
+      />
+
+      <DischargePatientDialog
+        open={dischargeOpen}
+        onOpenChange={setDischargeOpen}
+        patient={patient}
+        onDischarged={onRefresh}
+      />
+
+      <EditDiagnosisDialog
+        open={diagnosisEditOpen}
+        onOpenChange={setDiagnosisEditOpen}
+        patientId={patient.patientId}
+        initialDiagnosis={admission?.diagnosis ?? null}
+        onSaved={onRefresh}
+      />
+
+      <EditStaffAssignmentDialog
+        open={staffEditOpen}
+        onOpenChange={setStaffEditOpen}
+        patientId={patient.patientId}
+        patientName={patient.name}
         onSaved={onRefresh}
       />
     </div>
@@ -154,10 +196,22 @@ interface ActionBarProps {
   canManage: boolean
   bill: Bill | null
   onEdit: () => void
+  onAdmit: () => void
+  onDischarge: () => void
+  onEditStaff: () => void
   onPrintBill: () => void
 }
 
-function ActionBar({ patient, canManage, bill, onEdit, onPrintBill }: ActionBarProps) {
+function ActionBar({
+  patient,
+  canManage,
+  bill,
+  onEdit,
+  onAdmit,
+  onDischarge,
+  onEditStaff,
+  onPrintBill,
+}: ActionBarProps) {
   const { t } = useTranslation()
   return (
     <div
@@ -168,24 +222,28 @@ function ActionBar({ patient, canManage, bill, onEdit, onPrintBill }: ActionBarP
       <Button
         variant="outline"
         size="sm"
-        onClick={() =>
-          toast.info(t("common.loading"), {
-            description: t("patients.buttons.pastAdmissions"),
-          })
-        }
-      >
-        <HistoryIcon aria-hidden className="me-2 size-4" />
-        {t("patients.buttons.pastAdmissions")}
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
         disabled={!canManage}
         onClick={onEdit}
       >
         <PencilIcon aria-hidden className="me-2 size-4" />
         {t("common.edit")}
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!canManage || !patient.isActive}
+        title={
+          !patient.isActive
+            ? t("patients.fields.admissionNotActive")
+            : !canManage
+              ? t("common.permission.requires_manage_patients")
+              : undefined
+        }
+        onClick={onEditStaff}
+      >
+        <UsersIcon aria-hidden className="me-2 size-4" />
+        {t("patients.buttons.editStaff")}
       </Button>
 
       {patient.isActive ? (
@@ -194,11 +252,7 @@ function ActionBar({ patient, canManage, bill, onEdit, onPrintBill }: ActionBarP
           size="sm"
           className="border-destructive/40 text-destructive hover:bg-destructive/5"
           disabled={!canManage}
-          onClick={() =>
-            toast.info(t("common.loading"), {
-              description: t("patients.buttons.dischargePatient"),
-            })
-          }
+          onClick={onDischarge}
         >
           <LogOutIcon aria-hidden className="me-2 size-4" />
           {t("patients.buttons.dischargePatient")}
@@ -209,11 +263,7 @@ function ActionBar({ patient, canManage, bill, onEdit, onPrintBill }: ActionBarP
           size="sm"
           className="text-success hover:bg-success/5"
           disabled={!canManage}
-          onClick={() =>
-            toast.info(t("common.loading"), {
-              description: t("patients.buttons.admitPatient"),
-            })
-          }
+          onClick={onAdmit}
         >
           <HospitalIcon aria-hidden className="me-2 size-4" />
           {t("patients.buttons.admitPatient")}
@@ -282,7 +332,7 @@ function guardianInfoRows(
   patient: Patient
 ): ProfileSectionRow[] {
   const guardianName =
-    patient.guardianInfo?.name  ?? null;
+    patient.guardianInfo?.name ?? null;
   const guardianPhone =
     patient.guardianInfo?.phone ?? null;
   const guardianAddress =
@@ -320,9 +370,9 @@ function paymentInfoRows(
       label: t("patients.fields.paymentType"),
       value: t(
         `patients.paymentTypes.${patient.paymentType}` as
-          | "patients.paymentTypes.cash"
-          | "patients.paymentTypes.credit"
-          | "patients.paymentTypes.insurance"
+        | "patients.paymentTypes.cash"
+        | "patients.paymentTypes.credit"
+        | "patients.paymentTypes.insurance"
       ),
     },
     {
@@ -350,12 +400,14 @@ function paymentInfoRows(
 function medicalInfoRows(
   t: (key: string, options?: Record<string, unknown>) => string,
   patient: Patient,
-  admission: PatientHistory | null
+  admission: PatientHistory | null,
+  canEdit: boolean,
+  onEditDiagnosis: () => void
 ): ProfileSectionRow[] {
   return [
     {
       label: t("patients.fields.quickCheck"),
-      value: admission?.quickCheck ?? "—",
+      value: admission?.quickCheck ? "Yes" : "No"
     },
     {
       label: t("patients.fields.referringDoctor"),
@@ -363,20 +415,39 @@ function medicalInfoRows(
     },
     {
       label: t("patients.fields.diagnosis"),
-      value: admission?.diagnosis ?? "—",
+      value: canEdit && admission ? (
+        <span className="flex items-start gap-2">
+          <span className="min-w-0 flex-1 whitespace-pre-wrap">
+            {admission.diagnosis ?? "—"}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={onEditDiagnosis}
+            aria-label={t("patients.buttons.editDiagnosis")}
+          >
+            <PencilIcon aria-hidden className="size-3.5" />
+            <span className="sr-only">{t("patients.buttons.editDiagnosis")}</span>
+          </Button>
+        </span>
+      ) : (
+        admission?.diagnosis ?? "—"
+      ),
     },
     {
       label: t("patients.fields.attendingDoctors"),
       value:
-        admission && admission.assignedDoctors && admission.assignedDoctors.length > 0
-          ? admission.assignedDoctors.map((d) => d.name).join(", ")
+        admission && admission.attendingDoctors && admission.attendingDoctors.length > 0
+          ? admission.attendingDoctors?.join(", ")
           : "—",
     },
     {
       label: t("patients.fields.attendingNurses"),
       value:
-        admission && admission.assignedNurses && admission.assignedNurses.length > 0
-          ? admission.assignedNurses.map((n) => n.name).join(", ")
+        admission && admission.attendingNurses && admission.attendingNurses.length > 0
+          ? admission.attendingNurses?.join(", ")
           : "—",
     },
   ]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PlusIcon, UsersIcon, StethoscopeIcon } from "lucide-react"
 
@@ -7,13 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useListData } from "@/hooks/useListData"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
-import {
-  listClockedInStaff,
-  listCurrentAdmissionsWithStaff,
-  listPatients,
-} from "@/pages/Patients/api"
-import type { Patient, PatientAssignment } from "@/pages/Patients/types/patient"
+import { listPatients } from "@/pages/Patients/api"
+import type { Patient } from "@/pages/Patients/types/patient"
 import { PatientListPanel } from "@/pages/Patients/PatientListPanel"
+import { StaffStatusPanel } from "@/pages/Patients/StaffStatus/StaffStatusPanel"
 import { CreatePatientWizardDialog } from "@/pages/Patients/modals/CreatePatientWizard/CreatePatientWizardDialog"
 import { useCreatePatientWizard } from "@/pages/Patients/modals/CreatePatientWizard/useCreatePatientWizard"
 
@@ -36,7 +33,9 @@ import { useCreatePatientWizard } from "@/pages/Patients/modals/CreatePatientWiz
  * bulk width.
  *
  * - Tabs #1 `all-patients`: `<PatientListPanel>` (server-driven, client-sorted).
- * - Tabs #2 `staff-status`: stub. T8 replaces it with a polling panel.
+ * - Tabs #2 `staff-status`: full migration T9.2 — `<StaffStatusPanel>`
+ *   renders two clocked-in cards (doctors/nurses) plus a Current
+ *   Patient Assignments panel, polled every 30s.
  */
 export default function PatientsPage() {
   const { t } = useTranslation()
@@ -46,11 +45,6 @@ export default function PatientsPage() {
   )
   const openCreateWizard = useCreatePatientWizard((s) => s.openDialog)
 
-  /* `useListData` is loop-safe: the effect depends only on stable
-     primitives (page/pageSize/debouncedSearch/nonce). The fetch
-     closure is read through a ref + receives the latest params
-     on every fire so server-driven search, paginate, sort updates
-     actually reach the backend. */
   const list = useListData<Patient>({
     fetcher: {
       params: { page: 1, pageSize: 25, search: "" },
@@ -108,64 +102,12 @@ export default function PatientsPage() {
           </TabsContent>
 
           <TabsContent value="staff-status">
-            <StaffStatusStub />
+            <StaffStatusPanel />
           </TabsContent>
         </div>
       </Tabs>
 
       <CreatePatientWizardDialog onCreated={list.refresh} />
-    </div>
-  )
-}
-
-/**
- * T1 staff-status placeholder. T8 replaces it with a real panel
- * that polls every 30 s and renders doctor/nurse/assignment cards.
- */
-function StaffStatusStub() {
-  const { t } = useTranslation()
-  const [clockedInCount, setClockedInCount] = useState(0)
-  const [assignmentsCount, setAssignmentsCount] = useState(0)
-  const [assignments, setAssignments] = useState<PatientAssignment[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function fetchOnce() {
-      try {
-        const [ci, cur] = await Promise.all([
-          listClockedInStaff(),
-          listCurrentAdmissionsWithStaff(),
-        ])
-        if (cancelled) return
-        setClockedInCount(ci.length)
-        setAssignmentsCount(cur.length)
-        setAssignments(cur)
-      } catch {
-        /* UI surface shows empty state */
-      }
-    }
-
-    fetchOnce()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return (
-    <div className="grid gap-2 rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">
-      <p className="font-medium text-foreground">
-        {t("patients.tabs.staffStatus")}
-      </p>
-      <p>
-        {clockedInCount} {t("sidebar.doctors")} ·{" "}
-        {assignmentsCount} {t("patients.staffStatus.currentAssignments")}
-      </p>
-      {assignments.slice(0, 3).map((a) => (
-        <p key={a.patientHistoryId} className="text-xs">
-          #{a.patientId} — {a.patientName}
-        </p>
-      ))}
     </div>
   )
 }
