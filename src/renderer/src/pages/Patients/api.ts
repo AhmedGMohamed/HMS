@@ -94,7 +94,7 @@ export function listPastAdmissions(id: number) {
 
 export function getAdmissionDetails(id: number, historyId: number) {
   return api.get<
-    import("@/pages/Patients/Admissions/lib/admissionsShape").AdmissionDetailsRaw
+    import("@/pages/Patients/types/patient").AdmissionDetails
   >(`/patients/${id}/admissions/${historyId}/details`)
 }
 

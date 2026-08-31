@@ -496,15 +496,94 @@ export interface CurrentAdmissionWithStaffRow {
    ---------------------------------------------------------------- */
 
 export interface AdmissionDetails {
-  patient: Patient;
-  admission: PatientHistory;
-  bill: Bill;
-  services: ActivePatientService[];
-  drugs: DrugUsage[];
-  supplies: MedicalSupplyUsage[];
-  servicesTotal: number;
-  drugsTotal: number;
-  suppliesTotal: number;
+  patientHistoryId: number
+  patientId: number
+  billId: number | null
+  pricelistId: number | string | null
+  leaveReason: LeaveReason | string | null
+  quickCheck: boolean | null
+  diagnosis: string | null
+  admissionTime: string
+  dischargeTime: string | null
+
+  // Flat top-level bill columns (server joins Bill into this payload)
+  totalAmount: number | string | null
+  paidAmount: number | string | null
+  discountType: string
+  discount: number | string | null
+  administrativeExpenses: number | string | null
+  medicalTestsAmount: number | string | null
+  vatPercentage: number | string | null
+  vatScope: string
+  vatScopeCustom: string[] | null
+  discountScope: string[] | null
+
+  // Service rows (flat camelCase)
+  services: AdmissionServiceRow[]
+  // Drug rows
+  drugs: AdmissionDrugRow[]
+  // Supply rows
+  supplies: AdmissionSupplyRow[]
+
+  servicesTotal: number | string | null
+  drugsTotal: number | string | null
+  suppliesTotal: number | string | null
+
+  assignedDoctors: AdmissionDoctorRow[]
+  assignedNurses: AdmissionNurseRow[]
+}
+
+export interface AdmissionServiceRow {
+  billDetailId: number
+  quantity: number | string
+  unitPrice: number | string
+  chargeType: "service";
+  serviceId: number
+  serviceName: string
+  serviceType: ServiceType
+  totalCost: number | string
+  generatedAt: string
+  endDate: string | null;
+}
+
+export interface AdmissionDrugRow {
+  billDetailId: number
+  drugId: number
+  drugShipmentId: number
+  drugName: string
+  manufacturer: string | null
+  unitConversion: UnitConversion | null
+  expiryDate: string | null
+  quantity: number | string
+  unitPrice: number | string
+  totalCost: number | string
+  chargeType: "drug";
+  generatedAt: string
+}
+
+export interface AdmissionSupplyRow {
+  billDetailId: number
+  supplyId: number
+  medicalSupplyName: string
+  quantity: number
+  unitPrice: number
+  chargeType: "supply";
+  generatedAt: string
+  manufacturer: string | null
+  medicalSupplyShipmentId: number
+  totalCost: number
+}
+
+export interface AdmissionDoctorRow {
+  doctorId: number
+  doctorName: string
+  doctorType: string
+}
+
+export interface AdmissionNurseRow {
+  nurseId: number
+  nurseName: string
+  employeeType: string
 }
 
 /* ----------------------------------------------------------------

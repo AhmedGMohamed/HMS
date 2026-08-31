@@ -26,109 +26,20 @@ import type {
   DiscountScope,
   LeaveReason,
   PatientHistory,
-  ServiceType,
   UnitConversion,
   VatScope,
+  AdmissionDetails,
+  AdmissionServiceRow,
+  AdmissionDrugRow,
+  AdmissionSupplyRow,
+  AdmissionDoctorRow,
+  AdmissionNurseRow
 } from "@/pages/Patients/types/patient"
 
 import {
   discountScopeFromServer,
   vatScopeFromServer,
 } from "@/pages/Patients/lib/billingTransformers"
-
-/* ----------------------------------------------------------------
- * Input types (post-toCamel server payloads)
- * ---------------------------------------------------------------- */
-
-export interface AdmissionDetailsRaw {
-  patientHistoryId: number
-  patientId: number
-  billId: number | null
-  pricelistId: number | string | null
-  leaveReason: LeaveReason | string | null
-  quickCheck: boolean | null
-  diagnosis: string | null
-  admissionTime: string
-  dischargeTime: string | null
-
-  // Flat top-level bill columns (server joins Bill into this payload)
-  totalAmount: number | string | null
-  paidAmount: number | string | null
-  discountType: string
-  discount: number | string | null
-  administrativeExpenses: number | string | null
-  medicalTestsAmount: number | string | null
-  vatPercentage: number | string | null
-  vatScope: string
-  vatScopeCustom: string[] | null
-  discountScope: string[] | null
-
-  // Service rows (flat camelCase)
-  services: ServiceRowRaw[]
-  // Drug rows
-  drugs: DrugRowRaw[]
-  // Supply rows
-  supplies: SupplyRowRaw[]
-
-  servicesTotal: number | string | null
-  drugsTotal: number | string | null
-  suppliesTotal: number | string | null
-
-  assignedDoctors: DoctorRowRaw[]
-  assignedNurses: NurseRowRaw[]
-}
-
-export interface ServiceRowRaw {
-  billDetailId: number
-  quantity: number | string
-  unitPrice: number | string
-  chargeType: "service" | "drug" | "supply";
-  generatedAt: string
-  serviceId: number
-  serviceName: string
-  serviceType: ServiceType
-  totalCost: number | string
-}
-
-export interface DrugRowRaw {
-  billDetailId: number
-  quantity: number | string
-  unitPrice: number | string
-  chargeType: "service" | "drug" | "supply";
-  generatedAt: string
-  drugId: number
-  drugName: string
-  manufacturer: string | null
-  unitConversion: UnitConversion | string | null
-  expiryDate: string | null
-  drugShipmentId: number
-  totalCost: number | string
-}
-
-export interface SupplyRowRaw {
-  billDetailId: number
-  quantity: number | string
-  unitPrice: number | string
-  chargeType: "service" | "drug" | "supply";
-  generatedAt: string
-  supplyId: number
-  medicalSupplyName: string
-  manufacturer: string | null
-  medicalSupplyShipmentId: number
-  totalCost: number | string
-}
-
-export interface DoctorRowRaw {
-  doctorId: number
-  doctorName: string
-  doctorType: string
-}
-
-export interface NurseRowRaw {
-  nurseId: number
-  nurseName: string
-  employeeType: string
-}
 
 /* ----------------------------------------------------------------
  * Coercion helpers — every function takes a camelCase input, every
@@ -217,7 +128,7 @@ export interface CoercePatientHistoryContext {
 }
 
 export function coercePatientHistory(
-  raw: AdmissionDetailsRaw,
+  raw: AdmissionDetails,
   ctx: CoercePatientHistoryContext
 ): PatientHistory {
   return {
@@ -233,18 +144,18 @@ export function coercePatientHistory(
     pricelistName: null,
     attendingDoctorIds: null,
     attendingNurseIds: null,
-    assignedDoctors: coerceStaffRows<DoctorRowRaw>(
+    assignedDoctors: coerceStaffRows<AdmissionDoctorRow>(
       raw.assignedDoctors,
       "doctor"
     ),
-    assignedNurses: coerceStaffRows<NurseRowRaw>(
+    assignedNurses: coerceStaffRows<AdmissionNurseRow>(
       raw.assignedNurses,
       "nurse"
     ),
   }
 }
 
-export function coerceBill(raw: AdmissionDetailsRaw): Bill {
+export function coerceBill(raw: AdmissionDetails): Bill {
   const discountScope: DiscountScope = discountScopeFromServer(
     raw.discountScope
   )
@@ -289,76 +200,6 @@ export function coerceBill(raw: AdmissionDetailsRaw): Bill {
  * surfaced here.
  */
 
-/**
- * Per-admission service row. Mirrors the `ServiceRowRaw` SQL join —
- * the bill-detail columns (id, price breakdown, charge type) plus the
- * minimal `Service` metadata (name, type) the endpoint joins flat.
- */
-export interface AdmissionServiceRow {
-  /** `BillDetail.bill_detail_id` — the row's primary key. */
-  billDetailId: number
-  serviceId: number
-  patientId: number
-  patientHistoryId: number
-  serviceName: string
-  serviceType: ServiceType
-  /** Quantity billed for this row — differs per service-type. */
-  quantity: number
-  unitPrice: number
-  /** `quantity * unitPrice` recomputed client-side (server-emitted). */
-  totalCost: number
-  /** `BillDetail.generated_at`. */
-  generatedAt: string
-  chargeType: "service" | "drug" | "supply";
-  /** Past admission — always `false`; kept for callers that branch
-   *  on "is this row still actively being billed". */
-  isActive: false
-  /** `PatientHistory.discharge_time` (forwarded via CoerceServiceRowContext). */
-  endDate: string | null
-}
-
-/**
- * Per-admission drug row. Mirrors `DrugRowRaw` — adds `unitPrice`,
- * `totalCost`, `drugShipmentId`, plus the partial `DrugCard` join
- * (`drug_name`, `manufacturer`, `unit_conversion`, `expiry_date`)
- * the endpoint's SQL selects.
- */
-export interface AdmissionDrugRow {
-  billDetailId: number
-  drugId: number
-  patientHistoryId: number
-  drugName: string
-  manufacturer: string | null
-  /** Parsed from the `DrugCard.unit_conversion` JSONB column. May
-   *  be `null` when the column was missing/invalid. */
-  unitConversion: UnitConversion | null
-  expiryDate: string | null
-  drugShipmentId: number
-  quantity: number
-  unitPrice: number
-  totalCost: number
-  generatedAt: string
-  chargeType: "service" | "drug" | "supply";
-}
-
-/**
- * Per-admission medical-supply row. Mirrors `SupplyRowRaw` — same
- * shape minus `unitConversion` (supplies have none).
- */
-export interface AdmissionSupplyRow {
-  billDetailId: number
-  supplyId: number
-  patientHistoryId: number
-  supplyName: string
-  manufacturer: string | null
-  medicalSupplyShipmentId: number
-  quantity: number
-  unitPrice: number
-  totalCost: number
-  generatedAt: string
-  chargeType: "service" | "drug" | "supply";
-}
-
 export interface CoerceServiceRowContext {
   patientId: number
   patientHistoryId: number
@@ -366,9 +207,9 @@ export interface CoerceServiceRowContext {
 }
 
 export function coerceServiceRow(
-  raw: ServiceRowRaw,
+  raw: AdmissionServiceRow,
   ctx: CoerceServiceRowContext
-): AdmissionServiceRow {
+): AdmissionServiceRow & {patientId: number, patientHistoryId: number} {
   return {
     billDetailId: raw.billDetailId,
     serviceId: raw.serviceId,
@@ -381,7 +222,6 @@ export function coerceServiceRow(
     totalCost: parseDec(raw.totalCost),
     generatedAt: raw.generatedAt,
     chargeType: raw.chargeType,
-    isActive: false,
     endDate: ctx.dischargeTime,
   }
 }
@@ -392,12 +232,13 @@ export interface CoerceDrugRowContext {
 }
 
 export function coerceDrugRow(
-  raw: DrugRowRaw,
+  raw: AdmissionDrugRow,
   ctx: CoerceDrugRowContext
-): AdmissionDrugRow {
+): AdmissionDrugRow & { patientId: number, patientHistoryId: number } {
   return {
     billDetailId: raw.billDetailId,
     drugId: raw.drugId,
+    patientId: ctx.patientId,
     patientHistoryId: ctx.patientHistoryId,
     drugName: raw.drugName,
     manufacturer: raw.manufacturer,
@@ -418,14 +259,15 @@ export interface CoerceSupplyRowContext {
 }
 
 export function coerceSupplyRow(
-  raw: SupplyRowRaw,
+  raw: AdmissionSupplyRow,
   ctx: CoerceSupplyRowContext
-): AdmissionSupplyRow {
+): AdmissionSupplyRow & { patientId: number, patientHistoryId: number } {
   return {
     billDetailId: raw.billDetailId,
     supplyId: raw.supplyId,
+    patientId: ctx.patientId,
     patientHistoryId: ctx.patientHistoryId,
-    supplyName: raw.medicalSupplyName,
+    medicalSupplyName: raw.medicalSupplyName,
     manufacturer: raw.manufacturer,
     medicalSupplyShipmentId: raw.medicalSupplyShipmentId,
     quantity: parseDec(raw.quantity),
@@ -455,7 +297,8 @@ export function coerceStaffRow<
   role: "doctor" | "nurse"
 ): AssignedStaff {
   if (role === "doctor") {
-    const r = row as unknown as DoctorRowRaw
+    const r = row as unknown as AdmissionDoctorRow
+    console.log(r)
     return {
       doctorId: r.doctorId,
       employeeId: r.doctorId,
@@ -463,10 +306,10 @@ export function coerceStaffRow<
       employeeType: "doctor",
     }
   }
-  const r = row as unknown as NurseRowRaw
+  const r = row as unknown as AdmissionNurseRow
   return {
     nurseId: r.nurseId,
-    employeeId: r.employee,
+    employeeId: r.nurseId,
     name: r.nurseName,
     employeeType: "nurse",
   }
@@ -490,7 +333,7 @@ export interface HydratedAdmissionDetails {
 }
 
 export function hydrateAdmissionDetails(
-  raw: AdmissionDetailsRaw,
+  raw: AdmissionDetails,
   patientId: number
 ): HydratedAdmissionDetails {
   const patientHistoryId = raw.patientHistoryId
@@ -511,7 +354,7 @@ export function hydrateAdmissionDetails(
     servicesTotal: parseDec(raw.servicesTotal),
     drugsTotal: parseDec(raw.drugsTotal),
     suppliesTotal: parseDec(raw.suppliesTotal),
-    assignedDoctors: coerceStaffRows<DoctorRowRaw>(raw.assignedDoctors, "doctor"),
-    assignedNurses: coerceStaffRows<NurseRowRaw>(raw.assignedNurses, "nurse"),
+    assignedDoctors: coerceStaffRows<AdmissionDoctorRow>(raw.assignedDoctors, "doctor"),
+    assignedNurses: coerceStaffRows<AdmissionNurseRow>(raw.assignedNurses, "nurse"),
   }
 }

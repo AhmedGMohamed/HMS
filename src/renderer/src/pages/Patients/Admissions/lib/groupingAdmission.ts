@@ -28,7 +28,7 @@ import type {
   AdmissionDrugRow,
   AdmissionServiceRow,
   AdmissionSupplyRow,
-} from "@/pages/Patients/Admissions/lib/admissionsShape"
+} from "@/pages/Patients/types/patient"
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -136,7 +136,7 @@ export function groupAdmissionDrugs(
 
 export interface AdmissionSupplyGroup {
   supplyId: number
-  supplyName: string
+  medicalSupplyName: string
   unitPrice: number
   quantity: number
   totalCost: number
@@ -157,7 +157,7 @@ export function groupAdmissionSupplies(
     if (!group) {
       group = {
         supplyId: row.supplyId,
-        supplyName: row.supplyName ?? "—",
+        medicalSupplyName: row.medicalSupplyName ?? "—",
         unitPrice,
         quantity: 0,
         totalCost: 0,

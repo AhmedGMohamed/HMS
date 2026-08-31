@@ -145,8 +145,7 @@ export function AddSupplyDialog({
     if (currentAdmissionId == null) return
     const price =
       shipment.prices[0]?.price ??
-      shipment.buyPrice * quantity ??
-      quantity
+      shipment.buyPrice * quantity
     await addSupply(patientId, {
       supplyId: selectedSupply.supplyId,
       shipmentId: shipment.shipmentId,
