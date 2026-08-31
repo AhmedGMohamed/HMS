@@ -29,7 +29,7 @@ export interface BillDetail {
 	medical_supply_name?: string;
 	quantity: number;
 	unit_price: number;
-	charge_type: string;
+	charge_type: "service" | "drug" | "supply";
 	sale_type: "outside" | "medical_check" | "admitted";
 	generated_at: Date;
 }
@@ -62,7 +62,7 @@ export interface CreateBillDetailDTO {
 	drug_shipment_id?: number;
 	quantity: number;
 	unit_price: number;
-	charge_type: string;
+	charge_type: "service" | "drug" | "supply";
 	sale_type: "outside" | "medical_check" | "admitted";
 }
 
