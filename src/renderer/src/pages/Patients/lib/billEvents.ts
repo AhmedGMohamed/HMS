@@ -76,3 +76,64 @@ export function useBillChangeSubscription(
     }
   }, [patientId, handler])
 }
+
+/* ----------------------------------------------------------------
+   Staff-change events (T10)
+   ---------------------------------------------------------------- */
+
+export const STAFF_CHANGED_EVENT = "hms:staff-changed"
+
+export interface StaffChangedDetail {
+  patientId: number
+  /**
+   * Which role types changed. Empty array means "no actual change" —
+   * the hook never dispatches for a no-op diff.
+   */
+  roles: ("doctors" | "nurses")[]
+}
+
+declare global {
+  interface WindowEventMap {
+    [STAFF_CHANGED_EVENT]: CustomEvent<StaffChangedDetail>
+  }
+}
+
+/**
+ * Fire after a successful staff-assignment mutation. The Patient
+ * profile listens for `patientId === current` and refetches
+ * `usePatientProfile`; the Staff Status tab listens for *any*
+ * patient id (no filter) and refetches `useStaffStatus` so its
+ * 30s polling stays in sync with what the user just changed.
+ */
+export function dispatchStaffChanged(detail: StaffChangedDetail): void {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(
+    new CustomEvent<StaffChangedDetail>(STAFF_CHANGED_EVENT, { detail })
+  )
+}
+
+/**
+ * Variant of `useBillChangeSubscription` for staff events. If
+ * `patientId` is `null` the listener fires for *every* patient —
+ * used by the Staff Status tab where multiple patients may have
+ * just been touched.
+ */
+export function useStaffChangeSubscription(
+  patientId: number | null,
+  handler: (detail: StaffChangedDetail) => void
+): void {
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const wrapped = (event: Event) => {
+      const ce = event as CustomEvent<StaffChangedDetail>
+      const detail = ce.detail
+      if (!detail) return
+      if (patientId !== null && detail.patientId !== patientId) return
+      handler(detail)
+    }
+    window.addEventListener(STAFF_CHANGED_EVENT, wrapped)
+    return () => {
+      window.removeEventListener(STAFF_CHANGED_EVENT, wrapped)
+    }
+  }, [patientId, handler])
+}

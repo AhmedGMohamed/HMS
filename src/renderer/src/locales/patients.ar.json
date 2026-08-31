@@ -25,6 +25,8 @@
       "remove": "إزالة",
       "administer": "إعطاء",
       "settleBill": "تسوية الفاتورة",
+      "editDiagnosis": "تعديل التشخيص",
+      "editStaff": "تعديل الطاقم",
       "view": "عرض"
     },
     "sections": {
@@ -65,7 +67,8 @@
       "leaveReason": "سبب المغادرة",
       "dischargeTime": "وقت التسريح",
       "admittedOn": "تاريخ الإقامة",
-      "patient": "المريض"
+      "patient": "المريض",
+      "pricelistDisabledForInsurance": "قائمة الأسعار محددة تلقائياً من شركة التأمين"
     },
     "table": {
       "id": "ID",
@@ -179,6 +182,8 @@
       "searchServices": "البحث عن خدمات...",
       "searchDrugs": "البحث عن أدوية...",
       "searchSupplies": "البحث عن مستلزمات...",
+      "searchDoctors": "البحث عن أطباء...",
+      "searchNurses": "البحث عن ممرضين...",
       "default": "افتراضي",
       "enterAmount": "أدخل المبلغ"
     },
@@ -195,7 +200,10 @@
       "admissionDetails": "تفاصيل الإقامة",
       "editStaffAssignment": "تعديل تعيين الموظفين",
       "settleBill": "تسوية الفاتورة",
-      "printBillConfirm": "تأكيد الطباعة"
+      "printBillConfirm": "تأكيد الطباعة",
+      "admitPatient": "إدخال المريض",
+      "editDiagnosis": "تعديل التشخيص",
+      "editStaffFor": "تغيير طاقم {{name}}"
     },
     "billingPrint": {
       "title": "فاتورة المريض",
@@ -284,7 +292,16 @@
       "clockedIn": "مسجل حضور",
       "notClockedIn": "لم يسجل حضور",
       "noDoctorsAssignedToPatient": "لا يوجد أطباء معينون لهذا المريض",
-      "noNursesAssignedToPatient": "لا يوجد ممرضون معينون لهذا المريض"
+      "noNursesAssignedToPatient": "لا يوجد ممرضون معينون لهذا المريض",
+      "refreshed": "تم التحديث {{time}}",
+      "lastUpdate": "آخر تحديث",
+      "clockedInDuration": "في العملية منذ {{duration}}",
+      "noAssignmentsForStaff": "غير معين حالياً لأي مريض",
+      "admissionTime": "تاريخ الإدخال",
+      "sinceAdmission": "مقيم منذ {{duration}}",
+      "viewPatient": "عرض المريض",
+      "pollingHint": "يتحّدث تلقائياً كل 30 ثانية",
+      "changeStaff": "تغيير الطاقم"
     },
     "help": {
       "admitOnRegisterHint": "عند التفعيل، سيتم إدخال المريض فوراً بعد إنشائه. سيُطلب منك التشخيص، وملاحظة الفحص السريع، والطاقم المعالج.",
@@ -326,6 +343,10 @@
       "editPatientMissing": "سجل المريض غير موجود أو غير قابل للقراءة",
       "noCurrentAdmissions": "لا يوجد مرضى محجوزون حالياً",
       "patientDischarged": "تم تسريح المريض بنجاح",
+      "diagnosisUpdated": "تم تحديث التشخيص بنجاح",
+      "diagnosisUpdateError": "فشل تحديث التشخيص",
+      "attendingStaffRequired": "يجب اختيار طبيب واحد على الأقل وممرض واحد على الأقل",
+      "alreadyAdmitted": "المريض مُدخل بالفعل",
       "serviceAdded": "تمت إضافة الخدمة بنجاح",
       "serviceRemoved": "تمت إزالة الخدمة بنجاح",
       "serviceStopped": "تم إيقاف الخدمة بنجاح",
@@ -424,8 +445,13 @@
       "billSettled": "تم تسوية الفاتورة بنجاح",
       "settleBillError": "فشل في تسوية الفاتورة",
       "paidExceedsTotal": "المبلغ المدفوع يتجاوز المبلغ الإجمالي. هل تريد المتابعة؟",
-      "loadBillError": "فشل في تحميل بيانات الفاتورة",
-      "outOfStock": "لا يوجد مخزون متاح"
+      "loadBillError": "فشل تحميل بيانات الفاتورة",
+      "outOfStock": "غير متوفر في المخزون",
+      "quickCheckBadge": "فحص سريع",
+      "noDoctorsInAdmission": "لا يوجد أطباء معينون",
+      "noNursesInAdmission": "لا يوجد ممرضون معينون",
+      "staffAssignmentRequiresAdmission": "يمكن تعديل الطاقم فقط أثناء إدخال المريض",
+      "noStaffChange": "لم يتم تعديل الطاقم"
     },
     "printBill": {
       "unknownItem": "عنصر غير معروف",

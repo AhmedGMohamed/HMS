@@ -118,6 +118,9 @@ export interface PatientHistory {
   pricelistName: string | null;
   attendingDoctorIds: number[] | null;
   attendingNurseIds: number[] | null;
+  /**Current admission rows */
+  attendingDoctors?: string[] | null;
+  attendingNurses?: string[] | null;
   /** Joined names — only on `/api/patients/:id/admissions/:hId/details`. */
   assignedDoctors: AssignedStaff[] | null;
   assignedNurses: AssignedStaff[] | null;
@@ -389,18 +392,23 @@ export interface MedicalSupplyUsage {
    6. Lookups
    ---------------------------------------------------------------- */
 
-export interface Doctor {
-  doctorId: number;
+export interface Employee {
+  employeeId: number;
+  employeeType: "doctor" | "nurse" | "other";
   name: string;
-  doctorType?: "attending" | "referring" | "supervising" | (string & {});
-  specialization?: string;
-  isAvailable?: boolean;
+  isActive: boolean;
+  isFacilityEmployee: boolean;
+  hireDate: string;
+  phone: string | null;
 }
 
-export interface Nurse {
-  nurseId: number;
-  name: string;
-  isAvailable?: boolean;
+export interface Doctor extends Employee {
+  doctorType?: "attending" | "referring" | "supervising" | (string & {});
+  employeeType: "doctor";
+}
+
+export interface Nurse extends Employee {
+  employeeType: "nurse";
 }
 
 export interface InsuranceCompany {
@@ -432,15 +440,55 @@ export interface ClockedInStaff {
   available: boolean;
 }
 
-export interface PatientAssignment {
-  patientHistoryId: number;
+/**
+ * T9.2 wire shape for `GET /api/clock-ins/clocked-in`. The
+ * `/api/clock-ins/clocked-in` endpoint SELECTs `EmployeeClockIn.*`
+ * joined to `Employee.shift_start_time / shift_end_time`. It does
+ * *not* include name or employee_type — the renderer joins against
+ * `listDoctors()` / `listAvailableNurses()` in
+ * `staffStatus/enrichClockedIn.ts` to derive them. The flat row is
+ * camelCased by `toCamel` at the api.ts boundary.
+ */
+export interface ClockedInEmployeeRow {
+  clockId: number;
+  employeeId: number;
+  clockIn: string;
+  /** Server emits `null` while still on duty. */
+  clockOut: string | null;
+  payDeduction: number;
+  shiftStartTime: string | null;
+  shiftEndTime: string | null;
+}
+
+/**
+ * T9.2 wire shape for `GET /api/patients/admissions/current` (the
+ * "with staff" overlay). Server SELECTs flat:
+ *   `patient_id, patient_name, patient_history_id, diagnosis,
+ *    admission_time, quick_check, attending_doctor_ids, attending_doctors,
+ *    doctor_types, attending_nurse_ids, attending_nurses`.
+ * Note `attending_doctors`/`attending_nurses` are parallel arrays of
+ * *names* — not nested staff objects. The detail-by-id endpoint is
+ * the only one that returns nested `assignedDoctors / assignedNurses`
+ * with ids (T7 shape).
+ *
+ * The previous `PatientAssignment` (with `doctors: ClockedInStaff[]`
+ * / `nurseIds: number[]`) was a misread of the wire — only the
+ * legacy in-memory shape had nested arrays. Removed in T9.2; the
+ * `AssignmentSummary` interface in `enrichClockedIn.ts` is the
+ * renderer-shape counterpart.
+ */
+export interface CurrentAdmissionWithStaffRow {
   patientId: number;
   patientName: string;
+  patientHistoryId: number;
+  diagnosis: string | null;
   admissionTime: string;
-  doctorIds: number[];
-  nurseIds: number[];
-  doctors: ClockedInStaff[];
-  nurses: ClockedInStaff[];
+  quickCheck: boolean;
+  attendingDoctorIds: number[];
+  attendingDoctors: string[];
+  doctorTypes: string[];
+  attendingNurseIds: number[];
+  attendingNurses: string[];
 }
 
 /* ----------------------------------------------------------------

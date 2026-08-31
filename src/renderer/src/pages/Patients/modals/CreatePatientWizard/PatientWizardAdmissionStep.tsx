@@ -71,11 +71,11 @@ export function PatientWizardAdmissionStep() {
 
   const doctorOptions: AdmissionOption<Doctor>[] = doctors.map((d) => ({
     row: d,
-    selected: attendingDoctors.includes(d.doctorId),
+    selected: attendingDoctors.includes(d.employeeId),
   }))
   const nurseOptions: AdmissionOption<Nurse>[] = nurses.map((n) => ({
     row: n,
-    selected: attendingNurses.includes(n.nurseId),
+    selected: attendingNurses.includes(n.employeeId),
   }))
 
   function toggleDoctor(id: number) {
@@ -158,9 +158,9 @@ export function PatientWizardAdmissionStep() {
               <div className="flex flex-wrap gap-2">
                 {doctorOptions.map((d) => (
                   <button
-                    key={d.row.doctorId}
+                    key={d.row.employeeId}
                     type="button"
-                    onClick={() => toggleDoctor(d.row.doctorId)}
+                    onClick={() => toggleDoctor(d.row.employeeId)}
                     className="focus-visible:ring-ring focus-visible:ring-offset-background rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     aria-pressed={d.selected}
                   >
@@ -199,9 +199,9 @@ export function PatientWizardAdmissionStep() {
               <div className="flex flex-wrap gap-2">
                 {nurseOptions.map((n) => (
                   <button
-                    key={n.row.nurseId}
+                    key={n.row.employeeId}
                     type="button"
-                    onClick={() => toggleNurse(n.row.nurseId)}
+                    onClick={() => toggleNurse(n.row.employeeId)}
                     className="focus-visible:ring-ring focus-visible:ring-offset-background rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     aria-pressed={n.selected}
                   >

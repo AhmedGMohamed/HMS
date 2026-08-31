@@ -77,8 +77,8 @@ export function PatientWizardMedicalStep() {
             </NativeSelectOption>
             {doctors.map((d) => (
               <NativeSelectOption
-                key={d.doctorId}
-                value={d.doctorId}
+                key={d.employeeId}
+                value={d.employeeId}
               >
                 {d.name}
               </NativeSelectOption>

@@ -25,6 +25,8 @@
       "remove": "Remove",
       "administer": "Administer",
       "settleBill": "Settle Bill",
+      "editDiagnosis": "Edit Diagnosis",
+      "editStaff": "Edit Staff",
       "view": "View"
     },
     "sections": {
@@ -65,7 +67,8 @@
       "leaveReason": "Leave Reason",
       "dischargeTime": "Discharge Time",
       "admittedOn": "Admitted on",
-      "patient": "Patient"
+      "patient": "Patient",
+      "pricelistDisabledForInsurance": "Price list auto-selected from insurance company"
     },
     "table": {
       "id": "ID",
@@ -179,6 +182,8 @@
       "searchServices": "Search services...",
       "searchDrugs": "Search drugs...",
       "searchSupplies": "Search supplies...",
+      "searchDoctors": "Search doctors...",
+      "searchNurses": "Search nurses...",
       "default": "Default",
       "enterAmount": "Enter amount"
     },
@@ -195,7 +200,10 @@
       "admissionDetails": "Admission Details",
       "editStaffAssignment": "Edit Staff Assignment",
       "settleBill": "Settle Bill",
-      "printBillConfirm": "Confirm Print"
+      "printBillConfirm": "Confirm Print",
+      "admitPatient": "Admit Patient",
+      "editDiagnosis": "Edit Diagnosis",
+      "editStaffFor": "Change staff for {{name}}"
     },
     "billingPrint": {
       "title": "PATIENT BILL",
@@ -284,7 +292,16 @@
       "clockedIn": "clocked in",
       "notClockedIn": "Not clocked in",
       "noDoctorsAssignedToPatient": "No doctors assigned to this patient",
-      "noNursesAssignedToPatient": "No nurses assigned to this patient"
+      "noNursesAssignedToPatient": "No nurses assigned to this patient",
+      "refreshed": "Refreshed {{time}}",
+      "lastUpdate": "Last update",
+      "clockedInDuration": "On duty for {{duration}}",
+      "noAssignmentsForStaff": "Not currently assigned to any patient",
+      "admissionTime": "Admitted",
+      "sinceAdmission": "In for {{duration}}",
+      "viewPatient": "View patient",
+      "pollingHint": "Auto-refreshes every 30s",
+      "changeStaff": "Change staff"
     },
     "help": {
       "admitOnRegisterHint": "When checked the patient is admitted immediately after creation. You'll be asked for diagnosis, quick-check note, and attending staff.",
@@ -327,6 +344,10 @@
       "noCurrentAdmissions": "No patients currently admitted",
       "loadPatientError": "Failed to load patient record",
       "patientDischarged": "Patient discharged successfully",
+      "diagnosisUpdated": "Diagnosis updated successfully",
+      "diagnosisUpdateError": "Failed to update diagnosis",
+      "attendingStaffRequired": "At least one doctor and one nurse are required",
+      "alreadyAdmitted": "Patient is already admitted",
       "serviceAdded": "Service added successfully",
       "serviceRemoved": "Service removed successfully",
       "serviceStopped": "Service stopped successfully",
@@ -428,7 +449,12 @@
       "settleBillError": "Failed to settle bill",
       "paidExceedsTotal": "The paid amount exceeds the total amount. Do you want to continue?",
       "loadBillError": "Failed to load bill data",
-      "outOfStock": "Out of stock"
+      "outOfStock": "Out of stock",
+      "quickCheckBadge": "Quick check",
+      "noDoctorsInAdmission": "No doctors assigned",
+      "noNursesInAdmission": "No nurses assigned",
+      "staffAssignmentRequiresAdmission": "Staff can only be edited while the patient is admitted",
+      "noStaffChange": "No staff changes"
     },
     "printBill": {
       "unknownItem": "Unknown Item",

@@ -15,7 +15,6 @@ import type {
   MedicalSupplyUsage,
   Nurse,
   Patient,
-  PatientAssignment,
   PatientHistory,
   PriceList,
   Service,
@@ -100,7 +99,9 @@ export function getAdmissionDetails(id: number, historyId: number) {
 }
 
 export function listCurrentAdmissionsWithStaff() {
-  return api.get<PatientAssignment[]>("/patients/admissions/current")
+  return api.get<
+    import("@/pages/Patients/types/patient").CurrentAdmissionWithStaffRow[]
+  >("/patients/admissions/current")
 }
 
 /* ----------------------------------------------------------------
@@ -262,7 +263,9 @@ export function listSupplyShipments(supplyId: number) {
    ---------------------------------------------------------------- */
 
 export function listClockedInStaff() {
-  return api.get<ClockedInStaff[]>("/clock-ins/clocked-in")
+  return api.get<
+    import("@/pages/Patients/types/patient").ClockedInEmployeeRow[]
+  >("/clock-ins/clocked-in")
 }
 
 /* ----------------------------------------------------------------
@@ -319,9 +322,9 @@ export type UpdatePatientPayload = Partial<CreatePatientPayload> & {
 
 export interface AdmitPatientPayload {
   diagnosis: string
-  quickCheck?: string | null
-  attendingDoctorIds: number[]
-  attendingNurseIds: number[]
+  quickCheck?: boolean | null
+  attendingDoctors: number[]
+  attendingNurses: number[]
   pricelistId?: number | null
 }
 
@@ -361,4 +364,4 @@ export interface UpdateBillPayload {
    Re-exports for callers that need to drive `useListData` directly
    ---------------------------------------------------------------- */
 
-export type { EmployeeType, PatientAssignment }
+export type { EmployeeType, ClockedInStaff }

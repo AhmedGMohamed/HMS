@@ -82,7 +82,7 @@ export interface ServiceRowRaw {
   billDetailId: number
   quantity: number | string
   unitPrice: number | string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
   generatedAt: string
   serviceId: number
   serviceName: string
@@ -94,7 +94,7 @@ export interface DrugRowRaw {
   billDetailId: number
   quantity: number | string
   unitPrice: number | string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
   generatedAt: string
   drugId: number
   drugName: string
@@ -109,7 +109,7 @@ export interface SupplyRowRaw {
   billDetailId: number
   quantity: number | string
   unitPrice: number | string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
   generatedAt: string
   supplyId: number
   medicalSupplyName: string
@@ -309,7 +309,7 @@ export interface AdmissionServiceRow {
   totalCost: number
   /** `BillDetail.generated_at`. */
   generatedAt: string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
   /** Past admission — always `false`; kept for callers that branch
    *  on "is this row still actively being billed". */
   isActive: false
@@ -338,7 +338,7 @@ export interface AdmissionDrugRow {
   unitPrice: number
   totalCost: number
   generatedAt: string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
 }
 
 /**
@@ -356,7 +356,7 @@ export interface AdmissionSupplyRow {
   unitPrice: number
   totalCost: number
   generatedAt: string
-  chargeType: string
+  chargeType: "service" | "drug" | "supply";
 }
 
 export interface CoerceServiceRowContext {
@@ -466,7 +466,7 @@ export function coerceStaffRow<
   const r = row as unknown as NurseRowRaw
   return {
     nurseId: r.nurseId,
-    employeeId: r.nurseId,
+    employeeId: r.employee,
     name: r.nurseName,
     employeeType: "nurse",
   }
