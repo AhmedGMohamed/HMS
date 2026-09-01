@@ -28,6 +28,44 @@ export const VALIDATION_KEYS = {
 } as const
 
 /**
+ * Shared insurance-field validation for `paymentType === "insurance"`.
+ * Requires a non-null `insuranceId`, `insuranceCardId`, and
+ * `insuranceFormId`. Extracted (DRY) because the same rule is enforced
+ * in three places: the wizard's standalone payment schema, the combined
+ * wizard schema, and the edit-patient schema.
+ */
+function addInsuranceIssues(
+  value: {
+    insuranceId?: number | null
+    insuranceCardId?: string | null
+    insuranceFormId?: string | null
+  },
+  ctx: z.RefinementCtx
+): void {
+  if (!value.insuranceId) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["insuranceId"],
+      message: VALIDATION_KEYS.insuranceCompany,
+    })
+  }
+  if (!value.insuranceCardId || value.insuranceCardId.trim().length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["insuranceCardId"],
+      message: VALIDATION_KEYS.insuranceCompany,
+    })
+  }
+  if (!value.insuranceFormId || value.insuranceFormId.trim().length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["insuranceFormId"],
+      message: VALIDATION_KEYS.insuranceCompany,
+    })
+  }
+}
+
+/**
  * Step 1 — Basic info.
  *
  * Name + gender are required. National ID is optional but when
@@ -108,27 +146,7 @@ export const wizardPaymentSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.paymentType === "insurance") {
-      if (!v.insuranceId) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
-      if (!v.insuranceCardId || v.insuranceCardId.trim().length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceCardId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
-      if (!v.insuranceFormId || v.insuranceFormId.trim().length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceFormId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
+      addInsuranceIssues(v, ctx)
     }
   })
 
@@ -217,27 +235,7 @@ export const wizardSchema = z
       })
     }
     if (value.paymentType === "insurance") {
-      if (!value.insuranceId) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
-      if (!value.insuranceCardId || value.insuranceCardId.trim().length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceCardId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
-      if (!value.insuranceFormId || value.insuranceFormId.trim().length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["insuranceFormId"],
-          message: VALIDATION_KEYS.insuranceCompany,
-        })
-      }
+      addInsuranceIssues(value, ctx)
     }
   })
 
@@ -299,27 +297,7 @@ export const editPatientSchema = z
       })
     }
     if (value.paymentType !== "insurance") return
-    if (!value.insuranceId) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["insuranceId"],
-        message: VALIDATION_KEYS.insuranceCompany,
-      })
-    }
-    if (!value.insuranceCardId || value.insuranceCardId.trim().length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["insuranceCardId"],
-        message: VALIDATION_KEYS.insuranceCompany,
-      })
-    }
-    if (!value.insuranceFormId || value.insuranceFormId.trim().length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["insuranceFormId"],
-        message: VALIDATION_KEYS.insuranceCompany,
-      })
-    }
+    addInsuranceIssues(value, ctx)
   })
 
 export type EditPatientValues = z.infer<typeof editPatientSchema>

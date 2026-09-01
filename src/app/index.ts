@@ -5,7 +5,6 @@ import cookieParser from "cookie-parser";
 import { createDBIfNotExists } from "./utils/setUpDatabase.js";
 import apiRoutes from "./routes/api.routes.js";
 import pageRoutes from "./routes/page.routes.js";
-import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
 import EmployeePaymentCron from "./cron/employeePaymentCron.js";

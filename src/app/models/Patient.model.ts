@@ -18,54 +18,87 @@ import {
 import BillModel from "./Bill.model.js";
 
 export class PatientModel {
+	/**
+	 * Sortable columns for `getAllPatients`. Keys are the wire-snake
+	 * column names accepted via `?sort=<key>:<asc|desc>`; values are the
+	 * SQL identifiers (already-qualified against the `Patient p` /
+	 * `InsuranceCompany ic` join). Anything outside this map falls back
+	 * to `name` — never interpolate raw user input into ORDER BY.
+	 */
+	private static readonly SORTABLE_COLUMNS: Record<string, string> = {
+		patient_id: "p.patient_id",
+		name: "p.name",
+		national_id: "p.national_id",
+		insurance_company_name: "ic.name",
+		payment_type: "p.payment_type",
+		registration_date: "p.registration_date",
+		is_active: "p.is_active",
+	};
+
 	async getAllPatients(
-		pagination?: { offset?: number; limit?: number; q?: string }
+		pagination?: {
+			offset?: number;
+			limit?: number;
+			q?: string;
+			sort?: string;
+			order?: string;
+		}
 	): Promise<{ rows: Patient[]; total: number }> {
 		const offset = Math.max(0, pagination?.offset ?? 0)
 		const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
 		const q = pagination?.q?.trim()
 
-		let baseSql = `
-			SELECT p.*, ic.name as insurance_company_name FROM Patient p
-            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id`
+		const sortKey = pagination?.sort?.trim() ?? ""
+		const orderColumn =
+			PatientModel.SORTABLE_COLUMNS[sortKey] ??
+			PatientModel.SORTABLE_COLUMNS.name
+		const orderDir =
+			pagination?.order?.toLowerCase() === "desc" ? "DESC" : "ASC"
+		// NULLS LAST keeps rows with null insurance/national_id grouped at the
+		// tail regardless of direction, matching UX expectations for "—" cells.
+		const orderBy = `${orderColumn} ${orderDir} NULLS LAST, p.patient_id ASC`
+
 		const params: unknown[] = []
+		let whereSql = ""
 		if (q) {
-			baseSql += ` WHERE name ILIKE $1 OR national_id ILIKE $1`
 			params.push(`%${q}%`)
-			params.push(limit, offset)
-		} else {
-			params.push(limit, offset)
+			whereSql = ` WHERE p.name ILIKE $1 OR p.national_id ILIKE $1`
 		}
-		baseSql += ` ORDER BY`
-		if (q) {
-			baseSql += ` CASE
-                    		WHEN LOWER(name) = LOWER($1) THEN 1
+		params.push(limit, offset)
+		const limitIdx = params.length - 1
+		const offsetIdx = params.length
+
+		const relevanceSql = q
+			? ` CASE
+                    		WHEN LOWER(p.name) = LOWER($1) THEN 1
 							WHEN national_id = $1 THEN 2
-                    		WHEN LOWER(name) LIKE LOWER($1) || '%' THEN 3
-                    		WHEN national_id LIKE $1 || '%' THEN 4
+                    		WHEN LOWER(p.name) LIKE LOWER($1) || '%' THEN 3
+                    		WHEN p.national_id LIKE $1 || '%' THEN 4
                     		ELSE 5
                 		END,`
-		}
-		baseSql += ` name LIMIT $${params.length - 1} OFFSET $${params.length}`
+			: ""
 
-		let total: number
-		let countSql = ""
-		let countParams = []
+		const baseSql = `
+			SELECT p.*, ic.name as insurance_company_name FROM Patient p
+            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+			${whereSql}
+			ORDER BY${relevanceSql} ${orderBy}
+			LIMIT $${limitIdx} OFFSET $${offsetIdx}`
+
+		let countSql = `SELECT COUNT(*) AS c FROM Patient p`
+		const countParams: unknown[] = []
 		if (q) {
-			countSql = `SELECT COUNT(*) AS c 
-			FROM Patient 
-			WHERE name ILIKE $1 OR national_id ILIKE $1
-			GROUP BY name, national_id`
+			countSql = `SELECT COUNT(*) AS c
+			FROM Patient p
+			WHERE name ILIKE $1 OR national_id ILIKE $1`
 			countParams.push(`%${q}%`)
-		} else {
-			countSql = `SELECT COUNT(*) AS c FROM Patient`
 		}
 
 		const [result, count] = await Promise.all([
 			query(baseSql, params),
 			query(countSql, countParams)
 		])
-		total = Number(count.rows[0]?.c ?? 0)
+		const total = Number(count.rows[0]?.c ?? 0)
 		return { rows: result.rows, total }
 	}
 

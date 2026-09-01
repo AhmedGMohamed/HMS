@@ -209,7 +209,6 @@ export default function PatientDetailPage() {
             patient: profile.patient,
             bill,
             billDetails: bill.billDetails ?? [],
-            language: "en",
           })
         }}
       />

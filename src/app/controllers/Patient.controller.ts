@@ -21,8 +21,12 @@ export class PatientController {
 			const pagination = parsePagination(req);
 			const qRaw = req.query?.q;
 			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const sortRaw = req.query?.sort;
+			const sort = typeof sortRaw === "string" ? sortRaw : undefined;
+			const orderRaw = req.query?.order;
+			const order = typeof orderRaw === "string" ? orderRaw : undefined;
 			const { rows, total } = await PatientModel.getAllPatients(
-				{ offset: pagination.offset, limit: pagination.limit, q }
+				{ offset: pagination.offset, limit: pagination.limit, q, sort, order }
 			);
 			res.status(200).json(buildPage(rows, total, pagination));
 		} catch (error) {
