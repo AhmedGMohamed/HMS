@@ -167,7 +167,7 @@ export class PatientModel {
 				data.referring_doctor_id || null,
 				data.is_active || false,
 				data.created_by_user_id];
-			const placeholders = columns.map((_, ind) => `$${ind}`);
+			const placeholders = columns.map((_, ind) => `$${ind + 1}`);
 
 			if (data.pricelist_id) {
 				columns.push("pricelist_id")

@@ -55,7 +55,6 @@ export function PatientListPanel({
       {
         id: "patientId",
         header: t("patients.table.id"),
-        numeric: true,
         width: "w-12",
         sortable: true,
       },
