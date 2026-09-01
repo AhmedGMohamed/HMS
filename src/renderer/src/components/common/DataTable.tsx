@@ -230,7 +230,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           ) : null}
         </CardHeader>
       ) : null}
-      <CardContent className="p-0">
+      <CardContent className="px-4 py-0">
         <div role="region" className="relative overflow-x-auto">
           <Table
             aria-busy={loading || undefined}
