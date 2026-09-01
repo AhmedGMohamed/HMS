@@ -14,7 +14,7 @@ import {
 import { extractBillPrintLabels } from "@/pages/Patients/print/printBillLabels"
 import { formatCurrency } from "@/pages/Patients/Admissions/lib/admissionFormat"
 
-export type UsePrintBillArgs = BuildBillBodyInputs
+export type UsePrintBillArgs = Omit<BuildBillBodyInputs, "language">
 
 export interface UsePrintBillResult {
   printing: boolean

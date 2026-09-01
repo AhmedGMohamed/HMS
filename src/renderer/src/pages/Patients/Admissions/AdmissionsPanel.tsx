@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next"
 import { usePrintBill } from "@/pages/Patients/print/hooks/usePrintBill"
 import { PrintBillConfirmDialog } from "@/pages/Patients/print/dialogs/PrintBillConfirmDialog"
 import { synthesiseBillFromAdmissionDetails } from "@/pages/Patients/print/lib/buildBillingDetails"
-import { useUIStore } from "@/store/uiStore"
 import { getPatient } from "@/pages/Patients/api"
 import type { Patient } from "@/pages/Patients/types/patient"
 
@@ -38,7 +37,6 @@ export function AdmissionsPanel({ patientId }: AdmissionsPanelProps) {
   const { t } = useTranslation()
   const { hasPermission } = usePermission()
   const canManage = hasPermission("manage_patients")
-  const language = useUIStore((s) => s.language) as "en" | "ar"
 
   const listRes = usePastAdmissions(patientId)
   const [selected, setSelected] = useState<PastAdmissionSummary | null>(null)
@@ -200,7 +198,6 @@ export function AdmissionsPanel({ patientId }: AdmissionsPanelProps) {
               patient: printPatient ?? placeholderPatient,
               bill: synthResult.bill,
               billDetails: synthResult.billDetails,
-              language,
             })
           }}
         />

@@ -303,7 +303,7 @@ export default function ComponentsDemoPage() {
             onPageChange: () => {},
             onPageSizeChange: () => {},
           }}
-          initialSort={sort}
+          sort={sort}
           onSortToggle={(columnId, next) => setSort(next)}
           toolbar={
             <Button variant="outline" size="sm">

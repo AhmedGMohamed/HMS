@@ -77,8 +77,8 @@ export interface DataTableProps<T> {
   caption?: string
   /** Required when no `caption`; becomes the table's aria-label. */
   ariaLabel?: string
-  /** Visual sort state. Drives header icons. Caller sorts `data` itself. */
-  initialSort?: { columnId: string; direction: "asc" | "desc" }
+  /** Controlled sort state. Drives header icons; caller sorts `data` itself. */
+  sort?: { columnId: string; direction: "asc" | "desc" } | null
   /** Headers can expose sort toggles via this callback. */
   onSortToggle?: (
     id: string,
@@ -126,7 +126,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     stickyHeader = true,
     caption,
     ariaLabel,
-    initialSort,
+    sort,
     onSortToggle,
   } = props
 
@@ -136,16 +136,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
     delay: search?.debounceMs ?? 200,
   })
 
-  // The table owns the *visual* sort state so the header arrow + aria-sort
-  // re-render correctly between clicks. The caller is still informed via
-  // `onSortToggle` and expected to sort its `data` itself — DataTable does
-  // not mutate `data` (Decision §Q1: caller-driven).
-  const [sortColumnId, setSortColumnId] = useState<string>(
-    initialSort?.columnId ?? ""
+  // The sort state is fully controlled by the caller via `sort` +
+  // `onSortToggle`. When no `onSortToggle` is wired, a local fallback
+  // keeps sortable headers usable in isolation (e.g. demo pages).
+  const [localSortColumnId, setLocalSortColumnId] = useState<string>(
+    sort?.columnId ?? ""
   )
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(
-    initialSort?.direction ?? null
-  )
+  const [localSortDirection, setLocalSortDirection] = useState<
+    "asc" | "desc" | null
+  >(sort?.direction ?? null)
+
+  const sortColumnId = sort ? sort.columnId : localSortColumnId
+  const sortDirection = sort ? sort.direction : localSortDirection
 
   const handleSortToggle = useCallback(
     (columnId: string) => {
@@ -159,14 +161,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
       } else {
         nextDirection = "asc"
       }
-      setSortColumnId(columnId)
-      setSortDirection(nextDirection)
-      onSortToggle?.(columnId, {
-        columnId,
-        direction: nextDirection,
-      })
+      if (sort) {
+        onSortToggle?.(columnId, {
+          columnId,
+          direction: nextDirection,
+        })
+      } else {
+        setLocalSortColumnId(columnId)
+        setLocalSortDirection(nextDirection)
+        onSortToggle?.(columnId, {
+          columnId,
+          direction: nextDirection,
+        })
+      }
     },
-    [onSortToggle, sortColumnId, sortDirection]
+    [onSortToggle, sort, sortColumnId, sortDirection]
   )
 
   const showToolbar = Boolean(toolbar || search)

@@ -31,12 +31,35 @@ interface PageEnvelope<T> {
    Patients — list / detail
    ---------------------------------------------------------------- */
 
+/**
+ * Maps a renderer column id to the backend's `?sort=` column key. The
+ * server whitelist (`Patient.model.ts:SORTABLE_COLUMNS`) keys by
+ * snake_case wire names; `listPatients` converts here so callers can
+ * keep renderer ids in their view state.
+ */
+const SORT_COLUMN_MAP: Record<string, string> = {
+  patientId: "patient_id",
+  name: "name",
+  nationalId: "national_id",
+  insuranceCompanyName: "insurance_company_name",
+  paymentType: "payment_type",
+  registrationDate: "registration_date",
+}
+
 export function listPatients(args: {
   page: number
   pageSize: number
   q?: string
+  sort?: string
+  order?: "asc" | "desc"
 }) {
-  return api.get<PageEnvelope<Patient>>("/patients", args)
+  return api.get<PageEnvelope<Patient>>("/patients", {
+    page: args.page,
+    pageSize: args.pageSize,
+    q: args.q || undefined,
+    sort: args.sort ? SORT_COLUMN_MAP[args.sort] : undefined,
+    order: args.order || undefined,
+  })
 }
 
 export function getActivePatients() {

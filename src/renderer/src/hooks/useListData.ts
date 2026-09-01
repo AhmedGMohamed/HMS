@@ -17,6 +17,7 @@ export interface ListDataState<T> {
   loading: boolean
   error: Error | null
   search: string
+  sort: { columnId: string; direction: "asc" | "desc" } | null
 }
 
 export interface UseListDataOptions {
@@ -26,6 +27,8 @@ export interface UseListDataOptions {
   initialPageSize?: number
   /** Initial search value. */
   initialSearch?: string
+  /** Initial server-side sort (column id + direction). */
+  initialSort?: { columnId: string; direction: "asc" | "desc" } | null
   /** Debounce ms for `onSearchChange`→server round-trip. Default 250. */
   searchDebounceMs?: number
   /**
@@ -40,6 +43,7 @@ export interface UseListDataResult<T> extends ListDataState<T> {
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSearch: (next: string) => void
+  setSort: (sort: { columnId: string; direction: "asc" | "desc" } | null) => void
   refresh: () => void
   isEmpty: boolean
 }
@@ -85,17 +89,27 @@ export function usePaginationState(options: UseListDataOptions = {}) {
  * `loading`, `error`, and refresh semantics consistent across phases.
  */
 export interface PaginatedFetcher<T> {
-  params: { page: number; pageSize: number; search: string }
+  params: {
+    page: number
+    pageSize: number
+    search: string
+    sort?: { columnId: string; direction: "asc" | "desc" } | null
+  }
   /**
    * Function called by the hook. Receives the latest
-   * `{ page, pageSize, search }` so the closure can pass it on
+   * `{ page, pageSize, search, sort }` so the closure can pass it on
    * to the API endpoint (typically as query-string parameters).
    * Callers don't need to memoize the closure — the hook
    * reads it through a ref so a fresh identity on each render is
    * loop-safe.
    */
   fetch: (
-    params: { page: number; pageSize: number; search: string }
+    params: {
+      page: number
+      pageSize: number
+      search: string
+      sort?: { columnId: string; direction: "asc" | "desc" } | null
+    }
   ) => Promise<{ data: T[]; total: number } | T[]>
 }
 
@@ -117,6 +131,10 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
+  const [sort, setSort] = useState<
+    | { columnId: string; direction: "asc" | "desc" }
+    | null
+  >(config.initialSort ?? null)
 
   /**
    * Stable ref mirroring the latest fetch closure. Inlining this
@@ -147,7 +165,7 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     setLoading(true)
     setError(null)
     fetchRef
-      .current({ page, pageSize, search: debouncedSearch })
+      .current({ page, pageSize, search: debouncedSearch, sort })
       .then((res) => {
         if (cancelled) return
         if (Array.isArray(res)) {
@@ -169,7 +187,7 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     return () => {
       cancelled = true
     }
-  }, [enabled, page, pageSize, debouncedSearch, nonce])
+  }, [enabled, page, pageSize, debouncedSearch, sort, nonce])
 
   // Auto-clamp page on empty result set (avoid leaving the user stuck
   // on a page that no longer exists). Reads `pagination.setPage` via
@@ -198,9 +216,11 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     loading,
     error,
     search: pagination.search,
+    sort,
     setPage: pagination.setPage,
     setPageSize: pagination.setPageSize,
     setSearch: pagination.setSearch,
+    setSort,
     refresh,
     isEmpty: !loading && data.length === 0,
   }

@@ -407,7 +407,7 @@ function medicalInfoRows(
   return [
     {
       label: t("patients.fields.quickCheck"),
-      value: admission?.quickCheck ? "Yes" : "No"
+      value: admission?.quickCheck ? t("common.yes") : t("common.no"),
     },
     {
       label: t("patients.fields.referringDoctor"),

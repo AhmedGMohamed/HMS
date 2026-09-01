@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
@@ -13,30 +13,24 @@ import type { Patient } from "@/pages/Patients/types/patient"
 
 interface PatientListPanelProps {
   list: UseListDataResult<Patient>
-  onAddPatient?: () => void
 }
 
 type SortState = { columnId: string; direction: "asc" | "desc" }
-
-function compare(a: unknown, b: unknown): number {
-  if (a == null && b == null) return 0
-  if (a == null) return 1
-  if (b == null) return -1
-  if (typeof a === "number" && typeof b === "number") return a - b
-  return String(a).localeCompare(String(b))
-}
 
 /**
  * /patients list panel.
  *
  * Server-driven DataTable (Phase 4) bound to `useListData`'s view
- * state. Sort is **client-driven** because the legacy controller's
- * `?sort=` parameter isn't implemented upstream. Search is
- * server-driven (`?q=`), filter runs only on the loaded page.
+ * state. Search is server-driven (`?q=`) and sort is now **server-
+ * driven** (`?sort=<key>&order=<asc|desc>`) so the order reflects the
+ * full result set, not just the loaded page. The `useListData.sort`
+ * value keeps **renderer** column ids (e.g. `patientId`, `nationalId`)
+ * so the table's header toggle can match on `column.id`; the snake_case
+ * wire key is resolved inside `listPatients` (see `api.ts`).
  *
  * Clicking any row navigates to `/patients/:id` (T4 owns detail).
- * The Create-button click handler is forwarded from the parent;
- * the wizard lands in T3.
+ * The Create-button handler is forwarded from the parent via the
+ * `useCreatePatientWizard` store; the wizard lands in T3.
  */
 export function PatientListPanel({
   list,
@@ -44,87 +38,88 @@ export function PatientListPanel({
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const [sort, setSort] = useState<SortState>({
-    columnId: "name",
-    direction: "asc",
-  })
-
-  const sorted = useMemo<Patient[]>(() => {
-    if (!sort.columnId) return list.data
-    const copy = [...list.data]
-    copy.sort((a, b) => {
-      const left = (a as unknown as Record<string, unknown>)[sort.columnId]
-      const right = (b as unknown as Record<string, unknown>)[sort.columnId]
-      const cmp = compare(left, right)
-      return sort.direction === "asc" ? cmp : -cmp
-    })
-    return copy
-  }, [list.data, sort])
+  const sort: SortState = useMemo(
+    () =>
+      list.sort
+        ? { columnId: list.sort.columnId, direction: list.sort.direction }
+        : { columnId: "name", direction: "asc" },
+    [list.sort]
+  )
 
   function handleRowClick(patient: Patient) {
     navigate(`/patients/${patient.patientId}`)
   }
 
-  const columns: ColumnDef<Patient>[] = [
-    {
-      id: "patientId",
-      header: t("patients.table.id"),
-      numeric: true,
-      width: "w-12"
-    },
-    {
-      id: "name",
-      header: t("patients.table.name"),
-      sortable: true,
-      width: "w-64"
-    },
-    {
-      id: "nationalId",
-      header: t("patients.table.nationalId"),
-      width: "w-64"
-    },
-    {
-      id: "insuranceCompanyName",
-      header: t("patients.fields.insuranceCompany"),
-      cell: (row) => row.insuranceCompanyName ?? "—",
-    },
-    {
-      id: "paymentType",
-      header: t("patients.fields.paymentType"),
-      cell: (row) =>
-        t(
-          `patients.paymentTypes.${row.paymentType}` as
-            | "patients.paymentTypes.cash"
-            | "patients.paymentTypes.credit"
-            | "patients.paymentTypes.insurance"
-        ),
-    },
-    {
-      id: "registrationDate",
-      header: t("patients.fields.registrationDate"),
-      cell: (row) =>
-        row.registrationDate
-          ? new Date(row.registrationDate).toLocaleDateString()
-          : "—",
-    },
-    {
-      id: "isActive",
-      header: t("patients.status.active"),
-      cell: (row) =>
-        row.isActive
-          ? t("patients.status.admitted")
-          : t("patients.status.notAdmitted"),
-    },
-  ]
+  const columns: ColumnDef<Patient>[] = useMemo(
+    () => [
+      {
+        id: "patientId",
+        header: t("patients.table.id"),
+        numeric: true,
+        width: "w-12",
+        sortable: true,
+      },
+      {
+        id: "name",
+        header: t("patients.table.name"),
+        sortable: true,
+        width: "w-64",
+      },
+      {
+        id: "nationalId",
+        header: t("patients.table.nationalId"),
+        sortable: true,
+        width: "w-64",
+      },
+      {
+        id: "insuranceCompanyName",
+        header: t("patients.fields.insuranceCompany"),
+        sortable: true,
+        cell: (row) => row.insuranceCompanyName ?? "—",
+      },
+      {
+        id: "paymentType",
+        header: t("patients.fields.paymentType"),
+        sortable: true,
+        cell: (row) =>
+          t(
+            `patients.paymentTypes.${row.paymentType}` as
+              | "patients.paymentTypes.cash"
+              | "patients.paymentTypes.credit"
+              | "patients.paymentTypes.insurance"
+          ),
+      },
+      {
+        id: "registrationDate",
+        header: t("patients.fields.registrationDate"),
+        sortable: true,
+        cell: (row) =>
+          row.registrationDate
+            ? new Date(row.registrationDate).toLocaleDateString()
+            : "—",
+      },
+      {
+        id: "isActive",
+        header: t("patients.status.active"),
+        cell: (row) =>
+          row.isActive
+            ? t("patients.status.admitted")
+            : t("patients.status.notAdmitted"),
+      },
+    ],
+    [t]
+  )
 
   return (
     <DataTable<Patient>
       ariaLabel={t("patients.allPatients")}
-      data={sorted}
+      data={list.data}
       columns={columns}
       loading={list.loading}
-      initialSort={sort}
-      onSortToggle={(_columnId, next) => setSort(next)}
+      sort={sort}
+      onSortToggle={(_columnId, next) => {
+        list.setSort({ columnId: next.columnId, direction: next.direction })
+      }}
       search={{
         value: list.search,
         onChange: list.setSearch,
