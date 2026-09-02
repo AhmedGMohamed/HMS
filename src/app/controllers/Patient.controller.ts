@@ -25,8 +25,33 @@ export class PatientController {
 			const sort = typeof sortRaw === "string" ? sortRaw : undefined;
 			const orderRaw = req.query?.order;
 			const order = typeof orderRaw === "string" ? orderRaw : undefined;
+
+			const paymentTypeRaw = req.query?.paymentType;
+			const paymentType = typeof paymentTypeRaw === "string" ? paymentTypeRaw : undefined;
+			const insuranceIdRaw = req.query?.insuranceId;
+			const insuranceId = insuranceIdRaw != null && insuranceIdRaw !== ""
+				? Number(insuranceIdRaw)
+				: undefined;
+			const isActiveRaw = req.query?.isActive;
+			const isActive = isActiveRaw === "true" ? true : isActiveRaw === "false" ? false : undefined;
+			const registeredFromRaw = req.query?.registeredFrom;
+			const registeredFrom = typeof registeredFromRaw === "string" ? registeredFromRaw : undefined;
+			const registeredToRaw = req.query?.registeredTo;
+			const registeredTo = typeof registeredToRaw === "string" ? registeredToRaw : undefined;
+
 			const { rows, total } = await PatientModel.getAllPatients(
-				{ offset: pagination.offset, limit: pagination.limit, q, sort, order }
+				{
+					offset: pagination.offset,
+					limit: pagination.limit,
+					q,
+					sort,
+					order,
+					paymentType,
+					insuranceId,
+					isActive,
+					registeredFrom,
+					registeredTo,
+				}
 			);
 			res.status(200).json(buildPage(rows, total, pagination));
 		} catch (error) {

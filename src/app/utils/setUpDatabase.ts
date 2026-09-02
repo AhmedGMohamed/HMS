@@ -261,8 +261,11 @@ async function initDB() {
 			quantity INTEGER NOT NULL,
 			price DECIMAL(15, 2) NOT NULL,
 			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			created_by_user_id INTEGER REFERENCES "User"(user_id)
+			created_by_user_id INTEGER REFERENCES "User"(user_id),
+			patient_id INTEGER REFERENCES Patient(patient_id)
 		);
+		CREATE INDEX IF NOT EXISTS idx_drug_transaction_patient
+			ON DrugTransaction(patient_id);
 		CREATE TABLE IF NOT EXISTS DrugUsage (
 			usage_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),

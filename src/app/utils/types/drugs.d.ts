@@ -149,6 +149,7 @@ export interface DrugTransaction {
 	price: number | string;
 	timestamp: string;
 	created_by_user_id: number;
+	patient_id: number | null;
 }
 
 export interface CreateDrugTransactionDTO {
@@ -156,6 +157,7 @@ export interface CreateDrugTransactionDTO {
 	transaction_type: "patient" | "check" | "outside";
 	quantity: number; // This will be in larger units
 	price: number;
+	patient_id?: number;
 }
 
 export interface TransactionWithDetails extends DrugTransaction {
@@ -166,6 +168,7 @@ export interface TransactionWithDetails extends DrugTransaction {
 	unit_conversion: UnitConversion;
 	shipment_buy_price: number;
 	profit: string;
+	patient_name: string | null;
 }
 
 export interface TransactionSummary {

@@ -69,6 +69,15 @@ export class DrugTransactionController {
 				res.status(404).json({ error: error.message });
 			} else if (error.message === "Insufficient quantity in shipment") {
 				res.status(400).json({ error: error.message });
+			} else if (error.message === "Patient not found") {
+				res.status(404).json({ error: error.message });
+			} else if (
+				error.message === "Missing patient" ||
+				error.message === "Patient is not currently admitted" ||
+				error.message ===
+					"patient_id must not be set for outside transactions"
+			) {
+				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error creating transaction:", error);
 				res.status(500).json({ error: "Failed to create transaction" });
@@ -128,17 +137,32 @@ export class DrugTransactionController {
 	}
 
 	private validateTransactionData(data: CreateDrugTransactionDTO): boolean {
-		return !!(
+		const hasRequired = !!(
 			data.shipment_id &&
 			data.transaction_type &&
 			data.quantity &&
-			data.price &&
-			["patient", "check", "outside"].includes(data.transaction_type)
+			data.price
 		);
+		if (!hasRequired) return false;
+
+		if (!["patient", "check", "outside"].includes(data.transaction_type)) {
+			return false;
+		}
+
+		if (data.transaction_type === "outside") {
+			return data.patient_id === undefined || data.patient_id === null;
+		}
+
+		return !!data.patient_id;
 	}
 
 	private validateNumericValues(data: CreateDrugTransactionDTO): boolean {
-		return data.quantity > 0 && data.price > 0;
+		return (
+			typeof data.quantity === "number" &&
+			Number.isInteger(data.quantity) &&
+			data.quantity > 0 &&
+			data.price > 0
+		);
 	}
 
 	private validateDateFilters(filters: DrugTransactionFilters): boolean {
