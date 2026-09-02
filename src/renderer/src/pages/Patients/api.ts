@@ -52,6 +52,11 @@ export function listPatients(args: {
   q?: string
   sort?: string
   order?: "asc" | "desc"
+  paymentType?: string
+  insuranceId?: number
+  isActive?: boolean
+  registeredFrom?: string
+  registeredTo?: string
 }) {
   return api.get<PageEnvelope<Patient>>("/patients", {
     page: args.page,
@@ -59,6 +64,12 @@ export function listPatients(args: {
     q: args.q || undefined,
     sort: args.sort ? SORT_COLUMN_MAP[args.sort] : undefined,
     order: args.order || undefined,
+    paymentType: args.paymentType || undefined,
+    insuranceId: args.insuranceId,
+    isActive:
+      args.isActive === undefined ? undefined : String(args.isActive),
+    registeredFrom: args.registeredFrom || undefined,
+    registeredTo: args.registeredTo || undefined,
   })
 }
 

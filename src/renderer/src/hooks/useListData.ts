@@ -18,6 +18,7 @@ export interface ListDataState<T> {
   error: Error | null
   search: string
   sort: { columnId: string; direction: "asc" | "desc" } | null
+  filters: Record<string, string | number | boolean | undefined>
 }
 
 export interface UseListDataOptions {
@@ -44,6 +45,9 @@ export interface UseListDataResult<T> extends ListDataState<T> {
   setPageSize: (size: number) => void
   setSearch: (next: string) => void
   setSort: (sort: { columnId: string; direction: "asc" | "desc" } | null) => void
+  setFilters: (
+    filters: Record<string, string | number | boolean | undefined>
+  ) => void
   refresh: () => void
   isEmpty: boolean
 }
@@ -94,11 +98,12 @@ export interface PaginatedFetcher<T> {
     pageSize: number
     search: string
     sort?: { columnId: string; direction: "asc" | "desc" } | null
+    filters?: Record<string, string | number | boolean | undefined>
   }
   /**
    * Function called by the hook. Receives the latest
-   * `{ page, pageSize, search, sort }` so the closure can pass it on
-   * to the API endpoint (typically as query-string parameters).
+   * `{ page, pageSize, search, sort, filters }` so the closure can pass
+   * it on to the API endpoint (typically as query-string parameters).
    * Callers don't need to memoize the closure — the hook
    * reads it through a ref so a fresh identity on each render is
    * loop-safe.
@@ -109,6 +114,7 @@ export interface PaginatedFetcher<T> {
       pageSize: number
       search: string
       sort?: { columnId: string; direction: "asc" | "desc" } | null
+      filters?: Record<string, string | number | boolean | undefined>
     }
   ) => Promise<{ data: T[]; total: number } | T[]>
 }
@@ -135,6 +141,9 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     | { columnId: string; direction: "asc" | "desc" }
     | null
   >(config.initialSort ?? null)
+  const [filters, setFiltersState] = useState<
+    Record<string, string | number | boolean | undefined>
+  >({})
 
   /**
    * Stable ref mirroring the latest fetch closure. Inlining this
@@ -165,7 +174,7 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     setLoading(true)
     setError(null)
     fetchRef
-      .current({ page, pageSize, search: debouncedSearch, sort })
+      .current({ page, pageSize, search: debouncedSearch, sort, filters })
       .then((res) => {
         if (cancelled) return
         if (Array.isArray(res)) {
@@ -187,7 +196,7 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     return () => {
       cancelled = true
     }
-  }, [enabled, page, pageSize, debouncedSearch, sort, nonce])
+  }, [enabled, page, pageSize, debouncedSearch, sort, filters, nonce])
 
   // Auto-clamp page on empty result set (avoid leaving the user stuck
   // on a page that no longer exists). Reads `pagination.setPage` via
@@ -208,6 +217,25 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
 
   const refresh = useCallback(() => setNonce((n) => n + 1), [])
 
+  const { setPage: liveSetPageForFilters } = pagination
+  const setFilters = useCallback(
+    (
+      next: Record<string, string | number | boolean | undefined>
+    ) => {
+      // Merge into a fresh object so the effect dependency changes.
+      setFiltersState((prev) => {
+        const merged = { ...prev, ...next }
+        for (const key of Object.keys(merged)) {
+          if (merged[key] === undefined) delete merged[key]
+        }
+        return merged
+      })
+      // Filtering invalidates the current page — reset to page 1.
+      liveSetPageForFilters(1)
+    },
+    [liveSetPageForFilters]
+  )
+
   return {
     data,
     total,
@@ -217,10 +245,12 @@ export function useListData<T>(config: UseListDataConfig<T>): UseListDataResult<
     error,
     search: pagination.search,
     sort,
+    filters,
     setPage: pagination.setPage,
     setPageSize: pagination.setPageSize,
     setSearch: pagination.setSearch,
     setSort,
+    setFilters,
     refresh,
     isEmpty: !loading && data.length === 0,
   }
