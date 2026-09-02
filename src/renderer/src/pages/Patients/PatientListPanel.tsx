@@ -10,6 +10,10 @@ import {
 } from "@/components/common/DataTable"
 import type { UseListDataResult } from "@/hooks/useListData"
 import type { Patient } from "@/pages/Patients/types/patient"
+import {
+  PatientFilters,
+  type PatientFiltersValue,
+} from "@/pages/Patients/components/PatientFilters"
 
 interface PatientListPanelProps {
   list: UseListDataResult<Patient>
@@ -50,6 +54,18 @@ export function PatientListPanel({
     navigate(`/patients/${patient.patientId}`)
   }
 
+  const filterValue: PatientFiltersValue = {
+    paymentType: list.filters.paymentType as string | undefined,
+    insuranceId: list.filters.insuranceId as number | undefined,
+    isActive: list.filters.isActive as boolean | undefined,
+    registeredFrom: list.filters.registeredFrom as string | undefined,
+    registeredTo: list.filters.registeredTo as string | undefined,
+  }
+
+  function handleFiltersChange(next: PatientFiltersValue) {
+    list.setFilters(next as Record<string, string | number | boolean | undefined>)
+  }
+
   const columns: ColumnDef<Patient>[] = useMemo(
     () => [
       {
@@ -62,13 +78,13 @@ export function PatientListPanel({
         id: "name",
         header: t("patients.table.name"),
         sortable: true,
-        width: "w-64",
+        width: "min-w-48 w-72",
       },
       {
         id: "nationalId",
         header: t("patients.table.nationalId"),
         sortable: true,
-        width: "w-64",
+        width: "w-56",
       },
       {
         id: "insuranceCompanyName",
@@ -119,6 +135,12 @@ export function PatientListPanel({
       onSortToggle={(_columnId, next) => {
         list.setSort({ columnId: next.columnId, direction: next.direction })
       }}
+      toolbar={
+        <PatientFilters
+          value={filterValue}
+          onChange={handleFiltersChange}
+        />
+      }
       search={{
         value: list.search,
         onChange: list.setSearch,

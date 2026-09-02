@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { Fragment, useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { SearchIcon, XIcon } from "lucide-react"
+import { SearchIcon, XIcon, ChevronDownIcon } from "lucide-react"
 
 import {
   Table,
@@ -84,6 +84,23 @@ export interface DataTableProps<T> {
     id: string,
     next: { columnId: string; direction: "asc" | "desc" }
   ) => void
+  /**
+   * Optional row-expansion. When `renderExpanded` is provided, the
+   * table renders a full-`colSpan` sub-row beneath each expanded data
+   * row containing the returned node. Caller owns expand state.
+   *
+   * - `expandedRowIds` is a set of stable row ids (whatever
+   *   `getRowId` returns, falling back to the row index).
+   * - `onExpandedChange(id, next)` fires when the row's expand
+   *   toggle is clicked.
+   * - The expand toggle renders as a leading cell on each data row,
+   *   using the same chevron UX as the legacy Drugs table.
+   */
+  expandedRowIds?: ReadonlySet<string | number>
+  onExpandedChange?: (id: string | number, expanded: boolean) => void
+  renderExpanded?: (row: T) => React.ReactNode
+  /** Whether the expand toggle is disabled for a given row. */
+  isRowExpandable?: (row: T) => boolean
 }
 
 const ALIGN_CLASS: Record<
@@ -128,6 +145,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     ariaLabel,
     sort,
     onSortToggle,
+    expandedRowIds,
+    onExpandedChange,
+    renderExpanded,
+    isRowExpandable,
   } = props
 
   const { t } = useTranslation()
@@ -181,6 +202,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const showToolbar = Boolean(toolbar || search)
   const showSearch = Boolean(search)
   const showPagination = Boolean(pagination)
+  const showExpand = Boolean(renderExpanded)
 
   const isEmpty = !loading && data.length === 0
 
@@ -189,9 +211,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {showToolbar ? (
         <CardHeader className="gap-2 border-b border-border px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 items-center gap-2">{toolbar}</div>
             {showSearch ? (
-              <div className="relative sm:max-w-xs sm:flex-1">
+              <div className="relative w-full sm:max-w-xs">
                 <SearchIcon
                   aria-hidden
                   className="pointer-events-none absolute top-1/2 inset-s-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -221,6 +242,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   </Button>
                 ) : null}
               </div>
+            ) : (
+              <div className="sm:flex-1" />
+            )}
+            {toolbar ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {toolbar}
+              </div>
             ) : null}
           </div>
           {debouncedSearch !== (search?.value ?? "") ? (
@@ -243,26 +271,37 @@ export function DataTable<T>(props: DataTableProps<T>) {
               className={stickyHeader ? "sticky top-0 bg-surface-muted" : undefined}
             >
               <TableRow className="hover:bg-transparent">
+                {showExpand ? (
+                  <th
+                    scope="col"
+                    className="h-12 w-10 p-2 text-start font-medium text-muted-foreground"
+                  >
+                    <span className="sr-only">Expand</span>
+                  </th>
+                ) : null}
                 {columns.map((column) => {
-                  const isSorted = sortColumnId === column.id
-                  const direction = isSorted ? sortDirection : null
-                  const handleToggle = column.sortable
-                    ? () => handleSortToggle(column.id)
-                    : undefined
-                  return (
-                    <DataTableColumnHeader
-                      key={column.id}
-                      column={column}
-                      sort={{ direction }}
-                      onSortToggle={handleToggle}
-                    />
-                  )
-                })}
+                      const isSorted = sortColumnId === column.id
+                      const direction = isSorted ? sortDirection : null
+                      const handleToggle = column.sortable
+                        ? () => handleSortToggle(column.id)
+                        : undefined
+                      return (
+                        <DataTableColumnHeader
+                          key={column.id}
+                          column={column}
+                          sort={{ direction }}
+                          onSortToggle={handleToggle}
+                        />
+                      )
+                    })}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <DataTableSkeleton columns={columns.length} density={density} />
+                <DataTableSkeleton
+                  columns={columns}
+                  density={density}
+                />
               ) : isEmpty ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
@@ -287,40 +326,94 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 data.map((row, rowIndex) => {
                   const id = getRowId?.(row, rowIndex) ?? rowIndex
                   const clickable = Boolean(onRowClick)
+                  const expandable = showExpand
+                  const isExpanded = expandable
+                    ? Boolean(expandedRowIds?.has(id))
+                    : false
+                  const rowExpandable = expandable
+                    ? (isRowExpandable?.(row) ?? true)
+                    : false
                   return (
-                    <TableRow
-                      key={id}
-                      data-clickable={clickable || undefined}
-                      className={cn(
-                        "transition-colors hover:bg-primary-light/60",
-                        clickable && "cursor-pointer",
-                        rowClassName?.(row)
-                      )}
-                      onClick={clickable ? () => onRowClick!(row) : undefined}
-                    >
-                      {columns.map((column) => {
-                        const align =
-                          column.align ??
-                          (column.numeric ? "end" : "start")
-                        return (
+                    <Fragment key={id}>
+                      <TableRow
+                        data-clickable={clickable || undefined}
+                        className={cn(
+                          "transition-colors hover:bg-primary-light/60",
+                          clickable && "cursor-pointer",
+                          rowClassName?.(row)
+                        )}
+                        onClick={clickable ? () => onRowClick!(row) : undefined}
+                      >
+                        {expandable ? (
                           <TableCell
-                            key={column.id}
                             className={cn(
                               "p-2 align-middle",
-                              density === "compact"
-                                ? "h-10"
-                                : "h-12",
-                              ALIGN_CLASS[align],
-                              column.numeric && "tabular-nums",
-                              column.width,
-                              column.className
+                              density === "compact" ? "h-10" : "h-12"
                             )}
                           >
-                            {renderCell(column, row)}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={
+                                isExpanded
+                                  ? t("common.collapse")
+                                  : t("common.expand")
+                              }
+                              aria-expanded={isExpanded}
+                              disabled={!rowExpandable}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onExpandedChange?.(id, !isExpanded)
+                              }}
+                            >
+                              <ChevronDownIcon
+                                aria-hidden
+                                className={cn(
+                                  "size-4 transition-transform",
+                                  isExpanded && "rotate-180"
+                                )}
+                              />
+                            </Button>
                           </TableCell>
-                        )
-                      })}
-                    </TableRow>
+                        ) : null}
+                        {columns.map((column) => {
+                          const align =
+                            column.align ??
+                            (column.numeric ? "end" : "start")
+                          return (
+                            <TableCell
+                              key={column.id}
+                              className={cn(
+                                "p-2 align-middle",
+                                density === "compact"
+                                  ? "h-10"
+                                  : "h-12",
+                                ALIGN_CLASS[align],
+                                column.numeric && "tabular-nums",
+                                column.width,
+                                column.className
+                              )}
+                            >
+                              {renderCell(column, row)}
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                      {expandable && isExpanded && renderExpanded ? (
+                        <TableRow
+                          className="hover:bg-transparent"
+                          aria-hidden
+                        >
+                          <TableCell
+                            colSpan={columns.length + 1}
+                            className="p-0"
+                          >
+                            {renderExpanded(row)}
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </Fragment>
                   )
                 })
               )}
@@ -368,24 +461,39 @@ function renderCell<T>(column: ColumnDef<T>, row: T): React.ReactNode {
   return ""
 }
 
-interface DataTableSkeletonProps {
-  columns: number
+interface DataTableSkeletonProps<T> {
+  columns: ColumnDef<T>[]
   density: "default" | "compact"
 }
 
-function DataTableSkeleton({ columns, density }: DataTableSkeletonProps) {
+function DataTableSkeleton<T>({ columns, density }: DataTableSkeletonProps<T>) {
   const rowCount = 6
   const rowHeight = density === "compact" ? "h-10" : "h-12"
-  return Array.from({ length: rowCount }, (_, i) => (
-    <TableRow key={i} className="hover:bg-transparent">
-      {Array.from({ length: columns }, (_, j) => (
-        <TableCell
-          key={j}
-          className={`${rowHeight} p-2 align-middle`}
-        >
-          <Skeleton className="h-4 w-full" />
-        </TableCell>
+  return (
+    <>
+      {Array.from({ length: rowCount }, (_, i) => (
+        <TableRow key={i} className="hover:bg-transparent">
+          {columns.map((column) => {
+            const align =
+              column.align ?? (column.numeric ? "end" : "start")
+            return (
+              <TableCell
+                key={column.id}
+                className={cn(
+                  "p-2 align-middle",
+                  rowHeight,
+                  ALIGN_CLASS[align],
+                  column.numeric && "tabular-nums",
+                  column.width,
+                  column.className
+                )}
+              >
+                <Skeleton className="h-4 w-full" />
+              </TableCell>
+            )
+          })}
+        </TableRow>
       ))}
-    </TableRow>
-  ))
+    </>
+  )
 }

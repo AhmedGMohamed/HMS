@@ -48,13 +48,18 @@ export default function PatientsPage() {
   const list = useListData<Patient>({
     fetcher: {
       params: { page: 1, pageSize: 25, search: "" },
-      fetch: async ({ page, pageSize, search, sort }) => {
+      fetch: async ({ page, pageSize, search, sort, filters }) => {
         const res = await listPatients({
           page,
           pageSize,
           q: search.trim() || undefined,
           sort: sort?.columnId,
           order: sort?.direction,
+          paymentType: filters?.paymentType as string | undefined,
+          insuranceId: filters?.insuranceId as number | undefined,
+          isActive: filters?.isActive as boolean | undefined,
+          registeredFrom: filters?.registeredFrom as string | undefined,
+          registeredTo: filters?.registeredTo as string | undefined,
         })
         return { data: res.data, total: res.total }
       },

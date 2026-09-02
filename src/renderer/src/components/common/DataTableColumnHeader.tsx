@@ -66,6 +66,7 @@ export function DataTableColumnHeader<T>({
         "h-10 px-2 align-middle font-medium text-foreground whitespace-nowrap",
         ALIGN_CLASS[align],
         column.numeric && "tabular-nums",
+        column.width,
         column.className
       )}
     >
