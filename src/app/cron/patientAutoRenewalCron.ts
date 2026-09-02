@@ -420,15 +420,16 @@ export class PatientAutoRenewalCron {
 				// Create drug transaction
 				const transactionSql = `
             	    INSERT INTO DrugTransaction (
-            	        shipment_id, transaction_type, quantity, price, created_by_user_id
-            	    ) VALUES ($1, 'patient', $2, $3, $4)
+            	        shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+            	    ) VALUES ($1, 'patient', $2, $3, $4, $5)
             	    RETURNING transaction_id;
 				`;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToDispense,
 					shipment.price,
-					systemUserId
+					systemUserId,
+					drugInfo.patient_id
 				]);
 
 				// Update shipment quantity
@@ -610,15 +611,16 @@ export class PatientAutoRenewalCron {
 				// Create drug transaction
 				const transactionSql = `
                     INSERT INTO DrugTransaction (
-                        shipment_id, transaction_type, quantity, price, created_by_user_id
-                    ) VALUES ($1, 'patient', $2, $3, $4)
+                        shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+                    ) VALUES ($1, 'patient', $2, $3, $4, $5)
                     RETURNING transaction_id;
                 `;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToTake,
 					shipment.price,
-					systemUserId
+					systemUserId,
+					patientId
 				]);
 
 				// Update shipment quantity

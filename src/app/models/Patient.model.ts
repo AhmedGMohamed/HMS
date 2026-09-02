@@ -42,6 +42,11 @@ export class PatientModel {
 			q?: string;
 			sort?: string;
 			order?: string;
+			paymentType?: string;
+			insuranceId?: number;
+			isActive?: boolean;
+			registeredFrom?: string;
+			registeredTo?: string;
 		}
 	): Promise<{ rows: Patient[]; total: number }> {
 		const offset = Math.max(0, pagination?.offset ?? 0)
@@ -58,15 +63,41 @@ export class PatientModel {
 		// tail regardless of direction, matching UX expectations for "—" cells.
 		const orderBy = `${orderColumn} ${orderDir} NULLS LAST, p.patient_id ASC`
 
+		// Build WHERE clauses + params once; reuse for both the data query
+		// and the count query so `total` stays in sync with the filters.
 		const params: unknown[] = []
-		let whereSql = ""
+		const conditions: string[] = []
 		if (q) {
 			params.push(`%${q}%`)
-			whereSql = ` WHERE p.name ILIKE $1 OR p.national_id ILIKE $1`
+			conditions.push(`(p.name ILIKE $${params.length} OR p.national_id ILIKE $${params.length})`)
 		}
-		params.push(limit, offset)
-		const limitIdx = params.length - 1
-		const offsetIdx = params.length
+		if (pagination?.paymentType) {
+			params.push(pagination.paymentType)
+			conditions.push(`p.payment_type = $${params.length}`)
+		}
+		if (pagination?.insuranceId != null) {
+			params.push(pagination.insuranceId)
+			conditions.push(`p.insurance_id = $${params.length}`)
+		}
+		if (pagination?.isActive != null) {
+			params.push(pagination.isActive)
+			conditions.push(`p.is_active = $${params.length}`)
+		}
+		if (pagination?.registeredFrom) {
+			params.push(pagination.registeredFrom)
+			conditions.push(`p.registration_date >= $${params.length}`)
+		}
+		if (pagination?.registeredTo) {
+			params.push(pagination.registeredTo)
+			conditions.push(`p.registration_date < $${params.length}::date + INTERVAL '1 day'`)
+		}
+
+		const whereSql = conditions.length
+			? ` WHERE ${conditions.join(" AND ")}`
+			: ""
+
+		const limitIdx = params.length + 1
+		const offsetIdx = params.length + 2
 
 		const relevanceSql = q
 			? ` CASE
@@ -85,18 +116,11 @@ export class PatientModel {
 			ORDER BY${relevanceSql} ${orderBy}
 			LIMIT $${limitIdx} OFFSET $${offsetIdx}`
 
-		let countSql = `SELECT COUNT(*) AS c FROM Patient p`
-		const countParams: unknown[] = []
-		if (q) {
-			countSql = `SELECT COUNT(*) AS c
-			FROM Patient p
-			WHERE name ILIKE $1 OR national_id ILIKE $1`
-			countParams.push(`%${q}%`)
-		}
+		const countSql = `SELECT COUNT(*) AS c FROM Patient p${whereSql}`
 
 		const [result, count] = await Promise.all([
-			query(baseSql, params),
-			query(countSql, countParams)
+			query(baseSql, [...params, limit, offset]),
+			query(countSql, params)
 		])
 		const total = Number(count.rows[0]?.c ?? 0)
 		return { rows: result.rows, total }
@@ -1865,15 +1889,16 @@ export class PatientModel {
 			// Create drug transaction
 			const transactionSql = `
                 INSERT INTO DrugTransaction (
-                    shipment_id, transaction_type, quantity, price, created_by_user_id
-                ) VALUES ($1, 'patient', $2, $3, $4)
+                    shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+                ) VALUES ($1, 'patient', $2, $3, $4, $5)
                 RETURNING transaction_id;
             `;
 			const transactionResult = await query(transactionSql, [
 				shipment.shipment_id,
 				quantityToTake,
 				shipment.price,
-				userId
+				userId,
+				patientId
 			]);
 
 			// Update shipment quantity

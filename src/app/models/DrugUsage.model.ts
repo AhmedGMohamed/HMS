@@ -123,16 +123,17 @@ export class DrugUsageModel {
 				`
                 INSERT INTO DrugTransaction (
                     shipment_id, transaction_type, quantity,
-                    price, created_by_user_id
+                    price, created_by_user_id, patient_id
                 )	
-                VALUES ($1, 'patient', $2, $3, $4)	
+                VALUES ($1, 'patient', $2, $3, $4, $5)	
                 RETURNING transaction_id;
             `,
 				[
 					shipmentResult.rows[0].shipment_id,
 					data.quantity,
 					data.price,
-					userId
+					userId,
+					data.patient_id
 				]
 			);
 
