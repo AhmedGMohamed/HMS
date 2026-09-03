@@ -19,13 +19,7 @@ import type {
   PriceList,
   Service,
 } from "@/pages/Patients/types/patient"
-
-interface PageEnvelope<T> {
-  data: T[]
-  total: number
-  page: number
-  pageSize: number
-}
+import { PaginatedResponse } from "@/types"
 
 /* ----------------------------------------------------------------
    Patients — list / detail
@@ -58,7 +52,7 @@ export function listPatients(args: {
   registeredFrom?: string
   registeredTo?: string
 }) {
-  return api.get<PageEnvelope<Patient>>("/patients", {
+  return api.get<PaginatedResponse<Patient>>("/patients", {
     page: args.page,
     pageSize: args.pageSize,
     q: args.q || undefined,
@@ -189,10 +183,12 @@ export function removeDrug(id: number, usageId: number) {
    Supplies
    ---------------------------------------------------------------- */
 
-export function listAssignedSupplies(id: number) {
-  return api.get<MedicalSupplyUsage[]>(
-    `/pharmacy/medical-supply-usages/patient-history/${id}`
+export async function listAssignedSupplies(id: number): Promise<MedicalSupplyUsage[]> {
+  const { data } = await api.get<PaginatedResponse<MedicalSupplyUsage>>(
+    "/pharmacy/medical-supply-usages/history",
+    { patientId: id, pageSize: 100 }
   )
+  return data
 }
 
 export function addSupply(id: number, payload: AddSupplyPayload) {
@@ -240,12 +236,12 @@ export async function listInsuranceCompanies() {
    * (legacy `result.data || []` pattern). We accept either shape.
    */
   const res = await api
-    .get<InsuranceCompany[] | PageEnvelope<InsuranceCompany>>(`/insurance-companies`)
+    .get<InsuranceCompany[] | PaginatedResponse<InsuranceCompany>>(`/insurance-companies`)
   return parseLegacyList<InsuranceCompany>(res)
 }
 
 export function listPriceLists() {
-  return api.get<PriceList[] | PageEnvelope<PriceList>>(
+  return api.get<PriceList[] | PaginatedResponse<PriceList>>(
     "/price-lists"
   ).then((res) => parseLegacyList<PriceList>(res))
 }
@@ -266,7 +262,7 @@ export function listServices() {
 
 export function listDrugCards() {
   return api
-    .get<DrugCard[] | PageEnvelope<DrugCard>>(("/pharmacy/drugs/cards"))
+    .get<DrugCard[] | PaginatedResponse<DrugCard>>(("/pharmacy/drugs/cards"))
     .then((res) => parseLegacyList<DrugCard>(res))
 }
 
@@ -281,7 +277,7 @@ export function listDrugShipments(drugId: number) {
 export function listAvailableSupplies() {
   return api
     .get<
-      MedicalSupply[] | PageEnvelope<MedicalSupply>
+      MedicalSupply[] | PaginatedResponse<MedicalSupply>
     >("/pharmacy/medical-supplies")
     .then((res) => parseLegacyList<MedicalSupply>(res))
 }
@@ -306,7 +302,7 @@ export function listClockedInStaff() {
    Helpers
    ---------------------------------------------------------------- */
 
-function parseLegacyList<T>(res: T[] | PageEnvelope<T>): T[] {
+function parseLegacyList<T>(res: T[] | PaginatedResponse<T>): T[] {
   if (Array.isArray(res)) return res
   return res.data
 }

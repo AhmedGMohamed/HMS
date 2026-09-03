@@ -21,20 +21,14 @@ import type {
   Warehouse,
   WarehouseWithStats,
 } from "@/pages/Drugs/types/drug"
-
-interface PageEnvelope<T> {
-  data: T[]
-  total: number
-  page: number
-  pageSize: number
-}
+import { PaginatedResponse } from "@/types";
 
 /* ----------------------------------------------------------------
    Drug cards
    ---------------------------------------------------------------- */
 
 export function listDrugCards(params?: { q?: string; page?: number; pageSize?: number }) {
-  return api.get<PageEnvelope<DrugCard>>("/pharmacy/drugs/cards", {
+  return api.get<PaginatedResponse<DrugCard>>("/pharmacy/drugs/cards", {
     q: params?.q || undefined,
     page: params?.page ?? 1,
     pageSize: params?.pageSize ?? 100,
@@ -173,7 +167,7 @@ export function deleteWarehouse(id: number) {
 
 export function listPriceLists() {
   return api
-    .get<PriceList[] | PageEnvelope<PriceList>>("/price-lists")
+    .get<PriceList[] | PaginatedResponse<PriceList>>("/price-lists")
     .then((res) => (Array.isArray(res) ? res : res.data))
 }
 
