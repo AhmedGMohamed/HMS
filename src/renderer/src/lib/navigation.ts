@@ -81,7 +81,7 @@ export const NAV_CONFIG: NavigationItem[] = [
     label: "sidebar.supplies",
     icon: "Package",
     url: "/supplies",
-    permission: "manage_pharmacy",
+    permission: "manage_supplies",
   },
   {
     id: "price_lists",

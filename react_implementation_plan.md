@@ -855,7 +855,20 @@ Similar structure to Drugs page. Shared `DataTable` with different columns.
 
 ---
 
-#### 6.6 Employees, Doctors, Nurses
+#### 6.6 Services & Price Lists
+
+**Routes:** `/services`, `/price-lists`  
+**APIs:** `/api/services/*`, `/api/price-lists/*`  
+**Replaces:** corresponding HTML/CSS files (no significant JS found)
+
+```
+ServicesPage.tsx  — DataTable + Add/Edit Dialog (service name AR+EN, category, base price)
+PriceListsPage.tsx — DataTable + Add/Edit Dialog (list name, effective date, pricing rules)
+```
+
+---
+
+#### 6.7 Employees, Doctors, Nurses
 
 **Routes:** `/employees`, `/doctors`, `/nurses`  
 **APIs:** `/api/employees`, `/api/doctors`, `/api/employee-payments`  
@@ -870,7 +883,7 @@ EmployeesPage.tsx / DoctorsPage.tsx / NursesPage.tsx
 
 ---
 
-#### 6.7 Clocking
+#### 6.8 Clocking
 
 **Route:** `/clocking`  
 **APIs:** `/api/clock-ins`  
@@ -885,7 +898,7 @@ ClockingPage.tsx
 
 ---
 
-#### 6.8 Vault
+#### 6.9 Vault
 
 **Route:** `/vault`  
 **APIs:** `/api/vault/*`  
@@ -900,7 +913,7 @@ VaultPage.tsx
 
 ---
 
-#### 6.9 Insurance
+#### 6.10 Insurance
 
 **Route:** `/insurance`  
 **APIs:** `/api/insurance-companies/*`  
@@ -915,7 +928,7 @@ InsurancePage.tsx
 
 ---
 
-#### 6.10 Reports *(Very High Complexity)*
+#### 6.11 Reports *(Very High Complexity)*
 
 **Route:** `/reports`  
 **APIs:** `/api/reports/*` (many sub-routes, enumerated during migration)  
@@ -960,7 +973,7 @@ Reports/types/ (one file per report type, code-split via React.lazy):
 
 ---
 
-#### 6.11 Admin — Users & Roles
+#### 6.12 Admin — Users & Roles
 
 **Routes:** `/admin/users`, `/admin/roles`  
 **APIs:** `/api/users/*`, `/api/roles/*`, `/api/permissions`  
@@ -976,19 +989,6 @@ RolesPage.tsx
   - DataTable: role name, permission count, user count
   - Add/Edit Role Dialog: role name + Checkbox group of all permissions
   - Permission list fetched from GET /api/permissions
-```
-
----
-
-#### 6.12 Services & Price Lists
-
-**Routes:** `/services`, `/price-lists`  
-**APIs:** `/api/services/*`, `/api/price-lists/*`  
-**Replaces:** corresponding HTML/CSS files (no significant JS found)
-
-```
-ServicesPage.tsx  — DataTable + Add/Edit Dialog (service name AR+EN, category, base price)
-PriceListsPage.tsx — DataTable + Add/Edit Dialog (list name, effective date, pricing rules)
 ```
 
 ---

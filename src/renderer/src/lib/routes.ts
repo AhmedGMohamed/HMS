@@ -35,7 +35,7 @@ const ROUTES: RouteEntry[] = [
 
   { pattern: "/patients", requirement: { mode: "permission", permission: "view_patients" } },
   { pattern: "/drugs", requirement: { mode: "permission", permission: "manage_pharmacy" } },
-  { pattern: "/supplies", requirement: { mode: "permission", permission: "manage_pharmacy" } },
+  { pattern: "/supplies", requirement: { mode: "permission", permission: "manage_supplies" } },
   { pattern: "/employees", requirement: { mode: "permission", permission: "manage_employees" } },
   { pattern: "/doctors", requirement: { mode: "permission", permission: "manage_employees" } },
   { pattern: "/clocking", requirement: { mode: "permission", permission: "manage_clocking" } },

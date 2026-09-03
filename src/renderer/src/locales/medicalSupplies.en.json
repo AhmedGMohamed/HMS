@@ -12,13 +12,56 @@
       "createSupply": "Create New Supply",
       "manageWarehouses": "Manage Warehouses",
       "addWarehouse": "Add New Warehouse",
+      "addFirstWarehouse": "Add First Warehouse",
+      "editWarehouse": "Edit Warehouse",
       "saveWarehouse": "Save Warehouse",
-      "addShipment": "Add Shipment"
+      "viewInventory": "View Inventory",
+      "addShipment": "Add New Shipment",
+      "editShipment": "Edit Shipment",
+      "dispense": "Dispense to Patient",
+      "save": "Save",
+      "saving": "Saving...",
+      "processing": "Processing..."
     },
     "searchPlaceholder": "Search medical supplies...",
     "placeholders": {
       "selectWarehouse": "Select Warehouse",
-      "frequency": "e.g., 8 hours"
+      "selectSupply": "Select supply",
+      "frequency": "e.g., 8 hours",
+      "loadingPatients": "Loading patients...",
+      "noAdmittedPatients": "No admitted patients available — admit or quick-check the patient first."
+    },
+    "daysRemaining": "{{days}} days",
+    "tabs": {
+      "inventory": "Supplies Inventory",
+      "warehouses": "Warehouses",
+      "usageHistory": "Usage History"
+    },
+    "kpi": {
+      "totalSupplies": "Total Supplies",
+      "totalSuppliesHint": "Across all warehouses",
+      "lowStock": "Low Stock Alert",
+      "lowStockHintActive": "Tap to view only these",
+      "lowStockHintCalm": "All supplies above their threshold",
+      "expiringSoon": "Expiring Soon",
+      "nearExpiryHintActive": "Expiring within 30 days",
+      "nearExpiryHintCalm": "No supplies near expiry",
+      "turnoverRate": "Monthly Turnover Rate",
+      "turnoverRateHint": "Units dispensed (30d) ÷ (in-stock + dispensed 30d)",
+      "totalValue": "Total Inventory Value",
+      "totalValueHint": "Sum of warehouse stock × buy price"
+    },
+    "filters": {
+      "all": "All",
+      "lowStock": "Low Stock",
+      "expiringSoon": "Expiring Soon"
+    },
+    "status": {
+      "lowStock": "Low Stock",
+      "expired": "Expired",
+      "active": "Active",
+      "completed": "Completed",
+      "default": "Default"
     },
     "table": {
       "supplyName": "Supply Name",
@@ -26,9 +69,14 @@
       "provider": "Provider",
       "autoRenew": "Auto Renew",
       "totalStock": "Total Stock",
+      "nearestExpiry": "Nearest Expiry",
       "warehouseName": "Warehouse Name",
       "location": "Location",
       "totalShipments": "Total Shipments"
+    },
+    "actions": {
+      "expand": "Expand shipments",
+      "collapse": "Collapse shipments"
     },
     "modals": {
       "createSupply": "Create New Medical Supply",
@@ -54,7 +102,9 @@
       "prices": "Selling Prices",
       "warehouseName": "Warehouse Name",
       "location": "Location",
-      "expiry": "Expiry"
+      "expiry": "Expiry",
+      "unitPrice": "Selling Price per Unit",
+      "totalAmount": "Total Charge"
     },
     "sections": {
       "additionalSettings": "Additional Settings",
@@ -66,12 +116,79 @@
       "frequency": "Time interval between administrations (if continuous)",
       "expiryDate": "Optional"
     },
+    "shipment": {
+      "warehouse": "Warehouse",
+      "available": "Available in Shipment",
+      "addShipment": "Add Shipment",
+      "editShipment": "Edit Shipment",
+      "noShipments": "No shipments available for this supply",
+      "loadShipmentError": "Failed to load shipment details"
+    },
+    "warehouses": {
+      "title": "Warehouses",
+      "addWarehouse": "Add New Warehouse",
+      "addFirstWarehouse": "Add First Warehouse",
+      "viewInventory": "View Inventory",
+      "totalShipments": "Total Supply Shipments",
+      "totalUnits": "Total Units in Stock",
+      "totalValue": "Total Stock Value",
+      "supplyName": "Supply Name",
+      "expiry": "Expiry",
+      "status": "Status",
+      "statusOk": "OK",
+      "statusWarning": "Near expiry",
+      "statusExpired": "Expired",
+      "deleteTitle": "Delete Warehouse?",
+      "deleteText": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "noWarehouses": "No warehouses found",
+      "noWarehousesTitle": "No warehouses yet"
+    },
+    "dispense": {
+      "title": "Dispense Supply to Inpatient",
+      "selectPatient": "Select Admitted Patient",
+      "patientRequired": "Please select a patient",
+      "patientAdmissionRequired": "Selected patient is not currently admitted.",
+      "quantity": "Quantity to Dispense",
+      "quantityMin": "Quantity must be greater than 0",
+      "insufficientQuantity": "Insufficient quantity available in this shipment",
+      "unitPrice": "Selling Price per Unit",
+      "totalAmount": "Total Charge",
+      "belowBuyPriceWarning": "Selling price is below the shipment buy price ({{buyPrice}}).",
+      "confirm": "Dispense & Charge to Bill",
+      "success": "Supply dispensed successfully and added to patient bill.",
+      "error": "Failed to dispense supply",
+      "loadingPatients": "Loading patients…",
+      "noAdmittedPatients": "No admitted patients available — admit or quick-check the patient first.",
+      "shipmentReadout": "Dispensing from {{warehouse}} ({{available}} units at {{buyPrice}})"
+    },
+    "usage": {
+      "title": "Supply Usage & Efficiency Audit",
+      "date": "Date & Time",
+      "patient": "Patient",
+      "supply": "Supply",
+      "initialQty": "Dispensed Qty",
+      "remainingQty": "Remaining Qty",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusCompleted": "Completed",
+      "totalUnits": "Total Units Dispensed",
+      "activeTreatments": "Active Inpatient Usages",
+      "patientsServed": "Patients Served",
+      "dateRange": "Date Range",
+      "statusFilter": "Status",
+      "statusAll": "All",
+      "empty": "No usage records found",
+      "loadError": "Failed to load usage history"
+    },
     "validation": {
       "supplyNameLength": "Supply name must be at least 3 characters long",
       "saleQuantityMin": "Sale quantity must be greater than 0",
+      "minStockNegative": "Minimum stock alert cannot be negative",
       "warehouseRequired": "Please select a warehouse",
       "quantityMin": "Please enter a valid quantity",
       "buyPriceRequired": "Please enter a valid buy price",
+      "defaultPriceRequired": "Default price list must have a valid price",
+      "invalidPrice": "Invalid price",
       "warehouseNameLength": "Warehouse name must be at least 3 characters long",
       "locationLength": "Location must be at least 5 characters long"
     },
@@ -89,6 +206,9 @@
       "loadPriceListsError": "Failed to load price lists",
       "loadWarehousesError": "Failed to load warehouses",
       "noShipments": "No shipments available for this supply",
+      "noSupplies": "No supplies yet",
+      "noSuppliesDesc": "Create your first supply to start tracking inventory.",
+      "noSuppliesMatchFilter": "No supplies match the current filter",
       "deleteSuccess": "Supply deleted successfully",
       "deleteError": "Failed to delete supply",
       "updateSuccess": "Supply updated successfully",
@@ -103,14 +223,12 @@
       "warehouseCreateSuccess": "Warehouse created successfully",
       "warehouseSaveError": "Failed to save warehouse",
       "warehouseDeleteSuccess": "Warehouse deleted successfully",
-      "warehouseDeleteError": "Failed to delete warehouse"
+      "warehouseDeleteError": "Failed to delete warehouse",
+      "deleteSupplyWithStockWarning": "This supply has {{quantity}} units in stock. Deleting it will remove all stock records. This action cannot be undone!"
     },
     "frequency": {
       "every": "Every",
       "hours": "hours"
-    },
-    "status": {
-      "lowStock": "Low Stock"
     }
   }
 }

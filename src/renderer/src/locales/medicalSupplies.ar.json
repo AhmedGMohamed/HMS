@@ -12,13 +12,56 @@
       "createSupply": "إضافة مستلزم جديد",
       "manageWarehouses": "إدارة المستودعات",
       "addWarehouse": "إضافة مستودع جديد",
+      "addFirstWarehouse": "أضف أول مستودع",
+      "editWarehouse": "تعديل المستودع",
       "saveWarehouse": "حفظ المستودع",
-      "addShipment": "إضافة شحنة"
+      "viewInventory": "عرض المخزون",
+      "addShipment": "إضافة شحنة",
+      "editShipment": "تعديل الشحنة",
+      "dispense": "صرف لمريض",
+      "save": "حفظ",
+      "saving": "جاري الحفظ...",
+      "processing": "جاري المعالجة..."
     },
     "searchPlaceholder": "البحث عن مستلزمات طبية...",
     "placeholders": {
       "selectWarehouse": "اختر المستودع",
-      "frequency": "مثال: 8 ساعات"
+      "selectSupply": "اختر المستلزم",
+      "frequency": "مثال: 8 ساعات",
+      "loadingPatients": "جاري تحميل المرضى...",
+      "noAdmittedPatients": "لا يوجد مرضى مقيمون — قم بتنويم أو فحص سريع للمريض أولاً."
+    },
+    "daysRemaining": "{{days}} يوم",
+    "tabs": {
+      "inventory": "مخزون المستلزمات",
+      "warehouses": "المستودعات",
+      "usageHistory": "سجل الاستخدام"
+    },
+    "kpi": {
+      "totalSupplies": "إجمالي المستلزمات",
+      "totalSuppliesHint": "عبر جميع المستودعات",
+      "lowStock": "تنبيه المخزون المنخفض",
+      "lowStockHintActive": "اضغط لعرض هذه فقط",
+      "lowStockHintCalm": "جميع المستلزمات فوق الحد الأدنى",
+      "expiringSoon": "قارب على الانتهاء",
+      "nearExpiryHintActive": "ينتهي خلال 30 يوماً",
+      "nearExpiryHintCalm": "لا توجد مستلزمات قاربت على الانتهاء",
+      "turnoverRate": "معدل الدوران الشهري",
+      "turnoverRateHint": "الوحدات المصروفة (30 يوم) ÷ (المخزون + المصروف 30 يوم)",
+      "totalValue": "القيمة الإجمالية للمخزون",
+      "totalValueHint": "مجموع المخزون في المستودعات × سعر الشراء"
+    },
+    "filters": {
+      "all": "الكل",
+      "lowStock": "مخزون منخفض",
+      "expiringSoon": "قارب على الانتهاء"
+    },
+    "status": {
+      "lowStock": "مخزون منخفض",
+      "expired": "منتهي",
+      "active": "نشط",
+      "completed": "مكتمل",
+      "default": "افتراضي"
     },
     "table": {
       "supplyName": "اسم المستلزم",
@@ -26,9 +69,14 @@
       "provider": "المورد",
       "autoRenew": "تجديد تلقائي",
       "totalStock": "إجمالي المخزون",
+      "nearestExpiry": "أقرب انتهاء",
       "warehouseName": "اسم المستودع",
       "location": "الموقع",
       "totalShipments": "إجمالي الشحنات"
+    },
+    "actions": {
+      "expand": "توسيع الشحنات",
+      "collapse": "طي الشحنات"
     },
     "modals": {
       "createSupply": "إضافة مستلزم طبي جديد",
@@ -54,7 +102,9 @@
       "prices": "أسعار البيع",
       "warehouseName": "اسم المستودع",
       "location": "الموقع",
-      "expiry": "الانتهاء"
+      "expiry": "الانتهاء",
+      "unitPrice": "سعر بيع الوحدة",
+      "totalAmount": "الإجمالي"
     },
     "sections": {
       "additionalSettings": "إعدادات إضافية",
@@ -66,12 +116,79 @@
       "frequency": "الفترة الزمنية بين الجرعات (إذا كان مستمراً)",
       "expiryDate": "اختياري"
     },
+    "shipment": {
+      "warehouse": "المستودع",
+      "available": "المتوفر في الشحنة",
+      "addShipment": "إضافة شحنة",
+      "editShipment": "تعديل الشحنة",
+      "noShipments": "لا توجد شحنات متاحة لهذا المستلزم",
+      "loadShipmentError": "فشل تحميل تفاصيل الشحنة"
+    },
+    "warehouses": {
+      "title": "المستودعات",
+      "addWarehouse": "إضافة مستودع جديد",
+      "addFirstWarehouse": "أضف أول مستودع",
+      "viewInventory": "عرض المخزون",
+      "totalShipments": "إجمالي شحنات المستلزمات",
+      "totalUnits": "إجمالي الوحدات في المخزون",
+      "totalValue": "إجمالي قيمة المخزون",
+      "supplyName": "اسم المستلزم",
+      "expiry": "الانتهاء",
+      "status": "الحالة",
+      "statusOk": "جيد",
+      "statusWarning": "قارب على الانتهاء",
+      "statusExpired": "منتهي",
+      "deleteTitle": "حذف المستودع؟",
+      "deleteText": "هل أنت متأكد من حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+      "noWarehouses": "لا توجد مستودعات",
+      "noWarehousesTitle": "لا توجد مستودعات بعد"
+    },
+    "dispense": {
+      "title": "صرف مستلزم لمريض مقيم",
+      "selectPatient": "اختر المريض المقيم",
+      "patientRequired": "يرجى اختيار مريض",
+      "patientAdmissionRequired": "المريض المختار غير مقيم حالياً.",
+      "quantity": "الكمية المراد صرفها",
+      "quantityMin": "يجب أن تكون الكمية أكبر من 0",
+      "insufficientQuantity": "الكمية المتاحة في الشحنة غير كافية",
+      "unitPrice": "سعر بيع الوحدة",
+      "totalAmount": "الإجمالي",
+      "belowBuyPriceWarning": "سعر البيع أقل من سعر شراء الشحنة ({{buyPrice}}).",
+      "confirm": "صرف وإضافة إلى الفاتورة",
+      "success": "تم صرف المستلزم بنجاح وإضافته لفاتورة المريض.",
+      "error": "فشل صرف المستلزم",
+      "loadingPatients": "جاري تحميل المرضى…",
+      "noAdmittedPatients": "لا يوجد مرضى مقيمون — قم بتنويم أو فحص سريع للمريض أولاً.",
+      "shipmentReadout": "الصرف من {{warehouse}} ({{available}} وحدة بسعر {{buyPrice}})"
+    },
+    "usage": {
+      "title": "تدقيق استخدام المستلزمات والكفاءة",
+      "date": "التاريخ والوقت",
+      "patient": "المريض",
+      "supply": "المستلزم",
+      "initialQty": "الكمية المصروفة",
+      "remainingQty": "الكمية المتبقية",
+      "status": "الحالة",
+      "statusActive": "نشط",
+      "statusCompleted": "مكتمل",
+      "totalUnits": "إجمالي الوحدات المصروفة",
+      "activeTreatments": "العلاجات النشطة للمرضى",
+      "patientsServed": "المرضى المستفيدون",
+      "dateRange": "النطاق الزمني",
+      "statusFilter": "الحالة",
+      "statusAll": "الكل",
+      "empty": "لم يتم العثور على سجلات استخدام",
+      "loadError": "فشل تحميل سجل الاستخدام"
+    },
     "validation": {
       "supplyNameLength": "يجب أن يكون اسم المستلزم 3 أحرف على الأقل",
       "saleQuantityMin": "يجب أن تكون كمية البيع أكبر من 0",
+      "minStockNegative": "لا يمكن أن يكون تنبيه الحد الأدنى سالباً",
       "warehouseRequired": "يرجى اختيار مستودع",
       "quantityMin": "يرجى إدخال كمية صحيحة",
       "buyPriceRequired": "يرجى إدخال سعر شراء صحيح",
+      "defaultPriceRequired": "يجب أن يكون لقائمة الأسعار الافتراضية سعر صحيح",
+      "invalidPrice": "سعر غير صحيح",
       "warehouseNameLength": "يجب أن يكون اسم المستودع 3 أحرف على الأقل",
       "locationLength": "يجب أن يكون الموقع 5 أحرف على الأقل"
     },
@@ -89,6 +206,9 @@
       "loadPriceListsError": "فشل تحميل قوائم الأسعار",
       "loadWarehousesError": "فشل تحميل المستودعات",
       "noShipments": "لا توجد شحنات متاحة لهذا المستلزم",
+      "noSupplies": "لا توجد مستلزمات بعد",
+      "noSuppliesDesc": "أضف أول مستلزم لبدء تتبع المخزون.",
+      "noSuppliesMatchFilter": "لا توجد مستلزمات تطابق التصفية الحالية",
       "deleteSuccess": "تم حذف المستلزم بنجاح",
       "deleteError": "فشل حذف المستلزم",
       "updateSuccess": "تم تحديث المستلزم بنجاح",
@@ -103,14 +223,12 @@
       "warehouseCreateSuccess": "تم إضافة المستودع بنجاح",
       "warehouseSaveError": "فشل حفظ المستودع",
       "warehouseDeleteSuccess": "تم حذف المستودع بنجاح",
-      "warehouseDeleteError": "فشل حذف المستودع"
+      "warehouseDeleteError": "فشل حذف المستودع",
+      "deleteSupplyWithStockWarning": "يحتوي هذا المستلزم على {{quantity}} وحدة في المخزون. سيؤدي الحذف إلى إزالة جميع سجلات المخزون. لا يمكن التراجع عن هذا الإجراء!"
     },
     "frequency": {
       "every": "كل",
       "hours": "ساعات"
-    },
-    "status": {
-      "lowStock": "مخزون منخفض"
     }
   }
 }

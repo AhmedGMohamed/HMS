@@ -336,3 +336,210 @@ export interface ActivePatient extends Patient {
   activePatientHistoryId: number
   quickCheck: boolean
 }
+
+/* ----------------------------------------------------------------
+   Medical Supplies Domain Types (Phase 6.5)
+   ----------------------------------------------------------------
+   Wire-shape types for the medical-supplies admin endpoints
+   (`/api/pharmacy/medical-supplies/*`, `/api/medical-supply-shipments/*`,
+   `/api/medical-supply-usages/*`). The boundary `lib/api.ts:request`
+   runs `toCamel` on every response, so every field here is camelCase
+   even though the server emits snake_case. Field names match the SQL
+   columns/aliases Express actually returns.
+
+   Unlike drugs, medical supplies have NO unit conversion — every
+   quantity is an integer. The shipment / sale / dispense flow is
+   correspondingly simpler (no `unitConversion` field, no dual-unit
+   inputs, no `quantityInLargerUnit` derivation).
+*/
+
+export interface MedicalSupply {
+  supplyId: number
+  name: string
+  manufacturer: string | null
+  provider: string | null
+  isObligatoryContinuous: boolean
+  saleQuantity: number
+  frequency: string | null
+  minStockAlert: number | null
+  createdByUserId: number
+}
+
+export interface CreateMedicalSupplyPayload {
+  name: string
+  manufacturer?: string | null
+  provider?: string | null
+  isObligatoryContinuous: boolean
+  saleQuantity: number
+  frequency?: string | null
+  minStockAlert?: number | null
+}
+
+export type UpdateMedicalSupplyPayload = Partial<CreateMedicalSupplyPayload>
+
+/* Medical supply shipment price (subset of drug shipment price — no
+   `pricelistName` is joined in the supply-shipment list endpoint). */
+export interface MedicalSupplyShipmentPrice {
+  pricelistId: number
+  price: number | string
+  requiresPrepayment: boolean
+  prepaymentType: string | null
+  prepaymentAmount: number | null
+}
+
+/**
+ * Wire element for `/api/pharmacy/medical-supply-shipments/supply/:id`
+ * and `/api/pharmacy/medical-supply-shipments/warehouse/:id`. The
+ * server's SELECT aliases `warehouse_name` onto the row, so the
+ * `warehouseName` is part of every list response.
+ *
+ * `expiryDate` is intentionally nullable: per `phase_6.5_plan.md`
+ * §3.4 the supplies flow treats the shipment expiry as OPTIONAL
+ * (the legacy supplies page never asked for one, and the SQL column
+ * is `expiry_date DATE` without a NOT NULL). The renderer renders
+ * `—` for null, and the form's date input clears with an empty
+ * string which the controller normalises back to `null` server-side.
+ */
+export interface MedicalSupplyShipment {
+  shipmentId: number
+  supplyId: number
+  warehouseId: number
+  warehouseName: string
+  /** Original buy quantity (smaller units); kept for audit parity. */
+  buyQuantity?: number
+  /** Current stock (smaller units). */
+  quantity: number
+  buyPrice: number | string
+  /** ISO date string or `null` (see interface doc above). */
+  expiryDate: string | null
+  receivedDate?: string
+  prices: MedicalSupplyShipmentPrice[]
+  /** Server may include supply name in detail endpoints. */
+  supplyName?: string
+}
+
+export interface CreateSupplyShipmentPayload {
+  supplyId: number
+  warehouseId: number
+  quantity: number
+  buyPrice: number
+  expiryDate?: string | null
+  /**
+   * Price-list rows. The supplies flow supports the same prepayment
+   * fields as drugs (the form's `PriceField` carries
+   * `requiresPrepayment` / `prepaymentType` / `prepaymentAmount`),
+   * but the legacy controller accepts the trimmed `{ pricelistId,
+   * price }` shape. The full shape is passed through so the backend
+   * DTO can grow to honour it without a renderer-side change.
+   */
+  prices: {
+    pricelistId: number
+    price: number
+    requiresPrepayment?: boolean
+    prepaymentType?: "fixed" | "percentage" | null
+    prepaymentAmount?: number | null
+  }[]
+}
+
+export type UpdateSupplyShipmentPayload = Partial<
+  Omit<CreateSupplyShipmentPayload, "supplyId">
+>
+
+/** `/api/pharmacy/medical-supplies/monitor/low-stock` element. */
+export interface MedicalSupplyStock {
+  supplyId: number
+  name: string
+  minStockAlert: number | null
+  totalQuantity: number
+}
+
+/** Per-supply near-expiry element. */
+export interface MedicalSupplyExpiry {
+  supplyId: number
+  name: string
+  shipmentId: number
+  quantity: number
+  expiryDate: string
+  daysUntilExpiry: number
+}
+
+/** Drug-supply enriched with renderer-side flags. */
+export interface EnrichedMedicalSupply extends MedicalSupply {
+  stock?: MedicalSupplyStock
+  isLowStock?: boolean
+  isNearExpiry?: boolean
+  /** Days until the earliest in-stock shipment expires. */
+  daysUntilExpiry?: number | null
+  /** ISO date string of the earliest in-stock shipment's expiry date. */
+  nearestExpiryDate?: string | null
+  /** Authoritative per-supply total stock (sum of in-stock shipments). */
+  totalQuantity?: number | null
+  /** Count of in-stock shipments (rendered in the expand chevron hint). */
+  shipmentsCount?: number
+}
+
+/* ----------------------------------------------------------------
+   Inpatient Supply Usage & History Types
+   ---------------------------------------------------------------- */
+
+export interface MedicalSupplyUsageRow {
+  usageId: number
+  patientId: number
+  patientName: string
+  supplyId: number
+  supplyName: string
+  transactionId: number
+  initialQuantity: number
+  remainingQuantity: number
+  startDate: string
+  lastAdministered: string | null
+  isActive: boolean
+  warehouseName?: string
+  unitPrice?: number
+}
+
+export interface SupplyUsageFilters {
+  startDate?: string
+  endDate?: string
+  patientId?: number
+  supplyId?: number
+  isActive?: boolean
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export interface SupplyUsageSummaryMetrics {
+  totalUnitsDispensedAllTime: number
+  totalUnitsDispensedLast30Days: number
+  activeUsagesCount: number
+  totalPatientsServed: number
+}
+
+export interface DispenseSupplyPayload {
+  supplyId: number
+  shipmentId: number
+  quantity: number
+  price: number
+  patientHistoryId: number
+}
+
+/* ----------------------------------------------------------------
+   Supply-side Warehouse Inventory (renderer view-model)
+   ---------------------------------------------------------------- */
+
+/**
+ * Per-warehouse supply breakdown returned by
+ * `/api/pharmacy/medical-supply-shipments/warehouse/:id`. The server
+ * already returns each row joined with `warehouse_name` and
+ * `supply_name` — we keep the type narrow.
+ */
+export interface WarehouseSupplyInventoryItem {
+  shipmentId: number
+  supplyId: number
+  supplyName: string
+  quantity: number
+  buyPrice: number | string
+  expiryDate: string | null
+  status: "ok" | "warning" | "expired"
+}
