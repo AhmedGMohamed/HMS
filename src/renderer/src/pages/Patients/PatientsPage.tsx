@@ -10,9 +10,9 @@ import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { listPatients } from "@/pages/Patients/api"
 import type { Patient } from "@/pages/Patients/types/patient"
 import { PatientListPanel } from "@/pages/Patients/PatientListPanel"
-import { StaffStatusPanel } from "@/pages/Patients/StaffStatus/StaffStatusPanel"
-import { CreatePatientWizardDialog } from "@/pages/Patients/modals/CreatePatientWizard/CreatePatientWizardDialog"
-import { useCreatePatientWizard } from "@/pages/Patients/modals/CreatePatientWizard/useCreatePatientWizard"
+import { StaffStatusPanel } from "@/pages/Patients/components/StaffStatus/StaffStatusPanel"
+import { CreatePatientWizardDialog } from "@/pages/Patients/dialogs/createPatientWizard/CreatePatientWizardDialog"
+import { useCreatePatientWizard } from "@/pages/Patients/dialogs/createPatientWizard/useCreatePatientWizard"
 
 /**
  * /patients — Patients root.
