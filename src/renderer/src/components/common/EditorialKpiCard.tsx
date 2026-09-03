@@ -123,7 +123,7 @@ export function EditorialKpiCard({
       ) : (
         <span
           className={cn(
-            "block text-[1.75rem] leading-none font-extralight tracking-[-0.02em] tabular-nums",
+            "block text-[1.75rem] text-start leading-none font-extralight tracking-[-0.02em] tabular-nums",
             TONE_VALUE[tone]
           )}
         >
@@ -142,9 +142,9 @@ export function EditorialKpiCard({
 
       {/* Hint / context */}
       {hint ? (
-        <span className="text-xs text-muted-foreground">{hint}</span>
+        <span className="text-xs text-start text-muted-foreground">{hint}</span>
       ) : (
-        <span aria-hidden className="text-xs text-muted-foreground/0">
+        <span aria-hidden className="text-xs text-start text-muted-foreground/0">
           &nbsp;
         </span>
       )}
