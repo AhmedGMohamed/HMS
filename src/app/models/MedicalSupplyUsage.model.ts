@@ -268,6 +268,7 @@ export class MedicalSupplyUsageModel {
             const conditions: string[] = [];
             const values: any[] = [];
             let paramCount = 1;
+            let needsPatientJoin = false;
 
             if (filters.startDate !== undefined) {
                 conditions.push(`mst.timestamp >= $${paramCount}`);
@@ -297,6 +298,13 @@ export class MedicalSupplyUsageModel {
                 conditions.push(`(msu.remaining_quantity > 0) = $${paramCount}`);
                 values.push(filters.isActive);
                 paramCount++;
+            }
+
+            if (filters.search !== undefined && filters.search.trim() !== "") {
+                conditions.push(`p.name ILIKE $${paramCount}`);
+                values.push(`%${filters.search.trim()}%`);
+                paramCount++;
+                needsPatientJoin = true;
             }
 
             const whereClause =
@@ -333,10 +341,16 @@ export class MedicalSupplyUsageModel {
                 LIMIT $${paramCount} OFFSET $${paramCount + 1};
             `;
 
+            const countFromClause = needsPatientJoin
+                ? `FROM MedicalSupplyUsage msu
+                   JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id
+                   JOIN Patient p ON msu.patient_id = p.patient_id`
+                : `FROM MedicalSupplyUsage msu
+                   JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id`;
+
             const countSql = `
                 SELECT COUNT(*) AS c
-                FROM MedicalSupplyUsage msu
-                JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id
+                ${countFromClause}
                 ${whereClause};
             `;
 

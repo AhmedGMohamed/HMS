@@ -180,6 +180,9 @@ export class MedicalSupplyUsageController {
             const isActive = asBool(req.query?.isActive);
             if (isActive !== undefined) filters.isActive = isActive;
 
+            const search = asString(req.query?.search);
+            if (search) filters.search = search;
+
             const { rows, total } =
                 await MedicalSupplyUsageModel.getMedicalSupplyUsageHistory(filters);
 
