@@ -19,21 +19,21 @@ export class MedicalSupplyModel {
             let sql: string
             const params: unknown[] = []
             if (q) {
-                sql = `SELECT * FROM MedicalSupply WHERE name ILIKE %$1% ORDER BY name LIMIT $2 OFFSET $3`
-                params.push(q, limit, offset)
+                sql = `SELECT * FROM MedicalSupply WHERE name ILIKE $1 ORDER BY name LIMIT $2 OFFSET $3`
+                params.push(`%${q}%`, limit, offset)
             } else {
                 sql = `SELECT * FROM MedicalSupply ORDER BY name LIMIT $1 OFFSET $2`
                 params.push(limit, offset)
             }
             const countSql = q
-                ? `SELECT COUNT(*) AS c FROM MedicalSupply WHERE name ILIKE %$1%`
+                ? `SELECT COUNT(*) AS c FROM MedicalSupply WHERE name ILIKE $1`
                 : `SELECT COUNT(*) AS c FROM MedicalSupply`
-            
+
             const [result, countRes] = await Promise.all([
                 query(sql, params),
                 query(
                     countSql,
-                    q ? [q] : []
+                    q ? [`%${q}%`] : []
                 )
             ])
 

@@ -220,11 +220,11 @@ export class UserModel {
                            r.name as role_name
                     FROM "User" u
                     JOIN Role r ON u.role_id = r.role_id
-                    WHERE u.username ILIKE %$1%
+                    WHERE u.username ILIKE $1
                     ORDER BY u.username
                     LIMIT $2 OFFSET $3
                 `
-				params.push(q, limit, offset)
+				params.push(`%${q}%`, limit, offset)
 			} else {
 				sql = `
                     SELECT u.user_id, u.username, u.role_id, u.created_at,
@@ -237,13 +237,13 @@ export class UserModel {
 				params.push(limit, offset)
 			}
 			const countSql = q
-				? `SELECT COUNT(*) AS c FROM "User" WHERE username ILIKE %$1%`
+				? `SELECT COUNT(*) AS c FROM "User" WHERE username ILIKE $1`
 				: `SELECT COUNT(*) AS c FROM "User"`
 
 
 			const [result, countRes] = await Promise.all([
 				query(sql, params),
-				query(countSql, q ? [q] : [])
+				query(countSql, q ? [`%${q}%`] : [])
 			])
 			return {
 				rows: result.rows,

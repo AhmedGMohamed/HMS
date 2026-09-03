@@ -502,6 +502,9 @@ async function initDB() {
 		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_remaining ON MedicalSupplyUsage(remaining_quantity)
 		WHERE remaining_quantity > 0;
 		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_administered ON MedicalSupplyUsage(last_administered);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_transaction ON MedicalSupplyUsage(transaction_id);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_transaction_timestamp ON MedicalSupplyTransaction(timestamp);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_transaction_shipment ON MedicalSupplyTransaction(shipment_id);
 		CREATE INDEX IF NOT EXISTS idx_bill_detail_medical_supply ON BillDetail(medical_supply_shipment_id);
 		-- Create indexes for DoctorServicePrice
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_doctor ON DoctorServicePrice(doctor_id);

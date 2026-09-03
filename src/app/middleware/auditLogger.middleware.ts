@@ -75,6 +75,33 @@ export async function auditLogger(
 			"/api/pharmacy/usages/history": "View drug usage history",
 			"/api/pharmacy/warehouses": "View all warehouses",
 
+			// Medical supplies routes
+			"/api/pharmacy/medical-supplies": "Fetched medical supplies list",
+			"/api/pharmacy/medical-supplies/:id": "Fetched medical supply details",
+			"/api/pharmacy/medical-supplies/search/supplies": "Searched medical supplies",
+			"/api/pharmacy/medical-supplies/search/suggestions":
+				"Fetched medical supply suggestions",
+			"/api/pharmacy/medical-supplies/monitor/low-stock":
+				"Fetched low-stock medical supplies",
+			"/api/pharmacy/medical-supply-usages": "Fetched medical supply usages",
+			"/api/pharmacy/medical-supply-usages/:id":
+				"Fetched medical supply usage details",
+			"/api/pharmacy/medical-supply-usages/pending/administrations":
+				"Fetched pending medical supply administrations",
+			"/api/pharmacy/medical-supply-usages/history":
+				"Fetched medical supply usage history",
+			"/api/pharmacy/medical-supply-usages/summary":
+				"Fetched medical supply usage summary",
+			"/api/pharmacy/medical-supply-usages/available-shipments/:supplyId":
+				"Fetched available medical supply shipments",
+			"/api/pharmacy/medical-supply-shipments": "Fetched medical supply shipments",
+			"/api/pharmacy/medical-supply-shipments/:id":
+				"Fetched medical supply shipment details",
+			"/api/pharmacy/medical-supply-shipments/supply/:id":
+				"Fetched shipments by medical supply",
+			"/api/pharmacy/medical-supply-shipments/warehouse/:id":
+				"Fetched shipments by warehouse",
+
 			// Employee routes
 			"/api/employees": "View all employees",
 			"/api/employees/:id": "View employee details",
@@ -131,6 +158,12 @@ export async function auditLogger(
 			"/api/pharmacy/drugs/transactions": "Create drug transaction",
 			"/api/pharmacy/usages": "Create drug usage",
 
+			// Medical supplies routes
+			"/api/pharmacy/medical-supplies": "Created a medical supply",
+			"/api/pharmacy/medical-supply-usages/patient/:patientId":
+				"Dispensed medical supply to patient",
+			"/api/pharmacy/medical-supply-shipments": "Created a medical supply shipment",
+
 			// Employee routes
 			"/api/employees": "Create employee",
 			"/api/doctors": "Create doctor",
@@ -158,6 +191,11 @@ export async function auditLogger(
 			"/api/pharmacy/drugs/cards/:id": "Update drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Update drug shipment",
 			"/api/pharmacy/usages/:id": "Update drug usage",
+
+			// Medical supplies routes
+			"/api/pharmacy/medical-supplies/:id": "Updated a medical supply",
+			"/api/pharmacy/medical-supply-shipments/:id":
+				"Updated a medical supply shipment",
 
 			// Employee routes
 			"/api/employees/:id": "Update employee",
@@ -187,6 +225,13 @@ export async function auditLogger(
 			"/api/pharmacy/drugs/cards/:id": "Delete drug card",
 			"/api/pharmacy/drugs/shipments/:id": "Delete drug shipment",
 			"/api/pharmacy/usages/:id": "Delete drug usage",
+
+			// Medical supplies routes
+			"/api/pharmacy/medical-supplies/:id": "Deleted a medical supply",
+			"/api/pharmacy/medical-supply-usages/patient/:patientId/:usageId":
+				"Removed medical supply from patient",
+			"/api/pharmacy/medical-supply-shipments/:id":
+				"Deleted a medical supply shipment",
 
 			// Employee routes
 			"/api/employees/:id": "Delete employee",
