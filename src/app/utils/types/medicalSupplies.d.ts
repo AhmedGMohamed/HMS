@@ -236,6 +236,7 @@ export interface MedicalSupplyUsageFilters {
     patientId?: number;
     supplyId?: number;
     isActive?: boolean;
+    search?: string;
     offset?: number;
     limit?: number;
 }

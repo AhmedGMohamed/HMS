@@ -32,10 +32,12 @@ export class MedicalSupplyShipmentController {
             const { supply_id, warehouse_id, quantity, buy_price, expiry_date, prices } = req.body;
             const userId = (req as any).user.userId;
 
-            // Validate required fields
-            if (!supply_id || !warehouse_id || !quantity || !buy_price || !expiry_date || !prices) {
+            if (!supply_id || !warehouse_id || !quantity || !buy_price || !prices) {
                 res.status(400).json({ error: "Missing required fields" });
                 return;
+            }
+            if (expiry_date === "" || expiry_date === undefined) {
+                req.body.expiry_date = null;
             }
 
             const shipment = await MedicalSupplyShipmentModel.createShipment(req.body, userId);
@@ -49,6 +51,11 @@ export class MedicalSupplyShipmentController {
     async updateShipment(req: Request, res: Response) {
         try {
             const shipmentId = parseInt(req.params.id);
+
+            if (req.body?.expiry_date === "" || req.body?.expiry_date === undefined) {
+                req.body.expiry_date = null;
+            }
+
             const shipment = await MedicalSupplyShipmentModel.updateShipment(shipmentId, req.body);
             res.json(shipment);
         } catch (error: any) {
