@@ -50,6 +50,10 @@
       "expiryAlertDays": "أيام تنبيه انتهاء الصلاحية",
       "isObligatoryContinuous": "إلزامي مستمر",
       "frequency": "التكرار",
+      "frequencyHours": "ساعات",
+      "frequencyMinutes": "دقائق",
+      "frequencySeconds": "ثوانٍ",
+      "frequencyHelper": "المدة بين كل جرعة",
       "transactionType": "نوع المعاملة",
       "selectPatient": "اختر المريض",
       "quantity": "الكمية",
@@ -76,13 +80,18 @@
       "conversionRatio": "وحدة كبيرة واحدة تساوي كم وحدة صغيرة",
       "minStockAlert": "تنبيه عندما ينخفض المخزون عن هذه الكمية (بالوحدات الصغيرة)",
       "expiryAlertDays": "تنبيه عندما تكون الأدوية على بعد هذا العدد من الأيام من انتهاء الصلاحية",
-      "frequency": "الفترة الزمنية بين الجرعات (إذا كان مستمراً)"
+      "frequency": "الفترة الزمنية بين الجرعات (إذا كان مستمراً)",
+      "quickCheckAdmission": "فحص سريع - دخول في نفس اليوم، بدون مبيت"
+    },
+    "labels": {
+      "quickCheck": "فحص سريع"
     },
     "placeholders": {
       "frequency": "مثال: 8 ساعات",
       "selectType": "اختر النوع",
       "selectWarehouse": "اختر المخزن",
-      "loadingPatients": "جاري تحميل المرضى..."
+      "loadingPatients": "جاري تحميل المرضى...",
+      "noAdmittedPatients": "لا يوجد مرضى منومون - يجب إدخال المريض أو فحصه أولاً."
     },
     "transactionTypes": {
       "patient": "مريض",
@@ -102,6 +111,55 @@
       "hours": "ساعة"
     },
     "daysRemaining": "{{days}} يوم",
+    "tabs": {
+      "inventory": "مخزون الأدوية",
+      "warehouses": "المخازن",
+      "transactions": "سجل المعاملات"
+    },
+    "kpi": {
+      "totalDrugs": "إجمالي الأدوية",
+      "totalDrugsHint": "في جميع المخازن",
+      "lowStock": "مخزون منخفض",
+      "lowStockHintActive": "اضغط لعرض هذه فقط",
+      "lowStockHintCalm": "جميع الأدوية فوق الحد الأدنى",
+      "expiringSoon": "قريبة الانتهاء",
+      "nearExpiryHintActive": "تنتهي صلاحيتها خلال نافذة التنبيه",
+      "nearExpiryHintCalm": "لا توجد أدوية قريبة الانتهاء",
+      "totalValue": "إجمالي قيمة المخزون",
+      "totalValueHint": "مجموع المخزون × سعر الشراء"
+    },
+    "filters": {
+      "all": "الكل",
+      "lowStock": "مخزون منخفض",
+      "nearExpiry": "قريبة الانتهاء"
+    },
+    "actions": {
+      "expand": "عرض الشحنات",
+      "collapse": "إخفاء الشحنات"
+    },
+    "transactions": {
+      "title": "سجل المعاملات",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "type": "النوع",
+      "drug": "الدواء",
+      "warehouse": "المخزن",
+      "timestamp": "التاريخ والوقت",
+      "price": "السعر",
+      "patient": "اسم المريض",
+      "totalSales": "إجمالي المبيعات",
+      "totalSalesHint": "{{count}} معاملة في هذا النطاق",
+      "totalRevenue": "إجمالي الإيرادات",
+      "totalRevenueHint": "مجموع أسعار البيع",
+      "totalUnits": "إجمالي الوحدات المباعة",
+      "totalUnitsHint": "عناصر مباعة في هذا النطاق",
+      "transactionCount": "{{count}} معاملة",
+      "typeAll": "الكل",
+      "typePatient": "مريض",
+      "typeCheck": "فحص طبي",
+      "typeOutside": "بيع خارجي",
+      "empty": "لا توجد معاملات"
+    },
     "warehouseInventory": {
       "title": "مخزون {{name}}",
       "totalShipments": "إجمالي الشحنات",
@@ -116,6 +174,7 @@
       "conversionRatioMin": "يجب أن تكون نسبة التحويل أكبر من 0",
       "transactionTypeRequired": "الرجاء اختيار نوع المعاملة",
       "patientRequired": "الرجاء اختيار مريض",
+      "patientAdmissionRequired": "المريض المحدد غير منوم حالياً. يجب إدخال المريض أو فحصه أولاً.",
       "quantityRequired": "الرجاء إدخال كمية صالحة",
       "quantityMin": "يجب أن تكون الكمية أكبر من 0",
       "priceListRequired": "الرجاء اختيار قائمة أسعار",
@@ -132,7 +191,8 @@
       "minStockNegative": "لا يمكن أن يكون تنبيه الحد الأدنى للمخزون سالباً",
       "expiryDaysNegative": "لا يمكن أن تكون أيام تنبيه انتهاء الصلاحية سالبة",
       "insufficientQuantity": "الكمية المتاحة غير كافية",
-      "invalidPrice": "سعر غير صالح"
+      "invalidPrice": "سعر غير صالح",
+      "frequencyInvalid": "أدخل فترة صحيحة (0–59 للدقائق والثواني)"
     },
     "messages": {
       "noShipments": "لا توجد شحنات متاحة لهذا الدواء",
@@ -149,6 +209,11 @@
       "shipmentDeleteError": "فشل حذف الشحنة",
       "noActivePatients": "لا يوجد مرضى نشطون",
       "noWarehouses": "لم يتم العثور على مخازن",
+      "noWarehousesTitle": "لا توجد مخازن بعد",
+      "noDrugs": "لا توجد أدوية بعد",
+      "noDrugsDesc": "أنشئ أول بطاقة دواء لبدء تتبع المخزون.",
+      "noDrugsMatchFilter": "لا توجد أدوية تطابق عامل التصفية الحالي",
+      "noPrices": "لا توجد قوائم أسعار متاحة",
       "deleteConfirmTitle": "هل أنت متأكد؟",
       "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
       "deleteWithStockWarning": "يحتوي هذا الدواء على {{quantity}} وحدة في المخزون. حذفه سيزيل جميع سجلات المخزون. لا يمكن التراجع عن هذا الإجراء!",

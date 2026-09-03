@@ -50,6 +50,10 @@
       "expiryAlertDays": "Expiry Alert Days",
       "isObligatoryContinuous": "Is Obligatory Continuous",
       "frequency": "Frequency",
+      "frequencyHours": "Hours",
+      "frequencyMinutes": "Minutes",
+      "frequencySeconds": "Seconds",
+      "frequencyHelper": "Time between doses",
       "transactionType": "Transaction Type",
       "selectPatient": "Select Patient",
       "quantity": "Quantity",
@@ -76,13 +80,18 @@
       "conversionRatio": "1 larger unit equals how many smaller units",
       "minStockAlert": "Alert when stock falls below this amount (in smaller units)",
       "expiryAlertDays": "Alert when drugs are this many days from expiry",
-      "frequency": "Time interval between doses (if continuous)"
+      "frequency": "Time interval between doses (if continuous)",
+      "quickCheckAdmission": "Quick check — same-day admission, no overnight stay"
+    },
+    "labels": {
+      "quickCheck": "Quick check"
     },
     "placeholders": {
       "frequency": "e.g., 8 hours",
       "selectType": "Select Type",
       "selectWarehouse": "Select Warehouse",
-      "loadingPatients": "Loading patients..."
+      "loadingPatients": "Loading patients...",
+      "noAdmittedPatients": "No admitted patients available — admit or quick-check the patient first."
     },
     "transactionTypes": {
       "patient": "Patient",
@@ -102,6 +111,55 @@
       "hours": "hour(s)"
     },
     "daysRemaining": "{{days}} days",
+    "tabs": {
+      "inventory": "Drugs Inventory",
+      "warehouses": "Warehouses",
+      "transactions": "Transactions History"
+    },
+    "kpi": {
+      "totalDrugs": "Total Drugs",
+      "totalDrugsHint": "Across all warehouses",
+      "lowStock": "Low Stock",
+      "lowStockHintActive": "Tap to view only these",
+      "lowStockHintCalm": "All drugs above their threshold",
+      "expiringSoon": "Expiring Soon",
+      "nearExpiryHintActive": "Expiring within alert window",
+      "nearExpiryHintCalm": "No drugs near expiry",
+      "totalValue": "Total Inventory Value",
+      "totalValueHint": "Sum of warehouse stock × buy price"
+    },
+    "filters": {
+      "all": "All",
+      "lowStock": "Low Stock",
+      "nearExpiry": "Near Expiry"
+    },
+    "actions": {
+      "expand": "Expand shipments",
+      "collapse": "Collapse shipments"
+    },
+    "transactions": {
+      "title": "Transactions History",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "type": "Type",
+      "drug": "Drug",
+      "warehouse": "Warehouse",
+      "timestamp": "Timestamp",
+      "price": "Price",
+      "patient": "Patient Name",
+      "totalSales": "Total Sales",
+      "totalSalesHint": "{{count}} transactions in this range",
+      "totalRevenue": "Total Revenue",
+      "totalRevenueHint": "Sum of sale prices",
+      "totalUnits": "Total Units Sold",
+      "totalUnitsHint": "Items sold in this range",
+      "transactionCount": "{{count}} transactions",
+      "typeAll": "All",
+      "typePatient": "Patient",
+      "typeCheck": "Medical Check",
+      "typeOutside": "Outside Sale",
+      "empty": "No transactions found"
+    },
     "warehouseInventory": {
       "title": "{{name}} Inventory",
       "totalShipments": "Total Shipments",
@@ -116,6 +174,7 @@
       "conversionRatioMin": "Conversion ratio must be greater than 0",
       "transactionTypeRequired": "Please select a transaction type",
       "patientRequired": "Please select a patient",
+      "patientAdmissionRequired": "Selected patient is not currently admitted. Admit or quick-check the patient first.",
       "quantityRequired": "Please enter a valid quantity",
       "quantityMin": "Quantity must be greater than 0",
       "priceListRequired": "Please select a price list",
@@ -132,7 +191,8 @@
       "minStockNegative": "Minimum stock alert cannot be negative",
       "expiryDaysNegative": "Expiry alert days cannot be negative",
       "insufficientQuantity": "Insufficient quantity available",
-      "invalidPrice": "Invalid price"
+      "invalidPrice": "Invalid price",
+      "frequencyInvalid": "Enter a valid interval (0–59 for minutes and seconds)"
     },
     "messages": {
       "noShipments": "No shipments available for this drug",
@@ -149,6 +209,11 @@
       "shipmentDeleteError": "Failed to delete shipment",
       "noActivePatients": "No active patients",
       "noWarehouses": "No warehouses found",
+      "noWarehousesTitle": "No warehouses yet",
+      "noDrugs": "No drugs yet",
+      "noDrugsDesc": "Create your first drug card to start tracking inventory.",
+      "noDrugsMatchFilter": "No drugs match the current filter",
+      "noPrices": "No price lists available",
       "deleteConfirmTitle": "Are you sure?",
       "deleteConfirmText": "This action cannot be undone!",
       "deleteWithStockWarning": "This drug has {{quantity}} units in stock. Deleting it will remove all stock records. This action cannot be undone!",

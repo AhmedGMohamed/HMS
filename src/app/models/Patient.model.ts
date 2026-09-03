@@ -2031,10 +2031,17 @@ export class PatientModel {
 		return result.rows;
 	}
 
-	async getActivePatients(): Promise<Patient[]> {
+	async getActivePatients(): Promise<
+		(Patient &
+		{
+			active_patient_history_id: number,
+			quick_check: boolean
+		})[]> {
 		const sql = `
-            SELECT * FROM Patient
-            WHERE is_active = true
+            SELECT p.*, ph.patient_history_id as active_patient_history_id, ph.quick_check
+			FROM Patient p
+			LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            WHERE is_active = true AND ph.discharge_time IS NULL
             ORDER BY name;
         `;
 		const result = await query(sql);

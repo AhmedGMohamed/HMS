@@ -28,6 +28,8 @@
     "apply": "Apply",
     "from": "From",
     "to": "to",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "total": "Total",
     "date": "Date",
     "time": "Time",
