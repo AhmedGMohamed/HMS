@@ -151,9 +151,19 @@
       "outside": "خارجي"
     },
     "paymentTypes": {
+      "all": "كل طرق الدفع",
       "cash": "نقدي",
       "credit": "آجل",
       "insurance": "تأمين"
+    },
+    "filters": {
+      "paymentType": "نوع الدفع",
+      "insuranceCompany": "شركة التأمين",
+      "allInsuranceCompanies": "كل شركات التأمين",
+      "status": "الحالة",
+      "allStatuses": "كل الحالات",
+      "registrationDate": "تاريخ التسجيل",
+      "clearDateRange": "مسح نطاق التاريخ"
     },
     "leaveReasons": {
       "improvement": "تحسن",

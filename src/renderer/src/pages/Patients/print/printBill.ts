@@ -43,8 +43,8 @@ import type { Patient, Bill, BillDetail } from "@/pages/Patients/types/patient"
 import {
   formatPrintDate,
   type PrintItemRow,
-} from "@/pages/Patients/print/lib/groupPrintBillItems"
-import { buildPrintPreview } from "@/pages/Patients/print/lib/buildPrintPreview"
+} from "@/pages/Patients/lib/print/groupPrintBillItems"
+import { buildPrintPreview } from "@/pages/Patients/lib/print/buildPrintPreview"
 import { t } from "i18next"
 
 export interface BuildBillBodyInputs {

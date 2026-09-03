@@ -122,7 +122,7 @@ export function getCurrentAdmission(id: number) {
 
 export function listPastAdmissions(id: number) {
   return api.get<
-    import("@/pages/Patients/Admissions/hooks/usePastAdmissions").PastAdmissionSummary[]
+    import("@/pages/Patients/hooks/admissions/usePastAdmissions").PastAdmissionSummary[]
   >(`/patients/${id}/admissions/past`)
 }
 

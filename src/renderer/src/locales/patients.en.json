@@ -151,9 +151,19 @@
       "outside": "Outside"
     },
     "paymentTypes": {
+      "all": "All Payment Types",
       "cash": "Cash",
       "credit": "Credit",
       "insurance": "Insurance"
+    },
+    "filters": {
+      "paymentType": "Payment Type",
+      "insuranceCompany": "Insurance Company",
+      "allInsuranceCompanies": "All Insurance Companies",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "registrationDate": "Registration Date",
+      "clearDateRange": "Clear date range"
     },
     "leaveReasons": {
       "improvement": "Improvement",
