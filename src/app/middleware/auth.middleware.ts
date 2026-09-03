@@ -88,6 +88,45 @@ export const checkPermission = (requiredPermission: string) => {
 	};
 };
 
+// Allow access if the user has any one of the listed permissions.
+// Admin role bypasses the check.
+export const checkAnyPermission = (requiredPermissions: string[]) => {
+	return (req: Request, res: Response, next: NextFunction) => {
+		try {
+			if (!req.user) {
+				res.status(401).json({
+					error: "Authentication required"
+				});
+				return;
+			}
+
+			// Admin role bypasses permission check
+			if (req.user.role === "Admin") {
+				next();
+				return;
+			}
+
+			const hasAny = requiredPermissions.some((p) =>
+				req.user!.permissions.includes(p)
+			);
+
+			if (!hasAny) {
+				res.status(403).json({
+					error: "Insufficient permissions"
+				});
+				return;
+			}
+
+			next();
+		} catch (error) {
+			console.error("Any-permission check error:", error);
+			res.status(500).json({
+				error: "Permission check failed"
+			});
+		}
+	};
+};
+
 export const checkRole = (allowedRoles: string[]) => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		try {

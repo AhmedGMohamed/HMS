@@ -14,6 +14,21 @@ router.get("/", auditLogger, (req, res) =>
     MedicalSupplyUsageController.getAllMedicalSupplyUsages(req, res)
 );
 
+// Monitoring — must be registered before the `/:id` wildcard so that
+// literal segments ("history", "summary") are not swallowed by the
+// single-param route below.
+router.get("/pending/administrations", (req, res) =>
+    MedicalSupplyUsageController.getPendingAdministrations(req, res)
+);
+
+router.get("/history", auditLogger, (req, res) =>
+    MedicalSupplyUsageController.getMedicalSupplyUsageHistory(req, res)
+);
+
+router.get("/summary", auditLogger, (req, res) =>
+    MedicalSupplyUsageController.getUsageSummary(req, res)
+);
+
 router.get("/:id", validateId, (req, res) =>
     MedicalSupplyUsageController.getMedicalSupplyUsageById(req, res)
 );
@@ -32,19 +47,6 @@ router.delete(
     auditLogger,
     (req, res) =>
         MedicalSupplyUsageController.removeMedicalSupplyFromPatient(req, res)
-);
-
-// Monitoring
-router.get("/pending/administrations", (req, res) =>
-    MedicalSupplyUsageController.getPendingAdministrations(req, res)
-);
-
-router.get("/history/:patientId/:supplyId", (req, res) =>
-    MedicalSupplyUsageController.getMedicalSupplyUsageHistory(req, res)
-);
-
-router.get("/patient-history/:patientId", (req, res) =>
-    MedicalSupplyUsageController.getMedicalSupplyUsageHistory(req, res)
 );
 
 router.get("/available-shipments/:supplyId", (req, res) =>

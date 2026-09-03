@@ -226,6 +226,25 @@ export interface MedicalSupplyUsageHistory {
     start_date: Date;
     last_administered: Date | null;
     is_active: boolean;
+    warehouse_name: string | null;
+    unit_price: number | string | null;
+}
+
+export interface MedicalSupplyUsageFilters {
+    startDate?: string;
+    endDate?: string;
+    patientId?: number;
+    supplyId?: number;
+    isActive?: boolean;
+    offset?: number;
+    limit?: number;
+}
+
+export interface MedicalSupplyUsageSummary {
+    totalUnitsDispensedAllTime: number;
+    totalUnitsDispensedLast30Days: number;
+    activeUsagesCount: number;
+    totalPatientsServed: number;
 }
 
 export interface Warehouse {

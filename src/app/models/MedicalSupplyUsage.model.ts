@@ -7,7 +7,9 @@ import {
     PendingAdministration,
     AvailableShipment,
     MedicalSupplyUsageHistory,
-    MedicalSupply
+    MedicalSupply,
+    MedicalSupplyUsageFilters,
+    MedicalSupplyUsageSummary
 } from "../utils/types/medicalSupplies.js";
 import { Patient } from "../utils/types/patients.js";
 import PatientModel from "./Patient.model.js";
@@ -260,23 +262,40 @@ export class MedicalSupplyUsageModel {
     }
 
     async getMedicalSupplyUsageHistory(
-        patientId?: number,
-        supplyId?: number
-    ): Promise<MedicalSupplyUsageHistory[]> {
+        filters: MedicalSupplyUsageFilters
+    ): Promise<{ rows: MedicalSupplyUsageHistory[]; total: number }> {
         try {
             const conditions: string[] = [];
             const values: any[] = [];
             let paramCount = 1;
 
-            if (patientId !== undefined) {
-                conditions.push(`msu.patient_id = $${paramCount}`);
-                values.push(patientId);
+            if (filters.startDate !== undefined) {
+                conditions.push(`mst.timestamp >= $${paramCount}`);
+                values.push(filters.startDate);
                 paramCount++;
             }
 
-            if (supplyId !== undefined) {
+            if (filters.endDate !== undefined) {
+                conditions.push(`mst.timestamp <= $${paramCount}`);
+                values.push(filters.endDate);
+                paramCount++;
+            }
+
+            if (filters.patientId !== undefined) {
+                conditions.push(`msu.patient_id = $${paramCount}`);
+                values.push(filters.patientId);
+                paramCount++;
+            }
+
+            if (filters.supplyId !== undefined) {
                 conditions.push(`msu.supply_id = $${paramCount}`);
-                values.push(supplyId);
+                values.push(filters.supplyId);
+                paramCount++;
+            }
+
+            if (filters.isActive !== undefined) {
+                conditions.push(`(msu.remaining_quantity > 0) = $${paramCount}`);
+                values.push(filters.isActive);
                 paramCount++;
             }
 
@@ -285,8 +304,11 @@ export class MedicalSupplyUsageModel {
                     ? `WHERE ${conditions.join(" AND ")}`
                     : "";
 
-            const sql = `
-                SELECT 
+            const limit = Math.max(1, Math.min(filters.limit ?? 25, 100));
+            const offset = Math.max(0, filters.offset ?? 0);
+
+            const dataSql = `
+                SELECT
                     msu.usage_id,
                     msu.patient_id,
                     p.name as patient_name,
@@ -297,17 +319,61 @@ export class MedicalSupplyUsageModel {
                     msu.remaining_quantity,
                     mst.timestamp as start_date,
                     msu.last_administered,
-                    msu.remaining_quantity > 0 as is_active
+                    msu.remaining_quantity > 0 as is_active,
+                    w.name as warehouse_name,
+                    mst.price as unit_price
                 FROM MedicalSupplyUsage msu
                 JOIN MedicalSupply ms ON msu.supply_id = ms.supply_id
                 JOIN Patient p ON msu.patient_id = p.patient_id
                 JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id
+                LEFT JOIN MedicalSupplyShipment mss ON mst.shipment_id = mss.shipment_id
+                LEFT JOIN Warehouse w ON mss.warehouse_id = w.warehouse_id
                 ${whereClause}
-                ORDER BY mst.timestamp DESC;
+                ORDER BY mst.timestamp DESC
+                LIMIT $${paramCount} OFFSET $${paramCount + 1};
             `;
 
-            const result = await query(sql, values);
-            return result.rows;
+            const countSql = `
+                SELECT COUNT(*) AS c
+                FROM MedicalSupplyUsage msu
+                JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id
+                ${whereClause};
+            `;
+
+            const [result, countRes] = await Promise.all([
+                query(dataSql, [...values, limit, offset]),
+                query(countSql, values)
+            ]);
+
+            return {
+                rows: result.rows,
+                total: Number(countRes.rows[0]?.c ?? 0),
+            };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async getUsageSummary(): Promise<MedicalSupplyUsageSummary> {
+        try {
+            const sql = `
+                SELECT
+                    COALESCE(SUM(mst.quantity), 0) AS total_units_all_time,
+                    COALESCE(SUM(CASE WHEN mst.timestamp >= CURRENT_TIMESTAMP - INTERVAL '30 days' THEN mst.quantity ELSE 0 END), 0) AS total_units_last_30_days,
+                    COUNT(DISTINCT msu.patient_id) AS total_patients_served,
+                    COUNT(CASE WHEN msu.remaining_quantity > 0 THEN 1 END) AS active_usages_count
+                FROM MedicalSupplyUsage msu
+                JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id;
+            `;
+            const result = await query(sql);
+            const row = result.rows[0] || {};
+            return {
+                totalUnitsDispensedAllTime: parseInt(row.total_units_all_time) || 0,
+                totalUnitsDispensedLast30Days:
+                    parseInt(row.total_units_last_30_days) || 0,
+                activeUsagesCount: parseInt(row.active_usages_count) || 0,
+                totalPatientsServed: parseInt(row.total_patients_served) || 0,
+            };
         } catch (error) {
             throw error;
         }

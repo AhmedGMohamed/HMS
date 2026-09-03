@@ -1,7 +1,7 @@
 import { Router } from "express";
 import MedicalSupplyShipmentController from "../controllers/MedicalSupplyShipment.controller.js";
 import { validateId } from "../middleware/validate.middleware.js";
-import { verifyToken, checkPermission } from "../middleware/auth.middleware.js";
+import { verifyToken, checkAnyPermission } from "../middleware/auth.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
 
 const router = Router();
@@ -18,13 +18,16 @@ router.get("/:id", validateId, (req, res) =>
     MedicalSupplyShipmentController.getShipmentById(req, res)
 );
 
-router.post("/", checkPermission("manage_pharmacy"), auditLogger, (req, res) =>
-    MedicalSupplyShipmentController.createShipment(req, res)
+router.post(
+    "/",
+    checkAnyPermission(["manage_supplies", "manage_pharmacy"]),
+    auditLogger,
+    (req, res) => MedicalSupplyShipmentController.createShipment(req, res)
 );
 
 router.put(
     "/:id",
-    checkPermission("manage_pharmacy"),
+    checkAnyPermission(["manage_supplies", "manage_pharmacy"]),
     validateId,
     auditLogger,
     (req, res) => MedicalSupplyShipmentController.updateShipment(req, res)
@@ -32,7 +35,7 @@ router.put(
 
 router.delete(
     "/:id",
-    checkPermission("manage_pharmacy"),
+    checkAnyPermission(["manage_supplies", "manage_pharmacy"]),
     validateId,
     auditLogger,
     (req, res) => MedicalSupplyShipmentController.deleteShipment(req, res)
