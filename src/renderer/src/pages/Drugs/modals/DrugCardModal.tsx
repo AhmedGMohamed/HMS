@@ -105,6 +105,7 @@ export function DrugCardModal({
   })
 
   const [submitting, setSubmitting] = useState(false)
+  const isObligatoryContinuous = form.watch("isObligatoryContinuous")
 
   useEffect(() => {
     if (open) form.reset(toDefaults(drug))
@@ -373,7 +374,12 @@ export function DrugCardModal({
           <Field orientation="horizontal" className="items-center">
             <Checkbox
               id="dc-continuous"
-              {...form.register("isObligatoryContinuous")}
+              checked={isObligatoryContinuous}
+              onCheckedChange={(v) =>
+                form.setValue("isObligatoryContinuous", v === true, {
+                  shouldDirty: true,
+                })
+              }
             />
             <FieldLabel htmlFor="dc-continuous">
               {t("pharmacy.fields.isObligatoryContinuous")}

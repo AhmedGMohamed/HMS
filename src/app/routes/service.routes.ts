@@ -17,17 +17,18 @@ router.use(verifyToken);
 router.get("/", auditLogger, (req, res) =>
 	ServiceController.getAllServices(req, res)
 );
-router.get("/:id", validateId, (req, res) =>
-	ServiceController.getServiceById(req, res)
-);
-router.get("/:id/drugs", validateId, (req, res) =>
-	ServiceController.getServiceDrugs(req, res)
-);
+// Static paths must be registered before the parameterized /:id route
 router.get("/search", validateSearchTerm, (req, res) =>
 	ServiceController.searchServices(req, res)
 );
 router.get("/suggestions", validatePrefix, (req, res) =>
 	ServiceController.getServiceSuggestions(req, res)
+);
+router.get("/:id", validateId, (req, res) =>
+	ServiceController.getServiceById(req, res)
+);
+router.get("/:id/drugs", validateId, (req, res) =>
+	ServiceController.getServiceDrugs(req, res)
 );
 
 // POST

@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import PriceListModel from "../models/PriceList.model.js";
 import {
 	CreatePriceListDTO,
-	UpdatePriceListDTO
+	UpdatePriceListDTO,
+	BulkPricesDTO
 } from "../utils/types/priceLists.js";
 
 export class PriceListController {
@@ -58,6 +59,11 @@ export class PriceListController {
 		} catch (error: any) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
+			} else if (
+				error.message ===
+				"Cannot unset the default price list. Set another list as default first."
+			) {
+				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating price list:", error);
 				res.status(500).json({ error: "Failed to update price list" });
@@ -77,9 +83,40 @@ export class PriceListController {
 				error.message === "Cannot delete the default price list"
 			) {
 				res.status(400).json({ error: error.message });
+			} else if (
+				error.message.startsWith(
+					"Cannot delete this price list:"
+				)
+			) {
+				res.status(409).json({ error: error.message });
 			} else {
 				console.error("Error deleting price list:", error);
 				res.status(500).json({ error: "Failed to delete price list" });
+			}
+		}
+	}
+
+	async setPricesForList(req: Request, res: Response) {
+		try {
+			const priceListId = parseInt(req.params.id);
+			const data: BulkPricesDTO = req.body;
+			const result = await PriceListModel.setPricesForList(
+				priceListId,
+				data
+			);
+			res.json(result);
+		} catch (error: any) {
+			if (error.message === "Price list not found") {
+				res.status(404).json({ error: error.message });
+			} else if (
+				error.message.startsWith("Invalid price data") ||
+				error.message.startsWith("Invalid prepayment data") ||
+				error.message.startsWith("Prepayment ")
+			) {
+				res.status(400).json({ error: error.message });
+			} else {
+				console.error("Error setting prices for price list:", error);
+				res.status(500).json({ error: "Failed to set prices" });
 			}
 		}
 	}

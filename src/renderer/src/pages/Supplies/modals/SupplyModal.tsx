@@ -90,6 +90,7 @@ export function SupplyModal({ open, onOpenChange, supply, onSaved }: SupplyModal
   })
 
   const [submitting, setSubmitting] = useState(false)
+  const isObligatoryContinuous = form.watch("isObligatoryContinuous")
 
   useEffect(() => {
     if (open) form.reset(toDefaults(supply))
@@ -244,7 +245,12 @@ export function SupplyModal({ open, onOpenChange, supply, onSaved }: SupplyModal
           <Field orientation="horizontal" className="items-center">
             <Checkbox
               id="sc-continuous"
-              {...form.register("isObligatoryContinuous")}
+              checked={isObligatoryContinuous}
+              onCheckedChange={(v) =>
+                form.setValue("isObligatoryContinuous", v === true, {
+                  shouldDirty: true,
+                })
+              }
             />
             <FieldLabel htmlFor="sc-continuous">
               {t("medicalSupplies.fields.isObligatoryContinuous")}

@@ -8,7 +8,13 @@
       "makeDefault": "Yes, make default",
       "saving": "Saving...",
       "addPrices": "Add Prices",
-      "skipForNow": "Skip for Now"
+      "skipForNow": "Skip for Now",
+      "savePrices": "Save Prices",
+      "retry": "Retry"
+    },
+    "actions": {
+      "removePrice": "Remove Price",
+      "undoRemove": "Undo Remove"
     },
     "modals": {
       "createPriceList": "Create New Price List",
@@ -19,6 +25,7 @@
       "priceListName": "Price List Name",
       "setAsDefault": "Set as Default Price List",
       "price": "Price",
+      "buyPrice": "Buy Price",
       "requirePrepayment": "Require Prepayment",
       "prepaymentType": "Prepayment Type",
       "prepaymentAmount": "Prepayment Amount",
@@ -47,7 +54,8 @@
     },
     "status": {
       "default": "Default",
-      "hasPrice": "Price Set"
+      "hasPrice": "Price Set",
+      "priceWillBeRemoved": "Price Will Be Removed"
     },
     "stats": {
       "services": "Services",
@@ -56,10 +64,16 @@
     },
     "help": {
       "defaultNote": "Note: Setting this as default will remove default status from any other price list",
-      "addPricesInfo": "Add prices for services and drug shipments for this price list. Leave blank to skip items."
+      "addPricesInfo": "Add prices for services, drug shipments, and medical supplies for this price list. Leave blank to skip items; use the trash action to mark an existing price for removal."
     },
     "validation": {
-      "nameLength": "Price list name must be at least 3 characters long"
+      "nameLength": "Price list name must be at least 3 characters long",
+      "priceMin": "Service price must be greater than or equal to 0",
+      "shipmentPriceMin": "Shipment price must be greater than 0",
+      "invalidPrice": "Price must be a valid number",
+      "prepaymentRequired": "Prepayment type and amount are required when prepayment is required",
+      "prepaymentPercentage": "Prepayment percentage must be between 0 and 100",
+      "prepaymentFixed": "Prepayment amount must be greater than or equal to 0"
     },
     "messages": {
       "noPriceLists": "No price lists found. Create your first price list to get started.",
@@ -69,7 +83,7 @@
       "saveError": "Failed to save price list",
       "deleteConfirmTitle": "Are you sure?",
       "deleteConfirmText": "This action cannot be undone!",
-      "deleteWithAssociationsWarning": "This price list is associated with {{services}} service(s) and {{drugs}} drug(s). Deleting it will remove these associations. This action cannot be undone!",
+      "deleteWithAssociationsWarning": "This price list is associated with {{services}} service(s), {{drugs}} drug(s), and {{supplies}} medical supply shipment(s). Deleting it will remove these associations. This action cannot be undone!",
       "deleteSuccess": "Price list has been deleted",
       "deleteError": "Failed to delete price list",
       "changeDefaultTitle": "Change Default Price List?",
@@ -79,6 +93,9 @@
       "noSupplies": "No medical supplies found",
       "pricesSaveError": "Failed to save prices",
       "pricesAddedSuccess": "Successfully added {{services}} service prices and {{drugs}} drug prices",
+      "bulkPricesSavedSuccess": "Prices saved: {{services}} service price(s), {{drugs}} drug price(s), and {{supplies}} medical supply price(s) set; {{removed}} removed",
+      "noPriceChanges": "No price changes to save",
+      "defaultGuardError": "Cannot unset the default price list. Set another list as default first.",
       "addPricesNow": "Add Prices Now?",
       "addPricesNowText": "Would you like to add prices for services and drugs to this price list now?"
     }

@@ -22,9 +22,11 @@ export class ServiceController {
 			const serviceId = parseInt(req.params.id, 10);
 			const service = await ServiceModel.getServiceById(serviceId);
 
-			service.prices.forEach((sp: ServicePrice) => {
-				sp.price = (sp.price as number).toFixed(2);
-			});
+			if (service.prices) {
+				service.prices.forEach((sp: ServicePrice) => {
+					sp.price = (sp.price as number).toFixed(2);
+				});
+			}
 			res.json(service);
 		} catch (error: any) {
 			if (error.message === "Service not found") {
@@ -57,13 +59,19 @@ export class ServiceController {
 			};
 			const service = await ServiceModel.updateService(serviceData);
 
-			service.prices.forEach((sp: ServicePrice) => {
-				sp.price = (sp.price as number).toFixed(2);
-			});
+			if (service.prices) {
+				service.prices.forEach((sp: ServicePrice) => {
+					sp.price = (sp.price as number).toFixed(2);
+				});
+			}
 			res.json(service);
-		} catch (error) {
-			console.error("Error updating service:", error);
-			res.status(500).json({ error: "Failed to update service" });
+		} catch (error: any) {
+			if (error.message === "Service not found") {
+				res.status(404).json({ error: "Service not found" });
+			} else {
+				console.error("Error updating service:", error);
+				res.status(500).json({ error: "Failed to update service" });
+			}
 		}
 	}
 
@@ -77,8 +85,11 @@ export class ServiceController {
 		} catch (error: any) {
 			if (error.message === "Service not found") {
 				res.status(404).json({ error: "Service not found" });
-			}
-			else {
+			} else if (
+				error.message.startsWith("Cannot delete this service:")
+			) {
+				res.status(409).json({ error: error.message });
+			} else {
 				console.error("Error deleting service:", error);
 				res.status(500).json({ error: "Failed to delete service" });
 			}
