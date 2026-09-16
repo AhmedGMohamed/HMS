@@ -54,12 +54,6 @@ const EmployeesPage = lazy(
     "employees"
   )
 )
-const DoctorsPage = lazy(
-  lazyLoadWithNamespace(
-    () => import("@/pages/Doctors/DoctorsPage"),
-    "employees"
-  )
-)
 const ClockingPage = lazy(
   lazyLoadWithNamespace(
     () => import("@/pages/Clocking/ClockingPage"),
@@ -157,7 +151,12 @@ export default function App() {
                     <Route path="/drugs" element={<DrugsPage />} />
                     <Route path="/supplies" element={<SuppliesPage />} />
                     <Route path="/employees" element={<EmployeesPage />} />
-                    <Route path="/doctors" element={<DoctorsPage />} />
+                    {/* Legacy /doctors URL — permanent redirect into the
+                        merged employees page (Phase 6.7 Decision #3). */}
+                    <Route
+                      path="/doctors"
+                      element={<Navigate to="/employees?tab=doctors" replace />}
+                    />
                     <Route path="/clocking" element={<ClockingPage />} />
                     <Route path="/vault" element={<VaultPage />} />
                     <Route path="/insurance" element={<InsurancePage />} />

@@ -32,9 +32,17 @@ export default class DoctorController {
 			const dto: CreateDoctorDTO = req.body;
 			const doctor = await DoctorModel.createDoctor(dto);
 
-			if (dto.servicePrices && dto.servicePrices.length > 0) {
-				for (const sp of dto.servicePrices) {
-					await DoctorModel.setDoctorServicePrice(doctor.employee_id, sp.service_id, sp.price);
+			if (dto.service_prices && dto.service_prices.length > 0) {
+				// Upserts new/changed overrides; `price: null` entries
+				// remove the override for that service (Phase 6.7).
+				for (const sp of dto.service_prices) {
+					// `price: null` = removal request (Phase 6.7); anything
+					// else upserts the override.
+					if (sp.price === null) {
+						await DoctorModel.deleteDoctorServicePrice(doctor.employee_id, sp.service_id);
+					} else {
+						await DoctorModel.setDoctorServicePrice(doctor.employee_id, sp.service_id, sp.price);
+					}
 				}
 			}
 
@@ -54,13 +62,15 @@ export default class DoctorController {
 				return;
 			}
 
-			if (dto.servicePrices && dto.servicePrices.length > 0) {
-				// We might want to clear existing first if we want full replacement, but usually setting is enough or UI handles it. 
-				// Given the current ON CONFLICT implementation in model, this updates or inserts. 
-				// To support removing, the UI should send 0 or we need a delete mechanism. 
-				// For now, let's assume valid prices are sent.
-				for (const sp of dto.servicePrices) {
-					await DoctorModel.setDoctorServicePrice(doctor_id, sp.service_id, sp.price);
+			if (dto.service_prices && dto.service_prices.length > 0) {
+				// Upserts new/changed overrides; `price: null` entries
+				// remove the override for that service (Phase 6.7).
+				for (const sp of dto.service_prices) {
+					if (sp.price === null) {
+						await DoctorModel.deleteDoctorServicePrice(doctor_id, sp.service_id);
+					} else {
+						await DoctorModel.setDoctorServicePrice(doctor_id, sp.service_id, sp.price);
+					}
 				}
 			}
 

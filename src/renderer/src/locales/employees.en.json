@@ -27,6 +27,28 @@
       "nurses": "Nurses",
       "payments": "Pending Payments"
     },
+    "filters": {
+      "statusGroup": "Filter by status",
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "allShifts": "All Shifts",
+      "allDoctorTypes": "All Doctor Types"
+    },
+    "sections": {
+      "profile": "Profile",
+      "shift": "Shift",
+      "compensation": "Compensation"
+    },
+    "servicePriceGrid": {
+      "show": "Show service prices",
+      "hide": "Hide service prices",
+      "searchPlaceholder": "Search services...",
+      "willBeRemoved": "Will be removed",
+      "undoRemove": "Undo removal",
+      "removeAria": "Remove price for {{name}}",
+      "priceAria": "Service price"
+    },
     "table": {
       "name": "Name",
       "employeeName": "Employee Name",
@@ -124,7 +146,14 @@
     },
     "validation": {
       "nameRequired": "Please enter a name.",
-      "paymentAmountRequired": "Please enter a payment amount."
+      "paymentAmountRequired": "Please enter a payment amount.",
+      "hireDateRequired": "Please select a hire date.",
+      "shiftTimeRequired": "Please select a shift time.",
+      "doctorTypeRequired": "Please select a doctor type.",
+      "perPatientPaymentTypeRequired": "Please select a per-patient payment type.",
+      "percentageScopeRequired": "Please select a percentage scope.",
+      "extraAmountRequired": "Please enter an extra amount.",
+      "invalidNumber": "Please enter a valid non-negative number."
     },
     "messages": {
       "deleteConfirmTitle": "Are you sure?",
@@ -158,9 +187,17 @@
       "onlyAdminsCanCreate": "Only admins can create doctors",
       "onlyAdminsCanSave": "Only admins can save doctors",
       "onlyAdminsCanEdit": "Only admins can edit doctors",
-      "onlyAdminsCanDelete": "Only admins can delete doctors"
+      "onlyAdminsCanDelete": "Only admins can delete doctors",
+      "employeeDetails": "Employee details",
+      "employeeFormHint": "Fields marked with * are required.",
+      "paymentModalHint": "Manual payments are recorded as already paid.",
+      "paymentsPermissionRequired": "Requires the Manage Payments permission",
+      "amountBreakdown": "{{base}} + {{extra}} extra",
+      "pendingPaymentsCount": "{{count}} pending payments",
+      "noPendingPayments": "No pending system-generated payments"
     },
     "buttons": {
+      "viewDetails": "View details",
       "edit": "Edit",
       "delete": "Delete",
       "createPayment": "Create Payment",

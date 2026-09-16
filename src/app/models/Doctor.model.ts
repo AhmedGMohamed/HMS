@@ -234,4 +234,14 @@ export default class DoctorModel {
 		`;
 		await query(sql, [doctor_id, service_id, price]);
 	}
+
+	/** Removes a doctor's override for one service (used when the UI
+	 *  sends a `servicePrices` entry with `price: null`). */
+	static async deleteDoctorServicePrice(doctor_id: number, service_id: number): Promise<void> {
+		const sql = `
+			DELETE FROM DoctorServicePrice
+			WHERE doctor_id = $1 AND service_id = $2
+		`;
+		await query(sql, [doctor_id, service_id]);
+	}
 }
