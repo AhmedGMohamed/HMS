@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertTriangleIcon } from "lucide-react"
 
@@ -71,6 +71,17 @@ export function ConfirmDialog({
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const loading = busy || externalLoading
+
+  /* Reset busy on close regardless of HOW the dialog closed —
+     user-initiated (handleOpenChange) or prop-driven
+     (e.g. the parent clearing its target after a successful
+     mutation). Without this, a prop-driven close leaves busy
+     stuck at true, disabling all buttons the next time the
+     dialog opens. */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!open) setBusy(false)
+  }, [open])
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
