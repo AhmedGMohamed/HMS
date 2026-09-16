@@ -5,7 +5,12 @@
     "searchPlaceholder": "البحث عن الخدمات...",
     "buttons": {
       "createService": "إضافة خدمة جديدة",
-      "saving": "جاري الحفظ..."
+      "saving": "جاري الحفظ...",
+      "retry": "إعادة المحاولة"
+    },
+    "actions": {
+      "addDrug": "إضافة دواء",
+      "removeDrug": "إزالة الدواء"
     },
     "table": {
       "serviceName": "اسم الخدمة",
@@ -32,7 +37,8 @@
       "includePriceList": "تضمين قائمة الأسعار",
       "price": "السعر",
       "requiresPrepayment": "يتطلب دفعة مقدمة",
-      "prepaymentRequired": "دفعة مقدمة مطلوبة"
+      "prepaymentRequired": "دفعة مقدمة مطلوبة",
+      "prepaymentAmount": "مبلغ الدفعة المقدمة"
     },
     "sections": {
       "priceLists": "قوائم الأسعار",
@@ -67,6 +73,8 @@
       "prepaymentPercentageRange": "يجب أن تكون نسبة الدفعة المقدمة بين 0 و 100"
     },
     "messages": {
+      "noServices": "لا توجد خدمات",
+      "noServicesDesc": "أنشئ خدمة لإضافتها إلى قوائم الأسعار والفواتير.",
       "noDrugsAvailable": "لا توجد أدوية متاحة",
       "noDrugsSelected": "لم يتم اختيار أدوية",
       "loadInitialDataError": "فشل تحميل البيانات الأولية",

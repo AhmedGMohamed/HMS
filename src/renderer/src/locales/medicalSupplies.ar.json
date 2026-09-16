@@ -88,6 +88,7 @@
       "editWarehouse": "تعديل المستودع"
     },
     "fields": {
+      "available": "المتوفر في الشحنة",
       "supplyName": "اسم المستلزم",
       "manufacturer": "الشركة المصنعة",
       "provider": "المورد",

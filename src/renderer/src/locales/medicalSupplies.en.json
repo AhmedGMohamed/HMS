@@ -88,6 +88,7 @@
       "editWarehouse": "Edit Warehouse"
     },
     "fields": {
+      "available": "Available in Shipment",
       "supplyName": "Supply Name",
       "manufacturer": "Manufacturer",
       "provider": "Provider",

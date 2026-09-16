@@ -1,14 +1,31 @@
 import { query } from "./database/connection.js";
 import {
 	PriceList,
+	PriceListWithStats,
 	CreatePriceListDTO,
 	UpdatePriceListDTO,
-	PriceListStats
+	PriceListStats,
+	BulkPricesDTO,
+	BulkPricesResult
 } from "../utils/types/priceLists.js";
 
 export class PriceListModel {
-	async getAllPriceLists(): Promise<PriceList[]> {
-		const sql = "SELECT * FROM PriceList ORDER BY name;";
+	async getAllPriceLists(): Promise<PriceListWithStats[]> {
+		const sql = `
+			SELECT
+				pl.*,
+				(SELECT COUNT(*) FROM ServicePrice WHERE pricelist_id = pl.pricelist_id) AS total_services,
+				(SELECT COUNT(*) FROM ShipmentPrice
+				 JOIN DrugShipment ds ON ds.shipment_id = shipmentprice.shipment_id
+				 AND ds.quantity > 0
+				 WHERE shipmentprice.pricelist_id = pl.pricelist_id) AS total_drugs,
+				(SELECT COUNT(*) FROM MedicalSupplyShipmentPrice
+				 JOIN MedicalSupplyShipment mss ON mss.shipment_id = medicalsupplyshipmentprice.shipment_id
+				 AND mss.quantity > 0
+				 WHERE medicalsupplyshipmentprice.pricelist_id = pl.pricelist_id) AS total_supplies
+			FROM PriceList pl
+			ORDER BY pl.name;
+		`;
 		const result = await query(sql);
 		return result.rows;
 	}
@@ -56,6 +73,13 @@ export class PriceListModel {
 			// Check if price list exists
 			const existingPriceList = await this.getPriceListById(priceListId);
 
+			// Block unsetting the default flag on the current default list
+			if (data.is_default === false && existingPriceList.is_default) {
+				throw new Error(
+					"Cannot unset the default price list. Set another list as default first."
+				);
+			}
+
 			if (data.is_default) {
 				await query(
 					"UPDATE PriceList SET is_default = false WHERE is_default = true;"
@@ -79,6 +103,7 @@ export class PriceListModel {
 			}
 
 			if (updateFields.length === 0) {
+				await query("COMMIT");
 				return existingPriceList;
 			}
 
@@ -109,6 +134,27 @@ export class PriceListModel {
 				throw new Error("Cannot delete the default price list");
 			}
 
+			// Pre-check references so we can return a friendly 409 instead of a raw FK error
+			const refCounts = await query(
+				`SELECT
+					(SELECT COUNT(*) FROM Patient WHERE pricelist_id = $1) AS patients,
+					(SELECT COUNT(*) FROM PatientHistory WHERE pricelist_id = $1) AS admissions,
+					(SELECT COUNT(*) FROM InsuranceCompany WHERE pricelist_id = $1) AS insurance_companies;`,
+				[priceListId]
+			);
+			const { patients, admissions, insurance_companies } =
+				refCounts.rows[0];
+			if (
+				Number(patients) +
+					Number(admissions) +
+					Number(insurance_companies) >
+				0
+			) {
+				throw new Error(
+					`Cannot delete this price list: ${patients} patient(s), ${admissions} admission(s), ${insurance_companies} insurance company(ies) reference it.`
+				);
+			}
+
 			// Delete all service prices for this price list
 			await query("DELETE FROM ServicePrice WHERE pricelist_id = $1;", [
 				priceListId
@@ -118,6 +164,12 @@ export class PriceListModel {
 			await query("DELETE FROM ShipmentPrice WHERE pricelist_id = $1;", [
 				priceListId
 			]);
+
+			// Delete all medical supply shipment prices for this price list
+			await query(
+				"DELETE FROM MedicalSupplyShipmentPrice WHERE pricelist_id = $1;",
+				[priceListId]
+			);
 
 			// Delete the price list
 			await query("DELETE FROM PriceList WHERE pricelist_id = $1;", [
@@ -158,6 +210,215 @@ export class PriceListModel {
 
 		const result = await query(sql, [priceListId]);
 		return result.rows[0];
+	}
+
+	// Transactional bulk price-set for one price list.
+	// An entry with price: null removes that (entity, pricelist) price row;
+	// otherwise the price is upserted. Other lists' prices are never touched.
+	async setPricesForList(
+		priceListId: number,
+		data: BulkPricesDTO
+	): Promise<BulkPricesResult> {
+		await this.getPriceListById(priceListId);
+
+		await query("BEGIN");
+		try {
+			let removedPrices = 0;
+
+			for (const entry of data.services ?? []) {
+				if (!Number.isInteger(entry.service_id)) {
+					throw new Error(
+						"Invalid price data: service_id is required for each service entry"
+					);
+				}
+				if (!("price" in entry)) {
+					throw new Error(
+						"Invalid price data: price is required for each service entry"
+					);
+				}
+				if (entry.price === null) {
+					const result = await query(
+						"DELETE FROM ServicePrice WHERE service_id = $1 AND pricelist_id = $2;",
+						[entry.service_id, priceListId]
+					);
+					removedPrices += result.rowCount ?? 0;
+					continue;
+				}
+				this.validateUpsertPrice(entry.price, "service", entry.service_id);
+				const requiresPrepayment = entry.requires_prepayment === true;
+				let prepaymentType = entry.prepayment_type ?? null;
+				let prepaymentAmount = entry.prepayment_amount ?? null;
+				if (requiresPrepayment) {
+					this.validatePrepayment(prepaymentType, prepaymentAmount);
+				} else {
+					prepaymentType = null;
+					prepaymentAmount = null;
+				}
+				await query(
+					`INSERT INTO ServicePrice (
+						service_id, pricelist_id, price,
+						requires_prepayment, prepayment_type, prepayment_amount
+					) VALUES ($1, $2, $3, $4, $5, $6)
+					ON CONFLICT (service_id, pricelist_id)
+					DO UPDATE SET
+						price = EXCLUDED.price,
+						requires_prepayment = EXCLUDED.requires_prepayment,
+						prepayment_type = EXCLUDED.prepayment_type,
+						prepayment_amount = EXCLUDED.prepayment_amount;`,
+					[
+						entry.service_id,
+						priceListId,
+						entry.price,
+						requiresPrepayment,
+						prepaymentType,
+						prepaymentAmount
+					]
+				);
+			}
+
+			for (const entry of data.drug_shipments ?? []) {
+				removedPrices += await this.upsertOrRemoveShipmentPrice(
+					"ShipmentPrice",
+					entry.shipment_id,
+					entry,
+					priceListId
+				);
+			}
+
+			for (const entry of data.supply_shipments ?? []) {
+				removedPrices += await this.upsertOrRemoveShipmentPrice(
+					"MedicalSupplyShipmentPrice",
+					entry.shipment_id,
+					entry,
+					priceListId
+				);
+			}
+
+			await query("COMMIT");
+			const stats = await this.getPriceListStats(priceListId);
+			return { ...stats, removed_prices: removedPrices };
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	// Shared upsert/remove logic for ShipmentPrice and MedicalSupplyShipmentPrice.
+	private async upsertOrRemoveShipmentPrice(
+		priceTable: "ShipmentPrice" | "MedicalSupplyShipmentPrice",
+		shipmentId: unknown,
+		entry: {
+			price?: number | null;
+			requires_prepayment?: boolean;
+			prepayment_type?: "fixed" | "percentage" | null;
+			prepayment_amount?: number | null;
+		},
+		priceListId: number
+	): Promise<number> {
+		if (!Number.isInteger(shipmentId)) {
+			throw new Error(
+				`Invalid price data: shipment_id is required for each ${priceTable} entry`
+			);
+		}
+		if (!("price" in entry)) {
+			throw new Error(
+				"Invalid price data: price is required for each shipment entry"
+			);
+		}
+		if (entry.price === null) {
+			const result = await query(
+				`DELETE FROM ${priceTable} WHERE shipment_id = $1 AND pricelist_id = $2;`,
+				[shipmentId, priceListId]
+			);
+			return result.rowCount ?? 0;
+		}
+		this.validateUpsertPrice(entry.price, "shipment", shipmentId);
+		const requiresPrepayment = entry.requires_prepayment === true;
+		let prepaymentType = entry.prepayment_type ?? null;
+		let prepaymentAmount = entry.prepayment_amount ?? null;
+		if (requiresPrepayment) {
+			this.validatePrepayment(prepaymentType, prepaymentAmount);
+		} else {
+			prepaymentType = null;
+			prepaymentAmount = null;
+		}
+		await query(
+			`INSERT INTO ${priceTable} (
+				shipment_id, pricelist_id, price,
+				requires_prepayment, prepayment_type, prepayment_amount
+			) VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (shipment_id, pricelist_id)
+			DO UPDATE SET
+				price = EXCLUDED.price,
+				requires_prepayment = EXCLUDED.requires_prepayment,
+				prepayment_type = EXCLUDED.prepayment_type,
+				prepayment_amount = EXCLUDED.prepayment_amount;`,
+			[
+				shipmentId,
+				priceListId,
+				entry.price,
+				requiresPrepayment,
+				prepaymentType,
+				prepaymentAmount
+			]
+		);
+		return 0;
+	}
+
+	// Mirrors each domain's existing rules: services allow 0, shipments require > 0.
+	private validateUpsertPrice(
+		price: unknown,
+		entityLabel: "service" | "shipment",
+		entityId: unknown
+	): void {
+		if (typeof price !== "number" || !Number.isFinite(price)) {
+			throw new Error(
+				`Invalid price data: price must be a number (for ${entityLabel} ${entityId})`
+			);
+		}
+		if (entityLabel === "service" && price < 0) {
+			throw new Error(
+				"Invalid price data: service price must be greater than or equal to 0"
+			);
+		}
+		if (entityLabel === "shipment" && price <= 0) {
+			throw new Error(
+				"Invalid price data: shipment price must be greater than 0"
+			);
+		}
+	}
+
+	// Same rules as DrugShipment.model.updateShipment prepayment validation.
+	private validatePrepayment(
+		prepaymentType: unknown,
+		prepaymentAmount: unknown
+	): void {
+		if (prepaymentType !== "fixed" && prepaymentType !== "percentage") {
+			throw new Error(
+				"Invalid prepayment data: prepayment_type and prepayment_amount are required when prepayment is required"
+			);
+		}
+		if (
+			typeof prepaymentAmount !== "number" ||
+			!Number.isFinite(prepaymentAmount)
+		) {
+			throw new Error(
+				"Invalid prepayment data: prepayment_type and prepayment_amount are required when prepayment is required"
+			);
+		}
+		if (
+			prepaymentType === "percentage" &&
+			(prepaymentAmount < 0 || prepaymentAmount > 100)
+		) {
+			throw new Error(
+				"Prepayment percentage must be between 0 and 100"
+			);
+		}
+		if (prepaymentType === "fixed" && prepaymentAmount < 0) {
+			throw new Error(
+				"Prepayment amount must be greater than or equal to 0"
+			);
+		}
 	}
 
 	async getPriceListServices(

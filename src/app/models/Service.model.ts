@@ -139,6 +139,15 @@ export class ServiceModel {
 	): Promise<Service & { prices: ServicePrice[] }> {
 		await query("BEGIN");
 		try {
+			// Ensure the service exists so a missing id surfaces as 404, not silent success
+			const exists = await query(
+				"SELECT 1 FROM Service WHERE service_id = $1;",
+				[serviceData.service_id]
+			);
+			if (exists.rows.length === 0) {
+				throw new Error("Service not found");
+			}
+
 			// Update service details
 			let updateFields: string[] = [];
 			let values: any[] = [];
@@ -203,6 +212,16 @@ export class ServiceModel {
 				}
 			}
 
+			// Full-replace: delete any ServicePrice rows not in the submitted
+			// set so unchecking a list in the UI actually removes its price.
+			const submittedPricelistIds = serviceData.prices.map(
+				(p) => p.pricelist_id
+			);
+			await query(
+				`DELETE FROM ServicePrice WHERE service_id = $1 AND pricelist_id != ALL($2::int[])`,
+				[serviceData.service_id, submittedPricelistIds]
+			);
+
 			// Handle drug associations if provided
 			if (serviceData.drugs !== undefined) {
 				await this.updateServiceDrugs(
@@ -223,6 +242,20 @@ export class ServiceModel {
 	async deleteService(serviceId: number): Promise<void> {
 		await query("BEGIN");
 		try {
+			// Pre-check references so we can return a friendly 409 instead of a raw FK error
+			const refCounts = await query(
+				`SELECT
+					(SELECT COUNT(*) FROM ActivePatientService WHERE service_id = $1 AND is_active = true) AS active_services,
+					(SELECT COUNT(*) FROM BillDetail WHERE service_id = $1) AS bill_lines;`,
+				[serviceId]
+			);
+			const { active_services, bill_lines } = refCounts.rows[0];
+			if (Number(active_services) + Number(bill_lines) > 0) {
+				throw new Error(
+					`Cannot delete this service: it is used by ${active_services} active patient service(s) and ${bill_lines} bill line(s).`
+				);
+			}
+
 			// Delete prices first due to foreign key constraint
 			await query("DELETE FROM ServicePrice WHERE service_id = $1", [
 				serviceId

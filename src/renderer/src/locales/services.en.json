@@ -5,7 +5,12 @@
     "searchPlaceholder": "Search services...",
     "buttons": {
       "createService": "Create New Service",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "retry": "Retry"
+    },
+    "actions": {
+      "addDrug": "Add drug",
+      "removeDrug": "Remove drug"
     },
     "table": {
       "serviceName": "Service Name",
@@ -32,7 +37,8 @@
       "includePriceList": "Include Price List",
       "price": "Price",
       "requiresPrepayment": "Requires Prepayment",
-      "prepaymentRequired": "Prepayment Required"
+      "prepaymentRequired": "Prepayment Required",
+      "prepaymentAmount": "Prepayment Amount"
     },
     "sections": {
       "priceLists": "Price Lists",
@@ -67,6 +73,8 @@
       "prepaymentPercentageRange": "Percentage prepayment must be between 0 and 100"
     },
     "messages": {
+      "noServices": "No services found",
+      "noServicesDesc": "Create a service to add it to price lists and bills.",
       "noDrugsAvailable": "No drugs available",
       "noDrugsSelected": "No drugs selected",
       "loadInitialDataError": "Failed to load initial data",
