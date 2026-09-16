@@ -98,12 +98,13 @@ export interface CreateDoctorDTO extends CreateEmployeeDTO {
 	per_patient_pay?: number;
 	payment_calculation?: PaymentCalculation;
 	referral_bonus?: number;
-	servicePrices?: DoctorServicePriceDTO[];
+	service_prices?: DoctorServicePriceDTO[];
 }
 
 export interface DoctorServicePriceDTO {
 	service_id: number;
-	price: number;
+	/** `null` = remove this doctor's override for the service. */
+	price: number | null;
 }
 
 

@@ -26,6 +26,28 @@
       "nurses": "الممرضات",
       "payments": "المدفوعات المعلقة"
     },
+    "filters": {
+      "statusGroup": "تصفية حسب الحالة",
+      "all": "الكل",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "allShifts": "جميع المناوبات",
+      "allDoctorTypes": "جميع أنواع الأطباء"
+    },
+    "sections": {
+      "profile": "الملف الشخصي",
+      "shift": "المناوبة",
+      "compensation": "التعويضات"
+    },
+    "servicePriceGrid": {
+      "show": "عرض أسعار الخدمات",
+      "hide": "إخفاء أسعار الخدمات",
+      "searchPlaceholder": "البحث عن الخدمات...",
+      "willBeRemoved": "سيتم الإزالة",
+      "undoRemove": "التراجع عن الإزالة",
+      "removeAria": "إزالة سعر {{name}}",
+      "priceAria": "سعر الخدمة"
+    },
     "table": {
       "name": "الاسم",
       "employeeName": "اسم الموظف",
@@ -123,7 +145,14 @@
     },
     "validation": {
       "nameRequired": "يرجى إدخال الاسم.",
-      "paymentAmountRequired": "يرجى إدخال مبلغ الدفع."
+      "paymentAmountRequired": "يرجى إدخال مبلغ الدفع.",
+      "hireDateRequired": "يرجى اختيار تاريخ التوظيف.",
+      "shiftTimeRequired": "يرجى اختيار وقت المناوبة.",
+      "doctorTypeRequired": "يرجى اختيار نوع الطبيب.",
+      "perPatientPaymentTypeRequired": "يرجى اختيار نوع الدفع لكل مريض.",
+      "percentageScopeRequired": "يرجى اختيار نطاق النسبة المئوية.",
+      "extraAmountRequired": "يرجى إدخال المبلغ الإضافي.",
+      "invalidNumber": "يرجى إدخال رقم صحيح غير سالب."
     },
     "messages": {
       "deleteConfirmTitle": "هل أنت متأكد؟",
@@ -158,9 +187,17 @@
       "onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الأطباء",
       "onlyAdminsCanSave": "يمكن للمسؤولين فقط حفظ الأطباء",
       "onlyAdminsCanEdit": "يمكن للمسؤولين فقط تعديل الأطباء",
-      "onlyAdminsCanDelete": "يمكن للمسؤولين فقط حذف الأطباء"
+      "onlyAdminsCanDelete": "يمكن للمسؤولين فقط حذف الأطباء",
+      "employeeDetails": "تفاصيل الموظف",
+      "employeeFormHint": "الحقول المميزة بعلامة * مطلوبة.",
+      "paymentModalHint": "يتم تسجيل المدفوعات اليدوية كمدفوعة بالفعل.",
+      "paymentsPermissionRequired": "يتطلب صلاحية إدارة المدفوعات",
+      "amountBreakdown": "{{base}} + {{extra}} إضافي",
+      "pendingPaymentsCount": "{{count}} مدفوعات معلقة",
+      "noPendingPayments": "لا توجد مدفوعات معلقة تم إنشاؤها بواسطة النظام"
     },
     "buttons": {
+      "viewDetails": "عرض التفاصيل",
       "edit": "تعديل",
       "delete": "حذف",
       "createPayment": "إنشاء دفعة",

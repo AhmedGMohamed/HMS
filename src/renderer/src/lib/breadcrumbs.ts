@@ -31,7 +31,8 @@ const SIMPLE_CRUMBS: Record<string, string> = {
   "/drugs": "sidebar.drugs",
   "/supplies": "sidebar.supplies",
   "/employees": "sidebar.employees",
-  "/doctors": "sidebar.doctors",
+  /* `/doctors` merged into `/employees?tab=doctors` (Phase 6.7) —
+     no breadcrumb entry; the redirect lands on the employees page. */
   "/clocking": "sidebar.clocking",
   "/vault": "sidebar.vault",
   "/insurance": "sidebar.insurance",

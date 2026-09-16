@@ -37,7 +37,9 @@ const ROUTES: RouteEntry[] = [
   { pattern: "/drugs", requirement: { mode: "permission", permission: "manage_pharmacy" } },
   { pattern: "/supplies", requirement: { mode: "permission", permission: "manage_supplies" } },
   { pattern: "/employees", requirement: { mode: "permission", permission: "manage_employees" } },
-  { pattern: "/doctors", requirement: { mode: "permission", permission: "manage_employees" } },
+  /* `/doctors` was merged into `/employees?tab=doctors` (Phase 6.7);
+     the App.tsx route is a pure redirect and falls through to the
+     `private` default here. */
   { pattern: "/clocking", requirement: { mode: "permission", permission: "manage_clocking" } },
   { pattern: "/vault", requirement: { mode: "permission", permission: "view_vault" } },
   { pattern: "/insurance", requirement: { mode: "permission", permission: "manage_insurance" } },
