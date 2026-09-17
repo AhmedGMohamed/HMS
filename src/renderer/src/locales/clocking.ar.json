@@ -7,7 +7,8 @@
       "newClockIn": "تسجيل حضور جديد",
       "clockOut": "تسجيل الانصراف",
       "confirmClockOut": "نعم، سجل الانصراف الآن",
-      "saving": "جاري الحفظ..."
+      "saving": "جاري الحفظ...",
+      "confirmDelete": "حذف السجل"
     },
     "tabs": {
       "active": "الحضور النشط",
@@ -18,10 +19,16 @@
       "clockInTime": "وقت الحضور",
       "clockOutTime": "وقت الانصراف",
       "duration": "المدة",
-      "payDeduction": "خصم من الراتب"
+      "payDeduction": "خصم من الراتب",
+      "activeCaption": "قائمة حية للموظفين المسجل حضورهم حالياً",
+      "historyCaption": "سجلات الحضور المنتهية مع التعديلات وخصومات الأجر"
     },
     "filters": {
-      "searchEmployee": "البحث عن موظف"
+      "searchEmployee": "البحث عن موظف",
+      "fromDate": "من",
+      "toDate": "إلى",
+      "missingOnly": "بدون تسجيل انصراف فقط",
+      "clearRange": "مسح نطاق التاريخ"
     },
     "placeholders": {
       "searchEmployee": "البحث بالاسم...",
@@ -29,7 +36,8 @@
     },
     "modals": {
       "newClockIn": "تسجيل حضور جديد",
-      "editClockIn": "تعديل تسجيل الحضور"
+      "editClockIn": "تعديل تسجيل الحضور",
+      "editClockInDescription": "التغييرات على هذا السجل تؤثر على مدة الوردية وأجر الموظف."
     },
     "fields": {
       "employee": "الموظف",
@@ -39,7 +47,10 @@
     },
     "help": {
       "optionalClockOut": "اختياري - اتركه فارغاً لتسجيل حضور نشط",
-      "payDeduction": "اختياري - أدخل أي مبلغ خصم من الراتب"
+      "payDeduction": "اختياري - أدخل أي مبلغ خصم من الراتب",
+      "autoDeduction": "يُحتسب خصم الأجر تلقائيًا عند تسجيل الحضور بناءً على تأخر المواعيد.",
+      "recordedLocalTime": "يتم تسجيل الأوقات بتوقيت المستشفى المحلي.",
+      "editingRecord": "سجل رقم {{clockId}}"
     },
     "duration": {
       "hoursMinutes": "{{hours}} ساعة {{minutes}} دقيقة",
@@ -48,7 +59,9 @@
     "validation": {
       "employeeRequired": "الرجاء اختيار موظف.",
       "clockInTimeRequired": "الرجاء إدخال وقت الحضور.",
-      "clockOutAfterClockIn": "يجب أن يكون وقت الانصراف بعد وقت الحضور."
+      "clockOutAfterClockIn": "يجب أن يكون وقت الانصراف بعد وقت الحضور.",
+      "alreadyClockedIn": "يوجد بالفعل سجل حضور مفتوح لهذا الموظف.",
+      "payDeductionInvalid": "أدخل مبلغ خصم صالحًا غير سالب."
     },
     "messages": {
       "noActiveClockIns": "لا توجد سجلات حضور نشطة",
@@ -59,13 +72,38 @@
       "updateSuccess": "تم تحديث سجل الحضور بنجاح",
       "saveError": "فشل في حفظ سجل الحضور",
       "clockOutConfirmTitle": "تسجيل الخروج الآن؟",
-      "clockOutConfirmText": "سيتم تسجيل خروج الموظف بالوقت الحالي.",
+      "clockOutConfirmText": "سيتم تسجيل خروج الموظف بالوقت الحالي وتثبيت المدة في نظام الأجور.",
       "clockOutSuccess": "تم تسجيل خروج الموظف بنجاح",
       "clockOutError": "فشل في تسجيل الخروج",
       "deleteConfirmTitle": "هل أنت متأكد؟",
-      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteConfirmText": "سيتم حذف سجل الوردية نهائياً، بما في ذلك المدة وخصم الأجر. لا يمكن التراجع عن هذا الإجراء.",
       "deleteSuccess": "تم حذف سجل الحضور بنجاح",
-      "deleteError": "فشل في حذف سجل الحضور"
+      "deleteError": "فشل في حذف سجل الحضور",
+      "retry": "إعادة المحاولة",
+      "deleteActiveConfirmText": "هذا الموظف مسجل حضوره حالياً. الحذف سيزيل السجل المفتوح بالكامل. لا يمكن التراجع عن هذا الإجراء."
+    },
+    "kpi": {
+      "onShift": "في العمل حالياً",
+      "onShiftHint": "الموظفون المسجل حضورهم حالياً",
+      "missingClockOut": "بدون تسجيل انصراف",
+      "missingClockOutHintActive": "ورديات مفتوحة من أيام سابقة",
+      "missingClockOutHintCalm": "جميع الورديات مغلقة بشكل صحيح",
+      "over12h": "ورديات تتجاوز 12 ساعة",
+      "over12hHint": "خطر الإرهاق - يُرجى التحقق وتسجيل الانصراف",
+      "over12hHintCalm": "لا توجد ورديات تتجاوز حد 12 ساعة"
+    },
+    "status": {
+      "extendedShift": "وردية ممتدة",
+      "fatigueRisk": "خطر الإرهاق",
+      "missingClockOut": "بدون تسجيل انصراف",
+      "futureClockIn": "حضور بتاريخ مستقبلي",
+      "negativeDuration": "مدة سالبة",
+      "duplicateEntry": "سجل مكرر"
+    },
+    "role": {
+      "doctor": "طبيب",
+      "nurse": "ممرض",
+      "staff": "موظف"
     }
   }
 }

@@ -14,6 +14,18 @@ export default class EmployeeClockInController {
 		}
 	}
 
+	static async getEligibleEmployees(
+		_req: Request,
+		res: Response
+	): Promise<void> {
+		try {
+			const employees = await EmployeeClockInModel.getEligibleEmployees();
+			res.status(200).json(employees);
+		} catch {
+			res.status(500).json({ error: "Failed to fetch eligible employees" });
+		}
+	}
+
 	static async getClockedInEmployees(
 		_req: Request,
 		res: Response

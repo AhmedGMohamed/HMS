@@ -12,7 +12,7 @@ export interface EditorialKpiCardProps {
   /** Optional contextual line below the value. */
   hint?: ReactNode
   /** Accent treatment; drives the rail colour and hover underline. */
-  tone?: "neutral" | "warning" | "primary"
+  tone?: "neutral" | "warning" | "primary" | "danger"
   /** Whether this card represents the currently-active filter. */
   active?: boolean
   loading?: boolean
@@ -28,18 +28,21 @@ const TONE_RAIL: Record<NonNullable<EditorialKpiCardProps["tone"]>, string> = {
   neutral: "before:bg-foreground/15 group-hover:before:bg-foreground/60",
   warning: "before:bg-warning group-hover:before:bg-warning",
   primary: "before:bg-primary group-hover:before:bg-primary",
+  danger: "before:bg-danger group-hover:before:bg-danger",
 }
 
 const TONE_RULE: Record<NonNullable<EditorialKpiCardProps["tone"]>, string> = {
   neutral: "bg-foreground/10 group-hover:bg-foreground/60",
   warning: "bg-warning/30 group-hover:bg-warning",
   primary: "bg-primary/30 group-hover:bg-primary",
+  danger: "bg-danger/30 group-hover:bg-danger",
 }
 
 const TONE_VALUE: Record<NonNullable<EditorialKpiCardProps["tone"]>, string> = {
   neutral: "text-foreground",
   warning: "text-foreground",
   primary: "text-primary",
+  danger: "text-foreground",
 }
 
 /**
@@ -77,7 +80,7 @@ export function EditorialKpiCard({
       aria-pressed={interactive ? active : undefined}
       className={cn(
         "group relative flex h-full w-full flex-col gap-2 overflow-hidden rounded-md",
-        "border border-border bg-card ps-7 pe-5 pt-4 pb-4 text-left",
+        "border border-border bg-card ps-7 pe-5 pt-4 pb-4 text-start",
         "transition-[background-color,box-shadow] duration-150",
         "before:absolute before:inset-y-3 before:inset-s-2 before:w-0.75 before:rounded-full",
         "before:transition-colors before:duration-150",
@@ -108,7 +111,9 @@ export function EditorialKpiCard({
                   ? "text-primary"
                   : tone === "warning"
                     ? "text-warning"
-                    : "text-muted-foreground/80 group-hover:text-foreground"
+                    : tone === "danger"
+                      ? "text-danger"
+                      : "text-muted-foreground/80 group-hover:text-foreground"
               )}
             >
               {icon}
