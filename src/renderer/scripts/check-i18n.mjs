@@ -102,7 +102,7 @@ const STRATEGIES = [
   /** Bare `t("...")` / `t('...')` / `t(\`...\`)` calls. */
   {
     name: "t() calls",
-    regex: /\.t\s*\(\s*['"`]([A-Za-z_][\w.\[\]]*)['"`]/g,
+    regex: /\bt\s*\(\s*['"`]([A-Za-z_][\w.\[\]]*)['"`]/g,
   },
   /** `i18n.t("...")` chained on the default export. */
   {
