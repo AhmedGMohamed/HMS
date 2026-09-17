@@ -2,13 +2,37 @@
 import { query } from "./database/connection.js";
 import {
 	EmployeeClockIn,
-	CreateEmployeeClockInDTO
+	CreateEmployeeClockInDTO,
+	Employee
 } from "../utils/types/employees.js";
 import EmployeeModel from "./Employee.model.js";
+
+// Only these columns may be written by updateClockIn (prevents
+// arbitrary-key SQL identifier interpolation from request bodies).
+const UPDATABLE_FIELDS = [
+	"employee_id",
+	"clock_in",
+	"clock_out",
+	"pay_deduction"
+] as const;
 
 export default class EmployeeClockInModel {
 	static async getAllClockIns(): Promise<EmployeeClockIn[]> {
 		const sql = "SELECT * FROM EmployeeClockIn";
+		const { rows } = await query(sql);
+		return rows;
+	}
+
+	static async getEligibleEmployees(): Promise<Array<Partial<Employee>>> {
+		// Returns ALL employees — the renderer filters need_clock_in/
+		// is_active client-side for the picker and uses the full list
+		// as the clock-in name map (phase_6.8_plan.md §1.3, A18).
+		const sql = `
+			SELECT employee_id, name, employee_type, need_clock_in, is_active,
+			       shift_start_time, shift_end_time
+			FROM Employee
+			ORDER BY name;
+		`;
 		const { rows } = await query(sql);
 		return rows;
 	}
@@ -85,7 +109,10 @@ export default class EmployeeClockInModel {
 		let index = 1;
 
 		Object.entries(dto).forEach(([key, value]) => {
-			if (value !== undefined) {
+			if (
+				value !== undefined &&
+				(UPDATABLE_FIELDS as readonly string[]).includes(key)
+			) {
 				fields.push(`${key} = $${index}`);
 				values.push(value);
 				index++;
