@@ -25,3 +25,9 @@ export function thisMonthRange(): DateRange {
 	const now = new Date()
 	return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) }
 }
+
+/** First day → last day of the current year preset */
+export function thisYearRange(): DateRange {
+	const now = new Date()
+	return { from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0)}
+}

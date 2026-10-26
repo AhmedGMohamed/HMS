@@ -6,6 +6,7 @@
     "buttons": {
       "today": "اليوم",
       "thisMonth": "هذا الشهر",
+      "thisYear": "هذا العام",
       "addManualPayment": "دفعة يدوية",
       "addPayment": "إضافة دفعة",
       "exportPdf": "تصدير PDF",

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { formatDate } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
-import { currentMonthRange, thisMonthRange, todayRange } from "@/pages/Vault/dateRange"
+import { currentMonthRange, thisMonthRange, thisYearRange, todayRange } from "@/pages/Vault/dateRange"
 import type { DateRange } from "@/pages/Vault/types/vault"
 
 export interface DateRangeToolbarProps {
@@ -41,6 +41,13 @@ export function DateRangeToolbar({ range, onRangeChange }: DateRangeToolbarProps
 				onClick={() => onRangeChange(thisMonthRange())}
 			>
 				{t("vault.buttons.thisMonth")}
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={() => onRangeChange(thisYearRange())}
+			>
+				{t("vault.buttons.thisYear")}
 			</Button>
 			<Popover>
 				<PopoverTrigger asChild>
