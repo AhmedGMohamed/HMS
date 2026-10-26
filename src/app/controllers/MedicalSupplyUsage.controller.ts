@@ -174,6 +174,10 @@ export class MedicalSupplyUsageController {
             const patientId = asInt(req.query?.patientId);
             if (patientId !== undefined) filters.patientId = patientId;
 
+            const patientHistoryId = asInt(req.query?.patientHistoryId);
+            if (patientHistoryId !== undefined)
+                filters.patientHistoryId = patientHistoryId;
+
             const supplyId = asInt(req.query?.supplyId);
             if (supplyId !== undefined) filters.supplyId = supplyId;
 

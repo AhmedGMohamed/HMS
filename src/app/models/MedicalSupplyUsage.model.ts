@@ -288,6 +288,12 @@ export class MedicalSupplyUsageModel {
                 paramCount++;
             }
 
+            if (filters.patientHistoryId !== undefined) {
+                conditions.push(`msu.patient_history_id = $${paramCount}`);
+                values.push(filters.patientHistoryId);
+                paramCount++;
+            }
+
             if (filters.supplyId !== undefined) {
                 conditions.push(`msu.supply_id = $${paramCount}`);
                 values.push(filters.supplyId);

@@ -23,6 +23,7 @@ export interface PastAdmissionSummary {
   assignedNurses: string[]
   totalServicesCount: number
   totalDrugsCount: number
+  totalSuppliesCount: number
 }
 
 export interface UsePastAdmissionsResult {
@@ -101,6 +102,9 @@ export function usePastAdmissions(patientId: number): UsePastAdmissionsResult {
           ),
           totalDrugsCount: toNumberCount(
             (r as { totalDrugsCount?: number }).totalDrugsCount
+          ),
+          totalSuppliesCount: toNumberCount(
+            (r as { totalSuppliesCount?: number }).totalSuppliesCount
           ),
         }))
         setAdmissions(mapped)

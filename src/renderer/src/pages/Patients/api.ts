@@ -183,10 +183,13 @@ export function removeDrug(id: number, usageId: number) {
    Supplies
    ---------------------------------------------------------------- */
 
-export async function listAssignedSupplies(id: number): Promise<MedicalSupplyUsage[]> {
+export async function listAssignedSupplies(
+  id: number,
+  patientHistoryId?: number
+): Promise<MedicalSupplyUsage[]> {
   const { data } = await api.get<PaginatedResponse<MedicalSupplyUsage>>(
     "/pharmacy/medical-supply-usages/history",
-    { patientId: id, pageSize: 100 }
+    { patientId: id, patientHistoryId, pageSize: 100 }
   )
   return data
 }

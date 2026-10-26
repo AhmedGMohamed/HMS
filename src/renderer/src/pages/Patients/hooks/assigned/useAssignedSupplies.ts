@@ -35,13 +35,15 @@ export function useAssignedSupplies(
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
 
+  const historyId = currentAdmission?.patientHistoryId ?? null
+
   useEffect(() => {
     if (!Number.isFinite(patientId) || patientId <= 0) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
-    listAssignedSupplies(patientId)
+    listAssignedSupplies(patientId, historyId ?? undefined)
       .then((rows) => {
         if (cancelled) return
         setSupplies(rows)
@@ -56,7 +58,7 @@ export function useAssignedSupplies(
     return () => {
       cancelled = true
     }
-  }, [patientId, nonce])
+  }, [patientId, historyId, nonce])
 
   const refresh = useCallback(() => setNonce((n) => n + 1), [])
 

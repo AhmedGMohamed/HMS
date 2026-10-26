@@ -65,7 +65,7 @@ export function PastAdmissionCard({
       </div>
 
       <div className="flex flex-col gap-3 px-4 py-3 text-sm">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat
             label={t("patients.messages.servicesUsed")}
             value={String(admission.totalServicesCount || 0)}
@@ -74,6 +74,11 @@ export function PastAdmissionCard({
           <Stat
             label={t("patients.messages.drugsUsed")}
             value={String(admission.totalDrugsCount || 0)}
+            tabular
+          />
+          <Stat
+            label={t("patients.messages.suppliesUsed")}
+            value={String(admission.totalSuppliesCount || 0)}
             tabular
           />
           <Stat
