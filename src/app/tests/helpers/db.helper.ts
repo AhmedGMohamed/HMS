@@ -40,6 +40,9 @@ export interface TestData {
 	activePatientServices: ActivePatientService[];
 	bills: any[];
 	billDetails: any[];
+	medicalSupplies: any[];
+	medicalSupplyShipments: any[];
+	medicalSupplyTransactions: any[];
 }
 
 export const dbHelper = {
@@ -414,6 +417,60 @@ export const dbHelper = {
 		return result.rows[0];
 	},
 
+	// Medical Supplies
+	async seedMedicalSupplies(userId: number) {
+		const result = await query(
+			`
+            INSERT INTO MedicalSupply (
+                name, manufacturer, provider,
+                is_obligatory_continuous, sale_quantity, created_by_user_id
+            ) VALUES
+            ($2, 'SurgiCo', 'MediSupply', true, 1, $1),
+            ($3, 'Alcon', 'MedLife', false, 10, $1)
+            RETURNING *;
+        `,
+			[userId, "Disposable Syringe 5ml", "Eye Drops 10ml"]
+		);
+		return result.rows;
+	},
+
+	async seedMedicalSupplyShipments(
+		supplyIds: number[],
+		warehouseIds: number[],
+		userId: number
+	) {
+		const result = await query(
+			`
+            INSERT INTO MedicalSupplyShipment (
+                supply_id, warehouse_id, buy_quantity, quantity,
+                buy_price, expiry_date, created_by_user_id
+            ) VALUES
+            ($1, $3, 200, 200, 5.0, CURRENT_DATE + INTERVAL '1 year', $5),
+            ($2, $4, 100, 100, 2.0, CURRENT_DATE + INTERVAL '2 years', $5)
+            RETURNING *;
+        `,
+			[supplyIds[0], supplyIds[1], warehouseIds[0], warehouseIds[1], userId]
+		);
+		return result.rows;
+	},
+
+	async seedMedicalSupplyTransactions(shipmentIds: number[], userId: number) {
+		const result = await query(
+			`
+            INSERT INTO MedicalSupplyTransaction (
+                shipment_id, transaction_type, quantity,
+                price, created_by_user_id
+            ) VALUES
+            ($1, 'patient', 10, 8.0, $4),
+            ($2, 'outside', 50, 4.0, $4),
+            ($2, 'check', 10, 9.0, $4)
+            RETURNING *;
+        `,
+			[shipmentIds[0], shipmentIds[1], userId, userId]
+		);
+		return result.rows;
+	},
+
 	// Services and Pricing
 	async seedPriceLists(): Promise<PriceList[]> {
 		const result = await query(`
@@ -516,10 +573,10 @@ export const dbHelper = {
             INSERT INTO Bill (
                 patient_id, total_amount, paid_amount,
                 discount_type, discount, administrative_expenses,
-                vat_percentage, vat_scope, issued_by_user_id
-            ) VALUES 
-            ($1, 1500.00, 1000.00, 'percentage', 10.00, 50.00, 5.00, 'both', $3),
-            ($2, 800.00, 800.00, 'fixed', 100.00, 25.00, 5.00, 'services', $3)
+                medical_tests_amount, vat_percentage, vat_scope, issued_by_user_id
+            ) VALUES
+            ($1, 1500.00, 1000.00, 'percentage', 10.00, 50.00, 120.00, 5.00, 'both', $3),
+            ($2, 800.00, 800.00, 'fixed', 100.00, 25.00, 0.00, 5.00, 'services', $3)
             RETURNING *;
         `,
 			[patientIds[0], patientIds[1], userId]
@@ -697,6 +754,24 @@ export const dbHelper = {
 				drugShipments.map((s) => s.shipment_id)
 			);
 
+			// Seed medical supply tables
+			const medicalSupplies = await this.seedMedicalSupplies(
+				users[0].user_id
+			);
+
+			const medicalSupplyShipments =
+				await this.seedMedicalSupplyShipments(
+					medicalSupplies.map((s) => s.supply_id),
+					warehouses.map((w) => w.warehouse_id),
+					users[0].user_id
+				);
+
+			const medicalSupplyTransactions =
+				await this.seedMedicalSupplyTransactions(
+					medicalSupplyShipments.map((s) => s.shipment_id),
+					users[0].user_id
+				);
+
 			await query("COMMIT");
 
 			return {
@@ -714,6 +789,9 @@ export const dbHelper = {
 				shipmentPrices,
 				drugTransactions,
 				drugUsages,
+				medicalSupplies,
+				medicalSupplyShipments,
+				medicalSupplyTransactions,
 				priceLists,
 				services,
 				servicePrices,
@@ -782,6 +860,18 @@ export const dbHelper = {
 		await query("DELETE FROM DrugCard");
 	},
 
+	async clearMedicalSupplyTransactions() {
+		await query("DELETE FROM MedicalSupplyTransaction");
+	},
+
+	async clearMedicalSupplyShipments() {
+		await query("DELETE FROM MedicalSupplyShipment");
+	},
+
+	async clearMedicalSupplies() {
+		await query("DELETE FROM MedicalSupply");
+	},
+
 	async clearWarehouses() {
 		await query("DELETE FROM Warehouse");
 	},
@@ -848,6 +938,9 @@ export const dbHelper = {
 			await this.clearServices();
 			await this.clearDrugUsages();
 			await this.clearDrugTransactions();
+			await this.clearMedicalSupplyTransactions();
+			await this.clearMedicalSupplyShipments();
+			await this.clearMedicalSupplies();
 			await this.clearShipmentPrices();
 			await this.clearDrugShipments();
 			await this.clearDrugCards();
@@ -1007,7 +1100,7 @@ CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
-	contact_info TEXT
+	contact_info TEXT,
 	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
 	last_cleared_date DATE
 );
@@ -1044,8 +1137,8 @@ CREATE TABLE IF NOT EXISTS Patient (
 CREATE TABLE IF NOT EXISTS PatientHistory (
 	patient_history_id SERIAL PRIMARY KEY,
 	patient_id INTEGER REFERENCES Patient(patient_id),
-	bill_id INTEGER REFERENCES Bill(bill_id),
-	pricelist_id INTEGER REFERENCES PriceList(pricelist_id),
+	bill_id INTEGER,
+	pricelist_id INTEGER,
 	leave_reason leave_reason_type,
 	quick_check BOOLEAN,
 	diagnosis TEXT,
@@ -1076,7 +1169,7 @@ CREATE TABLE IF NOT EXISTS NursePatientHistory (
 	patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
 	nurse_id INTEGER REFERENCES Employee(employee_id),
 	PRIMARY KEY (patient_history_id, nurse_id)
-)
+);
 
 -- Pharmacy Management
 CREATE TABLE IF NOT EXISTS Warehouse (
@@ -1131,6 +1224,41 @@ CREATE TABLE IF NOT EXISTS DrugUsage (
 	last_administered TIMESTAMP
 );
 
+-- Medical Supplies (mirrors prod schema: DrugCard/DrugShipment/DrugTransaction without unit_conversion)
+CREATE TABLE IF NOT EXISTS MedicalSupply (
+	supply_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	manufacturer VARCHAR(255),
+	provider VARCHAR(255),
+	is_obligatory_continuous BOOLEAN DEFAULT false,
+	sale_quantity INTEGER NOT NULL,
+	frequency INTERVAL,
+	min_stock_alert INTEGER,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS MedicalSupplyShipment (
+	shipment_id SERIAL PRIMARY KEY,
+	supply_id INTEGER REFERENCES MedicalSupply(supply_id),
+	warehouse_id INTEGER REFERENCES Warehouse(warehouse_id),
+	buy_quantity INTEGER NOT NULL,
+	quantity INTEGER NOT NULL,
+	buy_price DECIMAL(15, 2) NOT NULL,
+	expiry_date DATE,
+	received_date DATE DEFAULT CURRENT_DATE,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS MedicalSupplyTransaction (
+	transaction_id SERIAL PRIMARY KEY,
+	shipment_id INTEGER REFERENCES MedicalSupplyShipment(shipment_id),
+	transaction_type transaction_type NOT NULL,
+	quantity INTEGER NOT NULL,
+	price DECIMAL(15, 2) NOT NULL,
+	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	created_by_user_id INTEGER REFERENCES "User"(user_id)
+);
+
 -- Services and Pricing
 CREATE TABLE IF NOT EXISTS Service (
 	service_id SERIAL PRIMARY KEY,
@@ -1146,7 +1274,7 @@ CREATE TABLE IF NOT EXISTS ActivePatientService (
 	service_id INTEGER REFERENCES Service(service_id),
 	start_date TIMESTAMP NOT NULL,
 	end_date TIMESTAMP,
-	is_active BOOLEAN DEFAULT true
+	is_active BOOLEAN DEFAULT true,
 	last_renewed TIMESTAMP DEFAULT NULL
 );
 
@@ -1165,6 +1293,7 @@ CREATE TABLE IF NOT EXISTS Bill (
 	discount_type discount_type,
 	discount DECIMAL(15, 2) DEFAULT 0,
 	administrative_expenses DECIMAL(15, 2) DEFAULT 0,
+	medical_tests_amount DECIMAL(15, 2) DEFAULT 0,
 	vat_percentage DECIMAL(5, 2),
 	vat_scope vat_scope_type,
 	generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

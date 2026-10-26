@@ -32,6 +32,14 @@ router.get(
 );
 
 router.get(
+	"/patient-supplies",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getPatientSuppliesRevenue(req, res)
+);
+
+router.get(
 	"/patient-payments",
 	verifyToken,
 	checkPermission("view_vault"),
@@ -106,6 +114,40 @@ router.get(
 	(req, res) => VaultController.getDrugSalesProfit(req, res)
 );
 
+// Medical supplies endpoints
+router.get(
+	"/supply-shipments",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getSupplyShipmentCosts(req, res)
+);
+
+router.get(
+	"/supply-sales",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getSupplySalesRevenue(req, res)
+);
+
+router.get(
+	"/supply-profits",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getSupplySalesProfit(req, res)
+);
+
+// Medical tests report
+router.get(
+	"/patient-medical-tests",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getPatientMedicalTestsRevenue(req, res)
+);
+
 // Employee wages endpoints
 router.get(
 	"/wages-owed",
@@ -123,11 +165,11 @@ router.get(
 	(req, res) => VaultController.getEmployeeWagesPaid(req, res)
 );
 
-// Add this route to your vault.routes.ts file
 router.get(
 	"/insurance-payments",
 	verifyToken,
 	checkPermission("view_vault"),
+	auditLogger,
 	(req, res) => VaultController.getInsurancePaymentsRevenue(req, res)
 );
 
