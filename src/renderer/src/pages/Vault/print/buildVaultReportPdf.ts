@@ -22,6 +22,97 @@ function formatEnGb(date: Date): string {
 	return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 }
 
+/**
+ * Determine optimal column width based on column kind and id.
+ * Text columns with potentially long content get flexible "*" width.
+ * Fixed-width columns (IDs, dates, currency, status) get "auto".
+ */
+function getColumnWidth(column: { id: string; kind: string }): string | number {
+	// Columns that typically have long text content → flexible width
+	const flexibleColumns = new Set([
+		"patientName",
+		"description",
+		"drugName",
+		"supplyName",
+		"employeeName",
+		"insuranceName",
+		"manufacturer",
+		"warehouseName",
+		"extraPaymentType",
+		"saleType",
+		"transactionType",
+		"paymentType",
+		"discountType",
+		"employeeType",
+		"addedBy",
+		"paidBy",
+	])
+
+	// Columns with predictable/fixed width → auto
+	const autoColumns = new Set([
+		"billId",
+		"paymentId",
+		"shipmentId",
+		"transactionId",
+		"generatedAt",
+		"updatedAt",
+		"paymentTime",
+		"issuedTimestamp",
+		"paidTimestamp",
+		"receivedDate",
+		"timestamp",
+		"paymentFrom",
+		"paymentTo",
+		"expiryDate",
+		"servicesTotal",
+		"drugsTotal",
+		"suppliesTotal",
+		"medicalTestsAmount",
+		"discountAmount",
+		"paidAmount",
+		"totalAmount",
+		"administrativeExpenses",
+		"vatAmount",
+		"paymentAmount",
+		"buyQuantity",
+		"buyPrice",
+		"totalCost",
+		"quantity",
+		"price",
+		"totalRevenue",
+		"totalQuantitySold",
+		"totalProfit",
+		"transactionCount",
+		"paymentAmount",
+		"extraAmount",
+		"isPaid",
+		"discount",
+	])
+
+	if (flexibleColumns.has(column.id)) {
+		return "*"
+	}
+
+	if (autoColumns.has(column.id)) {
+		return "auto"
+	}
+
+	// Fallback by kind
+	switch (column.kind) {
+		case "text":
+			return "*"
+		case "date":
+		case "currency":
+		case "number":
+		case "status":
+		case "paymentType":
+		case "discountValue":
+			return "auto"
+		default:
+			return "*"
+	}
+}
+
 export interface BuildVaultReportPdfInputs {
 	reportType: ReportType
 	range: DateRange
@@ -49,10 +140,13 @@ export async function buildVaultReportPdf(inputs: BuildVaultReportPdfInputs): Pr
 		}))
 	)
 
+	// Use smart column widths instead of equal "*" for all columns
+	const columnWidths = columns.map(getColumnWidth)
+
 	const table = {
 		table: {
 			headerRows: 1,
-			widths: columns.map(() => "*"),
+			widths: columnWidths,
 			body: [headerRow, ...bodyRows],
 		},
 		layout: {
