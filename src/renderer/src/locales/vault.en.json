@@ -4,13 +4,12 @@
     "title": "Vault Management",
     "dateRangeSelection": "Date Range Selection",
     "buttons": {
-      "loadData": "Load Data",
       "today": "Today",
       "thisMonth": "This Month",
       "addManualPayment": "Manual Payment",
       "addPayment": "Add Payment",
-      "processing": "Processing...",
-      "printReport": "Print Report"
+      "exportPdf": "Export PDF",
+      "exportCsv": "Export CSV"
     },
     "summary": {
       "totalRevenue": "Total Revenue",
@@ -54,6 +53,7 @@
     },
     "reportButtons": {
       "viewServicesReport": "View Services Report",
+      "viewVatAdminReport": "View VAT & Admin Report",
       "viewDrugsReport": "View Drugs Report",
       "viewSuppliesReport": "View Supplies Report",
       "viewPaymentsReport": "View Payments Report",
@@ -69,36 +69,32 @@
       "viewSupplyProfitsReport": "View Supply Profits Report",
       "viewWagesOwedReport": "View Wages Owed Report",
       "viewWagesPaidReport": "View Wages Paid Report",
-      "viewOutstandingWagesReport": "View Outstanding Wages Report",
       "viewMedicalTestsReport": "View Medical Tests Report"
     },
     "reportSummary": {
-      "total_revenue": "Total Revenue",
-      "total_expenses": "Total Expenses",
-      "net_profit": "Net Profit",
-      "total_records": "Total Records",
-      "avg_per_patient": "Avg. Per Patient",
-      "total_paid": "Total Paid",
-      "avg_payment": "Avg. Payment",
-      "total_outstanding": "Total Outstanding",
-      "avg_outstanding": "Avg. Outstanding",
-      "total_discounts": "Total Discounts",
-      "total_additions": "Total Additions",
-      "total_deductions": "Total Deductions",
-      "unique_companies": "Unique Companies",
-      "total_cost": "Total Cost",
-      "total_quantity": "Total Quantity",
-      "total_shipments": "Total Shipments",
-      "total_transactions": "Total Transactions",
-      "total_profit": "Total Profit",
-      "total_wages": "Total Wages",
-      "unique_employees": "Unique Employees",
-      "total_vat": "Total VAT",
-      "total_admin_expenses": "Total Admin Expenses"
+      "totalRevenue": "Total Revenue",
+      "totalRecords": "Total Records",
+      "avgPerPatient": "Avg. Per Patient",
+      "totalPaid": "Total Paid",
+      "avgPayment": "Avg. Payment",
+      "totalOutstanding": "Total Outstanding",
+      "avgOutstanding": "Avg. Outstanding",
+      "totalDiscounts": "Total Discounts",
+      "totalAdditions": "Total Additions",
+      "totalDeductions": "Total Deductions",
+      "uniqueCompanies": "Unique Companies",
+      "totalCost": "Total Cost",
+      "totalQuantity": "Total Quantity",
+      "totalShipments": "Total Shipments",
+      "totalTransactions": "Total Transactions",
+      "totalProfit": "Total Profit",
+      "totalWages": "Total Wages",
+      "uniqueEmployees": "Unique Employees",
+      "totalVat": "Total VAT",
+      "totalAdminExpenses": "Total Admin Expenses"
     },
     "modals": {
-      "addManualPayment": "Add Manual Payment",
-      "reportDetails": "Report Details"
+      "addManualPayment": "Add Manual Payment"
     },
     "fields": {
       "amount": "Amount",
@@ -106,9 +102,7 @@
       "type": "Type",
       "selectPaymentType": "Select payment type",
       "description": "Description",
-      "optionalDescription": "Optional description of the payment",
-      "vatAmount": "VAT Amount",
-      "adminExpenses": "Administrative Expenses"
+      "optionalDescription": "Optional description of the payment"
     },
     "paymentTypes": {
       "addition": "Addition (Income)",
@@ -119,22 +113,16 @@
       "pending": "Pending"
     },
     "validation": {
-      "selectBothDates": "Please select both start and end dates",
-      "startDateAfterEndDate": "Start date cannot be after end date",
       "validAmount": "Please enter a valid amount.",
       "selectPaymentType": "Please select a payment type."
     },
     "messages": {
-      "loadingVaultData": "Loading vault data...",
       "loadError": "Failed to load vault data",
+      "retry": "Retry",
       "manualPaymentSuccess": "Manual payment added successfully",
       "manualPaymentError": "Failed to add manual payment",
-      "loadDataFirst": "Please load vault data first",
-      "loadingReportData": "Loading report data...",
-      "reportLoadError": "Failed to load report data. Please try again.",
-      "noReportData": "No report data to print",
       "reportGeneratedSuccess": "Report generated successfully",
-      "reportGenerateError": "Failed to generate report"
+      "exportError": "Export failed"
     },
     "emptyState": {
       "title": "No Data Selected",
@@ -147,23 +135,24 @@
       "totalRecords": "Total Records"
     },
     "reportTitles": {
-      "patient_services": "Patient Services Revenue",
-      "patient_drugs": "Patient Drugs Revenue",
-      "patient_supplies": "Patient Supplies Revenue",
-      "patient_payments": "Patient Payments",
-      "patient_outstanding": "Outstanding Balances",
-      "patient_discounts": "Patient Discounts",
-      "manual_payments": "Manual Payments",
-      "insurance_payments": "Insurance Payments",
-      "drug_shipments": "Drug Shipment Costs",
-      "drug_sales": "Drug Sales Revenue",
-      "drug_profits": "Drug Sales Profit",
-      "medical_supply_shipments": "Supply Shipment Costs",
-      "medical_supply_sales": "Supply Sales Revenue",
-      "medical_supply_profits": "Supply Sales Profit",
-      "wages_owed": "Wages Owed",
-      "wages_paid": "Wages Paid",
-      "patient_vat_admin": "VAT & Admin Expenses Report"
+      "patientServices": "Patient Services Revenue",
+      "patientDrugs": "Patient Drugs Revenue",
+      "patientSupplies": "Patient Supplies Revenue",
+      "patientPayments": "Patient Payments",
+      "patientOutstanding": "Outstanding Balances",
+      "patientDiscounts": "Patient Discounts",
+      "manualPayments": "Manual Payments",
+      "insurancePayments": "Insurance Payments",
+      "drugShipments": "Drug Shipment Costs",
+      "drugSales": "Drug Sales Revenue",
+      "drugProfits": "Drug Sales Profit",
+      "supplyShipments": "Supply Shipment Costs",
+      "supplySales": "Supply Sales Revenue",
+      "supplyProfits": "Supply Sales Profit",
+      "wagesOwed": "Wages Owed",
+      "wagesPaid": "Wages Paid",
+      "patientVatAdmin": "VAT & Admin Expenses Report",
+      "patientMedicalTests": "Medical Tests Revenue"
     },
     "reportColumns": {
       "patientName": "Patient Name",
@@ -171,6 +160,7 @@
       "date": "Date",
       "servicesTotal": "Services Total",
       "drugsTotal": "Drugs Total",
+      "suppliesTotal": "Supplies Total",
       "discount": "Discount",
       "paid": "Paid",
       "paymentDate": "Payment Date",
@@ -192,6 +182,7 @@
       "recordedDate": "Recorded Date",
       "addedBy": "Added By",
       "drugName": "Drug Name",
+      "supplyName": "Supply Name",
       "manufacturer": "Manufacturer",
       "quantity": "Quantity",
       "unitCost": "Unit Cost",

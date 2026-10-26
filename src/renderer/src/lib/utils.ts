@@ -12,7 +12,7 @@ export function cn(...inputs: ClassValue[]) {
  * (EN/AR) but pricing is consistently quoted in Arabic-locale EGP for
  * the Egyptian deployment. Pass `locale` to override per-page.
  */
-export function formatCurrency(amount: number, locale = "ar-EG"): string {
+export function formatCurrency(amount: number, locale = "en-US"): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "EGP",

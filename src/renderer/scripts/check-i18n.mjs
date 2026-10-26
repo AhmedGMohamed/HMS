@@ -119,10 +119,11 @@ const STRATEGIES = [
     name: "static label / titleKey values",
     /**
      * Captures the *value* of `key: "..."` style declarations where the
-     * key is exactly `label`/`titleKey`/`title`. Limiting the key list
-     * keeps us from accidentally swallowing unrelated string literals.
+     * key is exactly `label`/`labelKey`/`headerKey`/`titleKey`/`title`.
+     * Limiting the key list keeps us from accidentally swallowing
+     * unrelated string literals.
      */
-    regex: /(?:label|titleKey|titleKey=?)\s*[:=]\s*['"`]([a-z_][\w.]*?)['"`]/g,
+    regex: /(?:label|labelKey|headerKey|titleKey|titleKey=?)\s*[:=]\s*['"`]([a-z_][\w.]*?)['"`]/g,
   },
 ]
 

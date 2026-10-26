@@ -152,6 +152,30 @@ export class VaultModel {
 		return result.rows;
 	}
 
+	async getPatientSuppliesRevenue(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+            SELECT 
+                p.patient_id,
+                p.name as patient_name,
+                b.bill_id,
+                b.generated_at,
+                SUM(CASE WHEN bd.medical_supply_shipment_id IS NOT NULL THEN bd.quantity * bd.unit_price ELSE 0 END) as supplies_total,
+                b.discount as discount_amount,
+                b.paid_amount
+            FROM Bill b
+            JOIN Patient p ON b.patient_id = p.patient_id
+            JOIN BillDetail bd ON b.bill_id = bd.bill_id
+            WHERE b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
+            GROUP BY p.patient_id, p.name, b.bill_id, b.generated_at, b.discount, b.paid_amount
+            HAVING SUM(CASE WHEN bd.medical_supply_shipment_id IS NOT NULL THEN bd.quantity * bd.unit_price ELSE 0 END) > 0
+            ORDER BY b.generated_at DESC;`;
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
+	}
+
 	async getPatientPayments(
 		startDate: string,
 		endDate: string
@@ -235,6 +259,27 @@ export class VaultModel {
 			vat_amount: b.vat_amount,
 			administrative_expenses: b.administrative_expenses
 		}));
+	}
+
+	async getPatientMedicalTestsRevenue(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+            SELECT
+                p.name as patient_name,
+                b.bill_id,
+                b.generated_at,
+                b.medical_tests_amount
+            FROM Bill b
+            JOIN Patient p ON b.patient_id = p.patient_id
+            WHERE b.medical_tests_amount > 0
+                AND b.generated_at >= $1 AND b.generated_at <= $2::DATE + '1 day'::INTERVAL
+            ORDER BY b.generated_at DESC;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
 	}
 
 	// Manual Payment Methods
@@ -357,6 +402,92 @@ export class VaultModel {
             WHERE dt.timestamp >= $1 AND dt.timestamp <= $2::DATE + '1 day'::INTERVAL
                 AND (dt.transaction_type = 'outside' OR dt.transaction_type = 'check')
             GROUP BY dc.drug_id, dc.name, dc.manufacturer
+            ORDER BY total_profit DESC;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
+	}
+
+	// Supply Methods
+	async getSupplyShipmentCosts(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+            SELECT
+                mss.shipment_id,
+                ms.supply_id,
+                ms.name as supply_name,
+                ms.manufacturer,
+                mss.buy_quantity,
+                mss.quantity,
+                mss.buy_price,
+                (mss.buy_quantity * mss.buy_price) as total_cost,
+                mss.expiry_date,
+                mss.received_date,
+                w.name as warehouse_name
+            FROM MedicalSupplyShipment mss
+            JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
+            LEFT JOIN Warehouse w ON mss.warehouse_id = w.warehouse_id
+            WHERE mss.received_date >= $1 AND mss.received_date <= $2
+            ORDER BY mss.received_date DESC;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
+	}
+
+	async getSupplySalesRevenue(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+            SELECT
+                mst.transaction_id,
+                mst.transaction_type,
+                ms.supply_id,
+                ms.name as supply_name,
+                mst.quantity,
+                mst.price,
+                (mst.quantity * mst.price) as total_revenue,
+                mst.timestamp,
+                CASE
+                    WHEN mst.transaction_type = 'check' THEN 'Medical Check'
+                    WHEN mst.transaction_type = 'outside' THEN 'Outside Sale'
+                END as sale_type
+            FROM MedicalSupplyTransaction mst
+            JOIN MedicalSupplyShipment mss ON mst.shipment_id = mss.shipment_id
+            JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
+            WHERE mst.timestamp >= $1 AND mst.timestamp <= $2::DATE + '1 day'::INTERVAL
+			AND mst.transaction_type != 'patient'
+            ORDER BY mst.timestamp DESC;
+        `;
+
+		const result = await query(sql, [startDate, endDate]);
+		return result.rows;
+	}
+
+	async getSupplySalesProfit(
+		startDate: string,
+		endDate: string
+	): Promise<any[]> {
+		const sql = `
+            SELECT
+                ms.supply_id,
+                ms.name as supply_name,
+                ms.manufacturer,
+                SUM(mst.quantity) as total_quantity_sold,
+                SUM(mst.quantity * mst.price) as total_revenue,
+                SUM(mst.quantity * mss.buy_price) as total_cost,
+                SUM(mst.quantity * (mst.price - mss.buy_price)) as total_profit,
+                COUNT(DISTINCT mst.transaction_id) as transaction_count
+            FROM MedicalSupplyTransaction mst
+            JOIN MedicalSupplyShipment mss ON mst.shipment_id = mss.shipment_id
+            JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
+            WHERE mst.timestamp >= $1 AND mst.timestamp <= $2::DATE + '1 day'::INTERVAL
+                AND (mst.transaction_type = 'outside' OR mst.transaction_type = 'check')
+            GROUP BY ms.supply_id, ms.name, ms.manufacturer
             ORDER BY total_profit DESC;
         `;
 
