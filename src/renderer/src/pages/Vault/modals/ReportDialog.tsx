@@ -122,7 +122,7 @@ export function ReportDialog({ open, reportType, range, data, loading, language,
 
 	return (
 		<Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-			<DialogContent className="max-w-7xl">
+			<DialogContent className="sm:max-w-7xl">
 				<DialogHeader>
 					<DialogTitle>{t(reportTitleKey(reportType))}</DialogTitle>
 				</DialogHeader>
