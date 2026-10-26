@@ -247,9 +247,6 @@
       "vat": "ضريبة القيمة المضافة",
       "scopeSeparator": "، "
     },
-    "pdfShelf": {
-      "page": "صفحة {{current}} من {{total}}"
-    },
     "print": {
       "billItems": "بنود الفاتورة",
       "patientInfo": "معلومات المريض",

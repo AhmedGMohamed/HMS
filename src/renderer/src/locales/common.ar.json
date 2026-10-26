@@ -53,6 +53,7 @@
     "clear": "مسح",
     "page": "صفحة",
     "of": "من",
+    "pdfPage": "صفحة {{current}} من {{total}}",
     "units": "وحدات",
     "quantity": "كمية",
     "unknown": "غير معروف",

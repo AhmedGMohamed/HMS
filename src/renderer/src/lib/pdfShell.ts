@@ -113,7 +113,12 @@ export function buildPdfShellDoc(
   const footerBlock =
     (currentPage: number, totalPages: number): Record<string, unknown> => {
       const footerPageArea: Record<string, unknown> = {
-        text: t("patients.pdfShelf.page", {
+        /* `common.*` is baked into i18next on boot, so the page label
+           resolves no matter which page opened the PDF. The previous
+           `patients.pdfShelf.page` key lived in a *lazy* namespace, so any
+           export started from another module (Vault, Insurance) printed
+           the raw key instead of "Page 1 of N". */
+        text: t("common.pdfPage", {
           current: currentPage.toString(),
           total: totalPages.toString(),
         }),

@@ -11,6 +11,10 @@
       "title": "لا توجد شركات تأمين",
       "description": "أضف أول شركة تأمين للبدء."
     },
+    "emptyPatients": {
+      "title": "لا يوجد مرضى",
+      "description": "لا يوجد مرضى مرتبطون بهذه الشركة حالياً."
+    },
     "fields": {
       "companyName": "اسم الشركة",
       "contactInfo": "معلومات الاتصال",
@@ -61,18 +65,25 @@
     },
     "validation": {
       "companyNameRequired": "يرجى إدخال اسم شركة صحيح.",
+      "contactInfoTooLong": "يجب ألا تتجاوز معلومات الاتصال 1000 حرف.",
       "paymentAmountRequired": "يرجى إدخال مبلغ دفع صحيح.",
       "fromDateRequired": "يرجى اختيار تاريخ البداية.",
       "toDateRequired": "يرجى اختيار تاريخ النهاية.",
+      "toDateAfterFrom": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية.",
+      "toDateNotFuture": "لا يمكن أن تنتهي فترة الدفع في المستقبل.",
       "startDateRequired": "يرجى اختيار تاريخ البداية.",
       "endDateRequired": "يرجى اختيار تاريخ النهاية.",
-      "clearDateRequired": "يرجى اختيار تاريخ التسوية."
+      "endDateAfterStart": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية.",
+      "clearDateRequired": "يرجى اختيار تاريخ التسوية.",
+      "clearDateNotFuture": "لا يمكن أن يكون تاريخ التسوية في المستقبل."
     },
     "messages": {
       "paymentNote": "تغطي هذه الدفعة الفترة الزمنية المحددة وستستخدم في حسابات التقارير.",
       "reportNote": "سيعرض التقرير جميع الخدمات والأدوية للمرضى بهذه الشركة خلال الفترة المحددة.",
       "patientReportNote": "سيعرض هذا التقرير جميع الخدمات والأدوية لهذا المريض خلال الفترة المحددة.",
       "clearBalanceWarning": "سيؤدي هذا الإجراء إلى تحديث تاريخ آخر تسوية لشركة التأمين هذه. لن تظهر العناصر قبل هذا التاريخ في تقارير المستحقات المستقبلية.",
+      "searchPlaceholder": "ابحث باسم الشركة...",
+      "searchEmpty": "لا توجد شركات تأمين مطابقة لهذا البحث.",
       "deleteConfirmTitle": "حذف شركة التأمين؟",
       "deleteConfirmText": "سيؤدي هذا إلى حذف شركة التأمين وجميع البيانات المرتبطة بها نهائيًا. لا يمكن التراجع عن هذا الإجراء!",
       "deleteSuccess": "تم حذف شركة التأمين بنجاح",
@@ -80,6 +91,7 @@
       "updateSuccess": "تم تحديث شركة التأمين بنجاح",
       "paymentSuccess": "تم تسجيل الدفعة بنجاح",
       "clearBalanceSuccess": "تمت تسوية الرصيد بنجاح",
+      "exportSuccess": "الملف جاهز للتنزيل",
       "loadError": "فشل تحميل شركات التأمين",
       "saveError": "فشل حفظ شركة التأمين",
       "deleteError": "فشل حذف شركة التأمين",
@@ -96,22 +108,33 @@
       "totalPayments": "إجمالي الدفعات",
       "outstandingBalance": "الرصيد المستحق",
       "activePatients": "المرضى النشطون",
-      "totalPatients": "إجمالي المرضى"
+      "totalPatients": "إجمالي المرضى",
+      "currentAdmissions": "المرضى المقيمون",
+      "patientPaidAmount": "المدفوع من المريض",
+      "paymentCoverage": "نسبة التغطية",
+      "postClearNote": "الأرقام المعلّمة بـ * تغطي الرسوم بعد تاريخ آخر تسوية ({{date}})."
     },
     "patient": {
       "status": {
         "active": "نشط",
         "inactive": "غير نشط"
       },
-      "gender": "الجنس",
+      "gender": {
+        "label": "الجنس",
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر"
+      },
       "admission": "الدخول الحالي",
       "admissionDate": "تاريخ الدخول",
       "diagnosis": "التشخيص",
+      "noDiagnosis": "لا يوجد تشخيص مسجل",
       "outstandingAmount": "المبلغ المستحق",
       "nationalId": "الرقم القومي",
       "phone": "الهاتف",
       "insuranceFormId": "رقم نموذج التأمين",
       "insuranceCardId": "رقم بطاقة التأمين",
+      "registration": "تاريخ التسجيل",
       "noActiveAdmission": "لا يوجد دخول نشط",
       "medicalTests": "الفحوصات الطبية"
     },
@@ -125,6 +148,8 @@
       "patientName": "اسم المريض",
       "itemName": "اسم العنصر",
       "serviceType": "الخدمة/الدواء/المستلزمات",
+      "service": "خدمة",
+      "drug": "دواء",
       "quantity": "الكمية",
       "unitPrice": "سعر الوحدة",
       "totalPrice": "السعر الإجمالي",
@@ -138,14 +163,21 @@
       "companyName": "اسم الشركة",
       "grossTotal": "الإجمالي",
       "discount": "الخصم",
+      "adminExpenses": "المصاريف الإدارية",
+      "vat": "ضريبة القيمة المضافة",
       "medicalTests": "الفحوصات الطبية",
-      "netTotal": "الإجمالي الصافي"
+      "netTotal": "الإجمالي الصافي",
+      "admissionTotal": "إجمالي الدخول",
+      "servicesDrugs": "الخدمات / الأدوية",
+      "dischargeDate": "تم التخريج",
+      "exportCsv": "تصدير CSV"
     },
     "paymentHistory": {
       "paymentAmount": "مبلغ الدفع",
       "paymentDate": "تاريخ الدفع",
       "paymentPeriod": "فترة الدفع",
       "recordedBy": "مسجل بواسطة",
+      "average": "متوسط الدفعة",
       "noPayments": "لا يوجد سجل دفعات متاح"
     }
   }
