@@ -247,9 +247,6 @@
       "vat": "VAT",
       "scopeSeparator": ", "
     },
-    "pdfShelf": {
-      "page": "Page {{current}} of {{total}}"
-    },
     "print": {
       "billItems": "Bill Items",
       "patientInfo": "Patient Information",

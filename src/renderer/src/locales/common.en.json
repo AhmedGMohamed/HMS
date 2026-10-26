@@ -53,6 +53,7 @@
     "clear": "Clear",
     "page": "Page",
     "of": "of",
+    "pdfPage": "Page {{current}} of {{total}}",
     "units": "units",
     "quantity": "Quantity",
     "unknown": "Unknown",

@@ -11,16 +11,30 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { buildCrumbs, type Crumb } from "@/lib/breadcrumbs"
+import { useBreadcrumbOverrideStore } from "@/store/breadcrumbStore"
 
 /**
- * Breadcrumb derived purely from `useLocation().pathname` and the route
- * table in `lib/breadcrumbs.ts`. Compacted to a max of 4 crumbs with an
- * ellipsis for the middle segment(s) per design.md §5.1.
+ * Breadcrumb derived from `useLocation().pathname` and the route table in
+ * `lib/breadcrumbs.ts`. Compacted to a max of 4 crumbs with an ellipsis
+ * for the middle segment(s) per design.md §5.1.
+ *
+ * The **last** crumb's label can be replaced by a page-published override
+ * (`useBreadcrumbLabel`) so entity detail routes show the entity name
+ * instead of the generic `breadcrumb.detail` ("Record") — e.g.
+ * `Dashboard / Insurance Companies / Misr Insurance`. The override is only
+ * honoured when its recorded pathname matches the current location.
  */
 export function Breadcrumbs() {
   const { t } = useTranslation()
   const location = useLocation()
   const crumbs = buildCrumbs(location.pathname)
+
+  const overrideLabel = useBreadcrumbOverrideStore((s) => s.label)
+  const overridePathname = useBreadcrumbOverrideStore((s) => s.pathname)
+  const activeOverride =
+    overrideLabel && overridePathname === location.pathname
+      ? overrideLabel
+      : null
 
   if (crumbs.length === 0) return null
   const last = crumbs[crumbs.length - 1]!
@@ -53,7 +67,7 @@ export function Breadcrumbs() {
           )
         })}
         <BreadcrumbItem>
-          <BreadcrumbPage>{t(last.labelKey)}</BreadcrumbPage>
+          <BreadcrumbPage>{activeOverride ?? t(last.labelKey)}</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>

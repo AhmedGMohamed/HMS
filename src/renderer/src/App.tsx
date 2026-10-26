@@ -160,6 +160,14 @@ export default function App() {
                     <Route path="/clocking" element={<ClockingPage />} />
                     <Route path="/vault" element={<VaultPage />} />
                     <Route path="/insurance" element={<InsurancePage />} />
+                    {/* Detail view as its own URL: deep-linkable and gives
+                        the breadcrumb `Dashboard / Insurance Companies /
+                        <company>` (Phase 6.10). `routes.ts` prefix-matching
+                        already applies `manage_insurance` here. */}
+                    <Route
+                      path="/insurance/:companyId"
+                      element={<InsurancePage />}
+                    />
                     <Route path="/reports" element={<ReportsPage />} />
                     <Route path="/services" element={<ServicesPage />} />
                     <Route path="/price-lists" element={<PriceListsPage />} />
