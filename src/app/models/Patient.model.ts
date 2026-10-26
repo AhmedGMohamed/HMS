@@ -1138,7 +1138,12 @@ export class PatientModel {
     	            SELECT COUNT(*) 
     	            FROM BillDetail bd 
     	            WHERE bd.bill_id = b.bill_id AND bd.drug_shipment_id IS NOT NULL
-    	        ) as total_drugs_count
+    	        ) as total_drugs_count,
+    	        (
+    	            SELECT COUNT(*)
+    	            FROM BillDetail bd
+    	            WHERE bd.bill_id = b.bill_id AND bd.medical_supply_shipment_id IS NOT NULL
+    	        ) as total_supplies_count
     	    FROM PatientHistory ph
     	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
     	    LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id

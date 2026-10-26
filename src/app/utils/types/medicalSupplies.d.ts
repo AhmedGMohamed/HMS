@@ -234,6 +234,7 @@ export interface MedicalSupplyUsageFilters {
     startDate?: string;
     endDate?: string;
     patientId?: number;
+    patientHistoryId?: number;
     supplyId?: number;
     isActive?: boolean;
     search?: string;

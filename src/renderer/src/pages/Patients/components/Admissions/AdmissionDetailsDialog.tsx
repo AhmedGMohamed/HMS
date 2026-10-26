@@ -247,7 +247,7 @@ export function AdmissionDetailsDialog({
             </Button>
           </div>
         ) : details ? (
-          <div className="flex max-h-[65vh] flex-col gap-6 overflow-y-auto pe-1">
+          <div className="flex max-h-[65vh] flex-col gap-6 overflow-y-auto pe-1 [&>*]:shrink-0">
             <SectionHeading>
               {t("patients.sections.admissionInfo")}
             </SectionHeading>
