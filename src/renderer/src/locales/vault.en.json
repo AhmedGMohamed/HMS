@@ -6,6 +6,7 @@
     "buttons": {
       "today": "Today",
       "thisMonth": "This Month",
+      "thisYear": "This Year",
       "addManualPayment": "Manual Payment",
       "addPayment": "Add Payment",
       "exportPdf": "Export PDF",
