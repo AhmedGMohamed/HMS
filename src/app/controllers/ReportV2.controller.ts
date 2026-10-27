@@ -23,6 +23,10 @@ import DoctorReportModel, {
 	DOCTOR_PATIENT_SORT_COLUMNS,
 	DOCTOR_SORT_COLUMNS,
 } from "../models/reports/DoctorReport.model.js";
+import NurseReportModel, {
+	NURSE_PATIENT_SORT_COLUMNS,
+	NURSE_SORT_COLUMNS,
+} from "../models/reports/NurseReport.model.js";
 import PatientReportModel, {
 	PATIENT_SORT_COLUMNS,
 } from "../models/reports/PatientReport.model.js";
@@ -260,6 +264,85 @@ export class ReportV2Controller {
 			sendError(res, error, "export doctor report");
 		}
 	}
+
+	/* -------------------------------------------------------------- */
+	/* Nurse report                                                    */
+	/* -------------------------------------------------------------- */
+
+	/**
+	 * `GET /api/reports/v2/nurses`
+	 *
+	 * Query: `start_date`, `end_date`, `nurse_id`, `search`, `page`,
+	 * `page_size`, `sort`, `dir`.
+	 */
+	async listNurses(req: Request, res: Response) {
+		try {
+			const filters = parseNurseFilters(req.query);
+			const paging = parsePaging(req.query);
+			const sort = parseSort(req.query, NURSE_SORT_COLUMNS, "name");
+
+			const payload = await NurseReportModel.listNurses({
+				...filters,
+				paging,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "load nurse report");
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/nurses/:nurseId`
+	 *
+	 * The nurse's header + summary, one page of their patients and the whole
+	 * daily-assignment accordion. `search` narrows the patients by name (and the
+	 * accordion follows the same filter).
+	 */
+	async getNurse(req: Request, res: Response) {
+		try {
+			const nurseId = parseRequiredId(req.params.nurseId, "nurseId");
+			const range = parseDateRange(req.query);
+			const paging = parsePaging(req.query);
+			const sort = parseSort(req.query, NURSE_PATIENT_SORT_COLUMNS, "name");
+
+			const payload = await NurseReportModel.getNurseDetail(nurseId, {
+				range,
+				search: parseSearch(req.query),
+				paging,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(
+				res,
+				error,
+				"load nurse report details",
+				"Nurse not found"
+			);
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/nurses/export`
+	 *
+	 * Same filters as the list, no paging: every nurse with every patient and
+	 * every daily assignment.
+	 */
+	async exportNurses(req: Request, res: Response) {
+		try {
+			const filters = parseNurseFilters(req.query);
+			const sort = parseSort(req.query, NURSE_SORT_COLUMNS, "name");
+
+			const payload = await NurseReportModel.exportNurses({
+				...filters,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "export nurse report");
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -319,6 +402,21 @@ function parseDoctorFilters(query: Record<string, unknown>) {
 		range,
 		relationship,
 		doctorId: parseOptionalId(query.doctor_id, "doctor_id"),
+		search: parseSearch(query),
+	};
+}
+
+/**
+ * Shared nurse filter parsing for the list and export endpoints.
+ *
+ * There is no relationship select on this tab (a nurse either has assignments
+ * in the range or is not in the report), so the filter set is range + optional
+ * nurse + nurse-name search.
+ */
+function parseNurseFilters(query: Record<string, unknown>) {
+	return {
+		range: parseDateRange(query),
+		nurseId: parseOptionalId(query.nurse_id, "nurse_id"),
 		search: parseSearch(query),
 	};
 }

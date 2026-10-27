@@ -520,6 +520,9 @@ document to 1 block and removes the break.
 
 ### 8.7 Continue here — 6.11.3 Nurse report
 
+> **Done — see §10** for what actually shipped and where it deviated. The plan below is kept as
+> written before implementation.
+
 Plan §3.5.4 (contract), §3.4 "Nurse queries" (SQL), §5.3 (UX), §6.11.3 (gates).
 
 1. **Backend** — `models/reports/NurseReport.model.ts` (+ `utils/types/reportV2.d.ts` DTOs, controller, routes with `/nurses/export` → `/nurses/:nurseId` → `/nurses`):
@@ -681,7 +684,150 @@ Live Playwright pass (**29/29**, Admin JWT, Express :3000 + Vite :5173), EN and 
 
 ---
 
-## 10. Quick reference — surface map (6.11.0 + 6.11.1 + 6.11.2)
+## 10. 6.11.3 — Nurse report (as built)
+
+### 10.1 What shipped
+
+**Backend (additive, under `/api/reports/v2/nurses`):**
+
+| File | Role |
+|---|---|
+| `src/app/models/reports/NurseReport.model.ts` | `PAIRS_CTE` builds **one row per (nurse, patient, work_date)** straight from `DailyStaffAssignment` — its unique constraint means every aggregate is a plain `COUNT`/`SUM`, with no fan-out to dedupe. The range filters on `work_date`, so a 3-day stay inside a 1-day window counts only the days that fall inside it. Diagnosis comes from a `LATERAL` latest admission **overlapping** the range (not merely started inside it). `listNurses` = rows + summary (2 queries); `getNurseDetail` = header+summary (1 statement) + patient page + whole accordion; `exportNurses` = rows + summary, then every nurse's patients and days in two batched queries (**4 total**). |
+| `src/app/controllers/ReportV2.controller.ts` | `listNurses`, `getNurse`, `exportNurses`, `parseNurseFilters`. |
+| `src/app/routes/reportV2.routes.ts` | `GET /nurses/export` → `/nurses/:nurseId` → `/nurses` (order matters). |
+| `src/app/utils/types/reportV2.d.ts` | `NurseReportSummary`, `NurseReportRow`, `NursePatientRow`, `NurseDailyAssignment`, `NurseReportListResponse`, `NurseReportDetailDTO`, `NurseExportRow`, `NurseReportExportPayload`. |
+
+Sort maps: `NURSE_SORT_COLUMNS` (`name|patients|days|hours|last_work`, default `name`) and
+`NURSE_PATIENT_SORT_COLUMNS` (`name|days|hours|last_admission`).
+
+Specs: `ReportV2.nurse.spec.ts` (**19/19**) and `ReportV2.nurse.controller.spec.ts` (**9/9**).
+
+**Frontend:**
+
+```
+pages/Reports/
+├── types/nurseReport.ts                 # camelCase wire types + NURSE_*_SORT maps
+├── api.ts                               # getNurses / getNurseDetail / exportNurses + nurseParams
+├── hooks/useNurseReport.ts              # list query (filter key, keep-previous paging)
+├── hooks/useNurseDetail.ts              # nurse + patient page + accordion query
+├── nurses/NurseReportTab.tsx            # filters, both modes, exports, snapshot, dialogs
+├── nurses/nurseColumns.tsx              # nurse list (5 cols) + patient table (6 cols)
+├── nurses/NursePatientTable.tsx         # per-nurse patient table + paging + totals band
+├── nurses/NurseTotalsBand.tsx           # totals strip + optional dedupe note
+├── nurses/NurseDistributionChart.tsx    # hours-per-nurse bar chart + distribution card
+├── nurses/nurseChartSnapshot.ts         # English labels for the PDF bitmap
+├── nurses/DailyAssignmentAccordion.tsx  # one row per work date, day totals
+├── nurses/NurseDetailDialog.tsx         # nurse header + table + accordion, row drill-down
+└── export/
+    ├── pdf/buildNurseReportPdf.ts       # summary → distribution → index → per-nurse sections
+    └── csv/exportNurseReportCsv.ts      # patients section + daily-assignment section
+```
+
+`ReportsPage` renders `NurseReportTab` for `tab === "nurses"`.
+
+### 10.2 Contracts that 6.11.3 added (continues §9.2)
+
+26. **The pair is `(nurse, patient, work_date)`, not `(nurse, patient)`.** `DailyStaffAssignment`
+    has a unique constraint on that triple, so every nurse figure is a plain aggregate and no
+    `DISTINCT` is needed anywhere in the model. This is *why* the nurse report has no fan-out
+    hazards, unlike the doctor report (which joins a one-to-many admission history).
+27. **`total_patients` is deduplicated; `total_patient_assignments` and `total_days` are additive.**
+    Identical to contract 18: the KPI card shows the unique patient count with an
+    `assignmentsHint`, the table footer sums the column (`total_patient_assignments`) and carries
+    `dedupeNote`. Hours are additive too, but they are not a count so they need no note.
+28. **The range scopes `work_date`, and the diagnosis lookup is an *overlap* lateral.** A nurse's
+    patient row shows the latest admission whose stay **intersects** the range, so a patient
+    admitted before `start_date` and still in the ward gets their current diagnosis rather than
+    `NULL`. This is the gate "range-scoped days" plus "overlapping-admission diagnosis".
+29. **Empty nurses are excluded, not listed with zeros.** A nurse with no assignment inside the
+    range does not appear at all (`NURSES_AGG_CTE` starts from the pairs CTE); the summary counts
+    the same population, so `total_nurses` always equals the number of index rows.
+30. **No relationship select.** Two report types (`all-nurses`, `specific-nurse`); a nurse is in
+    the report when they have at least one in-range assignment. `nurse_id` is sent only in
+    specific mode — all mode must send **no** id at all.
+31. **`search` means one thing per mode** (contract 20 again): all mode searches nurse names,
+    specific mode searches patients. Changing the report type clears it. Generate is blocked with
+    `reports.validation.selectNurse` when a specific report has no nurse.
+32. **The accordion is one payload, not one request per day.** `getNurseDetail` returns
+    `daily_assignments` newest-first, each with its patients, and it **follows `search`** so the
+    accordion can never list a patient the table above it hides. `DailyAssignmentAccordion` is
+    presentational; it keeps its open state when a date still exists and falls back to the newest
+    day when the whole date set changed.
+33. **A non-nurse id is a 404.** `/nurses/1` where 1 is a doctor returns `Nurse not found` — the
+    same answer as an unknown id, because the endpoint's population is `employee_type = 'nurse'`.
+34. **Chart metric is hours, and the denominator is hours.** The on-screen chart draws hours per
+    nurse for the **current page** (`chartCaption` says so); the PDF prints a table over **every**
+    nurse with each one's share of `summary.total_hours`, reusing `sharePercent()` imported from
+    `buildDoctorReportPdf` (zero-safe `-`, never `NaN%`).
+35. **Export shapes.** PDF: period → summary (Nurses / Unique Patients / Patient-Nurse Assignments
+    / Total Days / Total Hours) → hours distribution (skipped for a one-nurse document) → index
+    with TOTALS → one page per nurse (totals, patient table, daily-assignment table or
+    *"No daily assignments in this period."*). CSV: patients section, one row per (nurse, patient)
+    with the nurse totals repeated, plus a `Daily Assignments` section, one row per
+    (nurse, work date, patient) with the day totals repeated.
+36. **The export row's per-nurse roll-up is `totals`, not `summary`.** The envelope already has a
+    `summary` (whole set); naming the row's block the same thing caused the PDF and CSV to read
+    `undefined` for a while. `DoctorExportRow` uses `totals` for the same reason — follow it.
+
+### 10.3 Deviations from the plan for this tab
+
+| Plan | As built | Why |
+|---|---|---|
+| Nurse chart could be patients or hours | **Hours**, with hours as the share denominator | The tab's distinguishing number is workload; patients are already the KPI and a column |
+| Accordion fetched per day | One payload from the detail query | A 30-day assignment would otherwise be 30 round trips, and the day set must match the table's search |
+| Export row carries `last_work_date` | Derived in the PDF from `dailyAssignments[0].workDate` | The export rows do not carry the column; deriving it keeps the export at 4 queries instead of adding a fifth |
+| Separate patient dialog | Shared `PatientDetailDialog` + `buildPatientDetailPdf` | Same rule as 6.11.2 — one patient document |
+
+### 10.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend model specs | `npx tsc -p ./src/app/tsconfig.json` → `$env:NODE_ENV="test"; npx jasmine --filter="nurse report"` | 19/19 (+ 9 controller = 28/28) |
+| API smoke (live server) | `nurse-api-smoke.cjs` over `2020-01-01 … 2030-12-31` | list 200 (`total_nurses 1`, `total_patients 2`, assignments 2, `total_days 4`, `total_hours 22.8`, last work `2026-08-31`); detail 200; `search=zzz` → 0 everywhere; export 200; doctor id and unknown id both **404**; end-before-start **400** |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | 5 errors, all pre-existing `pages/Employees` (§6) |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/test/nurseReportExport.spec.ts` | Clean |
+| Renderer unit | `npm run test:renderer` | **41/41** (8 new in `test/nurseReportExport.spec.ts`) |
+| Bundle | `npm run build:renderer` | OK |
+| i18n | `check-reports-i18n.cjs` | 160 used keys, missing = 0 in both locales (only the pre-existing `lengthOfStay_two/_few` are `onlyAr`) |
+
+Live Playwright pass (**35/35**, Admin JWT, Express :3000 + Vite :5173), EN and AR/RTL:
+
+- both report types present; all-nurses generates over the full range; KPIs (`Total Nurses`,
+  `Unique Patients` + "2 patient-nurse assignments", `Total Days`, `Total Hours`), distribution
+  card, TOTALS band, **no `NaN` anywhere**; URL carries `scope=all&run=1` and **no** `nurse_id`;
+- a row opens the nurse detail dialog with `Daily Assignments` and `Day total`;
+- CSV download `nurse-report_2020-01-01_2030-12-31.csv` — 11 lines, `Nurse Name` first,
+  `Daily Assignments` + `Work Date` section present;
+- `Export PDF` → `200` on `/nurses/export`, no error toast; document verified in-page
+  (`loadPdfMake` + `buildPdfShellDoc` + `nurseReportDocContent` → `getBuffer`):
+  **29,191 bytes, header `%PDF-`**;
+- specific mode: picker populated, `search` cleared by the type change, patient table + TOTALS,
+  no distribution card, **4 accordion days**, row click opens the shared patient dialog;
+- Generate without a nurse → `select a nurse`; a `2019` range shows the no-nurses state;
+- AR page `dir=rtl`, Arabic KPI + chart labels, no `NaN`. **Zero console errors** in both locales.
+
+**Defects found and fixed during the pass:**
+
+1. **Export contract mismatch (real bug, only the live gate caught it).** `exportNurses` emitted
+   the per-nurse roll-up as `summary` while the renderer type, PDF and CSV read `totals`, so every
+   exported nurse rendered `undefined` figures and the CSV columns were `0`. Renamed to `totals`
+   in the model, the DTO and the model spec (§10.2 contract 36).
+2. The gate script clicked `table tbody tr` and hit the chart's `sr-only` accessibility table
+   instead of the real one. Locators are now `table:not(.sr-only) tbody tr` — worth remembering
+   for the remaining tabs, since every chart ships an `sr` table.
+
+### 10.5 Continue here — 6.11.4 Statistics
+
+Plan §3.5.5 (contract), §5.4 (UX), §6.11.4 (gates). Follow §10.2 and the 6.11.2/6.11.3 tab
+recipes: a `StatisticsReport.model.ts` (grouping by day/month/year over admissions, payments and
+supplies), `listStatistics`/`getStatistics`/`exportStatistics`, then a `StatisticsReportTab` that
+reuses `GroupByField`, the KPI strip, the chart wrappers and `ChartSnapshotSurface`. Two things to
+carry forward: exports are English-only, and every export row's per-group block is named `totals`
+(contract 36), never `summary`.
+
+---
+
+## 11. Quick reference — surface map (6.11.0 + 6.11.1 + 6.11.2 + 6.11.3)
 
 | Surface | File |
 |---|---|
@@ -691,6 +837,10 @@ Live Playwright pass (**29/29**, Admin JWT, Express :3000 + Vite :5173), EN and 
 | Doctor tab (6.11.2) | `pages/Reports/doctors/DoctorReportTab.tsx` + `models/reports/DoctorReport.model.ts` |
 | Doctor exports (distribution + index + per-doctor) | `pages/Reports/export/pdf/buildDoctorReportPdf.ts`, `export/csv/exportDoctorReportCsv.ts` |
 | Doctor chart bitmap | `pages/Reports/doctors/DoctorDistributionChart.tsx` + `lib/chartSnapshot.ts` |
+| Nurse tab (6.11.3) | `pages/Reports/nurses/NurseReportTab.tsx` + `models/reports/NurseReport.model.ts` |
+| Nurse exports (distribution + index + per-nurse) | `pages/Reports/export/pdf/buildNurseReportPdf.ts`, `export/csv/exportNurseReportCsv.ts` |
+| Nurse accordion + detail dialog | `pages/Reports/nurses/DailyAssignmentAccordion.tsx`, `nurses/NurseDetailDialog.tsx` |
+| Nurse chart bitmap | `pages/Reports/nurses/NurseDistributionChart.tsx` + `nurses/nurseChartSnapshot.ts` |
 | Route permission | `src/renderer/src/lib/routes.ts` (`view_reports`) |
 | Sidebar entry | `src/renderer/src/lib/navigation.ts` |
 | API mount | `src/app/routes/api.routes.ts` → `/reports/v2` before `/reports` |

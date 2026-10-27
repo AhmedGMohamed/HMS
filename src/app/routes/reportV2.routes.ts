@@ -98,4 +98,33 @@ router.get(
 	(req, res) => ReportV2Controller.listDoctors(req, res)
 );
 
+/* ------------------------------------------------------------------ */
+/* Nurse report                                                        */
+/* ------------------------------------------------------------------ */
+
+// Static segments first: `/nurses/export` must not be read as an id.
+router.get(
+	"/nurses/export",
+	verifyToken,
+	checkPermissions(["view_reports", "manage_reports"]),
+	auditLogger,
+	(req, res) => ReportV2Controller.exportNurses(req, res)
+);
+
+router.get(
+	"/nurses/:nurseId",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.getNurse(req, res)
+);
+
+router.get(
+	"/nurses",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.listNurses(req, res)
+);
+
 export default router;

@@ -283,7 +283,10 @@ export interface NurseDetailDTO {
 export interface NurseExportRow {
 	nurse_id: number;
 	nurse_name: string;
-	summary: { patients: number; days: number; hours: number };
+	/** Per-nurse roll-up. Named `totals` (not `summary`) so it cannot be
+	 * confused with the envelope's whole-set `summary`; same as the doctor
+	 * export row. */
+	totals: { patients: number; days: number; hours: number };
 	patients: NursePatientRow[];
 	daily_assignments: NurseDailyAssignment[];
 }

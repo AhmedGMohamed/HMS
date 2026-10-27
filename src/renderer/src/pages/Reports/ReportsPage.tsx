@@ -35,6 +35,7 @@ import { ReportsTabs } from "@/pages/Reports/components/ReportsTabs"
 import { TabPlaceholder } from "@/pages/Reports/components/TabPlaceholder"
 import { useReportOptions } from "@/pages/Reports/hooks/useReportOptions"
 import { DoctorReportTab } from "@/pages/Reports/doctors/DoctorReportTab"
+import { NurseReportTab } from "@/pages/Reports/nurses/NurseReportTab"
 import { PatientReportTab } from "@/pages/Reports/patients/PatientReportTab"
 import { validateDraft } from "@/pages/Reports/state/reportParams"
 import { TAB_META } from "@/pages/Reports/state/tabMeta"
@@ -100,6 +101,22 @@ export default function ReportsPage() {
             onGenerate={handleGenerate}
             validationError={isActive ? validationError : null}
             doctors={options.doctors}
+            session={session}
+            canExport={canExport}
+          />
+        ) : tab === "nurses" ? (
+          <NurseReportTab
+            title={t(tabMeta.labelKey)}
+            description={t(tabMeta.descriptionKey)}
+            draft={url.draft}
+            onDraftChange={url.setDraft}
+            generated={isActive ? url.generated : null}
+            generatedKey={isActive ? url.generatedKey : null}
+            isGenerated={isActive && url.isGenerated}
+            isStale={isActive && url.isStale}
+            onGenerate={handleGenerate}
+            validationError={isActive ? validationError : null}
+            nurses={options.nurses}
             session={session}
             canExport={canExport}
           />
