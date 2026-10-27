@@ -17,6 +17,21 @@
 
 import { api } from "@/lib/api"
 import type {
+  DoctorQueryFilters,
+  DoctorQueryPaging,
+  DoctorPatientSortColumn,
+  DoctorReportDetailPayload,
+  DoctorReportExportPayload,
+  DoctorReportListPayload,
+  DoctorSortColumn,
+} from "@/pages/Reports/types/doctorReport"
+import {
+  DOCTOR_PATIENT_SORT_COLUMNS,
+  DOCTOR_SORT_COLUMNS,
+  isDoctorPatientSortColumn,
+  isDoctorSortColumn,
+} from "@/pages/Reports/types/doctorReport"
+import type {
   PatientQueryFilters,
   PatientQueryPaging,
   PatientReportDetail,
@@ -109,5 +124,110 @@ export function exportPatients(
   return api.get<PatientReportExportPayload>("/reports/v2/patients/export", {
     ...patientParams(filters),
     ...sortParam(paging),
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* Doctor report                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for every doctor endpoint.
+ *
+ * `relationship` is always sent (the server defaults to `referred`, but an
+ * explicit value keeps URLs and logs self-describing). `doctor_id` is only
+ * sent when a single doctor was chosen — in all-report mode the server must
+ * see no id at all.
+ */
+function doctorParams(filters: DoctorQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    relationship: filters.relationship,
+    doctor_id: filters.doctorId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a doctor-table column id to the server's list sort key. */
+function doctorSortParam(paging: DoctorQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isDoctorSortColumn(columnId)) return {}
+  return {
+    sort: DOCTOR_SORT_COLUMNS[columnId as DoctorSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** Maps a patient-table column id to the server's detail sort key. */
+function doctorPatientSortParam(paging: DoctorQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isDoctorPatientSortColumn(columnId)) return {}
+  return {
+    sort: DOCTOR_PATIENT_SORT_COLUMNS[columnId as DoctorPatientSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/v2/doctors` — one page of doctors + whole-set summary. */
+export function getDoctors(
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging
+): Promise<DoctorReportListPayload> {
+  return api.get<DoctorReportListPayload>("/reports/v2/doctors", {
+    ...doctorParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...doctorSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/v2/doctors/:doctorId` — doctor header + one page of
+ * patients.
+ *
+ * The filters carry `search` (patient name) but not `doctorId`: the id is in
+ * the path, and sending it twice invites them to disagree.
+ */
+export function getDoctorDetail(
+  doctorId: number,
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging
+): Promise<DoctorReportDetailPayload> {
+  // The id lives in the path; sending it twice invites them to disagree.
+  const params = doctorParams({ ...filters, doctorId: null })
+  return api.get<DoctorReportDetailPayload>(
+    `/reports/v2/doctors/${doctorId}`,
+    {
+      ...params,
+      page: paging.page,
+      page_size: paging.pageSize,
+      ...doctorPatientSortParam(paging),
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/v2/doctors/export` — every matching doctor.
+ *
+ * The endpoint only sorts by doctor-list keys, so the caller passes list
+ * paging even when the visible table is the patient table. Admissions are
+ * attached only for a single-doctor document (specific mode).
+ */
+export function exportDoctors(
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging,
+  includeAdmissions: boolean
+): Promise<DoctorReportExportPayload> {
+  return api.get<DoctorReportExportPayload>("/reports/v2/doctors/export", {
+    ...doctorParams(filters),
+    ...doctorSortParam(paging),
+    include_admissions: includeAdmissions ? true : undefined,
   })
 }

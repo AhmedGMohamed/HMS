@@ -101,6 +101,15 @@ export interface DataTableProps<T> {
   renderExpanded?: (row: T) => React.ReactNode
   /** Whether the expand toggle is disabled for a given row. */
   isRowExpandable?: (row: T) => boolean
+  /**
+   * Optional band rendered between the table and the pagination footer.
+   *
+   * Used by the report tabs for a totals row: the API returns whole-set
+   * aggregates that must not be re-summed client-side from the visible page,
+   * and a `<tfoot>` inside this component would need column alignment the
+   * generic table cannot know about.
+   */
+  footer?: React.ReactNode
 }
 
 const ALIGN_CLASS: Record<
@@ -149,6 +158,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onExpandedChange,
     renderExpanded,
     isRowExpandable,
+    footer,
   } = props
 
   const { t } = useTranslation()
@@ -421,6 +431,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           </Table>
         </div>
       </CardContent>
+      {footer ? <div className="border-t border-border">{footer}</div> : null}
       {showPagination && pagination ? (
         <DataTablePagination
           page={pagination.page}

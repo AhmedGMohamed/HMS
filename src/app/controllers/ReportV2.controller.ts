@@ -19,12 +19,17 @@
 import { Request, Response } from "express";
 
 import OptionsReportModel from "../models/reports/OptionsReport.model.js";
+import DoctorReportModel, {
+	DOCTOR_PATIENT_SORT_COLUMNS,
+	DOCTOR_SORT_COLUMNS,
+} from "../models/reports/DoctorReport.model.js";
 import PatientReportModel, {
 	PATIENT_SORT_COLUMNS,
 } from "../models/reports/PatientReport.model.js";
 import {
 	NotFoundError,
 	ReportValidationError,
+	parseBooleanParam,
 	parseDateRange,
 	parseEnumParam,
 	parseOptionalId,
@@ -164,6 +169,97 @@ export class ReportV2Controller {
 			sendError(res, error, "export patient report");
 		}
 	}
+
+	/* -------------------------------------------------------------- */
+	/* Doctor report                                                   */
+	/* -------------------------------------------------------------- */
+
+	/**
+	 * `GET /api/reports/v2/doctors`
+	 *
+	 * Query: `start_date`, `end_date`, `relationship`, `doctor_id`, `search`,
+	 * `page`, `page_size`, `sort`, `dir`.
+	 */
+	async listDoctors(req: Request, res: Response) {
+		try {
+			const filters = parseDoctorFilters(req.query);
+			const paging = parsePaging(req.query);
+			const sort = parseSort(req.query, DOCTOR_SORT_COLUMNS, "name");
+
+			const payload = await DoctorReportModel.listDoctors({
+				...filters,
+				paging,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "load doctor report");
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/doctors/:doctorId`
+	 *
+	 * The doctor's header + summary and one page of their patients. `search`
+	 * narrows the patients by name (the doctor is already fixed by the route).
+	 */
+	async getDoctor(req: Request, res: Response) {
+		try {
+			const doctorId = parseRequiredId(req.params.doctorId, "doctorId");
+			const range = parseDateRange(req.query);
+			const relationship =
+				parseEnumParam(
+					req.query.relationship,
+					DOCTOR_RELATIONSHIPS,
+					"relationship",
+					"referred"
+				) ?? "referred";
+			const paging = parsePaging(req.query);
+			const sort = parseSort(req.query, DOCTOR_PATIENT_SORT_COLUMNS, "name");
+
+			const payload = await DoctorReportModel.getDoctorDetail(doctorId, {
+				range,
+				relationship,
+				search: parseSearch(req.query),
+				paging,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(
+				res,
+				error,
+				"load doctor report details",
+				"Doctor not found"
+			);
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/doctors/export`
+	 *
+	 * Same filters as the list, no paging. `include_admissions` only has an
+	 * effect together with `doctor_id` (the single-doctor document).
+	 */
+	async exportDoctors(req: Request, res: Response) {
+		try {
+			const filters = parseDoctorFilters(req.query);
+			const sort = parseSort(req.query, DOCTOR_SORT_COLUMNS, "name");
+			const includeAdmissions = parseBooleanParam(
+				req.query.include_admissions,
+				false
+			);
+
+			const payload = await DoctorReportModel.exportDoctors({
+				...filters,
+				sort,
+				includeAdmissions,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "export doctor report");
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -172,6 +268,9 @@ export class ReportV2Controller {
 
 /** Payment types the report accepts (`all`/absent means no filter). */
 const PATIENT_PAYMENT_TYPES = ["cash", "credit", "insurance"] as const;
+
+/** Doctor relationship populations (plan §3.5.3). */
+const DOCTOR_RELATIONSHIPS = ["referred", "attended", "supervised"] as const;
 
 /**
  * Shared filter parsing for the list and export endpoints.
@@ -196,6 +295,30 @@ function parsePatientFilters(query: Record<string, unknown>) {
 		range,
 		paymentType,
 		insuranceId,
+		search: parseSearch(query),
+	};
+}
+
+/**
+ * Shared doctor filter parsing for the list and export endpoints.
+ *
+ * `relationship` defaults to `referred` (the legacy default tab) rather than
+ * erroring, so an old link without the param still renders a report.
+ */
+function parseDoctorFilters(query: Record<string, unknown>) {
+	const range = parseDateRange(query);
+	const relationship =
+		parseEnumParam(
+			query.relationship,
+			DOCTOR_RELATIONSHIPS,
+			"relationship",
+			"referred"
+		) ?? "referred";
+
+	return {
+		range,
+		relationship,
+		doctorId: parseOptionalId(query.doctor_id, "doctor_id"),
 		search: parseSearch(query),
 	};
 }

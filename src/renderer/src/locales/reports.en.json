@@ -173,13 +173,22 @@
       "reportType": "Report Type",
       "selectDoctor": "Select Doctor",
       "selectDoctorPlaceholder": "Select a doctor",
+      "chartTitle": "Patients per Doctor",
+      "chartCaption": "This page only. The PDF export lists every doctor with their share of the total.",
+      "assignmentsHint": "{{count}} patient-doctor assignments",
+      "dedupeNote": "Patients are counted once here. A patient seen by several doctors counts once in each doctor's row, for {{count}} unique patients in total.",
       "types": {
         "allReferring": "All Referring Doctors",
         "specificReferring": "Specific Referring Doctor",
         "allAttending": "All Attending Doctors",
         "specificAttending": "Specific Attending Doctor",
+        "allSupervised": "All Supervised Doctors",
         "specificSupervising": "Specific Supervising Doctor"
       }
+    },
+    "doctorDetail": {
+      "title": "Doctor Report",
+      "patients": "Patients of this doctor"
     },
     "nurseReports": {
       "filterTitle": "Nurse Report Options",
@@ -239,6 +248,7 @@
     },
     "summary": {
       "totalPatients": "Total Patients",
+      "uniquePatients": "Unique Patients",
       "admissions": "Admissions",
       "totalDoctors": "Total Doctors",
       "totalNurses": "Total Nurses",
@@ -388,6 +398,9 @@
       "noClockInRecord": "No clock-in record for this date"
     },
     "table": {
+      "doctor": "Doctor",
+      "doctorType": "Doctor Type",
+      "patients": "Patients",
       "patientName": "Patient Name",
       "nationalId": "National ID",
       "gender": "Gender",
@@ -434,6 +447,7 @@
       "noPatientsFound": "No Patients Found",
       "noPatientsDescription": "No patients match the selected criteria",
       "noDataFound": "No Data Found",
+      "noDoctorsFound": "No Doctors Found",
       "noDoctorsDescription": "No doctors match the selected criteria",
       "noNursesDescription": "No nurses match the selected criteria",
       "noEmployeePaymentsDescription": "No employee payments found for the selected criteria",

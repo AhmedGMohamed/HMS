@@ -53,6 +53,7 @@ import {
 	type PagingQuery,
 	type SortDirection,
 	likePattern,
+	rangeEndLocalDate,
 	toDbDateOnly,
 	toTimestampString,
 } from "./shared.js";
@@ -171,12 +172,17 @@ const AGG_FROM = `
 /* ------------------------------------------------------------------ */
 
 /** Maps one raw aggregate row to the wire shape (money coerced, age derived). */
-function toPatientRow(raw: Record<string, unknown>): PatientReportRow {
+function toPatientRow(
+	raw: Record<string, unknown>,
+	referenceDate?: Date
+): PatientReportRow {
 	const nationalId =
 		raw.national_id === null || raw.national_id === undefined
 			? null
 			: String(raw.national_id);
-	const derived = parseEgyptianNationalId(nationalId);
+	// Age is measured against the report's end date, not "now", so reprinting
+	// a report months later yields the same number.
+	const derived = parseEgyptianNationalId(nationalId, referenceDate);
 
 	const totalBilled = toMoneyNumber(raw.total_billed);
 	const totalPaid = toMoneyNumber(raw.total_paid);
@@ -262,7 +268,9 @@ export default class PatientReportModel {
 		// definition, and it is already being fetched.
 		return {
 			summary,
-			data: pageResult.rows.map(toPatientRow),
+			data: pageResult.rows.map((row) =>
+				toPatientRow(row, rangeEndLocalDate(input.range))
+			),
 			total: summary.total_patients,
 			page: input.paging.page,
 			page_size: input.paging.pageSize,
@@ -313,7 +321,9 @@ export default class PatientReportModel {
 			PatientReportModel.getSummary(input),
 		]);
 
-		const rows = rowsResult.rows.map(toPatientRow);
+		const rows = rowsResult.rows.map((row) =>
+			toPatientRow(row, rangeEndLocalDate(input.range))
+		);
 
 		return {
 			generated_at: new Date().toISOString(),
@@ -338,7 +348,33 @@ export default class PatientReportModel {
 	): Promise<PatientReportExportRow[]> {
 		if (rows.length === 0) return [];
 
-		const patientIds = rows.map((row) => row.patient_id);
+		const byPatient = await PatientReportModel.getAdmissionsByPatient(
+			rows.map((row) => row.patient_id),
+			range
+		);
+
+		return rows.map((row) => ({
+			...row,
+			admissions: byPatient.get(row.patient_id) ?? [],
+		}));
+	}
+
+	/**
+	 * Every admission in range for a set of patients, with its billed items
+	 * and daily staff — **three** queries regardless of how many patients or
+	 * admissions are involved.
+	 *
+	 * Public because the doctor report export (6.11.2) prints the same
+	 * admission blocks for a single doctor's patients; reusing this keeps the
+	 * `ANY(ids)` shape and prevents a second, drifting implementation.
+	 */
+	static async getAdmissionsByPatient(
+		patientIds: number[],
+		range: DateRangeQuery
+	): Promise<Map<number, PatientReportAdmission[]>> {
+		const byPatient = new Map<number, PatientReportAdmission[]>();
+		if (patientIds.length === 0) return byPatient;
+
 		const admissionRows = await PatientReportModel.getAdmissionsForPatients(
 			patientIds,
 			range
@@ -352,7 +388,6 @@ export default class PatientReportModel {
 			PatientReportModel.getStaffByPatient(patientIds, range),
 		]);
 
-		const byPatient = new Map<number, PatientReportAdmission[]>();
 		for (const row of admissionRows) {
 			const patientId = Number(row.patient_id);
 			const staffByDate =
@@ -368,10 +403,7 @@ export default class PatientReportModel {
 			else byPatient.set(patientId, [admission]);
 		}
 
-		return rows.map((row) => ({
-			...row,
-			admissions: byPatient.get(row.patient_id) ?? [],
-		}));
+		return byPatient;
 	}
 
 	/**
@@ -507,29 +539,32 @@ export default class PatientReportModel {
 
 		// The summary line mirrors the list row, so drilling in from the table
 		// and opening the same patient directly show identical totals.
-		const patient: PatientReportRow = toPatientRow({
-			...patientColumns,
-			admissions_count: admissions.length,
-			first_admission: admissions.reduce<string | null>(
-				(first, admission) =>
-					admission.admission_time && (!first || admission.admission_time < first)
-						? admission.admission_time
-						: first,
-				null
-			),
-			last_admission: admissions.reduce<string | null>(
-				(last, admission) =>
-					admission.admission_time && (!last || admission.admission_time > last)
-						? admission.admission_time
-						: last,
-				null
-			),
-			has_active_admission: admissions.some(
-				(admission) => admission.discharge_time === null
-			),
-			total_billed: totalBilled,
-			total_paid: totalPaid,
-		});
+		const patient: PatientReportRow = toPatientRow(
+			{
+				...patientColumns,
+				admissions_count: admissions.length,
+				first_admission: admissions.reduce<string | null>(
+					(first, admission) =>
+						admission.admission_time && (!first || admission.admission_time < first)
+							? admission.admission_time
+							: first,
+					null
+				),
+				last_admission: admissions.reduce<string | null>(
+					(last, admission) =>
+						admission.admission_time && (!last || admission.admission_time > last)
+							? admission.admission_time
+							: last,
+					null
+				),
+				has_active_admission: admissions.some(
+					(admission) => admission.discharge_time === null
+				),
+				total_billed: totalBilled,
+				total_paid: totalPaid,
+			},
+			rangeEndLocalDate(range)
+		);
 
 		return { patient, admissions };
 	}

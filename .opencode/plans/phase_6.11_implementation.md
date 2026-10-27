@@ -518,22 +518,179 @@ Single-patient print re-checked after the rewire: 2 admissions → 2 item tables
 2 staff tables with one page break between them; `admissionId` narrows the
 document to 1 block and removes the break.
 
-### 8.7 Continue here — 6.11.2 Doctor report
+### 8.7 Continue here — 6.11.3 Nurse report
 
-1. `models/reports/DoctorReport.model.ts` — **2 queries**: (a) per-doctor aggregate over `PatientHistory` joined to `Bill` and grouped by the doctor relationship (`referring` / `attending` / `supervising` via `DailyStaffAssignment`), (b) the detail/admissions query for the selected doctor. Reuse `parseDateRange` / `parseSort` / `parsePaging` / `likePattern` from `shared.ts`; reuse the admissions-CTE pattern in `PatientReport.model.ts`. If the doctor export must also carry admissions, reuse `attachAdmissions`'s `ANY(ids)` shape (§8.5, contract 13) — do not add a per-doctor query.
-2. Routes `/doctors/export` → `/doctors/:doctorId` → `/doctors`; controller `listDoctors` / `getDoctor` / `exportDoctors`; export behind `manage_reports`.
-3. Frontend: `doctors/DoctorReportTab.tsx` + `doctorColumns.tsx` + `DoctorDetailDialog.tsx`; copy the `usePatientReport` pattern (filter key, keep-previous payload, `generatedKey` paging) into `hooks/useDoctorReport.ts`; PDF/CSV under `export/`. The doctor picker filter already exists in `reportParams.ts`.
-4. i18n: add only the keys the tab actually uses; verify parity with the key-diff script, not `check-i18n` alone (it truncates and misses template-literal keys).
+Plan §3.5.4 (contract), §3.4 "Nurse queries" (SQL), §5.3 (UX), §6.11.3 (gates).
+
+1. **Backend** — `models/reports/NurseReport.model.ts` (+ `utils/types/reportV2.d.ts` DTOs, controller, routes with `/nurses/export` → `/nurses/:nurseId` → `/nurses`):
+   - list: `Employee e WHERE employee_type='nurse' AND EXISTS (in-range DSA)`; aggregate
+     `COUNT(DISTINCT dsa.patient_id)`, `COUNT(DISTINCT dsa.work_date)`, `SUM(dsa.hours_worked)`,
+     `MAX(dsa.work_date)`; sort `name|patients|days|hours`; pagination.
+   - detail: per-patient aggregate over DSA in range, with `diagnosis` / last admission+discharge
+     from a `LATERAL` latest overlapping admission (**not** `MAX(diagnosis)`); plus one
+     un-paged query for the daily assignments (group by date in JS).
+   - export: same rows, no paging, `{ generated_at, range, summary, data }`.
+   - Do not re-derive `hours_worked`: it is the stored `DailyStaffAssignment` value (§3.7).
+2. **Frontend** — copy the doctor tab's shape (`doctors/DoctorReportTab.tsx`), not the patient
+   tab's: `NurseReportTab`, `nurseColumns`, `NursePatientTable`, `nurseChartSnapshot`,
+   `export/pdf/buildNurseReportPdf.ts`, `export/csv/exportNurseReportCsv.ts`; reuse
+   `DoctorTotalsBand`'s pattern for the totals strip, `PatientDetailDialog` for drill-down and
+   `ChartSnapshotSurface` for the chart bitmap.
+   Report-type select = 2 options (`all-nurses`, `specific-nurse`) — the scope/relationship
+   encoding in `reportParams.ts` already carries `scope` + `nurseId`, so no URL change is needed.
+3. **Chart** — hours per nurse; denominator for the PDF is **all** nurses (zero-safe share helper
+   from `buildDoctorReportPdf.ts`), the screen version covers the current page (§9, contract 21).
+4. **i18n** — the `reports.nurseReports.*` keys exist except the ones the tab will need
+   (`chartTitle`, `chartCaption`, `types.allNurses` label revisit, `assignmentsHint` analogue for
+   days/hours). Verify with `check-reports-i18n.cjs`, not `check-i18n` alone (§8.1, item 4).
 
 ---
 
-## 9. Quick reference — surface map (6.11.0 + 6.11.1)
+## 9. 6.11.2 — Doctor report (as built)
+
+### 9.1 What shipped
+
+**Backend (additive, under `/api/reports/v2/doctors`):**
+
+| File | Role |
+|---|---|
+| `src/app/models/reports/DoctorReport.model.ts` | `buildPairsCte(relationship)` builds **one row per (doctor, patient, admission)** — that is what keeps every aggregate a plain `COUNT`/`SUM` with no fan-out. `FILTERED_CTE` applies range/doctor/search, `DOCTOR_AGG_CTE` rolls up per doctor. `listDoctors` = rows + summary (2 queries); `getDoctorDetail` = header + patient page + summary; `exportDoctors` = rows + summary (+ `getPairRefs` when `include_admissions`), then reuses `PatientReportModel.getPatientsByDoctor`'s admission/item/staff shapes. |
+| `src/app/controllers/ReportV2.controller.ts` | `listDoctors`, `getDoctor`, `exportDoctors`, `parseDoctorFilters`. |
+| `src/app/routes/reportV2.routes.ts` | `GET /doctors/export` → `/doctors/:doctorId` → `/doctors` (order matters). |
+| `src/app/utils/types/reportV2.d.ts` | `DoctorReportSummary`, `DoctorReportRow`, `DoctorPatientRow`, `DoctorReportListResponse`, `DoctorReportDetailDTO`, `DoctorExportRow`, `DoctorReportExportPayload`. |
+
+Sort maps: `DOCTOR_SORT_COLUMNS` (`name|patients|admissions|billed|paid`, default `name`) and
+`DOCTOR_PATIENT_SORT_COLUMNS` (`name|admissions|billed|paid|last_admission`).
+
+Specs: `ReportV2.doctor.spec.ts` (**29/29**) and `ReportV2.doctor.controller.spec.ts` (**12/12**);
+`clearDoctorPatientHistory()` added to `tests/helpers/db.helper.ts` so the relationship fixtures
+stay independent.
+
+**Frontend:**
+
+```
+pages/Reports/
+├── types/doctorReport.ts              # camelCase wire types + DOCTOR_*_SORT maps
+├── api.ts                             # getDoctors / getDoctorDetail / exportDoctors + doctorParams
+├── hooks/useDoctorReport.ts           # list query (filter key, keep-previous paging)
+├── hooks/useDoctorDetail.ts           # doctor + patient page query
+├── doctors/DoctorReportTab.tsx        # filters, both modes, exports, snapshot, dialogs
+├── doctors/doctorColumns.tsx          # 6 column defs (name/type/patients/admissions/billed/paid)
+├── doctors/DoctorPatientTable.tsx     # 9-column per-doctor patient table + paging
+├── doctors/DoctorTotalsBand.tsx       # totals strip + optional dedupe note
+├── doctors/DoctorDistributionChart.tsx# horizontal bar chart + distribution card
+├── doctors/doctorChartSnapshot.ts     # English labels for the PDF bitmap
+├── doctors/DoctorDetailDialog.tsx     # doctor header + patient table, row drill-down
+└── export/
+    ├── pdf/buildDoctorReportPdf.ts    # summary → distribution → index → per-doctor sections
+    └── csv/exportDoctorReportCsv.ts   # one row per (doctor, patient) + optional admissions
+```
+
+`ReportsPage` renders `DoctorReportTab` for `tab === "doctors"`; `DataTable` grew a `footer` prop
+(rendered under the table, inside the card) so the totals band does not need a second table.
+
+### 9.2 Contracts that 6.11.2 added (continues §8.2)
+
+18. **Two patient totals, deliberately different.** `total_patients` /
+    `total_admissions` / billed / paid in the summary are **deduplicated across doctors**;
+    `total_patient_assignments` is the **sum of the per-doctor `patients_count`**. A patient seen
+    by three doctors is one patient and three assignments. The KPI card shows the unique count
+    with a `reports.doctorReports.assignmentsHint` sub-label; the table footer uses the
+    **additive** figure (it sums the column) and carries `dedupeNote` to explain the gap.
+    Never "fix" one of the two to match the other.
+19. **Relationship → join semantics.**
+
+    | `relationship` | Pairs come from | Extra filter |
+    |---|---|---|
+    | `referred` | `Patient.referring_doctor_id` | — |
+    | `attended` | `PatientHistory.attending_doctor_id` | — (attending, outside, supervising, `NULL` type) |
+    | `supervised` | same join as `attended` | `d.doctor_type = 'supervising'` |
+
+    A non-supervising doctor id with `relationship=supervised` is a **400**, not an empty report.
+20. **`search` means one thing per mode.** All-doctors mode searches **doctor names**; specific
+    mode searches **patients**. Changing the report type therefore clears `search`, and keeps the
+    selected doctor only if `doctorsForRelationship()` still lists them. Generate is blocked with
+    `reports.validation.selectDoctor` when a specific report has no doctor.
+21. **The distribution denominator differs between screen and paper — and says so.** The
+    on-screen chart draws the **current page** (`chartCaption`: "This page only…"), the PDF prints
+    a table over **every** doctor plus a bitmap of that same all-doctor chart. `sharePercent()`
+    returns `-` for a 0 denominator, so an empty report can never print `NaN%`.
+22. **Admission detail is single-doctor only.** `include_admissions` is honoured **only** when
+    `doctor_id` is present; the attached admissions are doctor-scoped through `getPairRefs`, so a
+    doctor's document never shows a colleague's admissions for the same patient.
+23. **Exports are English-only** (`formatEnGbDate` / `formatMoneyEn` / `formatCurrencyEn`,
+    `openPdfShellDoc` chrome), same as Vault 6.9 / Insurance 6.10 / Patient 6.11.1.
+24. **Export shapes.** PDF: period → summary (incl. *Patient-Doctor Assignments*) → distribution
+    (skipped for a one-doctor document) → index table with TOTALS → one page per doctor with their
+    patient table (and, if attached, admission detail). CSV: **one row per (doctor, patient)** with
+    the doctor totals repeated, so `SUM` over the file equals the additive figure; a second
+    `Admissions` section appears only when the export carried admissions.
+25. **Snapshot capture is best-effort.** `ChartSnapshotSurface` + `waitForSnapshotRoot(900 ms)`
+    poll for the off-screen chart, `captureChartSnapshots` returns a `name → dataUrl` map; a failed
+    capture only drops the image — the PDF still prints the distribution table.
+
+### 9.3 Deviations from the plan for this tab
+
+| Plan | As built | Why |
+|---|---|---|
+| Doctor export reuses the page's admission payload | `exportDoctors` runs **3** queries (rows, summary, refs) and only attaches admissions for a single doctor | An all-doctors document prints no admission sections; attaching them would multiply the payload for data no page renders |
+| 6 relationship options implied by "referred / attended / supervised" | 6 explicit options in one select (`all-referred` … `specific-supervised`), 2 of them new labels | The select encodes **both** scope and relationship, so one control drives mode + join |
+| Distribution chart only | Chart **and** a printed distribution table | A bitmap is unreadable for a long doctor list and impossible to sum; the table is the auditable artifact |
+| Separate patient dialog for doctor drill-down | Shared `PatientDetailDialog` (`canExport`, real print handlers via `buildPatientDetailPdf`) | One patient document, not two |
+
+### 9.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend model specs | `npx tsc -p ./src/app/tsconfig.json` → `$env:NODE_ENV="test"; npx jasmine --filter="doctor report"` | 29/29 |
+| Backend controller specs | same, `--filter="ReportV2DoctorController"` | 12/12 |
+| API smoke (live server) | `doctor-api-smoke.cjs` over all three relationships | list/detail/export all 200; `supervised` + referring id → **400**; end-before-start → **400** |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | 5 errors, all pre-existing `pages/Employees` (§6) |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/lib/pdf src/renderer/src/components/common/DataTable.tsx` | Clean |
+| Renderer unit | `npm run test:renderer` | **33/33** (7 new in `test/doctorReportExport.spec.ts`) |
+| Bundle | `npm run build:renderer` | OK |
+| i18n | `check-reports-i18n.cjs` | `reports.*` missing = 0 in both locales |
+
+Live Playwright pass (**29/29**, Admin JWT, Express :3000 + Vite :5173), EN and AR/RTL:
+
+- all six report types present; `all-attended` generates over `2020-01-01 … 2030-12-31`;
+  KPIs (`Total Doctors`, `Unique Patients` + "2 patient-doctor assignments"), distribution card,
+  TOTALS band, **no `NaN` anywhere**;
+- CSV download `doctor-report_2020-01-01_2030-12-31.csv` — 3 lines (header + 1 row per
+  doctor-patient), `Doctor Name` first column;
+- `Export PDF` → `200` on `/doctors/export`, **no error toast**; the document itself was verified
+  in-page (`loadPdfMake` + `buildPdfShellDoc` + `doctorReportDocContent` → `getBuffer`):
+  **29,436 bytes, header `%PDF-`**. pdfmake's `open()` leaves an `about:blank` popup in headless
+  Chromium (pre-existing behaviour since the first PDF work), so the popup is *not* a useful
+  assertion — the buffer is;
+- specific mode: doctor picker populated, table + TOTALS, no distribution card, row click opens the
+  shared patient dialog;
+- changing the report type clears `search` and drops an ineligible doctor; Generate without a
+  doctor shows `select a doctor`; `referred` (empty in the dev DB) shows the no-doctors state
+  with no `NaN`;
+- AR page has `dir=rtl`, Arabic KPI/chart labels, no `NaN`. **Zero console errors** in both
+  locales.
+
+**Two defects found and fixed during the pass:**
+
+1. `reports.doctorReports.chartCaption` interpolated `{{count}}`, so a single-doctor-page report
+   read "lists all **1 doctors**". The string is now count-free ("lists every doctor with their
+   share of the total") in both locales and the tab no longer passes `count`.
+2. The PDF chart labels lived in `DoctorDistributionChart.tsx`, which broke
+   `react-refresh/only-export-components`. Moved to `doctors/doctorChartSnapshot.ts`.
+
+---
+
+## 10. Quick reference — surface map (6.11.0 + 6.11.1 + 6.11.2)
 
 | Surface | File |
 |---|---|
 | Page entry (lazy, `reports` namespace) | `src/renderer/src/App.tsx` → `pages/Reports/ReportsPage` |
 | Patient tab (6.11.1) | `pages/Reports/patients/PatientReportTab.tsx` + `models/reports/PatientReport.model.ts` |
 | Patient exports (index + per-admission sections) | `pages/Reports/export/pdf/buildPatientReportPdf.ts`, `export/pdf/patientReportSections.ts`, `export/csv/exportPatientReportCsv.ts` |
+| Doctor tab (6.11.2) | `pages/Reports/doctors/DoctorReportTab.tsx` + `models/reports/DoctorReport.model.ts` |
+| Doctor exports (distribution + index + per-doctor) | `pages/Reports/export/pdf/buildDoctorReportPdf.ts`, `export/csv/exportDoctorReportCsv.ts` |
+| Doctor chart bitmap | `pages/Reports/doctors/DoctorDistributionChart.tsx` + `lib/chartSnapshot.ts` |
 | Route permission | `src/renderer/src/lib/routes.ts` (`view_reports`) |
 | Sidebar entry | `src/renderer/src/lib/navigation.ts` |
 | API mount | `src/app/routes/api.routes.ts` → `/reports/v2` before `/reports` |

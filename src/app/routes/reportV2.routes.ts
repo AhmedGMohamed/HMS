@@ -69,4 +69,33 @@ router.get(
 	(req, res) => ReportV2Controller.listPatients(req, res)
 );
 
+/* ------------------------------------------------------------------ */
+/* Doctor report                                                       */
+/* ------------------------------------------------------------------ */
+
+// Static segments first: `/doctors/export` must not be read as an id.
+router.get(
+	"/doctors/export",
+	verifyToken,
+	checkPermissions(["view_reports", "manage_reports"]),
+	auditLogger,
+	(req, res) => ReportV2Controller.exportDoctors(req, res)
+);
+
+router.get(
+	"/doctors/:doctorId",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.getDoctor(req, res)
+);
+
+router.get(
+	"/doctors",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.listDoctors(req, res)
+);
+
 export default router;

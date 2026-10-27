@@ -34,6 +34,7 @@ import { usePermission } from "@/hooks/usePermission"
 import { ReportsTabs } from "@/pages/Reports/components/ReportsTabs"
 import { TabPlaceholder } from "@/pages/Reports/components/TabPlaceholder"
 import { useReportOptions } from "@/pages/Reports/hooks/useReportOptions"
+import { DoctorReportTab } from "@/pages/Reports/doctors/DoctorReportTab"
 import { PatientReportTab } from "@/pages/Reports/patients/PatientReportTab"
 import { validateDraft } from "@/pages/Reports/state/reportParams"
 import { TAB_META } from "@/pages/Reports/state/tabMeta"
@@ -83,6 +84,22 @@ export default function ReportsPage() {
             onGenerate={handleGenerate}
             validationError={isActive ? validationError : null}
             insuranceCompanies={options.insuranceCompanies}
+            session={session}
+            canExport={canExport}
+          />
+        ) : tab === "doctors" ? (
+          <DoctorReportTab
+            title={t(tabMeta.labelKey)}
+            description={t(tabMeta.descriptionKey)}
+            draft={url.draft}
+            onDraftChange={url.setDraft}
+            generated={isActive ? url.generated : null}
+            generatedKey={isActive ? url.generatedKey : null}
+            isGenerated={isActive && url.isGenerated}
+            isStale={isActive && url.isStale}
+            onGenerate={handleGenerate}
+            validationError={isActive ? validationError : null}
+            doctors={options.doctors}
             session={session}
             canExport={canExport}
           />
