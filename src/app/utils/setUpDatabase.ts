@@ -17,7 +17,14 @@ export async function createDBIfNotExists(dbName: string) {
 	}
 }
 
-async function initDB() {
+/**
+ * Applies the authoritative schema + baseline seed rows.
+ *
+ * Exported so the test bootstrap can build `HMS_test` from the same DDL the
+ * application uses — `db.helper.ts`'s old hand-maintained copy had drifted
+ * (missing bill scope columns, forward references, malformed statements).
+ */
+export async function initDB() {
 	return await query(`
 		-- Create Enum Types First
 		CREATE TYPE gender_type AS ENUM ('male', 'female', 'other');
@@ -40,14 +47,6 @@ async function initDB() {
 		CREATE TYPE shift_type AS ENUM ('morning', 'night');
 		CREATE TYPE vat_scope_type AS ENUM ('services', 'drugs', 'both');
 		CREATE TYPE vault_manual_payment_type AS ENUM ('addition', 'deduction');
-		-- Function Used for patient default pricelise_id on creation
-		CREATE OR REPLACE FUNCTION get_default_pricelist_id() 
-		RETURNS INTEGER LANGUAGE sql STABLE AS $$
-		    SELECT pricelist_id 
-		    FROM PriceList 
-		    WHERE is_default = true 
-		    LIMIT 1;
-		$$;
 		-- Core tables
 		CREATE TABLE IF NOT EXISTS Role (
 			role_id SERIAL PRIMARY KEY,
@@ -76,6 +75,17 @@ async function initDB() {
 			name VARCHAR(255) NOT NULL,
 			is_default BOOLEAN DEFAULT false
 		);
+		-- Function used for the patient default pricelist_id on creation.
+		-- Declared after PriceList: an SQL-language function body is validated
+		-- at creation time, so referencing the table before it exists made a
+		-- fresh install fail with: relation "pricelist" does not exist.
+		CREATE OR REPLACE FUNCTION get_default_pricelist_id()
+		RETURNS INTEGER LANGUAGE sql STABLE AS $$
+		    SELECT pricelist_id
+		    FROM PriceList
+		    WHERE is_default = true
+		    LIMIT 1;
+		$$;
 		-- Employee Management
 		CREATE TABLE IF NOT EXISTS Employee (
 			employee_id SERIAL PRIMARY KEY,
@@ -171,16 +181,6 @@ async function initDB() {
 			referring_doctor_id INTEGER REFERENCES Doctor(doctor_id),
 			created_by_user_id INTEGER REFERENCES "User"(user_id)
 		);
-		CREATE TABLE IF NOT EXISTS ActivePatientService (
-			active_service_id SERIAL PRIMARY KEY,
-			patient_id INTEGER REFERENCES Patient(patient_id),
-			patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
-			service_id INTEGER REFERENCES Service(service_id),
-			start_date TIMESTAMP NOT NULL,
-			end_date TIMESTAMP,
-			is_active BOOLEAN DEFAULT true,
-			last_renewed TIMESTAMP DEFAULT NULL
-		);
 		CREATE TABLE IF NOT EXISTS Bill (
 			bill_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),
@@ -196,6 +196,13 @@ async function initDB() {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			issued_by_user_id INTEGER REFERENCES "User"(user_id)
 		);
+		-- Selective discount/VAT scopes (migration
+		-- models/database/migrations/add_bill_scope_columns.sql). Declared here
+		-- as an idempotent ALTER so a fresh install matches an upgraded DB:
+		-- Bill.model.recalculateTotal and the reports read these columns.
+		ALTER TABLE Bill
+			ADD COLUMN IF NOT EXISTS discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
+			ADD COLUMN IF NOT EXISTS vat_scope_custom JSONB DEFAULT '["services", "drugs", "supplies", "tests"]';
 		CREATE TABLE IF NOT EXISTS PatientHistory (
 			patient_history_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),
@@ -206,6 +213,18 @@ async function initDB() {
 			diagnosis TEXT,
 			admission_time TIMESTAMP,
 			discharge_time TIMESTAMP
+		);
+		-- Declared after PatientHistory: it references patient_history_id, and
+		-- Postgres requires the referenced table to exist at CREATE time.
+		CREATE TABLE IF NOT EXISTS ActivePatientService (
+			active_service_id SERIAL PRIMARY KEY,
+			patient_id INTEGER REFERENCES Patient(patient_id),
+			patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+			service_id INTEGER REFERENCES Service(service_id),
+			start_date TIMESTAMP NOT NULL,
+			end_date TIMESTAMP,
+			is_active BOOLEAN DEFAULT true,
+			last_renewed TIMESTAMP DEFAULT NULL
 		);
 		-- Doctor Relationships
 		CREATE TABLE IF NOT EXISTS DoctorPatientHistory (
@@ -509,6 +528,16 @@ async function initDB() {
 		-- Create indexes for DoctorServicePrice
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_doctor ON DoctorServicePrice(doctor_id);
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_service ON DoctorServicePrice(service_id);
+		-- Reports v2 (Phase 6.11): payroll + clock-in range scans.
+		-- Keep in sync with src/app/models/database/migrations/003_report_v2_indexes.sql
+		CREATE INDEX IF NOT EXISTS idx_employee_payment_employee_issued
+			ON EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false;
+		CREATE INDEX IF NOT EXISTS idx_employee_clock_in_employee_clock_in
+			ON EmployeeClockIn(employee_id, clock_in);
+		CREATE INDEX IF NOT EXISTS idx_employee_clock_in_deduction
+			ON EmployeeClockIn(employee_id, clock_in) WHERE pay_deduction > 0;
+		CREATE INDEX IF NOT EXISTS idx_employee_need_clock_in
+			ON Employee(need_clock_in, is_active);
 		-- Add a view for currently admitted patients with their details
 		CREATE OR REPLACE VIEW CurrentAdmissions AS
 		SELECT p.patient_id,

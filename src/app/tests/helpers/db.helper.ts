@@ -17,6 +17,7 @@ import {
 	ShipmentPrice
 } from "../../utils/types/drugs.js";
 import overridePgDate from "../../utils/pgDateOverride.js";
+import { initDB as initAppDB } from "../../utils/setUpDatabase.js";
 
 export interface TestData {
 	roles: Role[];
@@ -148,15 +149,15 @@ export const dbHelper = {
                 percentage_scope, need_clock_in, shift_type, shift_start_time, shift_end_time
             ) VALUES 
             ('Dr. John Smith', '1234567890', false, CURRENT_DATE - INTERVAL '1 year', true, 'doctor',
-                5000.00, 0.00, null, 'fixed', null, false, null, "08:00:00", "17:00:00"),
+                5000.00, 0.00, null, 'fixed', null, false, null, '08:00:00', '17:00:00'),
             ('Dr. Sarah Johnson', '2345678901', false, CURRENT_DATE - INTERVAL '2 years', true, 'doctor',
-                6000.00, 0.00, null, 'fixed', null, false, null, "08:00:00", "17:00:00"),
+                6000.00, 0.00, null, 'fixed', null, false, null, '08:00:00', '17:00:00'),
             ('Nurse Mary Brown', '3456789012', true, CURRENT_DATE - INTERVAL '6 months', true, 'nurse',
-                3000.00, 0.00,null, null, null, true, 'morning', "08:00:00", "17:00:00"),
+                3000.00, 0.00,null, null, null, true, 'morning', '08:00:00', '17:00:00'),
             ('Nurse James Wilson', '4567890123', true, CURRENT_DATE - INTERVAL '1 year', true, 'nurse',
-                3000.00, 0.00, null, null, null, true, 'night', "08:00:00", "17:00:00"),
+                3000.00, 0.00, null, null, null, true, 'night', '08:00:00', '17:00:00'),
             ('Admin Jane Doe', '5678901234', true, CURRENT_DATE - INTERVAL '3 years', true, 'other',
-                2500.00, 0.00, 'percentage', null, 'before_deductions', false, null, "08:00:00", "17:00:00")
+                2500.00, 0.00, 'percentage', null, 'before_deductions', false, null, '08:00:00', '17:00:00')
             RETURNING *;
         `);
 		return result.rows;
@@ -325,13 +326,13 @@ export const dbHelper = {
 		const result = await query(
 			`
             INSERT INTO DrugShipment (
-                drug_id, warehouse_id, quantity,
+                drug_id, warehouse_id, buy_quantity, quantity,
                 buy_price, expiry_date,
                 created_by_user_id
             ) VALUES 
-            ($1, $3, 10, 0.5, CURRENT_DATE + INTERVAL '1 year', $5),
-            ($2, $4, 500, 25.0, CURRENT_DATE + INTERVAL '2 years', $5),
-			($1, $4, 1, 0.75, CURRENT_DATE + INTERVAL '32 days', $5)
+            ($1, $3, 10, 10, 0.5, CURRENT_DATE + INTERVAL '1 year', $5),
+            ($2, $4, 500, 500, 25.0, CURRENT_DATE + INTERVAL '2 years', $5),
+			($1, $4, 1, 1, 0.75, CURRENT_DATE + INTERVAL '32 days', $5)
             RETURNING *;
         `,
 			[drugIds[0], drugIds[1], warehouseIds[0], warehouseIds[1], userId]
@@ -461,12 +462,12 @@ export const dbHelper = {
                 shipment_id, transaction_type, quantity,
                 price, created_by_user_id
             ) VALUES
-            ($1, 'patient', 10, 8.0, $4),
-            ($2, 'outside', 50, 4.0, $4),
-            ($2, 'check', 10, 9.0, $4)
+            ($1, 'patient', 10, 8.0, $3),
+            ($2, 'outside', 50, 4.0, $3),
+            ($2, 'check', 10, 9.0, $3)
             RETURNING *;
         `,
-			[shipmentIds[0], shipmentIds[1], userId, userId]
+			[shipmentIds[0], shipmentIds[1], userId]
 		);
 		return result.rows;
 	},
@@ -584,20 +585,28 @@ export const dbHelper = {
 		return result.rows;
 	},
 
+	/**
+	 * Seeds three `BillDetail` rows.
+	 *
+	 * `activeServiceIds` is required for the two service lines: the schema's
+	 * `billdetail_check` constraint demands exactly one origin column, and a
+	 * service line must also carry `active_service_id`.
+	 */
 	async seedBillDetails(
 		billIds: number[],
 		serviceIds: number[],
-		shipmentIds: number[]
+		shipmentIds: number[],
+		activeServiceIds: number[] = []
 	) {
 		const result = await query(
 			`
             INSERT INTO BillDetail (
-                bill_id, service_id, drug_shipment_id,
+                bill_id, service_id, active_service_id, drug_shipment_id,
                 quantity, unit_price, sale_type
             ) VALUES 
-            ($1, $3, null, 1, 1000.00, 'admitted'),
-            ($1, null, $5, 10, 1.00, 'admitted'),
-            ($2, $4, null, 1, 100.00, 'medical_check')
+            ($1, $3, $6, null, 1, 1000.00, 'admitted'),
+            ($1, null, null, $5, 10, 1.00, 'admitted'),
+            ($2, $4, $7, null, 1, 100.00, 'medical_check')
             RETURNING *;
         `,
 			[
@@ -605,7 +614,9 @@ export const dbHelper = {
 				billIds[1],
 				serviceIds[3],
 				serviceIds[1],
-				shipmentIds[0]
+				shipmentIds[0],
+				activeServiceIds[0] ?? null,
+				activeServiceIds[2] ?? null
 			]
 		);
 		return result.rows;
@@ -751,7 +762,8 @@ export const dbHelper = {
 			const billDetails = await this.seedBillDetails(
 				bills.map((b) => b.bill_id),
 				services.map((s) => s.service_id),
-				drugShipments.map((s) => s.shipment_id)
+				drugShipments.map((s) => s.shipment_id),
+				activePatientServices.map((s) => s.active_service_id)
 			);
 
 			// Seed medical supply tables
@@ -864,8 +876,16 @@ export const dbHelper = {
 		await query("DELETE FROM MedicalSupplyTransaction");
 	},
 
+	async clearMedicalSupplyShipmentPrices() {
+		await query("DELETE FROM MedicalSupplyShipmentPrice");
+	},
+
 	async clearMedicalSupplyShipments() {
 		await query("DELETE FROM MedicalSupplyShipment");
+	},
+
+	async clearDailyStaffAssignments() {
+		await query("DELETE FROM DailyStaffAssignment");
 	},
 
 	async clearMedicalSupplies() {
@@ -928,32 +948,44 @@ export const dbHelper = {
 		try {
 			await query("BEGIN");
 
-			// Clear tables in reverse order of dependencies
+			// Clear tables in reverse order of dependencies.
+			//
+			// Two ordering rules are load-bearing and were learned the hard way:
+			//   - `PatientHistory.bill_id` references `Bill`, so a test that links
+			//     a bill to an admission (every Reports v2 patient spec does)
+			//     makes `DELETE FROM Bill` fail unless PatientHistory is cleared
+			//     first. `ActivePatientService` and `DrugUsage` also reference
+			//     PatientHistory and must go before it.
+			//   - `PriceList` is referenced by Patient, PatientHistory,
+			//     InsuranceCompany, ServicePrice, ShipmentPrice and
+			//     MedicalSupplyShipmentPrice, so it is cleared last.
 			await this.clearAuditLogs();
+			await this.clearDailyStaffAssignments();
+			await this.clearDrugUsages();
 			await this.clearBillDetails();
-			await this.clearBills();
 			await this.clearActivePatientServices();
+			await this.clearPatientHistory();
+			await this.clearBills();
 			await this.clearServiceDrugs();
 			await this.clearServicePrices();
 			await this.clearServices();
-			await this.clearDrugUsages();
 			await this.clearDrugTransactions();
 			await this.clearMedicalSupplyTransactions();
+			await this.clearMedicalSupplyShipmentPrices();
 			await this.clearMedicalSupplyShipments();
 			await this.clearMedicalSupplies();
 			await this.clearShipmentPrices();
 			await this.clearDrugShipments();
 			await this.clearDrugCards();
 			await this.clearWarehouses();
-			await this.clearPriceLists();
 			await this.clearPatientDoctors();
-			await this.clearPatientHistory();
 			await this.clearPatients();
 			await this.clearInsuranceCompanies();
 			await this.clearEmployeeClockIns();
 			await this.clearEmployeePayments();
 			await this.clearDoctors();
 			await this.clearEmployees();
+			await this.clearPriceLists();
 			await this.clearRolePermissions();
 			await this.clearUsers();
 			await this.clearPermissions();
@@ -967,6 +999,30 @@ export const dbHelper = {
 		}
 	},
 
+	/**
+	 * Additive schema required by the Reports v2 specs (Phase 6.11).
+	 *
+	 * `HMS_test` may predate the bill scope columns and the report indexes, so
+	 * the v2 suites call this from `beforeAll` instead of relying on
+	 * `initDB()` (which only runs when the database is first created). Every
+	 * statement is idempotent.
+	 */
+	async ensureReportV2Schema(): Promise<void> {
+		await query(`
+			ALTER TABLE Bill
+				ADD COLUMN IF NOT EXISTS discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
+				ADD COLUMN IF NOT EXISTS vat_scope_custom JSONB DEFAULT '["services", "drugs", "supplies", "tests"]';
+			CREATE INDEX IF NOT EXISTS idx_employee_payment_employee_issued
+				ON EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false;
+			CREATE INDEX IF NOT EXISTS idx_employee_clock_in_employee_clock_in
+				ON EmployeeClockIn(employee_id, clock_in);
+			CREATE INDEX IF NOT EXISTS idx_employee_clock_in_deduction
+				ON EmployeeClockIn(employee_id, clock_in) WHERE pay_deduction > 0;
+			CREATE INDEX IF NOT EXISTS idx_employee_need_clock_in
+				ON Employee(need_clock_in, is_active);
+		`);
+	},
+
 	async createDBIfNotExists(dbName: string) {
 		const result = await pgPool.query(
 			`SELECT datname FROM pg_catalog.pg_database WHERE datname = '${dbName}'`
@@ -975,7 +1031,10 @@ export const dbHelper = {
 			console.log(`${dbName} database not found, creating it.`);
 			await pgPool.query(`CREATE DATABASE "${dbName}";`);
 			console.log(`created database ${dbName}`);
-			console.log(await this.initDB());
+			// Use the application's schema (see `setUpDatabase.initDB`).
+			// The local `initDB` below is the historical copy and has drifted
+			// from the real schema, so it is no longer used for bootstrapping.
+			console.log(await initAppDB());
 			console.log(`initialized database ${dbName}`);
 		} else {
 			console.log(`${dbName} database exists.`);
@@ -1097,6 +1156,15 @@ CREATE TABLE IF NOT EXISTS EmployeeClockIn (
 );
 
 -- Patient Related tables
+-- PriceList is created again later in this script; it is declared here first
+-- because InsuranceCompany references it (Postgres requires the referenced
+-- table to exist at CREATE time). Both statements are IF NOT EXISTS.
+CREATE TABLE IF NOT EXISTS PriceList (
+	pricelist_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	is_default BOOLEAN DEFAULT false
+);
+
 CREATE TABLE IF NOT EXISTS InsuranceCompany (
 	insurance_id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -1301,6 +1369,10 @@ CREATE TABLE IF NOT EXISTS Bill (
 	issued_by_user_id INTEGER REFERENCES "User"(user_id)
 );
 
+ALTER TABLE Bill
+	ADD COLUMN IF NOT EXISTS discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
+	ADD COLUMN IF NOT EXISTS vat_scope_custom JSONB DEFAULT '["services", "drugs", "supplies", "tests"]';
+
 CREATE TABLE IF NOT EXISTS BillDetail (
 	bill_detail_id SERIAL PRIMARY KEY,
 	bill_id INTEGER REFERENCES Bill(bill_id),
@@ -1364,7 +1436,7 @@ CREATE TABLE IF NOT EXISTS VaultManualPayment (
 	payment_amount DECIMAL(15, 2) NOT NULL,
 	payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	payment_type vault_manual_payment_type NOT NULL
-)
+);
 
 -- Create Indexes for Frequent Queries
 CREATE INDEX IF NOT EXISTS idx_patient_name ON Patient(name);
@@ -1596,7 +1668,7 @@ CREATE
 OR REPLACE FUNCTION calculate_next_service_charge(
 	start_date TIMESTAMP,
 	service_type service_type
-) RETURNS TIMESTAMP AS $ $ BEGIN CASE
+) RETURNS TIMESTAMP AS $$ BEGIN CASE
 	service_type
 	WHEN 'hourly' THEN RETURN start_date + (
 		FLOOR(
