@@ -900,6 +900,10 @@ export const dbHelper = {
 		await query("DELETE FROM PatientDoctor");
 	},
 
+	async clearDoctorPatientHistory() {
+		await query("DELETE FROM DoctorPatientHistory");
+	},
+
 	async clearPatientHistory() {
 		await query("DELETE FROM PatientHistory");
 	},
@@ -954,8 +958,9 @@ export const dbHelper = {
 			//   - `PatientHistory.bill_id` references `Bill`, so a test that links
 			//     a bill to an admission (every Reports v2 patient spec does)
 			//     makes `DELETE FROM Bill` fail unless PatientHistory is cleared
-			//     first. `ActivePatientService` and `DrugUsage` also reference
-			//     PatientHistory and must go before it.
+			//     first. `ActivePatientService`, `DrugUsage` and
+			//     `DoctorPatientHistory` also reference PatientHistory and must go
+			//     before it.
 			//   - `PriceList` is referenced by Patient, PatientHistory,
 			//     InsuranceCompany, ServicePrice, ShipmentPrice and
 			//     MedicalSupplyShipmentPrice, so it is cleared last.
@@ -964,6 +969,7 @@ export const dbHelper = {
 			await this.clearDrugUsages();
 			await this.clearBillDetails();
 			await this.clearActivePatientServices();
+			await this.clearDoctorPatientHistory();
 			await this.clearPatientHistory();
 			await this.clearBills();
 			await this.clearServiceDrugs();

@@ -175,13 +175,22 @@
       "reportType": "نوع التقرير",
       "selectDoctor": "اختر طبيب",
       "selectDoctorPlaceholder": "اختر طبيباً",
+      "chartTitle": "المرضى لكل طبيب",
+      "chartCaption": "هذه الصفحة فقط. ملف PDF يعرض جميع الأطباء مع نسبتهم من الإجمالي.",
+      "assignmentsHint": "{{count}} إسناد مريض-طبيب",
+      "dedupeNote": "يُحسب المريض مرة واحدة هنا. المريض الذي يتابعه عدة أطباء يُحسب مرة لكل طبيب في صفه، بإجمالي {{count}} مريضاً فريداً.",
       "types": {
         "allReferring": "جميع الأطباء المحولين",
         "specificReferring": "طبيب محول محدد",
         "allAttending": "جميع الأطباء المعالجين",
         "specificAttending": "طبيب معالج محدد",
+        "allSupervised": "جميع الأطباء المشرفين",
         "specificSupervising": "طبيب مشرف محدد"
       }
+    },
+    "doctorDetail": {
+      "title": "تقرير الطبيب",
+      "patients": "مرضى هذا الطبيب"
     },
     "nurseReports": {
       "filterTitle": "خيارات تقرير الممرضين",
@@ -241,6 +250,7 @@
     },
     "summary": {
       "totalPatients": "إجمالي المرضى",
+      "uniquePatients": "المرضى الفريدون",
       "admissions": "حالات الدخول",
       "totalDoctors": "إجمالي الأطباء",
       "totalNurses": "إجمالي الممرضين",
@@ -390,6 +400,9 @@
       "noClockInRecord": "لا يوجد سجل حضور لهذا التاريخ"
     },
     "table": {
+      "doctor": "الطبيب",
+      "doctorType": "نوع الطبيب",
+      "patients": "المرضى",
       "patientName": "اسم المريض",
       "nationalId": "الرقم القومي",
       "gender": "الجنس",
@@ -436,6 +449,7 @@
       "noPatientsFound": "لم يتم العثور على مرضى",
       "noPatientsDescription": "لا يوجد مرضى يطابقون المعايير المحددة",
       "noDataFound": "لم يتم العثور على بيانات",
+      "noDoctorsFound": "لم يتم العثور على أطباء",
       "noDoctorsDescription": "لا يوجد أطباء يطابقون المعايير المحددة",
       "noNursesDescription": "لا يوجد ممرضون يطابقون المعايير المحددة",
       "noEmployeePaymentsDescription": "لم يتم العثور على مدفوعات موظفين للمعايير المحددة",

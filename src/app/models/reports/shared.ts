@@ -186,6 +186,17 @@ export function inclusiveDayCount(startDate: string, endDate: string): number {
 	return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
 }
 
+/**
+ * The inclusive end of a report range as a **local** midnight `Date`.
+ *
+ * Used as the reference date for derived ages: a report over 2025 must not age
+ * a patient by however long ago it was generated, and a local midnight keeps
+ * the calendar day stable in the `getFullYear()/getMonth()/getDate()` math.
+ */
+export function rangeEndLocalDate(range: DateRangeQuery): Date {
+	return new Date(`${range.endDate}T00:00:00`);
+}
+
 /** Lists every `YYYY-MM-DD` in `[start, end]` (inclusive). */
 export function enumerateDates(startDate: string, endDate: string): string[] {
 	const start = parseDateOnly(startDate, "start_date");
