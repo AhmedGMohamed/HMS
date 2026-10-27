@@ -1,33 +1,19 @@
 /**
- * Date-range presets — Phase 6.9 plan §3.5 (A3, A4).
+ * Re-export shim — Phase 6.11.
  *
- * Module-level pure helpers (kept out of the toolbar component file so the
- * react-refresh only-export-components rule stays satisfied). All ranges
- * are local calendar dates; the backend applies its own inclusive-boundary
- * semantics.
+ * The date-range presets moved to `@/lib/dateRange` so Reports can reuse
+ * them. Kept so existing Vault imports keep resolving; new code should
+ * import from `@/lib/dateRange`.
  */
-import type { DateRange } from "@/pages/Vault/types/vault"
-
-/** First day of the current month → today (plan default range). */
-export function currentMonthRange(): DateRange {
-	const now = new Date()
-	return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now }
-}
-
-/** Today → today preset. */
-export function todayRange(): DateRange {
-	const now = new Date()
-	return { from: now, to: now }
-}
-
-/** First day → last day of the current month preset. */
-export function thisMonthRange(): DateRange {
-	const now = new Date()
-	return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) }
-}
-
-/** First day → last day of the current year preset */
-export function thisYearRange(): DateRange {
-	const now = new Date()
-	return { from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0)}
-}
+export {
+  currentMonthRange,
+  fromDateParam,
+  isValidRange,
+  rangeForPreset,
+  thisMonthRange,
+  thisWeekRange,
+  thisYearRange,
+  toDateParam,
+  todayRange,
+} from "@/lib/dateRange"
+export type { DateRangePreset } from "@/lib/dateRange"

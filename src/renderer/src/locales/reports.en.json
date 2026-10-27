@@ -2,6 +2,109 @@
   "reports": {
     "pageTitle": "HMS - Reports",
     "title": "Reports & Analytics",
+    "page": {
+      "eyebrow": "HMS — Analytics",
+      "subtitle": "Generate and export operational, clinical and payroll reports.",
+      "descriptions": {
+        "patients": "Admissions, charges and outstanding balances per patient.",
+        "doctors": "Patients referred, attended or supervised by each doctor.",
+        "nurses": "Daily patient assignments and hours worked per nurse.",
+        "statistics": "Census, revenue, admission and utilization trends.",
+        "payments": "Base pay, extra pay, deductions and net pay per employee.",
+        "clockIns": "Attendance, hours worked and deductions per employee."
+      }
+    },
+    "actions": {
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "exportPdf": "Export PDF",
+      "exportCsv": "Export CSV",
+      "viewDetails": "View details",
+      "printPatient": "Print patient report",
+      "printAdmission": "Print admission",
+      "retry": "Retry",
+      "close": "Close",
+      "refresh": "Refresh"
+    },
+    "state": {
+      "notGeneratedTitle": "No report generated",
+      "notGeneratedDescription": "Choose a date range and filters, then select Generate.",
+      "stale": "Filters changed since this report was generated. Regenerate to update the results.",
+      "errorTitle": "Could not load this report",
+      "errorDescription": "The request failed. Retry, or adjust the filters and generate again.",
+      "emptyTitle": "No results",
+      "emptyDescription": "No records match the selected filters and date range.",
+      "permissionTitle": "No access to this report",
+      "permissionDescription": "Your role does not include the permission required for this report.",
+      "pendingTitle": "Report body coming next",
+      "pendingDescription": "The data source for this tab is connected in the next implementation step.",
+      "generatedAt": "Generated {{date}}",
+      "range": "{{from}} – {{to}}",
+      "records": "{{count}} records",
+      "loadingDetail": "Loading details…",
+      "detailError": "Could not load the details.",
+      "exportForbidden": "Your role cannot export reports. Ask an administrator for the manage reports permission."
+    },
+    "detail": {
+      "title": "Patient Report",
+      "identity": "Patient Information",
+      "searchPlaceholder": "Name, national ID or phone",
+      "card": "Card",
+      "form": "Form",
+      "billId": "Bill #{{id}}",
+      "noBill": "No bill",
+      "leaveReason": "Leave reason",
+      "admissionHeading": "Admission {{index}} — {{date}}",
+      "dischargedOn": "Discharged {{date}}",
+      "currentlyAdmitted": "Currently admitted",
+      "lengthOfStay": "Length of stay: {{count}} days",
+      "lengthOfStay_one": "Length of stay: {{count}} day",
+      "billedItems": "Billed Items",
+      "dateTotal": "Date total",
+      "baseTotal": "Base Total",
+      "finalTotal": "Net Total",
+      "noItems": "No billed items for this admission.",
+      "noStaff": "No staff assignments for this admission.",
+      "noAdmissionsDescription": "This patient has no admissions in the selected period."
+    },
+    "enums": {
+      "admissionStatus": {
+        "active": "Active",
+        "discharged": "Discharged"
+      },
+      "doctorType": {
+        "attending": "Attending",
+        "supervising": "Supervising",
+        "referring": "Referring",
+        "outside": "Outside"
+      },
+      "employeeType": {
+        "doctor": "Doctor",
+        "nurse": "Nurse",
+        "other": "Other"
+      },
+      "relationship": {
+        "referred": "Referred",
+        "attended": "Attended",
+        "supervised": "Supervised"
+      },
+      "attendance": {
+        "on_time": "On time",
+        "late": "Late",
+        "early": "Early",
+        "incomplete": "Incomplete",
+        "missing": "Missing"
+      },
+      "itemType": {
+        "service": "Service",
+        "drug": "Drug",
+        "supply": "Medical Supply"
+      },
+      "scope": {
+        "all": "All",
+        "specific": "Specific"
+      }
+    },
     "tabs": {
       "patientReports": "Patient Reports",
       "doctorReports": "Doctor Reports",
@@ -23,7 +126,32 @@
         "today": "Today",
         "thisWeek": "This Week",
         "thisMonth": "This Month"
-      }
+      },
+      "dateRange": "Date range",
+      "quick": {
+        "today": "Today",
+        "week": "This week",
+        "month": "This month",
+        "year": "This year",
+        "reset": "Reset"
+      },
+      "searchPatient": "Search patient",
+      "searchDoctor": "Search doctor",
+      "searchNurse": "Search nurse",
+      "searchEmployee": "Search employee",
+      "scope": "Scope",
+      "relationship": "Report type",
+      "doctor": "Doctor",
+      "nurse": "Nurse",
+      "employee": "Employee",
+      "employeeType": "Employee type",
+      "paymentType": "Payment type",
+      "insuranceCompany": "Insurance company",
+      "allDoctors": "All doctors",
+      "allNurses": "All nurses",
+      "allEmployees": "All employees",
+      "allCompanies": "All companies",
+      "allPaymentTypes": "All payment types"
     },
     "buttons": {
       "generateReport": "Generate Report",
@@ -111,6 +239,7 @@
     },
     "summary": {
       "totalPatients": "Total Patients",
+      "admissions": "Admissions",
       "totalDoctors": "Total Doctors",
       "totalNurses": "Total Nurses",
       "totalEmployees": "Total Employees",
@@ -281,7 +410,15 @@
       "clockOut": "Clock Out",
       "status": "Status",
       "deduction": "Deduction",
-      "admissionStatus": "Admission Status"
+      "admissionStatus": "Admission Status",
+      "referringDoctor": "Referring Doctor",
+      "outstanding": "Outstanding",
+      "serviceDate": "Date",
+      "itemName": "Item",
+      "itemType": "Type",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "totalPrice": "Total"
     },
     "units": {
       "hours": "h"
@@ -308,9 +445,13 @@
     "validation": {
       "selectDates": "Please select both start and end dates",
       "selectDoctor": "Please select a doctor",
-      "selectNurse": "Please select a nurse"
+      "selectNurse": "Please select a nurse",
+      "selectEmployee": "Please select an employee",
+      "endBeforeStart": "The end date must be on or after the start date.",
+      "invalidRange": "Select a valid date range."
     },
     "messages": {
+      "optionsError": "Some filter lists could not be loaded. The reports still work; reload the page to try again.",
       "patientReportSuccess": "Patient report generated successfully",
       "patientReportError": "Failed to load patient report",
       "doctorReportSuccess": "Doctor report generated successfully",
@@ -322,7 +463,9 @@
       "employeePaymentSuccess": "Employee payment report generated successfully",
       "employeePaymentError": "Failed to load employee payment report",
       "clockInReportSuccess": "Clock-in report generated successfully",
-      "clockInReportError": "Failed to generate clock-in report"
+      "clockInReportError": "Failed to generate clock-in report",
+      "exportError": "The export could not be prepared. Try again, or adjust the filters and regenerate.",
+      "printError": "The printout could not be prepared. Try again."
     },
     "loading": {
       "title": "Generating Report...",

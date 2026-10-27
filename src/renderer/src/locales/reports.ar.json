@@ -2,6 +2,111 @@
   "reports": {
     "pageTitle": "نظام إدارة المستشفى - التقارير",
     "title": "التقارير والتحليلات",
+    "page": {
+      "eyebrow": "نظام إدارة المستشفى — التحليلات",
+      "subtitle": "إنشاء وتصدير التقارير التشغيلية والسريرية وتقارير الرواتب.",
+      "descriptions": {
+        "patients": "حالات الدخول والرسوم والأرصدة المستحقة لكل مريض.",
+        "doctors": "المرضى المحوَّلون إلى كل طبيب أو المعالَجون أو المشرف عليهم.",
+        "nurses": "التكليفات اليومية للمرضى وساعات العمل لكل ممرض.",
+        "statistics": "اتجاهات الإشغال والإيرادات والدخول ومعدلات الاستفادة.",
+        "payments": "الراتب الأساسي والبدلات والخصومات وصافي الأجر لكل موظف.",
+        "clockIns": "الحضور وساعات العمل والخصومات لكل موظف."
+      }
+    },
+    "actions": {
+      "generate": "إنشاء",
+      "regenerate": "إعادة الإنشاء",
+      "exportPdf": "تصدير PDF",
+      "exportCsv": "تصدير CSV",
+      "viewDetails": "عرض التفاصيل",
+      "printPatient": "طباعة تقرير المريض",
+      "printAdmission": "طباعة الدخول",
+      "retry": "إعادة المحاولة",
+      "close": "إغلاق",
+      "refresh": "تحديث"
+    },
+    "state": {
+      "notGeneratedTitle": "لم يتم إنشاء تقرير",
+      "notGeneratedDescription": "اختر نطاق التاريخ والمرشحات ثم اضغط إنشاء.",
+      "stale": "تم تغيير المرشحات بعد إنشاء هذا التقرير. أعد الإنشاء لتحديث النتائج.",
+      "errorTitle": "تعذّر تحميل هذا التقرير",
+      "errorDescription": "فشل الطلب. أعد المحاولة أو عدّل المرشحات ثم أعد الإنشاء.",
+      "emptyTitle": "لا توجد نتائج",
+      "emptyDescription": "لا توجد سجلات مطابقة للمرشحات ونطاق التاريخ المحدد.",
+      "permissionTitle": "لا يوجد صلاحية لهذا التقرير",
+      "permissionDescription": "دورك لا يتضمن الصلاحية المطلوبة لهذا التقرير.",
+      "pendingTitle": "محتوى التقرير في الخطوة التالية",
+      "pendingDescription": "سيتم ربط مصدر بيانات هذا التبويب في خطوة التنفيذ التالية.",
+      "generatedAt": "تم الإنشاء {{date}}",
+      "range": "{{from}} – {{to}}",
+      "records": "{{count}} سجل",
+      "loadingDetail": "جارٍ تحميل التفاصيل…",
+      "detailError": "تعذّر تحميل التفاصيل.",
+      "exportForbidden": "لا يتضمن دورك صلاحية تصدير التقارير. اطلب من المسؤول صلاحية إدارة التقارير."
+    },
+    "detail": {
+      "title": "تقرير المريض",
+      "identity": "بيانات المريض",
+      "searchPlaceholder": "الاسم أو الرقم القومي أو الهاتف",
+      "card": "البطاقة",
+      "form": "النموذج",
+      "billId": "فاتورة رقم {{id}}",
+      "noBill": "لا توجد فاتورة",
+      "leaveReason": "سبب الخروج",
+      "admissionHeading": "الدخول {{index}} — {{date}}",
+      "dischargedOn": "خرج في {{date}}",
+      "currentlyAdmitted": "داخل حاليًا",
+      "lengthOfStay": "مدة الإقامة: {{count}} يوم",
+      "lengthOfStay_one": "مدة الإقامة: يوم واحد",
+      "lengthOfStay_two": "مدة الإقامة: يومان",
+      "lengthOfStay_few": "مدة الإقامة: {{count}} أيام",
+      "billedItems": "البنود المحتسبة",
+      "dateTotal": "إجمالي اليوم",
+      "baseTotal": "الإجمالي الأساسي",
+      "finalTotal": "الصافي",
+      "noItems": "لا توجد بنود محتسبة لهذا الدخول.",
+      "noStaff": "لا توجد تكليفات طاقم لهذا الدخول.",
+      "noAdmissionsDescription": "لا توجد حالات دخول لهذا المريض في الفترة المحددة."
+    },
+    "enums": {
+      "admissionStatus": {
+        "active": "نشط",
+        "discharged": "خرج"
+      },
+      "doctorType": {
+        "attending": "معالج",
+        "supervising": "مشرف",
+        "referring": "محوِّل",
+        "outside": "خارجي"
+      },
+      "employeeType": {
+        "doctor": "طبيب",
+        "nurse": "ممرض",
+        "other": "آخر"
+      },
+      "relationship": {
+        "referred": "محوَّلون",
+        "attended": "معالَجون",
+        "supervised": "مشرف عليهم"
+      },
+      "attendance": {
+        "on_time": "في الموعد",
+        "late": "متأخر",
+        "early": "مبكر",
+        "incomplete": "غير مكتمل",
+        "missing": "غائب"
+      },
+      "itemType": {
+        "service": "خدمة",
+        "drug": "دواء",
+        "supply": "مستلزم طبي"
+      },
+      "scope": {
+        "all": "الكل",
+        "specific": "محدد"
+      }
+    },
     "tabs": {
       "patientReports": "تقارير المرضى",
       "doctorReports": "تقارير الأطباء",
@@ -23,7 +128,32 @@
         "today": "اليوم",
         "thisWeek": "هذا الأسبوع",
         "thisMonth": "هذا الشهر"
-      }
+      },
+      "dateRange": "نطاق التاريخ",
+      "quick": {
+        "today": "اليوم",
+        "week": "هذا الأسبوع",
+        "month": "هذا الشهر",
+        "year": "هذه السنة",
+        "reset": "إعادة تعيين"
+      },
+      "searchPatient": "البحث عن مريض",
+      "searchDoctor": "البحث عن طبيب",
+      "searchNurse": "البحث عن ممرض",
+      "searchEmployee": "البحث عن موظف",
+      "scope": "النطاق",
+      "relationship": "نوع التقرير",
+      "doctor": "الطبيب",
+      "nurse": "الممرض",
+      "employee": "الموظف",
+      "employeeType": "نوع الموظف",
+      "paymentType": "نوع الدفع",
+      "insuranceCompany": "شركة التأمين",
+      "allDoctors": "كل الأطباء",
+      "allNurses": "كل الممرضين",
+      "allEmployees": "كل الموظفين",
+      "allCompanies": "كل الشركات",
+      "allPaymentTypes": "كل أنواع الدفع"
     },
     "buttons": {
       "generateReport": "إنشاء التقرير",
@@ -111,6 +241,7 @@
     },
     "summary": {
       "totalPatients": "إجمالي المرضى",
+      "admissions": "حالات الدخول",
       "totalDoctors": "إجمالي الأطباء",
       "totalNurses": "إجمالي الممرضين",
       "totalEmployees": "إجمالي الموظفين",
@@ -281,7 +412,15 @@
       "clockOut": "تسجيل الخروج",
       "status": "الحالة",
       "deduction": "الخصم",
-      "admissionStatus": "حالة الدخول"
+      "admissionStatus": "حالة الدخول",
+      "referringDoctor": "الطبيب المحول",
+      "outstanding": "المستحق",
+      "serviceDate": "التاريخ",
+      "itemName": "البند",
+      "itemType": "النوع",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "totalPrice": "الإجمالي"
     },
     "units": {
       "hours": "س"
@@ -308,9 +447,13 @@
     "validation": {
       "selectDates": "يرجى تحديد تاريخ البداية والنهاية",
       "selectDoctor": "يرجى اختيار طبيب",
-      "selectNurse": "يرجى اختيار ممرض"
+      "selectNurse": "يرجى اختيار ممرض",
+      "selectEmployee": "يرجى اختيار موظف",
+      "endBeforeStart": "يجب أن يكون تاريخ النهاية في نفس تاريخ البداية أو بعده.",
+      "invalidRange": "اختر نطاق تاريخ صالحًا."
     },
     "messages": {
+      "optionsError": "تعذّر تحميل بعض قوائم المرشحات. التقارير ما زالت تعمل؛ أعد تحميل الصفحة للمحاولة مرة أخرى.",
       "patientReportSuccess": "تم إنشاء تقرير المرضى بنجاح",
       "patientReportError": "فشل تحميل تقرير المرضى",
       "doctorReportSuccess": "تم إنشاء تقرير الأطباء بنجاح",
@@ -322,7 +465,9 @@
       "employeePaymentSuccess": "تم إنشاء تقرير مدفوعات الموظفين بنجاح",
       "employeePaymentError": "فشل تحميل تقرير مدفوعات الموظفين",
       "clockInReportSuccess": "تم إنشاء تقرير الحضور بنجاح",
-      "clockInReportError": "فشل في إنشاء تقرير الحضور"
+      "clockInReportError": "فشل في إنشاء تقرير الحضور",
+      "exportError": "تعذّر تجهيز ملف التصدير. أعد المحاولة أو عدّل المرشحات ثم أعد الإنشاء.",
+      "printError": "تعذّر تجهيز الطباعة. أعد المحاولة."
     },
     "loading": {
       "title": "جاري إنشاء التقرير...",

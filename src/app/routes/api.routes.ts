@@ -24,6 +24,7 @@ import employeePaymentRoutes from "./employeePayment.routes.js";
 import employeeClockInRoutes from "./employeeClockIn.routes.js";
 import vaultRoutes from "./vault.routes.js";
 import reportRoutes from "./report.routes.js";
+import reportV2Routes from "./reportV2.routes.js";
 
 const router = Router();
 
@@ -52,6 +53,9 @@ router.use("/doctors", doctorRoutes);
 router.use("/employee-payments", employeePaymentRoutes);
 router.use("/clock-ins", employeeClockInRoutes);
 router.use("/vault", vaultRoutes);
+// Reports v2 must be mounted before the legacy router so `/reports/v2/*`
+// resolves to the new controller instead of the legacy `/reports/:anything`.
+router.use("/reports/v2", reportV2Routes);
 router.use("/reports", reportRoutes);
 
 export default router;

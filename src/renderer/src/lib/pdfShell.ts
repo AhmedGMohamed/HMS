@@ -43,7 +43,21 @@ export interface PdfShellOptions {
   language: "en" | "ar"
   /** When true, also renders a "Page X of Y" footer. Default true. */
   pageNumberFooter?: boolean
+  /**
+   * Page orientation. Default `portrait`; the clock-in report exports
+   * landscape because its records table has too many columns for portrait.
+   */
+  pageOrientation?: "portrait" | "landscape"
+  /**
+   * Page margins `[left, top, right, bottom]` in pt. Default
+   * `[40, 50, 40, 40]` (top is raised for the header strip). The header and
+   * footer alignment follow these values so a custom margin cannot push the
+   * brand off the page.
+   */
+  pageMargins?: [number, number, number, number]
 }
+
+const DEFAULT_PAGE_MARGINS: [number, number, number, number] = [40, 50, 40, 40]
 
 /**
  * Build the full docDefinition. Layout, top → bottom:
@@ -64,8 +78,15 @@ export function buildPdfShellDoc(
   inputs: PdfShellInputs,
   options: PdfShellOptions
 ): Record<string, unknown> {
-  const { t, language, pageNumberFooter = true } = options
+  const {
+    t,
+    language,
+    pageNumberFooter = true,
+    pageOrientation = "portrait",
+    pageMargins = DEFAULT_PAGE_MARGINS,
+  } = options
   const isRtl = language === "ar"
+  const [marginLeft, marginTop, marginRight] = pageMargins
 
   /** Pdfmake node reference: a single header line with the brand.
    *  Future hook: replace text with `<HmsLogo>` SVG by passing an
@@ -134,7 +155,7 @@ export function buildPdfShellDoc(
             { width: "auto", ...footerPageArea },
           ]
           : [{ width: "*", ...footerBrandLine }],
-        margin: [40, 18, 40, 0],
+        margin: [marginLeft, 18, marginRight, 0],
       }
     }
 
@@ -147,13 +168,13 @@ export function buildPdfShellDoc(
   return {
     header: {
       stack: headerBlock,
-      margin: [40, 40, 0, 0]
+      margin: [marginLeft, marginTop - 10, 0, 0]
     },
     content,
     footer: footerBlock,
     pageSize: "A4",
-    pageOrientation: "portrait",
-    pageMargins: [40, 50, 40, 40],
+    pageOrientation,
+    pageMargins,
     defaultStyle: { fontSize: 9, noWrap: false },
     styles: {
       brand: { fontSize: 8, bold: true, color: "#475569" },
