@@ -198,10 +198,23 @@
       "reportType": "نوع التقرير",
       "selectNurse": "اختر ممرض",
       "selectNursePlaceholder": "اختر ممرضاً",
+      "chartTitle": "الساعات لكل ممرض",
+      "chartCaption": "هذه الصفحة فقط. ملف PDF يعرض جميع الممرضين مع نسبتهم من إجمالي الساعات.",
+      "assignmentsHint": "{{count}} إسناد مريض-ممرض",
+      "dedupeNote": "يُحسب المريض مرة واحدة هنا. المريض المعين لعدة ممرضين يُحسب مرة لكل ممرض في صفه، بإجمالي {{count}} مريضاً فريداً.",
       "types": {
         "allNurses": "جميع الممرضين",
         "specificNurse": "ممرض محدد"
       }
+    },
+    "nurseDetail": {
+      "title": "تقرير الممرض",
+      "patients": "مرضى هذا الممرض",
+      "dailyAssignments": "التعيينات اليومية",
+      "dayPatients": "المرضى: {{count}}",
+      "dayHours": "الساعات: {{count}}",
+      "dayTotal": "إجمالي اليوم",
+      "noAssignments": "لا توجد تعيينات يومية في هذه الفترة."
     },
     "employeePayments": {
       "filterTitle": "مرشحات مدفوعات الموظفين",
@@ -254,6 +267,8 @@
       "admissions": "حالات الدخول",
       "totalDoctors": "إجمالي الأطباء",
       "totalNurses": "إجمالي الممرضين",
+      "totalDays": "إجمالي الأيام",
+      "totalHours": "إجمالي الساعات",
       "totalEmployees": "إجمالي الموظفين",
       "totalBill": "إجمالي الفواتير",
       "totalPaid": "إجمالي المدفوع",
@@ -401,6 +416,7 @@
     },
     "table": {
       "doctor": "الطبيب",
+      "nurse": "الممرض",
       "doctorType": "نوع الطبيب",
       "patients": "المرضى",
       "patientName": "اسم المريض",
@@ -416,6 +432,8 @@
       "diagnosis": "التشخيص",
       "daysAssigned": "الأيام المعينة",
       "totalDays": "إجمالي الأيام",
+      "days": "الأيام",
+      "lastWorkDate": "آخر يوم عمل",
       "totals": "الإجماليات",
       "workDate": "تاريخ العمل",
       "hours": "الساعات",
@@ -451,6 +469,7 @@
       "noDataFound": "لم يتم العثور على بيانات",
       "noDoctorsFound": "لم يتم العثور على أطباء",
       "noDoctorsDescription": "لا يوجد أطباء يطابقون المعايير المحددة",
+      "noNursesFound": "لم يتم العثور على ممرضين",
       "noNursesDescription": "لا يوجد ممرضون يطابقون المعايير المحددة",
       "noEmployeePaymentsDescription": "لم يتم العثور على مدفوعات موظفين للمعايير المحددة",
       "noPatientsForDoctor": "لم يتم العثور على مرضى لهذا الطبيب",

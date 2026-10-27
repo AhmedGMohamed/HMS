@@ -196,10 +196,23 @@
       "reportType": "Report Type",
       "selectNurse": "Select Nurse",
       "selectNursePlaceholder": "Select a nurse",
+      "chartTitle": "Hours per Nurse",
+      "chartCaption": "This page only. The PDF export lists every nurse with their share of the total hours.",
+      "assignmentsHint": "{{count}} patient-nurse assignments",
+      "dedupeNote": "Patients are counted once here. A patient assigned to several nurses counts once in each nurse's row, for {{count}} unique patients in total.",
       "types": {
         "allNurses": "All Nurses",
         "specificNurse": "Specific Nurse"
       }
+    },
+    "nurseDetail": {
+      "title": "Nurse Report",
+      "patients": "Patients of this nurse",
+      "dailyAssignments": "Daily Assignments",
+      "dayPatients": "Patients: {{count}}",
+      "dayHours": "Hours: {{count}}",
+      "dayTotal": "Day total",
+      "noAssignments": "No daily assignments in this period."
     },
     "employeePayments": {
       "filterTitle": "Employee Payment Filters",
@@ -252,6 +265,8 @@
       "admissions": "Admissions",
       "totalDoctors": "Total Doctors",
       "totalNurses": "Total Nurses",
+      "totalDays": "Total Days",
+      "totalHours": "Total Hours",
       "totalEmployees": "Total Employees",
       "totalBill": "Total Bill Amount",
       "totalPaid": "Total Paid",
@@ -399,6 +414,7 @@
     },
     "table": {
       "doctor": "Doctor",
+      "nurse": "Nurse",
       "doctorType": "Doctor Type",
       "patients": "Patients",
       "patientName": "Patient Name",
@@ -414,6 +430,8 @@
       "diagnosis": "Diagnosis",
       "daysAssigned": "Days Assigned",
       "totalDays": "Total Days",
+      "days": "Days",
+      "lastWorkDate": "Last Work Date",
       "totals": "TOTALS",
       "workDate": "Work Date",
       "hours": "Hours",
@@ -449,6 +467,7 @@
       "noDataFound": "No Data Found",
       "noDoctorsFound": "No Doctors Found",
       "noDoctorsDescription": "No doctors match the selected criteria",
+      "noNursesFound": "No Nurses Found",
       "noNursesDescription": "No nurses match the selected criteria",
       "noEmployeePaymentsDescription": "No employee payments found for the selected criteria",
       "noPatientsForDoctor": "No patients found for this doctor",

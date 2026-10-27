@@ -32,6 +32,21 @@ import {
   isDoctorSortColumn,
 } from "@/pages/Reports/types/doctorReport"
 import type {
+  NursePatientSortColumn,
+  NurseQueryFilters,
+  NurseQueryPaging,
+  NurseReportDetailPayload,
+  NurseReportExportPayload,
+  NurseReportListPayload,
+  NurseSortColumn,
+} from "@/pages/Reports/types/nurseReport"
+import {
+  NURSE_PATIENT_SORT_COLUMNS,
+  NURSE_SORT_COLUMNS,
+  isNursePatientSortColumn,
+  isNurseSortColumn,
+} from "@/pages/Reports/types/nurseReport"
+import type {
   PatientQueryFilters,
   PatientQueryPaging,
   PatientReportDetail,
@@ -229,5 +244,101 @@ export function exportDoctors(
     ...doctorParams(filters),
     ...doctorSortParam(paging),
     include_admissions: includeAdmissions ? true : undefined,
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* Nurse report                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for every nurse endpoint.
+ *
+ * There is no relationship select on this tab: a nurse is in the report when
+ * they have at least one assignment in the range. `nurse_id` is only sent when
+ * a single nurse was chosen — all-report mode must send no id at all.
+ */
+function nurseParams(filters: NurseQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    nurse_id: filters.nurseId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a nurse-table column id to the server's list sort key. */
+function nurseSortParam(paging: NurseQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isNurseSortColumn(columnId)) return {}
+  return {
+    sort: NURSE_SORT_COLUMNS[columnId as NurseSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** Maps a patient-table column id to the server's detail sort key. */
+function nursePatientSortParam(paging: NurseQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isNursePatientSortColumn(columnId)) return {}
+  return {
+    sort: NURSE_PATIENT_SORT_COLUMNS[columnId as NursePatientSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/v2/nurses` — one page of nurses + whole-set summary. */
+export function getNurses(
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportListPayload> {
+  return api.get<NurseReportListPayload>("/reports/v2/nurses", {
+    ...nurseParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...nurseSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/v2/nurses/:nurseId` — nurse header + one page of patients
+ * + the whole daily-assignment accordion.
+ *
+ * The id lives in the path; sending it in the query as well invites the two to
+ * disagree.
+ */
+export function getNurseDetail(
+  nurseId: number,
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportDetailPayload> {
+  const params = nurseParams({ ...filters, nurseId: null })
+  return api.get<NurseReportDetailPayload>(`/reports/v2/nurses/${nurseId}`, {
+    ...params,
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...nursePatientSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/v2/nurses/export` — every matching nurse.
+ *
+ * The endpoint sorts by nurse-list keys only, so the caller passes list paging
+ * even when the visible table is the patient table.
+ */
+export function exportNurses(
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportExportPayload> {
+  return api.get<NurseReportExportPayload>("/reports/v2/nurses/export", {
+    ...nurseParams(filters),
+    ...nurseSortParam(paging),
   })
 }
