@@ -191,4 +191,33 @@ router.get(
 	(req, res) => ReportV2Controller.listEmployeePayments(req, res)
 );
 
+/* ------------------------------------------------------------------ */
+/* Clock-in                                                            */
+/* ------------------------------------------------------------------ */
+
+// Static segment first: `/clock-ins/export` must not be read as an id.
+router.get(
+	"/clock-ins/export",
+	verifyToken,
+	checkPermissions(["view_reports", "manage_reports"]),
+	auditLogger,
+	(req, res) => ReportV2Controller.exportClockIns(req, res)
+);
+
+router.get(
+	"/clock-ins/:employeeId",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.getClockInEmployee(req, res)
+);
+
+router.get(
+	"/clock-ins",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.listClockIns(req, res)
+);
+
 export default router;

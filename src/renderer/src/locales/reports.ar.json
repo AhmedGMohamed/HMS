@@ -97,6 +97,10 @@
         "incomplete": "غير مكتمل",
         "missing": "غائب"
       },
+      "shiftType": {
+        "morning": "صباحي",
+        "night": "ليلي"
+      },
       "itemType": {
         "service": "خدمة",
         "drug": "دواء",
@@ -467,15 +471,49 @@
       "selectEmployee": "موظف محدد (اختياري)",
       "allEmployees": "جميع الموظفين بحضور",
       "title": "تفاصيل حضور الموظفين",
+      "emptyTitle": "لا توجد تسجيلات حضور",
+      "emptyDescription": "لم يسجل أي موظف حضوره خلال الفترة المحددة، ولم يكن أحد مطالبًا بالتسجيل.",
       "stats": {
         "totalEmployees": "إجمالي الموظفين",
         "totalHours": "إجمالي الساعات",
         "avgHoursPerEmployee": "متوسط الساعات/موظف",
-        "totalDeductions": "إجمالي الخصومات"
+        "totalDeductions": "إجمالي الخصومات",
+        "totalClockIns": "إجمالي تسجيلات الحضور",
+        "totalWorkedDays": "أيام العمل",
+        "avgHoursPerDay": "متوسط الساعات / يوم",
+        "totalMissingDays": "أيام الغياب"
       },
       "charts": {
         "hoursWorked": "ساعات العمل حسب الموظف",
-        "attendanceStatus": "توزيع حالة الحضور"
+        "attendanceStatus": "توزيع حالة الحضور",
+        "hoursCaption": "أعلى الموظفين بعدد ساعات العمل (حتى اثني عشر).",
+        "statusCaption": "تصنيف واحد لكل يوم، بما في ذلك الأيام بلا تسجيل حضور."
+      },
+      "detail": {
+        "totalDays": "إجمالي الأيام",
+        "workedDays": "أيام العمل",
+        "punctuality": "الانتظام",
+        "records": "السجلات اليومية",
+        "recordsCaption": "سجل لكل جلسة، الأحدث أولًا. وسّع أي سجل لعرض المرضى المرتبطين به.",
+        "statusFilter": "الحالة",
+        "allStatuses": "كل الحالات",
+        "noRecords": "لا توجد سجلات",
+        "noRecordsDescription": "لا توجد سجلات حضور لهذا الموظف في الفترة المحددة.",
+        "noRecordsForStatus": "لا توجد سجلات بهذه الحالة في الفترة المحددة.",
+        "missingNote": "{{count}} يوم/أيام بلا تسجيل حضور محسوبة أعلاه ولكنها غير مدرجة كسجلات — لا توجد جلسة لعرضها.",
+        "missingNote_one": "{{count}} يوم بلا تسجيل حضور محسوب أعلاه ولكنه غير مدرج كسجل — لا توجد جلسة لعرضها.",
+        "missingNote_other": "{{count}} أيام بلا تسجيل حضور محسوبة أعلاه ولكنها غير مدرجة كسجلات — لا توجد جلسة لعرضها.",
+        "patients": "المرضى",
+        "noPatients": "لا يوجد مرضى مرتبطون بهذا السجل.",
+        "lateMinutes": "التأخير (دقيقة)",
+        "earlyMinutes": "الانصراف المبكر (دقيقة)",
+        "noShift": "لا توجد وردية محددة",
+        "clockInRequirement": "تسجيل الحضور",
+        "required": "مطلوب",
+        "notRequired": "غير مطلوب",
+        "employmentStatus": "حالة التوظيف",
+        "active": "نشط",
+        "inactive": "غير نشط"
       }
     },
     "clockInCard": {
@@ -566,7 +604,11 @@
       "gross": "الإجمالي",
       "paymentDate": "تاريخ الدفع",
       "patientCount": "المرضى",
-      "paidOn": "تاريخ السداد"
+      "paidOn": "تاريخ السداد",
+      "shift": "الوردية",
+      "clockIns": "تسجيلات الحضور",
+      "avgPerDay": "المتوسط / يوم",
+      "punctuality": "الانتظام"
     },
     "units": {
       "hours": "س"

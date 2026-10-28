@@ -579,14 +579,29 @@ export interface ClockInReportSummary {
 	total_employees: number;
 	total_clock_ins: number;
 	total_hours: number;
+	/**
+	 * Distinct dates with at least one clock-in. The denominator of
+	 * `avg_hours_per_day`; **not** the record count (a day can have several
+	 * sessions).
+	 */
+	total_worked_days: number;
+	/** `total_hours / total_worked_days` (0 when nothing was worked). */
+	avg_hours_per_day: number;
 	avg_hours_per_employee: number;
 	total_deductions: number;
+	/** Days with no clock-in at all, synthesized from hire date to today. */
+	total_missing_days: number;
 }
 
 export interface ClockInReportRow {
 	employee_id: number;
 	employee_name: string;
 	employee_type: string;
+	hire_date: string | null;
+	/** Synthesized missing days are only produced for active employees. */
+	is_active: boolean;
+	/** Missing days are only synthesized for employees expected to clock in. */
+	need_clock_in: boolean;
 	shift_type: string | null;
 	shift_start_time: string | null;
 	shift_end_time: string | null;
@@ -636,6 +651,9 @@ export interface ClockInDetailDTO {
 		employee_id: number;
 		employee_name: string;
 		employee_type: string;
+		hire_date: string | null;
+		is_active: boolean;
+		need_clock_in: boolean;
 		shift_type: string | null;
 		shift_start_time: string | null;
 		shift_end_time: string | null;
@@ -645,4 +663,23 @@ export interface ClockInDetailDTO {
 	total: number;
 	page: number;
 	page_size: number;
+}
+
+/**
+ * The list document: one page of employees plus the whole-set summary and the
+ * two chart series. `charts` describe the **filtered set**, not the page.
+ */
+export interface ClockInReportDTO
+	extends ReportListEnvelope<ClockInReportSummary, ClockInReportRow> {
+	charts: ClockInReportCharts;
+}
+
+/** An export row is the list row plus every record behind it. */
+export interface ClockInExportRow extends ClockInReportRow {
+	records: ClockInRecordRow[];
+}
+
+export interface ClockInExportPayload
+	extends ReportExportEnvelope<ClockInReportSummary, ClockInExportRow> {
+	charts: ClockInReportCharts;
 }

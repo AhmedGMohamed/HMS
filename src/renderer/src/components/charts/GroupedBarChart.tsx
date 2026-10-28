@@ -56,6 +56,12 @@ export interface GroupedBarChartProps<T extends Record<string, unknown>> {
   height?: number
   /** Truncate long category labels on the axis. */
   maxCategoryLabelLength?: number
+  /**
+   * Cap on a bar's thickness, in px. A horizontal chart with one or two
+   * categories otherwise stretches each bar across the whole plot, which reads
+   * as a filled block rather than a value.
+   */
+  maxBarSize?: number
 }
 
 export function GroupedBarChart<T extends Record<string, unknown>>({
@@ -74,6 +80,7 @@ export function GroupedBarChart<T extends Record<string, unknown>>({
   className,
   height,
   maxCategoryLabelLength = 22,
+  maxBarSize,
 }: GroupedBarChartProps<T>) {
   const formatter = useMemo(() => createChartFormatter(format, locale), [format, locale])
 
@@ -186,6 +193,7 @@ export function GroupedBarChart<T extends Record<string, unknown>>({
                   fill={entry.color ?? seriesColor(index)}
                   stackId={stacked ? "stack" : undefined}
                   radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+                  maxBarSize={maxBarSize}
                   isAnimationActive={animate}
                 />
               ))}

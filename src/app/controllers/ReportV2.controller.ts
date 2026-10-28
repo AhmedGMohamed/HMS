@@ -40,6 +40,13 @@ import StatisticsReportModel, {
 	STATISTICS_GROUPINGS,
 	type StatisticsGrouping,
 } from "../models/reports/StatisticsReport.model.js";
+import ClockInReportModel, {
+	CLOCK_IN_SORT_KEYS,
+	CLOCK_IN_STATUS_FILTERS,
+	CLOCK_IN_TYPE_FILTERS,
+	type ClockInSortKey,
+	type ClockInStatusFilter,
+} from "../models/reports/ClockInReport.model.js";
 import {
 	NotFoundError,
 	ReportValidationError,
@@ -495,6 +502,73 @@ export class ReportV2Controller {
 			sendError(res, error, "export employee payments report");
 		}
 	}
+
+	/* -------------------------------------------------------------- */
+	/* Clock-in                                                        */
+	/* -------------------------------------------------------------- */
+
+	/**
+	 * `GET /api/reports/v2/clock-ins`
+	 *
+	 * Query: `start_date`, `end_date`, `employee_type`, `employee_id`,
+	 * `search`, `page`, `page_size`, `sort`, `dir`.
+	 */
+	async listClockIns(req: Request, res: Response) {
+		try {
+			const payload = await ClockInReportModel.listClockIns({
+				...parseClockInFilters(req.query),
+				paging: parsePaging(req.query),
+				sort: parseClockInSort(req.query),
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "load clock-in report");
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/clock-ins/:employeeId`
+	 *
+	 * The employee's identity, the attendance summary for the whole range and
+	 * one page of records, with the `status` filter applied **after** missing
+	 * days are synthesized.
+	 */
+	async getClockInEmployee(req: Request, res: Response) {
+		try {
+			const employeeId = parseRequiredId(req.params.employeeId, "employeeId");
+
+			const payload = await ClockInReportModel.getEmployeeDetail(employeeId, {
+				range: parseDateRange(req.query),
+				status: parseClockInStatus(req.query.status),
+				paging: parsePaging(req.query),
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(
+				res,
+				error,
+				"load clock-in details",
+				"Employee not found"
+			);
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/clock-ins/export`
+	 *
+	 * Same filters as the list, no paging. `manage_reports` is enforced by the
+	 * route.
+	 */
+	async exportClockIns(req: Request, res: Response) {
+		try {
+			const payload = await ClockInReportModel.exportClockIns(
+				parseClockInFilters(req.query)
+			);
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "export clock-in report");
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -633,6 +707,68 @@ function parseEmployeePaymentFilters(query: Record<string, unknown>) {
 		search: parseSearch(query),
 		grouping: parseEmployeePaymentGrouping(query.grouping),
 	};
+}
+
+/**
+ * Shared clock-in filter parsing for the list and export endpoints.
+ *
+ * `employee_type` defaults to `all` and an unknown value is a 400: a typo in a
+ * shared link must not silently widen the population to the whole staff.
+ */
+function parseClockInFilters(query: Record<string, unknown>) {
+	const employeeType =
+		parseEnumParam(
+			query.employee_type,
+			CLOCK_IN_TYPE_FILTERS,
+			"employee_type",
+			"all"
+		) ?? "all";
+
+	return {
+		range: parseDateRange(query),
+		employeeType,
+		employeeId: parseOptionalId(query.employee_id, "employee_id"),
+		search: parseSearch(query),
+	};
+}
+
+/** `?status=` on the detail endpoint; absent means every record. */
+function parseClockInStatus(value: unknown): ClockInStatusFilter {
+	return parseEnumParam(
+		value,
+		CLOCK_IN_STATUS_FILTERS,
+		"status",
+		"all"
+	) as ClockInStatusFilter;
+}
+
+/**
+ * Clock-in sort — validated here rather than through `parseSort`.
+ *
+ * `parseSort` returns a SQL fragment because the other tabs sort in Postgres.
+ * The clock-in rows are aggregated in TS (the status rule lives in
+ * `clockStatusFor`), so a SQL fragment would be a lie: the model only needs the
+ * key and the direction.
+ */
+function parseClockInSort(query: Record<string, unknown>): {
+	column: ClockInSortKey;
+	direction: "asc" | "desc";
+} {
+	const raw =
+		query.sort === undefined || query.sort === "" ? "name" : String(query.sort);
+	if (!(CLOCK_IN_SORT_KEYS as readonly string[]).includes(raw)) {
+		throw new ReportValidationError(
+			`sort must be one of ${CLOCK_IN_SORT_KEYS.join(", ")}`
+		);
+	}
+
+	const rawDir =
+		query.dir === undefined || query.dir === "" ? "asc" : String(query.dir);
+	if (rawDir !== "asc" && rawDir !== "desc") {
+		throw new ReportValidationError("dir must be asc or desc");
+	}
+
+	return { column: raw as ClockInSortKey, direction: rawDir };
 }
 
 export default new ReportV2Controller();

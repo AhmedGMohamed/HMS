@@ -1165,7 +1165,122 @@ path like `payroll-timeline` / `payroll-type`.
 
 ---
 
-## 13. Quick reference — surface map (6.11.0 → 6.11.5)
+## 13. 6.11.6 — Clock-in report (as built)
+
+### 13.1 What shipped
+
+**Backend** (`/api/reports/v2/clock-ins*`, additive; the legacy `/api/reports/employees/clock-ins*`
+routes and the `/reports` HTML page are untouched until Phase 7):
+
+| Route | Permission | Queries |
+|---|---|---|
+| `GET /clock-ins` | `view_reports` | **2** — eligible employees, all in-range clock-ins (+1 assignments query) |
+| `GET /clock-ins/:employeeId` | `view_reports` | **3** — header, records page, assignments |
+| `GET /clock-ins/export` | `view_reports` + `manage_reports` | **3** — no paging, no sort |
+
+- `src/app/models/reports/ClockInReport.model.ts` — `ELIGIBLE_SQL` (needs clock-in **or** has a
+  clock-in **or** has an assignment in range, and `hire_date <= range end`), `CLOCK_IN_SORT_KEYS`,
+  `parseClockInSort`, `clockStatusFor` reuse, `eligibleDaysFor`, `buildRecords`, `summariseRows`,
+  `buildCharts` (hours capped at 12 bars).
+- `ReportV2Controller.listClockIns` / `getClockInEmployee` / `exportClockIns` +
+  `parseClockInFilters` / `parseClockInStatus` / `parseClockInSort`.
+- DTOs in `src/app/utils/types/reportV2.d.ts`.
+
+**Frontend** (`pages/Reports/`):
+
+| Piece | File |
+|---|---|
+| Tab (filters, 8-card KPI strip, charts, table, footer, exports) | `clockIns/ClockInReportTab.tsx` |
+| Detail dialog (identity, 8-card attendance strip, status filter, expandable records) | `clockIns/ClockInDetailDialog.tsx` |
+| Columns (14, sortable ids mapped to server keys) | `clockIns/clockInColumns.tsx` |
+| Charts + English snapshot surface | `clockIns/ClockInCharts.tsx`, `clockIns/clockInChartSnapshot.ts` |
+| Hooks (list in the session cache, detail local) | `hooks/useClockInReport.ts`, `hooks/useClockInEmployee.ts` |
+| Exports | `export/pdf/buildClockInReportPdf.ts` (landscape), `export/csv/exportClockInReportCsv.ts` |
+| Types + query contract | `types/clockInReport.ts` |
+| API | `api.ts` (`clockInParams`, `clockInSortParam`, `getClockIns`, `getClockInEmployee`, `exportClockIns`) |
+
+**i18n** — `reports.clockInReports.{emptyTitle,emptyDescription,stats.*,charts.*,detail.*}`,
+`reports.table.{shift,clockIns,avgPerDay,punctuality}`, `reports.enums.shiftType.{morning,night}`
+(EN + AR). `reports.enums.shiftType` has exactly two keys because the `shift_type` enum has exactly
+two values.
+
+**Tests** — `ReportV2.clockIn.spec.ts` (25), `ReportV2.clockIn.controller.spec.ts` (13),
+`src/renderer/test/clockInReportExport.spec.ts` (16).
+
+### 13.2 Contracts that 6.11.6 added (continues 12.2)
+
+| # | Contract |
+|---|---|
+| 56 | **An absence is a fact about a job, not about a person.** Missing days are synthesized only for employees who are `is_active` **and** `need_clock_in`; `eligibleDaysFor` returns 0 otherwise and `buildRecords` gates on both. A salaried doctor who never clocks in has zero absences, not thirty. |
+| 57 | **Days are not sessions.** `clock_in_count` counts sessions, `worked_days` counts distinct dates, and `avg_hours_per_day` divides by the latter. `punctuality_rate`'s denominator excludes missing days — an absence is not an unpunctual arrival. Every surface (list, footer, detail, PDF, CSV) must keep the two apart. |
+| 58 | **Missing days are arithmetic in aggregate, materialized only in detail.** List/export compute `eligibleDays − distinctWorkedDates`; only one employee's detail emits rows. The export passes `synthesizeMissing: false` and states the count in `attendanceSummary.missingDays` plus a sentence above the records table, so a reader does not add the column up and wonder. |
+| 59 | **The clock-in sort is a comparator, never SQL.** Rows are aggregated in TS (the status rule lives in `clockStatusFor`), so `parseClockInSort` validates `CLOCK_IN_SORT_KEYS` and returns `{column, direction}`. The renderer map is `columnId → serverKey` and the two differ (`clockIns` → `clock_ins`), so guards test `Object.keys`, not `Object.values`. |
+| 60 | **Detail `page_size` must be one of 10 / 25 / 50 / 100.** `parsePaging` rejects anything else with a 400; a dialog that asks for 15 renders an empty shell with "Could not load the details". |
+| 61 | **Status slices carry semantic colours.** The donut's positional palette painted `missing` — the biggest and worst slice — in success green. `on_time` success, `late` warning, `early` info, `incomplete` tertiary, `missing` destructive, matching `AttendanceStatusBadge`. |
+| 62 | **A horizontal bar chart needs `maxBarSize`.** With one or two categories Recharts stretches each bar across the whole plot, so the "specific employee" filter rendered a solid block. `GroupedBarChart` now takes an optional cap (40 px for the hours chart). |
+
+### 13.3 Deviations from the plan for this tab
+
+| Plan | As built | Why |
+|---|---|---|
+| Employee × day grid | One row per **employee**, with per-day status counts, plus a records table in the detail dialog | A grid over a year is 365 columns; the counts answer "who is absent" and the dialog answers "which days" |
+| 8-card KPI strip at `xl:grid-cols-8` | Two rows of four via `xl:grid-cols-4` | Contract 55, same as payroll |
+| Punctuality blended across the filtered set in the footer | Footer omits punctuality | The strip's rate is per employee; a whole-set blend would be invented |
+| Export materializes absences | `synthesizeMissing: false` + a count | Contract 58: 27 zero-hour rows per employee bury the 4 real sessions |
+| Detail page size 15 | 10 | Contract 60 — the server's allow-list |
+| Assignment-only employees excluded | Included (0 sessions, 0 days) | They are the population whose attendance is being questioned; a zero row is the answer |
+
+### 13.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend specs (clock-in) | `$env:NODE_ENV="test"; npx jasmine --filter="clock-ins"` | **38/38** (25 model + 13 controller) |
+| Backend specs (all v2) | `--filter="Reports v2"` / `--filter="ReportV2Controller"` | **168/168** / **69/69** |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/test/clockInReportExport.spec.ts` | Clean |
+| Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **86/86** (8 files; 16 in `clockInReportExport.spec.ts`) |
+| Bundle | `npm run build:renderer` | OK |
+| i18n | `npm run check-i18n` | No new clock-in key missing (only the pre-existing list) |
+
+Live Playwright pass (**62/62**, Admin JWT, Express :3000 + Vite :5173, EN + AR):
+
+- the tab has no grouping field; the first list request is
+  `…&page=1&page_size=25&sort=name&dir=asc` and sends `start_date`/`end_date`;
+- eight KPI cards, both chart titles, footer `TOTALS` equal to the strip, **no `NaN`**, **no
+  `$`-prefixed amount**, 2 rows, 2 `recharts-surface` nodes;
+- clicking the `Hours` header sends `sort=hours` — the `columnId → serverKey` guard (contract 59);
+- the dialog shows 8 attendance cards, the absence sentence
+  ("102 days with no clock-in are counted above but are not listed as rows"), the status filter, and
+  **disabled expanders on absence rows**; `status=incomplete` enables them and expanding a session
+  shows the patient panel;
+- CSV `clock-in-report_2026-01-01_2026-12-31.csv` (371 lines) with `Summary` + `Employees` +
+  `TOTALS` + `Daily Records` + `Status Distribution` + `Hours by Employee`, no `EGP`, no `$`;
+- `Export PDF` → `200`, no error toast; document verified in-page (`loadPdfMake` +
+  `buildPdfShellDoc` + `clockInReportDocContent` → `getBuffer`): **38,963 bytes, header `%PDF-`**;
+- a 2019 range shows "No clock-in records" in both charts and the table, with zeroed KPIs and no
+  `NaN`;
+- AR page `dir=rtl` with Arabic KPI and chart titles, **charts stay LTR**, no `NaN`, no `$`.
+
+**Notes found during the pass:**
+
+1. **`page_size=15` returned 400** and the dialog opened empty. Only visible by opening it — the
+   specs never paginate. Contract 60.
+2. **The donut painted `missing` green.** The default palette is positional, and the server's status
+   order put `missing` fifth. Caught by looking at the screenshot, fixed with `STATUS_COLORS`
+   (contract 61).
+3. **One employee rendered as a solid blue block** in the hours chart. `maxBarSize` added to the
+   shared `GroupedBarChart` (contract 62) — additive, so the other five report charts are unchanged.
+4. **The dev DB cannot exercise the patient panel unaided.** The nurse has 340 sessions on 9 days and
+   her five `DailyStaffAssignment` rows are in July/August, so no record has patients. The check
+   inserts two assignment rows on one clock-in date and deletes them in a `finally`; the report itself
+   never writes.
+5. Absences and sessions disagree by design: the same nurse shows `340` clock-ins and `9` days, so a
+   reader who assumes one row per day will think the footer is wrong. That is why contract 57 exists
+   and why the CSV header spells out `Worked Days` next to `Clock-Ins`.
+
+---
+
+## 14. Quick reference — surface map (6.11.0 → 6.11.6)
 
 | Surface | File |
 |---|---|
@@ -1186,6 +1301,11 @@ path like `payroll-timeline` / `payroll-type`.
 | Payroll detail dialog + payment expansion | `employeePayments/EmployeePaymentDetailDialog.tsx` |
 | Payroll charts + snapshot slots | `employeePayments/PayrollCharts.tsx` + `employeePayments/payrollChartSnapshot.ts` |
 | Payroll exports (summary → charts → index → per-employee) | `export/pdf/buildEmployeePaymentsReportPdf.ts`, `export/csv/exportEmployeePaymentsCsv.ts` |
+| Clock-in tab (6.11.6) | `pages/Reports/clockIns/ClockInReportTab.tsx` + `models/reports/ClockInReport.model.ts` |
+| Clock-in detail dialog + record expansion | `clockIns/ClockInDetailDialog.tsx` |
+| Clock-in columns (14, `columnId → serverKey`) | `clockIns/clockInColumns.tsx` |
+| Clock-in charts + snapshot slots | `clockIns/ClockInCharts.tsx` + `clockIns/clockInChartSnapshot.ts` |
+| Clock-in exports (landscape summary → charts → index → per-employee) | `export/pdf/buildClockInReportPdf.ts`, `export/csv/exportClockInReportCsv.ts` |
 | Shared clock status (`late`/`early`/`incomplete`) | `models/reports/shared.ts` (`clockStatusFor`, contract 51) |
 | Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
 | Chart animation switch (contract 49) | `src/renderer/src/components/charts/chartAnimation.ts` + `ChartSnapshotSurface.tsx` |
