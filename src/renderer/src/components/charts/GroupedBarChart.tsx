@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/chart"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 import { seriesColor, type ChartSeries } from "./chartPalette"
 import { createChartFormatter, type ChartValueFormat } from "./chartFormat"
 import { CHART_DIRECTION, ChartEmpty, ChartSrTable } from "./ChartShell"
@@ -76,6 +77,7 @@ export function GroupedBarChart<T extends Record<string, unknown>>({
 }: GroupedBarChartProps<T>) {
   const formatter = useMemo(() => createChartFormatter(format, locale), [format, locale])
 
+  const animate = useChartAnimation()
   const config = useChartConfig(
     Object.fromEntries(
       series.map((entry, index) => [
@@ -184,6 +186,7 @@ export function GroupedBarChart<T extends Record<string, unknown>>({
                   fill={entry.color ?? seriesColor(index)}
                   stackId={stacked ? "stack" : undefined}
                   radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+                  isAnimationActive={animate}
                 />
               ))}
               <ChartLegend content={<ChartLegendContent />} />

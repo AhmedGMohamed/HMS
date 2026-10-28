@@ -14,6 +14,7 @@ import type { StaticLocale } from "@/lib/types-extras"
 import { EmptyState } from "@/components/common/EmptyState"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 
 export interface PatientServicesDonutSlice {
   /** Slice label (e.g. "Patient Services", "Pharmacy"). */
@@ -65,6 +66,7 @@ export function PatientServicesDonut({
   const language = useUIStore((s) => s.language)
   const resolvedLocale = locale ?? (resolveLocale(language) as StaticLocale)
 
+  const animate = useChartAnimation()
   const config = useChartConfig(
     Object.fromEntries(
       data.length > 0
@@ -126,6 +128,7 @@ export function PatientServicesDonut({
             outerRadius={100}
             paddingAngle={2}
             stroke="var(--color-surface)"
+            isAnimationActive={animate}
           >
             {data.map((slice, index) => (
               <Cell

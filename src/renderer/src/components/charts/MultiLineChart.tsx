@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/chart"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 import { seriesColor, type ChartSeries } from "./chartPalette"
 import { createChartFormatter, type ChartValueFormat } from "./chartFormat"
 import { CHART_DIRECTION, ChartEmpty, ChartSrTable } from "./ChartShell"
@@ -68,6 +69,7 @@ export function MultiLineChart<T extends Record<string, unknown>>({
 }: MultiLineChartProps<T>) {
   const formatter = useMemo(() => createChartFormatter(format, locale), [format, locale])
 
+  const animate = useChartAnimation()
   const config = useChartConfig(
     Object.fromEntries(
       series.map((entry, index) => [
@@ -142,6 +144,7 @@ export function MultiLineChart<T extends Record<string, unknown>>({
                   dot={false}
                   activeDot={{ r: 4 }}
                   connectNulls
+                  isAnimationActive={animate}
                 />
               ))}
               <ChartLegend content={<ChartLegendContent />} />
