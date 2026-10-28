@@ -465,6 +465,74 @@ export function timeToMinutes(value: unknown): number | null {
 	return hours * 60 + minutes;
 }
 
+/**
+ * Attendance status of one clock-in — plan §3.4, shared by the payroll detail
+ * (period deductions) and the clock-in report (6.11.6) so the two can never
+ * disagree about what "late" means.
+ *
+ * Rules, in order:
+ *   - no clock-in      → `missing`
+ *   - no clock-out     → `incomplete`
+ *   - with a shift     → `late` when clock-in is more than 30 min after the
+ *                        shift start, else `early` when clock-out is more than
+ *                        30 min before the shift end, else `on_time`
+ *   - without a shift  → `late` when a deduction was recorded, else `on_time`
+ *
+ * The 30-minute grace is a rule, not a constant to tweak per caller: the
+ * legacy page used the same threshold when it recorded `pay_deduction`.
+ */
+export type ClockStatus = "on_time" | "late" | "early" | "incomplete" | "missing";
+
+export const CLOCK_GRACE_MINUTES = 30;
+
+export interface ClockStatusResult {
+	status: ClockStatus;
+	late_minutes: number;
+	early_minutes: number;
+}
+
+export function clockStatusFor(input: {
+	clockIn: unknown;
+	clockOut: unknown;
+	shiftStart: unknown;
+	shiftEnd: unknown;
+	payDeduction: unknown;
+}): ClockStatusResult {
+	const clockIn = timeToMinutes(input.clockIn);
+	if (clockIn === null) {
+		return { status: "missing", late_minutes: 0, early_minutes: 0 };
+	}
+
+	const clockOut = timeToMinutes(input.clockOut);
+	if (clockOut === null) {
+		return { status: "incomplete", late_minutes: 0, early_minutes: 0 };
+	}
+
+	const shiftStart = timeToMinutes(input.shiftStart);
+	const shiftEnd = timeToMinutes(input.shiftEnd);
+
+	if (shiftStart === null || shiftEnd === null) {
+		const deduction = toMoneyNumber(input.payDeduction);
+		return {
+			status: deduction > 0 ? "late" : "on_time",
+			late_minutes: 0,
+			early_minutes: 0,
+		};
+	}
+
+	const lateMinutes = Math.max(0, clockIn - (shiftStart + CLOCK_GRACE_MINUTES));
+	if (lateMinutes > 0) {
+		return { status: "late", late_minutes: lateMinutes, early_minutes: 0 };
+	}
+
+	const earlyMinutes = Math.max(0, shiftEnd - CLOCK_GRACE_MINUTES - clockOut);
+	if (earlyMinutes > 0) {
+		return { status: "early", late_minutes: 0, early_minutes: earlyMinutes };
+	}
+
+	return { status: "on_time", late_minutes: 0, early_minutes: 0 };
+}
+
 /** Minutes between two timestamps, rounded to 2 decimals of an hour. */
 export function hoursBetween(start: unknown, end: unknown): number {
 	if (!start || !end) return 0;

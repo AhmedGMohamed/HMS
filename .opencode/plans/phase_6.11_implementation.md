@@ -917,6 +917,15 @@ pages/Reports/
     (1.5 s) poll for `svg.recharts-surface` with a non-zero box, then two frames — and
     `document.fonts.ready`. A `setTimeout` would have been both slower and wrong (a font swap or a
     slow `ResizeObserver` still blanks the capture); this waits for the condition instead.
+50. **A `sr-only` block must be a `<div>`, never a `<table>`.** `sr-only` is `height: 1px;
+    overflow: hidden`, but on a **table box** `height` is only a *minimum* and `overflow` does not
+    clip — the table grows to fit its rows. `ChartSrTable` therefore renders
+    `<div class="sr-only"><table>…</table></div>`. With `grouping=day` over 2020→2030 the
+    table reached 4,018 rows and pushed the document to 82,339 px (≈79,600 px of empty space below
+    the last card), growing linearly with the range. The same wrapper applies to the two dashboard
+    charts that render their own `sr` summary. `test/chartSrTable.spec.tsx` pins the structure, and
+    Playwright gates must select real tables with `table[data-slot="table"]` rather than
+    `table:not(.sr-only)`.
 
 ### 11.3 Deviations from the plan for this tab
 
@@ -935,9 +944,10 @@ pages/Reports/
 | API smoke (live server) | `statistics-api-smoke.cjs` | `day` 200 / 4,017 buckets, `month` 200 / 132, `year` 200 / 11; KPIs `2 patients / 9 admissions / 8 discharges / 30.97 d / 1,726 billed / 50 collected / 1,676 outstanding`; `grouping=week` **400**; reversed range **400**; export 200 with `generated_at`; export without `manage_reports` **403** |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
 | Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/components/charts src/renderer/src/lib/chartSnapshot.ts src/renderer/test/statisticsReportExport.spec.ts` | Clean |
-| Renderer unit | `npm run test:renderer` | **52/52** (11 in `test/statisticsReportExport.spec.ts`) |
+| Renderer unit | `npm run test:renderer` | **55/55** (11 in `test/statisticsReportExport.spec.ts`, 3 in `test/chartSrTable.spec.tsx`) |
 | PDF bitmaps (live) | `snapshot-ink-check.cjs` | 8 canvases, **8/8** > 0.15 % coloured pixels |
 | PDF bytes (live) | `statistics-pdf-size-check.cjs` | 28,741 → **210,932** bytes, header `%PDF-` |
+| Page height vs. range (live) | `statistics-layout-check.cjs`, `sr-table-check.cjs` | 1 month / 1 year / 11 years at `grouping=day`: **2,837 px in all three** (was 2,837 / 9,279 / 82,339); 8 `sr` wrappers, 16,077 rows, wrapper height **1 px** |
 | Bundle | `npm run build:renderer` | OK |
 | i18n | `check-reports-i18n.cjs` | 201 used keys, missing = 0 in both locales (only the pre-existing `lengthOfStay_two/_few` are `onlyAr`) |
 
@@ -981,6 +991,16 @@ The other tabs were re-run after the hook change: nurse **35/35**, doctor **29/2
    coloured series pixels** (0.38 %–35.1 % of pixels; a mid-animation capture scores ~0 %), and the
    real PDF grew 28,741 → **210,932** bytes. Because the fix is in the shared wrappers and surface,
    it repairs the doctor, nurse, patient, pharmacy, insurance and vault PDFs at the same time.
+4. **The statistics page grew a huge empty tail on wide ranges (real bug, reported from the UI).**
+   The `sr-only` data table behind each chart carried the class on the `<table>` itself. A table box
+   treats `height` as a minimum and ignores `overflow`, so the table laid out at full height —
+   4,018 rows at `grouping=day` over 2020→2030 — and the document reached **82,339 px** with the
+   last card ending at 2,732 px. The gap scaled with the bucket count, which is why it looked like
+   a chart problem. Fixed by moving the class to a `<div>` wrapper (contract 50) in `ChartSrTable`
+   and in the two dashboard charts that build their own summary; page height is now constant at
+   **2,837 px** for one month, one year and eleven years, with all 16,077 table rows still in the
+   accessibility tree. `test/chartSrTable.spec.tsx` guards the structure, and the Playwright gates
+   were re-pointed at `table[data-slot="table"]`.
 
 ### 11.5 Continue here — 6.11.5 Employee payments
 

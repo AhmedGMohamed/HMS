@@ -153,25 +153,27 @@ export function RevenueLineChart({
         </ResponsiveContainer>
       </ChartContainer>
       {srSummary ? (
-        <table className="sr-only">
-          <caption>Revenue & Profit summary</caption>
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Revenue</th>
-              <th scope="col">Profit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((point) => (
-              <tr key={point.date}>
-                <th scope="row">{point.date}</th>
-                <td>{formatCurrency(point.revenue, resolvedLocale)}</td>
-                <td>{formatCurrency(point.profit, resolvedLocale)}</td>
+        <div className="sr-only">
+          <table>
+            <caption>Revenue & Profit summary</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Revenue</th>
+                <th scope="col">Profit</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.map((point) => (
+                <tr key={point.date}>
+                  <th scope="row">{point.date}</th>
+                  <td>{formatCurrency(point.revenue, resolvedLocale)}</td>
+                  <td>{formatCurrency(point.profit, resolvedLocale)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </div>
   )
