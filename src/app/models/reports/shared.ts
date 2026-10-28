@@ -309,13 +309,18 @@ export interface SortQuery {
  * SQL fragment. Throws `ReportValidationError` for unknown columns so a
  * typo surfaces during development instead of silently defaulting.
  *
+ * `defaultDirection` exists because ascending is right for a name and wrong
+ * for a money column: the payroll list should open with the largest net, not
+ * the smallest.
+ *
  * The fragment is built from developer-authored `orderBy` strings only —
  * user input can select a key but never reaches the SQL text.
  */
 export function parseSort(
 	query: Record<string, unknown>,
 	allowed: Record<string, string>,
-	defaultKey: string
+	defaultKey: string,
+	defaultDirection: SortDirection = "asc"
 ): SortQuery & { sql: string } {
 	const raw = query.sort === undefined || query.sort === "" ? defaultKey : String(query.sort);
 	if (!(raw in allowed)) {
@@ -323,7 +328,10 @@ export function parseSort(
 			`sort must be one of ${Object.keys(allowed).join(", ")}`
 		);
 	}
-	const rawDir = query.dir === undefined || query.dir === "" ? "asc" : String(query.dir);
+	const rawDir =
+		query.dir === undefined || query.dir === ""
+			? defaultDirection
+			: String(query.dir);
 	if (rawDir !== "asc" && rawDir !== "desc") {
 		throw new ReportValidationError("dir must be asc or desc");
 	}
@@ -447,8 +455,16 @@ export function parseBooleanParam(value: unknown, fallback = false): boolean {
 /* ------------------------------------------------------------------ */
 
 /**
- * Parses a Postgres `TIME` (`08:00:00`) or timestamp into minutes since
- * midnight. Returns `null` when the value is missing or invalid.
+ * Parses a Postgres `TIME` (`08:00:00`), a `timestamp` `Date`, or a
+ * date-time string into minutes since midnight. Returns `null` when the value
+ * is missing or invalid.
+ *
+ * The **wall clock** is what matters here: shift times are local, so a `Date`
+ * is read with `getHours()` (local), never `getUTCHours()`. A string carrying a
+ * date is read from its time component for the same reason — `toISOString()`
+ * output is UTC and would shift the clock, which is why callers should hand
+ * over the raw `timestamp` value and use `toTimestampString()` only for the
+ * DTO's display string.
  */
 export function timeToMinutes(value: unknown): number | null {
 	if (value === null || value === undefined || value === "") return null;
@@ -457,7 +473,11 @@ export function timeToMinutes(value: unknown): number | null {
 		return value.getHours() * 60 + value.getMinutes();
 	}
 	const raw = String(value);
-	const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(raw);
+	// `08:00` / `08:00:00` …
+	const timeOnly = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(raw);
+	// … or `2026-10-22 08:00:00` / `2026-10-22T08:00:00.000Z`.
+	const dateTime = timeOnly ? null : /(?:T|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(raw);
+	const match = timeOnly ?? dateTime;
 	if (!match) return null;
 	const hours = Number(match[1]);
 	const minutes = Number(match[2]);

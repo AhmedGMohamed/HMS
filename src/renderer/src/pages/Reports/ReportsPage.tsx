@@ -35,6 +35,7 @@ import { ReportsTabs } from "@/pages/Reports/components/ReportsTabs"
 import { TabPlaceholder } from "@/pages/Reports/components/TabPlaceholder"
 import { useReportOptions } from "@/pages/Reports/hooks/useReportOptions"
 import { DoctorReportTab } from "@/pages/Reports/doctors/DoctorReportTab"
+import { EmployeePaymentsTab } from "@/pages/Reports/employeePayments/EmployeePaymentsTab"
 import { NurseReportTab } from "@/pages/Reports/nurses/NurseReportTab"
 import { PatientReportTab } from "@/pages/Reports/patients/PatientReportTab"
 import { StatisticsReportTab } from "@/pages/Reports/statistics/StatisticsReportTab"
@@ -141,6 +142,38 @@ export default function ReportsPage() {
             session={session}
             canExport={canExport}
           />
+        ) : tab === "payments" ? (
+          canViewPayroll ? (
+            <EmployeePaymentsTab
+              title={t(tabMeta.labelKey)}
+              description={t(tabMeta.descriptionKey)}
+              draft={url.draft}
+              onDraftChange={url.setDraft}
+              generated={isActive ? url.generated : null}
+              generatedKey={isActive ? url.generatedKey : null}
+              isGenerated={isActive && url.isGenerated}
+              isStale={isActive && url.isStale}
+              onGenerate={handleGenerate}
+              validationError={isActive ? validationError : null}
+              employees={options.payrollEmployees}
+              session={session}
+              canExport={canExport}
+            />
+          ) : (
+            <TabPlaceholder
+              title={t(tabMeta.labelKey)}
+              description={t(tabMeta.descriptionKey)}
+              usesGrouping={tabMeta.usesGrouping}
+              draft={url.draft}
+              onRangeChange={(range) => url.setDraft({ range })}
+              onGroupingChange={(grouping) => url.setDraft({ grouping })}
+              onGenerate={handleGenerate}
+              isGenerated={isActive && url.isGenerated}
+              isStale={isActive && url.isStale}
+              validationError={isActive ? validationError : null}
+              blocked
+            />
+          )
         ) : (
           <TabPlaceholder
             title={t(tabMeta.labelKey)}
@@ -153,7 +186,6 @@ export default function ReportsPage() {
             isGenerated={isActive && url.isGenerated}
             isStale={isActive && url.isStale}
             validationError={isActive ? validationError : null}
-            blocked={tab === "payments" && !canViewPayroll}
           />
         )}
       </TabsContent>

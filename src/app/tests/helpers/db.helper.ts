@@ -920,6 +920,18 @@ export const dbHelper = {
 		await query("DELETE FROM EmployeeClockIn");
 	},
 
+	/**
+	 * Patient work attached to a payroll payment.
+	 *
+	 * Must run **before** `clearPatientHistory`: the table references
+	 * `PatientHistory(patient_history_id)` without a cascade, so deleting the
+	 * admission first fails the foreign key (the payroll spec attaches work to
+	 * the seeded admissions).
+	 */
+	async clearEmployeePaymentPatients() {
+		await query("DELETE FROM EmployeePaymentPatient");
+	},
+
 	async clearEmployeePayments() {
 		await query("DELETE FROM EmployeePayment");
 	},
@@ -966,6 +978,7 @@ export const dbHelper = {
 			//     MedicalSupplyShipmentPrice, so it is cleared last.
 			await this.clearAuditLogs();
 			await this.clearDailyStaffAssignments();
+			await this.clearEmployeePaymentPatients();
 			await this.clearDrugUsages();
 			await this.clearBillDetails();
 			await this.clearActivePatientServices();

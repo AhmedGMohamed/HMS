@@ -232,6 +232,59 @@
         "paymentTypeDistribution": "توزيع أنواع المدفوعات"
       }
     },
+    "payrollReports": {
+      "kpis": {
+        "basePay": "الأجر الأساسي",
+        "extraPay": "الأجر الإضافي",
+        "deductions": "الخصومات",
+        "netPay": "صافي الأجر"
+      },
+      "charts": {
+        "grossPay": "إجمالي الأجر",
+        "period": "الفترة",
+        "paymentType": "نوع الدفع",
+        "timelineCaption": "إجمالي الأجر لكل {{grouping}}",
+        "typeCaption": "إجمالي الأجر حسب نوع الدفع"
+      },
+      "paymentTypes": {
+        "none": "لا شيء",
+        "salary": "راتب",
+        "bonus": "مكافأة",
+        "overtime": "عمل إضافي",
+        "manual": "يدوي",
+        "per_patient": "لكل مريض",
+        "income": "دخل",
+        "commission": "عمولة",
+        "referral": "تحويل",
+        "fixed": "ثابت",
+        "percentage": "نسبة مئوية",
+        "service": "خدمات",
+        "supervising_doctor_assignment": "عمولة الطبيب المشرف"
+      },
+      "paymentStatus": {
+        "paid": "مدفوع",
+        "pending": "قيد الانتظار"
+      },
+      "detail": {
+        "patientWork": "أعمال المرضى",
+        "noPatientWork": "لا توجد أعمال مرضى",
+        "noPatientWorkDescription": "لا توجد ارتباطات مرضى لهذه الدفعة.",
+        "payments": "المدفوعات",
+        "noPayments": "لا توجد مدفوعات",
+        "noPaymentsDescription": "لا توجد مدفوعات لهذا الموظف في الفترة المحددة.",
+        "noDeductions": "لا توجد خصومات",
+        "noDeductionsDescription": "لم يتم تسجيل أي خصم حضور في هذه الفترة.",
+        "deductionNote": "تُحتسب الخصومات مرة واحدة للفترة كاملة، وليس لكل دفعة.",
+        "needClockIn": "يتطلب تسجيل حضور",
+        "yes": "نعم",
+        "no": "لا",
+        "noShift": "بدون وردية",
+        "workDays": "أيام العمل",
+        "patientsServed": "المرضى المخدومون"
+      },
+      "emptyTitle": "لا توجد مدفوعات موظفين",
+      "emptyDescription": "لا توجد مدفوعات موظفين تطابق المعايير المحددة."
+    },
     "statistics": {
       "totalPatients": "إجمالي المرضى",
       "avgStay": "متوسط الإقامة (أيام)",
@@ -499,7 +552,21 @@
       "itemType": "النوع",
       "quantity": "الكمية",
       "unitPrice": "سعر الوحدة",
-      "totalPrice": "الإجمالي"
+      "totalPrice": "الإجمالي",
+      "employee": "الموظف",
+      "type": "النوع",
+      "hireDate": "تاريخ التعيين",
+      "payments": "المدفوعات",
+      "base": "الأساسي",
+      "extra": "الإضافي",
+      "deductions": "الخصومات",
+      "paid": "المدفوع",
+      "unpaid": "غير المدفوع",
+      "net": "الصافي",
+      "gross": "الإجمالي",
+      "paymentDate": "تاريخ الدفع",
+      "patientCount": "المرضى",
+      "paidOn": "تاريخ السداد"
     },
     "units": {
       "hours": "س"
@@ -519,6 +586,7 @@
       "noDoctorsDescription": "لا يوجد أطباء يطابقون المعايير المحددة",
       "noNursesFound": "لم يتم العثور على ممرضين",
       "noNursesDescription": "لا يوجد ممرضون يطابقون المعايير المحددة",
+      "noEmployeePaymentsTitle": "لا توجد مدفوعات موظفين",
       "noEmployeePaymentsDescription": "لم يتم العثور على مدفوعات موظفين للمعايير المحددة",
       "noPatientsForDoctor": "لم يتم العثور على مرضى لهذا الطبيب",
       "noPatientsForNurse": "لم يتم العثور على مرضى لهذا الممرض",

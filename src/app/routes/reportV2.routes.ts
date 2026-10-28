@@ -148,4 +148,47 @@ router.get(
 	(req, res) => ReportV2Controller.getStatistics(req, res)
 );
 
+/* ------------------------------------------------------------------ */
+/* Employee payments (payroll)                                         */
+/* ------------------------------------------------------------------ */
+
+// Payroll exposes employee names and pay, so every route needs the payroll
+// permission pair, not just `view_reports`.
+const PAYROLL_READ = ["view_reports", "manage_employees"] as const;
+
+// Static segments first: `/employee-payments/export` must not be read as an id.
+router.get(
+	"/employee-payments/export",
+	verifyToken,
+	checkPermissions([...PAYROLL_READ, "manage_reports"]),
+	auditLogger,
+	(req, res) => ReportV2Controller.exportEmployeePayments(req, res)
+);
+
+// Deeper parametric path before the shallower one, so `/…/:employeeId` cannot
+// swallow `/…/:employeeId/payments/:paymentId`.
+router.get(
+	"/employee-payments/:employeeId/payments/:paymentId",
+	verifyToken,
+	checkPermissions([...PAYROLL_READ]),
+	auditLogger,
+	(req, res) => ReportV2Controller.getPaymentAssociations(req, res)
+);
+
+router.get(
+	"/employee-payments/:employeeId",
+	verifyToken,
+	checkPermissions([...PAYROLL_READ]),
+	auditLogger,
+	(req, res) => ReportV2Controller.getEmployeePayment(req, res)
+);
+
+router.get(
+	"/employee-payments",
+	verifyToken,
+	checkPermissions([...PAYROLL_READ]),
+	auditLogger,
+	(req, res) => ReportV2Controller.listEmployeePayments(req, res)
+);
+
 export default router;

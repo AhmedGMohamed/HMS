@@ -230,6 +230,59 @@
         "paymentTypeDistribution": "Payment Type Distribution"
       }
     },
+    "payrollReports": {
+      "kpis": {
+        "basePay": "Base Pay",
+        "extraPay": "Extra Pay",
+        "deductions": "Deductions",
+        "netPay": "Net Pay"
+      },
+      "charts": {
+        "grossPay": "Gross Pay",
+        "period": "Period",
+        "paymentType": "Payment Type",
+        "timelineCaption": "Gross pay per {{grouping}} bucket",
+        "typeCaption": "Gross pay by payment type"
+      },
+      "paymentTypes": {
+        "none": "None",
+        "salary": "Salary",
+        "bonus": "Bonus",
+        "overtime": "Overtime",
+        "manual": "Manual",
+        "per_patient": "Per Patient",
+        "income": "Income",
+        "commission": "Commission",
+        "referral": "Referral",
+        "fixed": "Fixed",
+        "percentage": "Percentage",
+        "service": "Service",
+        "supervising_doctor_assignment": "Supervising Doctor Commission"
+      },
+      "paymentStatus": {
+        "paid": "Paid",
+        "pending": "Pending"
+      },
+      "detail": {
+        "patientWork": "Patient Work",
+        "noPatientWork": "No patient work",
+        "noPatientWorkDescription": "This payment has no patient associations.",
+        "payments": "Payments",
+        "noPayments": "No payments",
+        "noPaymentsDescription": "This employee has no payments in the selected period.",
+        "noDeductions": "No deductions",
+        "noDeductionsDescription": "No clock-in deduction was recorded in this period.",
+        "deductionNote": "Deductions are counted once for the whole period, not once per payment.",
+        "needClockIn": "Requires Clock-In",
+        "yes": "Yes",
+        "no": "No",
+        "noShift": "No shift",
+        "workDays": "Work Days",
+        "patientsServed": "Patients Served"
+      },
+      "emptyTitle": "No employee payments",
+      "emptyDescription": "No employee payments match the selected criteria."
+    },
     "statistics": {
       "totalPatients": "Total Patients",
       "avgStay": "Avg Stay (Days)",
@@ -497,7 +550,21 @@
       "itemType": "Type",
       "quantity": "Qty",
       "unitPrice": "Unit Price",
-      "totalPrice": "Total"
+      "totalPrice": "Total",
+      "employee": "Employee",
+      "type": "Type",
+      "hireDate": "Hire Date",
+      "payments": "Payments",
+      "base": "Base",
+      "extra": "Extra",
+      "deductions": "Deductions",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "net": "Net",
+      "gross": "Gross",
+      "paymentDate": "Payment Date",
+      "patientCount": "Patients",
+      "paidOn": "Paid On"
     },
     "units": {
       "hours": "h"
@@ -517,6 +584,7 @@
       "noDoctorsDescription": "No doctors match the selected criteria",
       "noNursesFound": "No Nurses Found",
       "noNursesDescription": "No nurses match the selected criteria",
+      "noEmployeePaymentsTitle": "No Employee Payments",
       "noEmployeePaymentsDescription": "No employee payments found for the selected criteria",
       "noPatientsForDoctor": "No patients found for this doctor",
       "noPatientsForNurse": "No patients found for this nurse",
