@@ -141,30 +141,32 @@ export function PatientServicesDonut({
         </PieChart>
       </ChartContainer>
       {srSummary ? (
-        <table className="sr-only">
-          <caption>{`${metric === "revenue" ? "Revenue" : "Profit"} distribution`}</caption>
-          <thead>
-            <tr>
-              <th scope="col">Category</th>
-              <th scope="col">{metric === "revenue" ? "Revenue" : "Profit"}</th>
-              <th scope="col">Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((slice) => {
-              const safeValue = slice.value || 0
-              const percentage =
-                total > 0 ? Math.round((safeValue / total) * 100) : 0
-              return (
-                <tr key={slice.name}>
-                  <th scope="row">{slice.name}</th>
-                  <td>{formatCurrency(safeValue, resolvedLocale)}</td>
-                  <td>{`${percentage}%`}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="sr-only">
+          <table>
+            <caption>{`${metric === "revenue" ? "Revenue" : "Profit"} distribution`}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Category</th>
+                <th scope="col">{metric === "revenue" ? "Revenue" : "Profit"}</th>
+                <th scope="col">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((slice) => {
+                const safeValue = slice.value || 0
+                const percentage =
+                  total > 0 ? Math.round((safeValue / total) * 100) : 0
+                return (
+                  <tr key={slice.name}>
+                    <th scope="row">{slice.name}</th>
+                    <td>{formatCurrency(safeValue, resolvedLocale)}</td>
+                    <td>{`${percentage}%`}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </div>
   )
