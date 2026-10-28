@@ -23,6 +23,7 @@ import { StaticLocale } from "@/lib/types-extras"
 import { EmptyState } from "@/components/common/EmptyState"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 
 export interface RevenueLineChartPoint {
   /** ISO date string or any sortable label; rendered as X axis tick. */
@@ -64,6 +65,7 @@ export function RevenueLineChart({
   const language = useUIStore((s) => s.language)
   const resolvedLocale = locale ?? (resolveLocale(language) as StaticLocale)
 
+  const animate = useChartAnimation()
   const config = useChartConfig({
     revenue: { label: "Revenue", color: "var(--color-primary)" },
     profit: { label: "Profit", color: "var(--color-success)" },
@@ -135,6 +137,7 @@ export function RevenueLineChart({
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
+              isAnimationActive={animate}
             />
             <Line
               dataKey="profit"
@@ -143,6 +146,7 @@ export function RevenueLineChart({
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
+              isAnimationActive={animate}
             />
             <ChartLegend content={<ChartLegendContent />} />
           </LineChart>

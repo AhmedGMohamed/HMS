@@ -21,11 +21,47 @@ export interface CaptureOptions {
 }
 
 /**
+ * Waits until a chart slot has laid out its SVG **and** painted a frame.
+ *
+ * `ResponsiveContainer` measures its parent asynchronously (ResizeObserver), so
+ * the `<svg>` can be absent for the first paint even though React has already
+ * committed it. Capturing a slot whose SVG is missing, or is still 0×0, yields
+ * a blank box — and before `ChartSnapshotSurface` disabled chart animation, a
+ * slot could also be captured mid-entry-animation, which produced a bitmap with
+ * axes and no series at all.
+ *
+ * The animation half is fixed at the source (`ChartAnimationContext`); this is
+ * the measurement half. Both are bounded so a wedged chart cannot hang an
+ * export.
+ */
+async function waitForChartGeometry(
+  element: HTMLElement,
+  timeoutMs = 1500
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    const svg = element.querySelector<SVGSVGElement>("svg.recharts-surface")
+    if (svg) {
+      const box = svg.getBoundingClientRect()
+      if (box.width > 0 && box.height > 0) {
+        // One more pair of frames so the first paint with real geometry lands.
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        })
+        return
+      }
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 25))
+  }
+}
+
+/**
  * Captures a single element as a PNG data URL.
  *
- * Waits for a frame first so layout/`ResizeObserver`-driven chart sizing has
- * settled — Recharts measures its container asynchronously, and capturing too
- * early yields a half-drawn chart.
+ * Waits for layout/`ResizeObserver`-driven chart sizing to settle and for the
+ * element's fonts to be ready — Recharts measures its container
+ * asynchronously, and capturing too early yields a half-drawn chart.
  */
 export async function captureElementAsPng(
   element: HTMLElement,
@@ -34,9 +70,9 @@ export async function captureElementAsPng(
   const { pixelRatio = 2, backgroundColor = "#ffffff" } = options
 
   try {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    })
+    await waitForChartGeometry(element)
+    // Best-effort: a font swap after capture would shift every label.
+    await document.fonts?.ready
 
     return await toPng(element, {
       pixelRatio,

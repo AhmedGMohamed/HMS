@@ -207,7 +207,7 @@ Rules:
 
 All take `series: ChartSeries[]` (`{ key, label, color?, dashed?, fill? }`), `format: ChartValueFormat` (`currency | number | days | hours | percent`), `locale`, `loading`, `srCaption`, `xHeader`, `emptyTitle/emptyDescription`, `className`, and render an auto-generated `sr-only` table + an `EmptyState` + a skeleton. They mount inside `dir="ltr"` — never reverse an axis for RTL; only labels are localized.
 
-For PDFs: render the chart again inside `ChartSnapshotSurface` with `locale="en-US"` and English labels, tag it with `ChartSnapshotSlot name="…"`, then `captureChartSnapshots(root)` at export time. Capture failure returns `undefined`; the PDF must still print the data table.
+For PDFs: render the chart again inside `ChartSnapshotSurface` with `locale="en-US"` and English labels, tag it with `ChartSnapshotSlot name="…"`, then `captureChartSnapshots(root)` at export time. Capture failure returns `undefined`; the PDF must still print the data table. The surface provides `ChartAnimationContext = false`, so the captured copy is drawn at its final state — do not add per-chart `isAnimationActive` props at call sites (contract 49).
 
 ### 3.6 Exports
 
@@ -907,6 +907,16 @@ pages/Reports/
     promise and clears the slot on settle, so React `StrictMode`'s double effect (and two views of
     the same report) share one response. All four report hooks use it; `reload` passes
     `{ force: true }` to bypass it.
+49. **Chart entry animation is a context switch, and a capture waits for geometry — never for a
+    sleep.** Recharts animates series in over ~1.5 s by default; `ChartSnapshotSurface` captures a
+    mounted copy two frames later, so a bitmap taken at t≈30 ms contained the axes and **no series
+    at all**. The wrappers now read `ChartAnimationContext` (`useChartAnimation()`), default `true`
+    so on-screen charts are unchanged, and the snapshot surface provides `false`, which becomes
+    `isAnimationActive={false}` on every `Line`, `Bar` and `Pie`. The measurement half lives in
+    `lib/chartSnapshot.ts`: `captureElementAsPng` first awaits `waitForChartGeometry` — a bounded
+    (1.5 s) poll for `svg.recharts-surface` with a non-zero box, then two frames — and
+    `document.fonts.ready`. A `setTimeout` would have been both slower and wrong (a font swap or a
+    slow `ResizeObserver` still blanks the capture); this waits for the condition instead.
 
 ### 11.3 Deviations from the plan for this tab
 
@@ -924,8 +934,10 @@ pages/Reports/
 | Backend specs | `$env:NODE_ENV="test"; npx jasmine --filter="statistics"` | 27/27 (22 model + 5 controller), exit 0 |
 | API smoke (live server) | `statistics-api-smoke.cjs` | `day` 200 / 4,017 buckets, `month` 200 / 132, `year` 200 / 11; KPIs `2 patients / 9 admissions / 8 discharges / 30.97 d / 1,726 billed / 50 collected / 1,676 outstanding`; `grouping=week` **400**; reversed range **400**; export 200 with `generated_at`; export without `manage_reports` **403** |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
-| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/lib/chartSnapshot.ts src/renderer/test/statisticsReportExport.spec.ts` | Clean |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/components/charts src/renderer/src/lib/chartSnapshot.ts src/renderer/test/statisticsReportExport.spec.ts` | Clean |
 | Renderer unit | `npm run test:renderer` | **52/52** (11 in `test/statisticsReportExport.spec.ts`) |
+| PDF bitmaps (live) | `snapshot-ink-check.cjs` | 8 canvases, **8/8** > 0.15 % coloured pixels |
+| PDF bytes (live) | `statistics-pdf-size-check.cjs` | 28,741 → **210,932** bytes, header `%PDF-` |
 | Bundle | `npm run build:renderer` | OK |
 | i18n | `check-reports-i18n.cjs` | 201 used keys, missing = 0 in both locales (only the pre-existing `lengthOfStay_two/_few` are `onlyAr`) |
 
@@ -942,7 +954,9 @@ Live Playwright pass (**46/46**, Admin JWT, Express :3000 + Vite :5173):
   sections, no `EGP`;
 - `Export PDF` → `200` on `/statistics/export`, no error toast; document verified in-page
   (`loadPdfMake` + `buildPdfShellDoc` + `statisticsReportDocContent` → `getBuffer`):
-  **28,741 bytes, header `%PDF-`**;
+  **28,741 bytes, header `%PDF-`**. The real export (`URL.createObjectURL` hook on the clicked
+  button, so chart bitmaps included) is **210,932 bytes** — 7.3× larger, all eight bitmaps
+  carrying ink (contract 49, defect 3);
 - grouping → `year` regenerates with no `NaN`; a `2019` range shows the per-chart "No data in this
   period" state; AR page `dir=rtl` with Arabic KPI/chart labels, **charts stay LTR**, no `NaN`.
 
@@ -958,6 +972,15 @@ The other tabs were re-run after the hook change: nurse **35/35**, doctor **29/2
 2. **Every report tab fetched twice in development.** `StrictMode` runs effects twice; the cache
    cannot dedupe because nothing is written until the response lands. Added
    `session.fetchOnce` (contract 48) and adopted it in all four hooks.
+3. **Exported PDFs contained chart axes and no data (real bug, reported from the UI).** The four
+   wrappers never set `isAnimationActive`, so the hidden export copy ran Recharts' ~1.5 s entry
+   animation while the capture fired two frames after mount: every bitmap was an empty plot. Fixed
+   at the source with `ChartAnimationContext` (contract 49) plus a geometry wait in
+   `captureElementAsPng`, rather than a longer sleep. Verified with an ink probe that hooks
+   `HTMLCanvasElement.prototype.toDataURL` and decodes each captured canvas: **8/8 bitmaps contain
+   coloured series pixels** (0.38 %–35.1 % of pixels; a mid-animation capture scores ~0 %), and the
+   real PDF grew 28,741 → **210,932** bytes. Because the fix is in the shared wrappers and surface,
+   it repairs the doctor, nurse, patient, pharmacy, insurance and vault PDFs at the same time.
 
 ### 11.5 Continue here — 6.11.5 Employee payments
 
@@ -988,6 +1011,8 @@ pages its own sub-table**. Reuse `GroupByField`, the payroll timeline from the p
 | Statistics charts + snapshot slots | `pages/Reports/statistics/StatisticsCharts.tsx` + `statistics/statisticsChartSnapshot.ts` |
 | Statistics exports (8 chart+table sections) | `pages/Reports/export/pdf/buildStatisticsReportPdf.ts`, `export/csv/exportStatisticsReportCsv.ts` |
 | Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
+| Chart animation switch (contract 49) | `src/renderer/src/components/charts/chartAnimation.ts` + `ChartSnapshotSurface.tsx` |
+| Chart bitmap capture (geometry wait) | `src/renderer/src/lib/chartSnapshot.ts` |
 | URL + draft state (incl. `dist` view param) | `pages/Reports/state/useReportUrlState.ts`, `state/reportParams.ts` |
 | Route permission | `src/renderer/src/lib/routes.ts` (`view_reports`) |
 | Sidebar entry | `src/renderer/src/lib/navigation.ts` |

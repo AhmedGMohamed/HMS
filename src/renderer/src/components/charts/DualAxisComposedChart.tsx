@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/chart"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 import { seriesColor, type ChartSeries } from "./chartPalette"
 import { createChartFormatter, type ChartValueFormat } from "./chartFormat"
 import { CHART_DIRECTION, ChartEmpty, ChartSrTable } from "./ChartShell"
@@ -77,6 +78,7 @@ export function DualAxisComposedChart<T extends Record<string, unknown>>({
 
   const series = [...leftSeries, rightSeries]
 
+  const animate = useChartAnimation()
   const config = useChartConfig(
     Object.fromEntries(
       series.map((entry, index) => [
@@ -158,6 +160,7 @@ export function DualAxisComposedChart<T extends Record<string, unknown>>({
                   dataKey={entry.key}
                   fill={entry.color ?? seriesColor(index)}
                   radius={[4, 4, 0, 0]}
+                  isAnimationActive={animate}
                 />
               ))}
               <Line
@@ -168,6 +171,7 @@ export function DualAxisComposedChart<T extends Record<string, unknown>>({
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
+                isAnimationActive={animate}
               />
               <ChartLegend content={<ChartLegendContent />} />
             </ComposedChart>

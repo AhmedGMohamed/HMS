@@ -15,9 +15,15 @@
  * `aria-hidden`, so it is invisible, unreachable by keyboard, and ignored by
  * assistive tech. Each chart is tagged with `data-chart-snapshot-key` so the
  * capture helper can find it by name.
+ *
+ * The surface also provides `ChartAnimationContext = false`. Without that the
+ * captured copy runs Recharts' ~1.5s entry animation and the bitmap (taken two
+ * frames after mount) contains the axes and no series at all.
  */
 
 import type { ReactNode } from "react"
+
+import { ChartAnimationContext } from "./chartAnimation"
 
 export interface ChartSnapshotSurfaceProps {
   /** Mount only while an export is running. */
@@ -39,25 +45,27 @@ export function ChartSnapshotSurface({
   if (!active) return null
 
   return (
-    <div
-      aria-hidden="true"
-      data-chart-snapshot-surface=""
-      dir="ltr"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: -10000,
-        width,
-        height,
-        background: "#ffffff",
-        pointerEvents: "none",
-        zIndex: -1,
-        padding: 12,
-        boxSizing: "border-box",
-      }}
-    >
-      {children}
-    </div>
+    <ChartAnimationContext.Provider value={false}>
+      <div
+        aria-hidden="true"
+        data-chart-snapshot-surface=""
+        dir="ltr"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: -10000,
+          width,
+          height,
+          background: "#ffffff",
+          pointerEvents: "none",
+          zIndex: -1,
+          padding: 12,
+          boxSizing: "border-box",
+        }}
+      >
+        {children}
+      </div>
+    </ChartAnimationContext.Provider>
   )
 }
 

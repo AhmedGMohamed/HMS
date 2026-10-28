@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/chart"
 import { StatTileSkeleton } from "./StatTileSkeleton"
 import { useChartConfig } from "./useChartConfig"
+import { useChartAnimation } from "./chartAnimation"
 import { seriesColor } from "./chartPalette"
 import { createChartFormatter, type ChartValueFormat } from "./chartFormat"
 import { CHART_DIRECTION, ChartEmpty, ChartSrTable } from "./ChartShell"
@@ -74,6 +75,7 @@ export function DistributionDonutChart({
     [data]
   )
 
+  const animate = useChartAnimation()
   const config = useChartConfig(
     Object.fromEntries(
       data.map((slice, index) => [
@@ -131,6 +133,7 @@ export function DistributionDonutChart({
                 strokeWidth={2}
                 stroke="var(--color-surface)"
                 paddingAngle={2}
+                isAnimationActive={animate}
               >
                 {data.map((slice, index) => (
                   <Cell
