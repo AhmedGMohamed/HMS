@@ -298,7 +298,13 @@ export function serializeReportParams(
 
 /** Stable cache key / staleness token for a set of parameters. */
 export function reportParamsKey(draft: ReportDraft, tab: ReportTab): string {
-  return serializeReportParams(draft, tab).toString()
+  const params = serializeReportParams(draft, tab)
+  // `dist` (the statistics donut's split) is a **view** parameter: the payload
+  // already carries both splits, so switching it neither invalidates the result
+  // nor re-keys the session cache. Keeping it out of the key is what stops the
+  // "filters changed, regenerate" banner appearing on a pure redraw.
+  params.delete(PARAM.distribution)
+  return params.toString()
 }
 
 /** True when the form has changed since the report was generated. */

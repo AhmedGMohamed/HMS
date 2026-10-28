@@ -235,17 +235,65 @@
       "avgStay": "Avg Stay (Days)",
       "occupancyRate": "Occupancy Rate",
       "totalRevenue": "Total Revenue",
+      "kpis": {
+        "patients": "Total Patients",
+        "admissions": "Admissions",
+        "discharges": "Discharges",
+        "avgStay": "Avg Stay (Days)",
+        "billed": "Billed",
+        "collected": "Collected",
+        "outstanding": "Outstanding"
+      },
+      "series": {
+        "census": "Census",
+        "admissions": "Admissions",
+        "discharges": "Discharges",
+        "netChange": "Net change",
+        "billed": "Billed",
+        "collected": "Collected",
+        "outstanding": "Outstanding",
+        "avgStay": "Avg stay (days)",
+        "staff": "Staff",
+        "patients": "Patients",
+        "hours": "Hours",
+        "revenue": "Revenue"
+      },
+      "axis": {
+        "period": "Period",
+        "employeeType": "Employee type",
+        "service": "Service",
+        "drug": "Drug"
+      },
+      "distribution": {
+        "payment": "Payment",
+        "gender": "Gender",
+        "toggleLabel": "Distribution split"
+      },
+      "emptyTitle": "No data in this period",
+      "emptyDescription": "Nothing was recorded for the selected range.",
       "charts": {
         "patientTrends": "Patient Admission Trends",
+        "census": "Patient Census & Admissions",
+        "censusCaption": "Patients present in the ward vs. new admissions per {{grouping}}",
         "distribution": "Patient Distribution",
+        "distributionCaption": "Admissions in the period by payment type and gender",
         "payment": "Payment",
         "gender": "Gender",
         "avgStayDuration": "Average Stay Duration",
+        "averageStay": "Average Stay Duration",
+        "averageStayCaption": "Average of the stays discharged in each {{grouping}}",
         "revenueTrends": "Revenue Trends",
+        "revenue": "Revenue Trends",
+        "revenueCaption": "Billed, collected and outstanding per {{grouping}}",
         "admissionsVsDischarges": "Admissions vs Discharges",
+        "flow": "Admissions vs Discharges",
+        "flowCaption": "Net change is admissions minus discharges",
         "topServices": "Top 10 Services by Revenue",
         "topDrugs": "Top 10 Drugs by Revenue",
-        "staffUtilization": "Staff Utilization"
+        "topCaption": "Ranked by revenue inside the selected period",
+        "staffUtilization": "Staff Utilization",
+        "staff": "Staff Utilization",
+        "staffCaption": "Head-count on the left axis, hours worked on the right"
       }
     },
     "paymentTypes": {

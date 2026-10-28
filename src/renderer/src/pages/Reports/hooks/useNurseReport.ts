@@ -105,7 +105,10 @@ export function useNurseReport({
     setState({ key, error: null })
     const filterKey = nurseFilterKey(filters)
 
-    getNurses(filters, paging)
+    session
+      .fetchOnce("nurses", key, () => getNurses(filters, paging), {
+        force: forced,
+      })
       .then((payload) => {
         if (cancelled) return
         session.write("nurses", key, payload)

@@ -37,6 +37,7 @@ import { useReportOptions } from "@/pages/Reports/hooks/useReportOptions"
 import { DoctorReportTab } from "@/pages/Reports/doctors/DoctorReportTab"
 import { NurseReportTab } from "@/pages/Reports/nurses/NurseReportTab"
 import { PatientReportTab } from "@/pages/Reports/patients/PatientReportTab"
+import { StatisticsReportTab } from "@/pages/Reports/statistics/StatisticsReportTab"
 import { validateDraft } from "@/pages/Reports/state/reportParams"
 import { TAB_META } from "@/pages/Reports/state/tabMeta"
 import { useReportSession } from "@/pages/Reports/state/useReportSession"
@@ -117,6 +118,26 @@ export default function ReportsPage() {
             onGenerate={handleGenerate}
             validationError={isActive ? validationError : null}
             nurses={options.nurses}
+            session={session}
+            canExport={canExport}
+          />
+        ) : tab === "statistics" ? (
+          <StatisticsReportTab
+            title={t(tabMeta.labelKey)}
+            description={t(tabMeta.descriptionKey)}
+            draft={url.draft}
+            onDraftChange={url.setDraft}
+            // `dist` is a view parameter: rewriting the URL keeps it across a
+            // reload without freezing unsaved form edits or marking the report
+            // stale.
+            onDistributionChange={(distribution) =>
+              url.setViewParam({ distribution })
+            }
+            generated={isActive ? url.generated : null}
+            isGenerated={isActive && url.isGenerated}
+            isStale={isActive && url.isStale}
+            onGenerate={handleGenerate}
+            validationError={isActive ? validationError : null}
             session={session}
             canExport={canExport}
           />

@@ -52,6 +52,31 @@ export async function captureElementAsPng(
 }
 
 /**
+ * Waits until the export snapshot surface is mounted and measurable.
+ *
+ * `html-to-image` captures a bitmap of a rendered DOM node, so the surface has
+ * to be committed by React first. Polling the DOM (instead of a fixed timeout)
+ * keeps the export fast when the browser is idle and reliable when it is not;
+ * the timeout bounds the wait so a stuck render can never hang a download.
+ */
+export async function waitForSnapshotRoot(
+  timeoutMs = 900
+): Promise<HTMLElement | null> {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const root = document.querySelector<HTMLElement>(
+      "[data-chart-snapshot-surface]"
+    )
+    const slot = root?.querySelector("[data-chart-snapshot-key]")
+    if (root && slot) return root
+    await new Promise((resolve) => window.setTimeout(resolve, 40))
+  }
+
+  return null
+}
+
+/**
  * Captures every `[data-chart-snapshot-key]` slot inside `root`.
  *
  * Returns a `name → dataUrl` map; failed slots are omitted so callers can

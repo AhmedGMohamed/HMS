@@ -818,6 +818,8 @@ Live Playwright pass (**35/35**, Admin JWT, Express :3000 + Vite :5173), EN and 
 
 ### 10.5 Continue here — 6.11.4 Statistics
 
+> **Done — see §11** for what actually shipped. Kept as written before implementation.
+
 Plan §3.5.5 (contract), §5.4 (UX), §6.11.4 (gates). Follow §10.2 and the 6.11.2/6.11.3 tab
 recipes: a `StatisticsReport.model.ts` (grouping by day/month/year over admissions, payments and
 supplies), `listStatistics`/`getStatistics`/`exportStatistics`, then a `StatisticsReportTab` that
@@ -827,7 +829,148 @@ carry forward: exports are English-only, and every export row's per-group block 
 
 ---
 
-## 11. Quick reference — surface map (6.11.0 + 6.11.1 + 6.11.2 + 6.11.3)
+## 11. 6.11.4 — Statistics (as built)
+
+### 11.1 What shipped
+
+**Backend (additive, under `/api/reports/v2/statistics`):**
+
+| File | Role |
+|---|---|
+| `src/app/models/reports/StatisticsReport.model.ts` | `getStatistics` runs **seven independent statements in parallel** (`Promise.all`), so latency is one round trip rather than seven sequential ones: (1) KPIs as scalar subqueries, (2) census/admissions/discharges/average stay per bucket, (3) revenue per bucket, (4) the 2-D distribution, (5) top services, (6) top drugs, (7) staff utilisation. `exportStatistics` calls `getStatistics` and adds `generated_at` — there is deliberately no second implementation. |
+| `src/app/controllers/ReportV2.controller.ts` | `getStatistics`, `exportStatistics`, `parseStatisticsFilters`, `parseStatisticsGrouping` (default `day`). |
+| `src/app/routes/reportV2.routes.ts` | `GET /statistics/export` → `/statistics`. No id segment, so ordering is only about the static `export` suffix. |
+| `src/app/utils/types/reportV2.d.ts` | `StatisticsReportDTO` (already declared in 6.11.0) plus the new `StatisticsReportExportPayload`. |
+
+`generate_series` produces the buckets (`bucketPlan` truncates the bounds for month/year), so a
+quiet period is a zero row instead of a gap. Census and admissions are separate subqueries of the
+same bucket row, which is what stops the legacy "Admission Trends is actually a census" defect.
+
+Specs: `ReportV2.statistics.spec.ts` (**22**) and `ReportV2.statistics.controller.spec.ts` (**5**).
+
+**Frontend:**
+
+```
+pages/Reports/
+├── types/statisticsReport.ts            # camelCase wire types + query contract
+├── api.ts                               # getStatistics / exportStatistics
+├── hooks/useStatisticsReport.ts         # one document per (range, grouping)
+├── statistics/
+│   ├── StatisticsReportTab.tsx          # filters, two KPI strips, eight cards, exports
+│   ├── StatisticsCharts.tsx             # eight chart components + StatisticsSnapshotCharts
+│   └── statisticsChartSnapshot.ts       # EN labels + snapshot keys
+└── export/
+    ├── pdf/buildStatisticsReportPdf.ts  # period → KPIs → eight chart+table sections
+    └── csv/exportStatisticsReportCsv.ts # sectioned CSV, one section per series
+```
+
+`ReportsPage` renders `StatisticsReportTab` for `tab === "statistics"`.
+
+### 11.2 Contracts that 6.11.4 added (continues §10.2)
+
+37. **One request per report, seven statements behind it.** The tab asks for the document once;
+    every chart is a projection of that payload. A chart can therefore never disagree with its
+    neighbour or with the export.
+38. **Buckets are generated, not observed.** An empty range still returns a complete zeroed
+    series (so the axes render and the empty state is honest), and a partial month still collapses
+    to one calendar-aligned bucket.
+39. **Census ≠ admissions.** `census` counts patients *present* in the bucket
+    (`admission_time < bucket_end AND (discharge_time IS NULL OR discharge_time >= bucket_start)`);
+    `admissions` counts `admission_time` inside it. The two are plotted as separate series,
+    labelled separately, and can legitimately diverge.
+40. **Average stay averages only discharges inside the bucket.** Averaging every overlapping stay
+    would count a long admission once per bucket and pull the figure towards the window length.
+41. **Revenue is scoped by `Bill.generated_at`, and `outstanding = billed - collected` is derived
+    in TS.** Three separate sums of the same rows can disagree after rounding; one subtraction
+    cannot. The same rule applies per bucket and to the KPIs.
+42. **The distribution is two splits in one payload.** `GROUP BY payment_type, gender` and split
+    in TS, so the toggle is pure view state: it rewrites `?dist=`, never refetches, and is
+    **excluded from `reportParamsKey`** — otherwise a redraw would show the "filters changed,
+    regenerate" banner. `setViewParam` exists in the URL state for exactly this class of change.
+43. **Top-N is by revenue from `BillDetail`.** Services join directly; drugs go through
+    `DrugShipment` (`billdetail_check` guarantees one origin per line). Both lists are capped at
+    ten and ordered `revenue DESC, name ASC` so ties are stable between renders.
+44. **Staff utilisation rolls up per `employee_type`, with derived averages.** `avg_hours_per_
+    assignment` and `avg_patients_per_staff` use `safeDivide` (0, never `NaN`), and a quiet range
+    returns an empty list rather than a row of zeros.
+45. **The export is the screen.** `exportStatistics` is `getStatistics` plus `generated_at`, so the
+    PDF/CSV cannot drift from the tab. Exports are English-only, like every other tab in the phase.
+46. **Every PDF chart section prints the table behind its bitmap.** The bitmap is best-effort
+    (`html-to-image` can fail), and a bitmap alone is not auditable; the table is the fallback and
+    the reconciliation. Revenue additionally prints a `TOTALS` row that equals the KPI table.
+47. **A table's `widths` array must have exactly one entry per cell in every row.** pdfmake
+    silently distributes a phantom column when the array is longer, ends up with a negative
+    remainder and throws `unsupported number: NaN` while drawing cell backgrounds — a failure that
+    no text assertion can catch. `test/statisticsReportExport.spec.ts` now walks every table
+    (including those inside `stack`) and asserts the lengths match.
+48. **The session cache deduplicates in-flight requests per `(tab, key)`.** `fetchOnce` stores the
+    promise and clears the slot on settle, so React `StrictMode`'s double effect (and two views of
+    the same report) share one response. All four report hooks use it; `reload` passes
+    `{ force: true }` to bypass it.
+
+### 11.3 Deviations from the plan for this tab
+
+| Plan | As built | Why |
+|---|---|---|
+| One 7-card KPI grid (`xl:grid-cols-7`) | Two strips: 4 clinical + 3 revenue | Seven currency/count cards at 1/7 width clip values; the split also groups the two questions the page answers ("how busy" vs "how much money") |
+| Distribution tables side by side | Stacked, full width, with a "By gender" caption | The `columns` block needed percentage widths plus a `columnGap`; stacking removes the arithmetic and keeps long payment-type names on one line |
+| `listStatistics` + `getStatistics` | A single `getStatistics` | There is no paging and no sort: the whole series is the document the tab and the export both want |
+| Occupancy card | Removed | Hardcoded `-%` in the legacy page and there is no beds table; removing beats faking (plan §2.8) |
+
+### 11.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend specs | `$env:NODE_ENV="test"; npx jasmine --filter="statistics"` | 27/27 (22 model + 5 controller), exit 0 |
+| API smoke (live server) | `statistics-api-smoke.cjs` | `day` 200 / 4,017 buckets, `month` 200 / 132, `year` 200 / 11; KPIs `2 patients / 9 admissions / 8 discharges / 30.97 d / 1,726 billed / 50 collected / 1,676 outstanding`; `grouping=week` **400**; reversed range **400**; export 200 with `generated_at`; export without `manage_reports` **403** |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/lib/chartSnapshot.ts src/renderer/test/statisticsReportExport.spec.ts` | Clean |
+| Renderer unit | `npm run test:renderer` | **52/52** (11 in `test/statisticsReportExport.spec.ts`) |
+| Bundle | `npm run build:renderer` | OK |
+| i18n | `check-reports-i18n.cjs` | 201 used keys, missing = 0 in both locales (only the pre-existing `lengthOfStay_two/_few` are `onlyAr`) |
+
+Live Playwright pass (**46/46**, Admin JWT, Express :3000 + Vite :5173):
+
+- all seven KPIs present (`Total Patients`, `Admissions`, `Discharges`, `Avg Stay`, `Billed`,
+  `Collected`, `Outstanding`), all eight chart cards present, **no occupancy**, **no `$`**, **no
+  `NaN`**, and eight `svg.recharts-surface` nodes actually rendered;
+- **exactly one** `/statistics` request for the screen (after the `fetchOnce` fix — it was two
+  under `StrictMode`);
+- toggling the donut writes `dist=gender`, marks the button pressed, **issues no request**, and
+  does **not** raise the stale banner; the choice survives a reload;
+- CSV `statistics-report_2020-01-01_2030-12-31.csv`, 567 lines, `Metric,Value` first, all seven
+  sections, no `EGP`;
+- `Export PDF` → `200` on `/statistics/export`, no error toast; document verified in-page
+  (`loadPdfMake` + `buildPdfShellDoc` + `statisticsReportDocContent` → `getBuffer`):
+  **28,741 bytes, header `%PDF-`**;
+- grouping → `year` regenerates with no `NaN`; a `2019` range shows the per-chart "No data in this
+  period" state; AR page `dir=rtl` with Arabic KPI/chart labels, **charts stay LTR**, no `NaN`.
+
+The other tabs were re-run after the hook change: nurse **35/35**, doctor **29/29**.
+
+**Defects found and fixed during the pass:**
+
+1. **`unsupported number: NaN` on `Export PDF` (real bug, reported from the UI).** The census and
+   average-stay tables reused `TREND_WIDTHS` (four entries) while their rows had three cells, so
+   pdfmake distributed a phantom column and computed a NaN rect. Fixed by splitting
+   `THREE_WIDTHS`/`TREND_WIDTHS` and adding the widths-vs-cells guard of contract 47 — the guard
+   was verified to fail when the bug is reintroduced.
+2. **Every report tab fetched twice in development.** `StrictMode` runs effects twice; the cache
+   cannot dedupe because nothing is written until the response lands. Added
+   `session.fetchOnce` (contract 48) and adopted it in all four hooks.
+
+### 11.5 Continue here — 6.11.5 Employee payments
+
+Plan §3.5.6 (contract), §3.4 "Employee payment queries", §5.5 (UX), §6.11.5 (gates). This is the
+first tab with **two permissions** (`view_reports` + `manage_employees` — check `canViewPayroll` in
+`ReportsPage`, the tab must stay hidden without them) and the first with a **detail dialog that
+pages its own sub-table**. Reuse `GroupByField`, the payroll timeline from the plan, and
+`fetchOnce`; exports stay English-only and every export row's per-employee block is `totals`
+(contract 36).
+
+---
+
+## 12. Quick reference — surface map (6.11.0 → 6.11.4)
 
 | Surface | File |
 |---|---|
@@ -841,6 +984,11 @@ carry forward: exports are English-only, and every export row's per-group block 
 | Nurse exports (distribution + index + per-nurse) | `pages/Reports/export/pdf/buildNurseReportPdf.ts`, `export/csv/exportNurseReportCsv.ts` |
 | Nurse accordion + detail dialog | `pages/Reports/nurses/DailyAssignmentAccordion.tsx`, `nurses/NurseDetailDialog.tsx` |
 | Nurse chart bitmap | `pages/Reports/nurses/NurseDistributionChart.tsx` + `nurses/nurseChartSnapshot.ts` |
+| Statistics tab (6.11.4) | `pages/Reports/statistics/StatisticsReportTab.tsx` + `models/reports/StatisticsReport.model.ts` |
+| Statistics charts + snapshot slots | `pages/Reports/statistics/StatisticsCharts.tsx` + `statistics/statisticsChartSnapshot.ts` |
+| Statistics exports (8 chart+table sections) | `pages/Reports/export/pdf/buildStatisticsReportPdf.ts`, `export/csv/exportStatisticsReportCsv.ts` |
+| Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
+| URL + draft state (incl. `dist` view param) | `pages/Reports/state/useReportUrlState.ts`, `state/reportParams.ts` |
 | Route permission | `src/renderer/src/lib/routes.ts` (`view_reports`) |
 | Sidebar entry | `src/renderer/src/lib/navigation.ts` |
 | API mount | `src/app/routes/api.routes.ts` → `/reports/v2` before `/reports` |

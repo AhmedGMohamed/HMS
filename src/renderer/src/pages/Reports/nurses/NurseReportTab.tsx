@@ -40,7 +40,7 @@ import {
   ChartSnapshotSurface,
 } from "@/components/charts"
 import { Card, CardContent } from "@/components/ui/card"
-import { captureChartSnapshots } from "@/lib/chartSnapshot"
+import { captureChartSnapshots, waitForSnapshotRoot } from "@/lib/chartSnapshot"
 import { formatDate, resolveLocale } from "@/lib/utils"
 import { exportNurses } from "@/pages/Reports/api"
 import { DateRangeField } from "@/pages/Reports/components/DateRangeField"
@@ -125,31 +125,6 @@ const REPORT_TYPE_OPTIONS = [
 interface PagingState {
   key: string | null
   value: NurseQueryPaging
-}
-
-/**
- * Waits until the export snapshot surface is mounted and measurable.
- *
- * `html-to-image` captures a bitmap of a rendered DOM node, so the surface has
- * to be committed by React first. Polling the DOM (instead of a fixed timeout)
- * keeps the export fast when the browser is idle and reliable when it is not;
- * the timeout bounds the wait so a stuck render can never hang a download.
- */
-async function waitForSnapshotRoot(
-  timeoutMs = 900
-): Promise<HTMLElement | null> {
-  const startedAt = Date.now()
-
-  while (Date.now() - startedAt < timeoutMs) {
-    const root = document.querySelector<HTMLElement>(
-      "[data-chart-snapshot-surface]"
-    )
-    const slot = root?.querySelector("[data-chart-snapshot-key]")
-    if (root && slot) return root
-    await new Promise((resolve) => window.setTimeout(resolve, 40))
-  }
-
-  return null
 }
 
 export function NurseReportTab({
