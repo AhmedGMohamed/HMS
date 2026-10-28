@@ -60,6 +60,19 @@ import {
   isEmployeePaymentSortColumn,
 } from "@/pages/Reports/types/employeePaymentReport"
 import type {
+  ClockInDetailPayload,
+  ClockInDetailPaging,
+  ClockInExportPayload,
+  ClockInListPayload,
+  ClockInQueryFilters,
+  ClockInQueryPaging,
+  ClockInStatusFilter,
+} from "@/pages/Reports/types/clockInReport"
+import {
+  CLOCK_IN_SORT_COLUMNS,
+  isClockInSortColumnId,
+} from "@/pages/Reports/types/clockInReport"
+import type {
   PatientQueryFilters,
   PatientQueryPaging,
   PatientReportDetail,
@@ -510,5 +523,95 @@ export function exportEmployeePayments(
       ...employeePaymentParams(filters),
       ...employeePaymentSortParam(paging),
     }
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Clock-ins                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for the clock-in endpoints.
+ *
+ * Same rules as payroll: `employee_type=all` is omitted, `employee_id` only
+ * when one employee was picked, and `search` only when it has content. There is
+ * no `grouping` — the clock-in report has no timeline.
+ */
+function clockInParams(filters: ClockInQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    employee_type:
+      filters.employeeType !== "all" ? filters.employeeType : undefined,
+    employee_id: filters.employeeId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a clock-in table column id to the server's sort key. */
+function clockInSortParam(paging: ClockInQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isClockInSortColumnId(columnId)) return {}
+  return {
+    sort: CLOCK_IN_SORT_COLUMNS[columnId],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/v2/clock-ins` — one page + summary + charts. */
+export function getClockIns(
+  filters: ClockInQueryFilters,
+  paging: ClockInQueryPaging
+): Promise<ClockInListPayload> {
+  return api.get<ClockInListPayload>("/reports/v2/clock-ins", {
+    ...clockInParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...clockInSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/v2/clock-ins/:employeeId` — identity, attendance summary
+ * and one page of records.
+ *
+ * `status` is applied **after** missing days are synthesized (they do not exist
+ * in the database), which is why it is a request parameter rather than a
+ * client-side filter over the page.
+ */
+export function getClockInEmployee(
+  employeeId: number,
+  range: ClockInQueryFilters["range"],
+  status: ClockInStatusFilter,
+  paging: ClockInDetailPaging
+): Promise<ClockInDetailPayload> {
+  return api.get<ClockInDetailPayload>(
+    `/reports/v2/clock-ins/${employeeId}`,
+    {
+      start_date: range.from,
+      end_date: range.to,
+      status: status === "all" ? undefined : status,
+      page: paging.page,
+      page_size: paging.pageSize,
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/v2/clock-ins/export` — every matching employee.
+ *
+ * No paging and no sort: the document is an employee index in name order, which
+ * is the order a printed report is read in. Exports re-fetch with the
+ * **generated** filters, never with the draft or the visible page.
+ */
+export function exportClockIns(
+  filters: ClockInQueryFilters
+): Promise<ClockInExportPayload> {
+  return api.get<ClockInExportPayload>(
+    "/reports/v2/clock-ins/export",
+    clockInParams(filters)
   )
 }

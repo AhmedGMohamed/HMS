@@ -95,6 +95,10 @@
         "incomplete": "Incomplete",
         "missing": "Missing"
       },
+      "shiftType": {
+        "morning": "Morning",
+        "night": "Night"
+      },
       "itemType": {
         "service": "Service",
         "drug": "Drug",
@@ -465,15 +469,49 @@
       "selectEmployee": "Specific Employee (Optional)",
       "allEmployees": "All Employees with Clock-In",
       "title": "Employee Clock-In Details",
+      "emptyTitle": "No clock-in records",
+      "emptyDescription": "No employee clocked in during the selected period, and nobody was expected to.",
       "stats": {
         "totalEmployees": "Total Employees",
         "totalHours": "Total Hours",
         "avgHoursPerEmployee": "Avg Hours/Employee",
-        "totalDeductions": "Total Deductions"
+        "totalDeductions": "Total Deductions",
+        "totalClockIns": "Total Clock-Ins",
+        "totalWorkedDays": "Worked Days",
+        "avgHoursPerDay": "Avg Hours / Day",
+        "totalMissingDays": "Missing Days"
       },
       "charts": {
         "hoursWorked": "Hours Worked by Employee",
-        "attendanceStatus": "Attendance Status Distribution"
+        "attendanceStatus": "Attendance Status Distribution",
+        "hoursCaption": "Top employees by hours worked (up to twelve).",
+        "statusCaption": "One classification per day, including days with no clock-in."
+      },
+      "detail": {
+        "totalDays": "Total Days",
+        "workedDays": "Worked Days",
+        "punctuality": "Punctuality",
+        "records": "Daily Records",
+        "recordsCaption": "One row per session, newest first. Expand a row to see the patients behind it.",
+        "statusFilter": "Status",
+        "allStatuses": "All statuses",
+        "noRecords": "No records",
+        "noRecordsDescription": "This employee has no clock-in records in the selected period.",
+        "noRecordsForStatus": "No records with this status in the selected period.",
+        "missingNote": "{{count}} day(s) with no clock-in are counted above but are not listed as rows — they have no session to show.",
+        "missingNote_one": "{{count}} day with no clock-in is counted above but is not listed as a row — it has no session to show.",
+        "missingNote_other": "{{count}} days with no clock-in are counted above but are not listed as rows — they have no session to show.",
+        "patients": "Patients",
+        "noPatients": "No patient assignments on this record.",
+        "lateMinutes": "Late (min)",
+        "earlyMinutes": "Early (min)",
+        "noShift": "No shift configured",
+        "clockInRequirement": "Clock-In",
+        "required": "Required",
+        "notRequired": "Not required",
+        "employmentStatus": "Employment",
+        "active": "Active",
+        "inactive": "Inactive"
       }
     },
     "clockInCard": {
@@ -564,7 +602,11 @@
       "gross": "Gross",
       "paymentDate": "Payment Date",
       "patientCount": "Patients",
-      "paidOn": "Paid On"
+      "paidOn": "Paid On",
+      "shift": "Shift",
+      "clockIns": "Clock-Ins",
+      "avgPerDay": "Avg / Day",
+      "punctuality": "Punctuality"
     },
     "units": {
       "hours": "h"

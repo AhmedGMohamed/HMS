@@ -34,6 +34,7 @@ import { usePermission } from "@/hooks/usePermission"
 import { ReportsTabs } from "@/pages/Reports/components/ReportsTabs"
 import { TabPlaceholder } from "@/pages/Reports/components/TabPlaceholder"
 import { useReportOptions } from "@/pages/Reports/hooks/useReportOptions"
+import { ClockInReportTab } from "@/pages/Reports/clockIns/ClockInReportTab"
 import { DoctorReportTab } from "@/pages/Reports/doctors/DoctorReportTab"
 import { EmployeePaymentsTab } from "@/pages/Reports/employeePayments/EmployeePaymentsTab"
 import { NurseReportTab } from "@/pages/Reports/nurses/NurseReportTab"
@@ -174,6 +175,22 @@ export default function ReportsPage() {
               blocked
             />
           )
+        ) : tab === "clock-ins" ? (
+          <ClockInReportTab
+            title={t(tabMeta.labelKey)}
+            description={t(tabMeta.descriptionKey)}
+            draft={url.draft}
+            onDraftChange={url.setDraft}
+            generated={isActive ? url.generated : null}
+            generatedKey={isActive ? url.generatedKey : null}
+            isGenerated={isActive && url.isGenerated}
+            isStale={isActive && url.isStale}
+            onGenerate={handleGenerate}
+            validationError={isActive ? validationError : null}
+            employees={options.clockInEmployees}
+            session={session}
+            canExport={canExport}
+          />
         ) : (
           <TabPlaceholder
             title={t(tabMeta.labelKey)}
