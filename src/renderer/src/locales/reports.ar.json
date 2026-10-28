@@ -237,17 +237,65 @@
       "avgStay": "متوسط الإقامة (أيام)",
       "occupancyRate": "معدل الإشغال",
       "totalRevenue": "إجمالي الإيرادات",
+      "kpis": {
+        "patients": "إجمالي المرضى",
+        "admissions": "حالات الدخول",
+        "discharges": "حالات الخروج",
+        "avgStay": "متوسط الإقامة (أيام)",
+        "billed": "المفوتر",
+        "collected": "المحصّل",
+        "outstanding": "المستحق"
+      },
+      "series": {
+        "census": "الإشغال",
+        "admissions": "الدخول",
+        "discharges": "الخروج",
+        "netChange": "صافي التغير",
+        "billed": "المفوتر",
+        "collected": "المحصّل",
+        "outstanding": "المستحق",
+        "avgStay": "متوسط الإقامة (أيام)",
+        "staff": "الموظفون",
+        "patients": "المرضى",
+        "hours": "الساعات",
+        "revenue": "الإيرادات"
+      },
+      "axis": {
+        "period": "الفترة",
+        "employeeType": "نوع الموظف",
+        "service": "الخدمة",
+        "drug": "الدواء"
+      },
+      "distribution": {
+        "payment": "الدفع",
+        "gender": "الجنس",
+        "toggleLabel": "تقسيم التوزيع"
+      },
+      "emptyTitle": "لا توجد بيانات في هذه الفترة",
+      "emptyDescription": "لم يُسجَّل شيء في الفترة المحددة.",
       "charts": {
         "patientTrends": "اتجاهات دخول المرضى",
+        "census": "إشغال المرضى وحالات الدخول",
+        "censusCaption": "المرضى الموجودون في القسم مقابل حالات الدخول الجديدة لكل {{grouping}}",
         "distribution": "توزيع المرضى",
+        "distributionCaption": "حالات الدخول في الفترة حسب نوع الدفع والجنس",
         "payment": "الدفع",
         "gender": "الجنس",
         "avgStayDuration": "متوسط مدة الإقامة",
+        "averageStay": "متوسط مدة الإقامة",
+        "averageStayCaption": "متوسط حالات الإقامة التي انتهت في كل {{grouping}}",
         "revenueTrends": "اتجاهات الإيرادات",
+        "revenue": "اتجاهات الإيرادات",
+        "revenueCaption": "المفوتر والمحصّل والمستحق لكل {{grouping}}",
         "admissionsVsDischarges": "الدخول مقابل الخروج",
+        "flow": "الدخول مقابل الخروج",
+        "flowCaption": "صافي التغير هو الدخول ناقص الخروج",
         "topServices": "أفضل ١٠ خدمات حسب الإيرادات",
         "topDrugs": "أفضل ١٠ أدوية حسب الإيرادات",
-        "staffUtilization": "استخدام الموظفين"
+        "topCaption": "مرتبة حسب الإيرادات داخل الفترة المحددة",
+        "staffUtilization": "استخدام الموظفين",
+        "staff": "استخدام الموظفين",
+        "staffCaption": "عدد الموظفين على المحور الأيسر وساعات العمل على المحور الأيمن"
       }
     },
     "paymentTypes": {

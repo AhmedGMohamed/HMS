@@ -386,6 +386,16 @@ export interface StatisticsReportDTO {
 	staff_utilization: StaffUtilizationRow[];
 }
 
+/**
+ * Statistics export document — the report plus `generated_at`.
+ *
+ * There is no separate paging to drop: the tab already shows the whole range,
+ * so the export is the same seven queries with a timestamp (`plan §3.5.5`).
+ */
+export interface StatisticsReportExportPayload extends StatisticsReportDTO {
+	generated_at: string;
+}
+
 /* ------------------------------------------------------------------ */
 /* Employee payments                                                   */
 /* ------------------------------------------------------------------ */

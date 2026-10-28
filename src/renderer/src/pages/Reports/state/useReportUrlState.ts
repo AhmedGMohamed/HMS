@@ -52,6 +52,14 @@ export interface ReportUrlStateResult {
   generate: () => void
   /** Drop `run` so the tab returns to its not-generated state. */
   clearGenerated: () => void
+  /**
+   * Change a **view-only** parameter (`dist`) without invalidating the result.
+   *
+   * The URL keeps `run=1` and the generated filters, so the choice survives a
+   * reload while the report stays exactly as generated. `reportParamsKey`
+   * ignores view-only parameters, so this can never mark the tab stale.
+   */
+  setViewParam: (patch: Partial<ReportDraft>) => void
 }
 
 export function useReportUrlState(): ReportUrlStateResult {
@@ -113,6 +121,25 @@ export function useReportUrlState(): ReportUrlStateResult {
     commit(serializeReportParams(draft, tab))
   }, [commit, draft, tab])
 
+  const setViewParam = useCallback(
+    (patch: Partial<ReportDraft>) => {
+      setDraftState((current) => ({ ...current, ...patch }))
+
+      // Base the rewrite on the *generated* snapshot when there is one: the
+      // form may hold unsaved edits, and toggling a view option must not freeze
+      // them into the URL.
+      const base = generated ?? draft
+      commit(
+        serializeReportParams(
+          { ...base, ...patch },
+          tab,
+          { run: generated !== null }
+        )
+      )
+    },
+    [commit, draft, generated, tab]
+  )
+
   const generatedKey = generated ? reportParamsKey(generated, tab) : null
 
   return {
@@ -127,5 +154,6 @@ export function useReportUrlState(): ReportUrlStateResult {
     setTab,
     generate,
     clearGenerated,
+    setViewParam,
   }
 }

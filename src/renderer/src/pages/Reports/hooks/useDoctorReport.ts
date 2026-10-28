@@ -108,7 +108,10 @@ export function useDoctorReport({
     setState({ key, error: null })
     const filterKey = doctorFilterKey(filters)
 
-    getDoctors(filters, paging)
+    session
+      .fetchOnce("doctors", key, () => getDoctors(filters, paging), {
+        force: forced,
+      })
       .then((payload) => {
         if (cancelled) return
         session.write("doctors", key, payload)

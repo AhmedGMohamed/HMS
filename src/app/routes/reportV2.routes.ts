@@ -127,4 +127,25 @@ router.get(
 	(req, res) => ReportV2Controller.listNurses(req, res)
 );
 
+/* ------------------------------------------------------------------ */
+/* Statistics                                                          */
+/* ------------------------------------------------------------------ */
+
+// Static segment first, for the same reason as the tabs above.
+router.get(
+	"/statistics/export",
+	verifyToken,
+	checkPermissions(["view_reports", "manage_reports"]),
+	auditLogger,
+	(req, res) => ReportV2Controller.exportStatistics(req, res)
+);
+
+router.get(
+	"/statistics",
+	verifyToken,
+	checkPermission("view_reports"),
+	auditLogger,
+	(req, res) => ReportV2Controller.getStatistics(req, res)
+);
+
 export default router;

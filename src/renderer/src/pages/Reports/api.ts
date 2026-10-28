@@ -55,6 +55,11 @@ import type {
   PatientSortColumn,
 } from "@/pages/Reports/types/patientReport"
 import { PATIENT_SORT_COLUMNS, isPatientSortColumn } from "@/pages/Reports/types/patientReport"
+import type {
+  StatisticsQueryFilters,
+  StatisticsReportExportPayload,
+  StatisticsReportPayload,
+} from "@/pages/Reports/types/statisticsReport"
 import type { ReportOptions } from "@/pages/Reports/types/reports"
 
 /** `GET /api/reports/v2/options` — all picker lists in one round trip. */
@@ -341,4 +346,45 @@ export function exportNurses(
     ...nurseParams(filters),
     ...nurseSortParam(paging),
   })
+}
+
+/* ------------------------------------------------------------------ */
+/* Statistics                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Statistics has no paging, sort or search: every series covers the whole
+ * range, which is what lets the export reuse the same request.
+ */
+function statisticsParams(filters: StatisticsQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    grouping: filters.grouping,
+  }
+}
+
+/**
+ * `GET /api/reports/v2/statistics` — KPIs plus every chart series.
+ *
+ * The distribution returns both splits in one payload, so the donut toggle
+ * never issues a request.
+ */
+export function getStatistics(
+  filters: StatisticsQueryFilters
+): Promise<StatisticsReportPayload> {
+  return api.get<StatisticsReportPayload>(
+    "/reports/v2/statistics",
+    statisticsParams(filters)
+  )
+}
+
+/** `GET /api/reports/v2/statistics/export` — the same document + `generatedAt`. */
+export function exportStatistics(
+  filters: StatisticsQueryFilters
+): Promise<StatisticsReportExportPayload> {
+  return api.get<StatisticsReportExportPayload>(
+    "/reports/v2/statistics/export",
+    statisticsParams(filters)
+  )
 }

@@ -30,6 +30,10 @@ import NurseReportModel, {
 import PatientReportModel, {
 	PATIENT_SORT_COLUMNS,
 } from "../models/reports/PatientReport.model.js";
+import StatisticsReportModel, {
+	STATISTICS_GROUPINGS,
+	type StatisticsGrouping,
+} from "../models/reports/StatisticsReport.model.js";
 import {
 	NotFoundError,
 	ReportValidationError,
@@ -343,6 +347,45 @@ export class ReportV2Controller {
 			sendError(res, error, "export nurse report");
 		}
 	}
+
+	/* -------------------------------------------------------------- */
+	/* Statistics                                                      */
+	/* -------------------------------------------------------------- */
+
+	/**
+	 * `GET /api/reports/v2/statistics`
+	 *
+	 * Query: `start_date`, `end_date`, `grouping` (`day|month|year`, default
+	 * `day`). Reads only — no paging, no sort: every series is returned whole so
+	 * the charts and the export always describe the same set.
+	 */
+	async getStatistics(req: Request, res: Response) {
+		try {
+			const payload = await StatisticsReportModel.getStatistics(
+				parseStatisticsFilters(req.query)
+			);
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "load statistics report");
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/statistics/export`
+	 *
+	 * The same document plus `generated_at`; `manage_reports` is enforced by the
+	 * route.
+	 */
+	async exportStatistics(req: Request, res: Response) {
+		try {
+			const payload = await StatisticsReportModel.exportStatistics(
+				parseStatisticsFilters(req.query)
+			);
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "export statistics report");
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -418,6 +461,25 @@ function parseNurseFilters(query: Record<string, unknown>) {
 		range: parseDateRange(query),
 		nurseId: parseOptionalId(query.nurse_id, "nurse_id"),
 		search: parseSearch(query),
+	};
+}
+
+/** Statistics grouping; absent means daily buckets. */
+function parseStatisticsGrouping(value: unknown): StatisticsGrouping {
+	return parseEnumParam(value, STATISTICS_GROUPINGS, "grouping", "day") as StatisticsGrouping;
+}
+
+/**
+ * Shared statistics filter parsing for the read and export endpoints.
+ *
+ * There is nothing else to parse: the tab has no scope, search, payment filter
+ * or paging — every series covers the whole range, which is what makes the
+ * export identical to the screen.
+ */
+function parseStatisticsFilters(query: Record<string, unknown>) {
+	return {
+		range: parseDateRange(query),
+		grouping: parseStatisticsGrouping(query.grouping),
 	};
 }
 

@@ -32,10 +32,33 @@ export interface ReportSessionResult {
   clear: (tab: ReportTab) => void
   /** Generated-at timestamp of the cached payload, if any. */
   generatedAt: (tab: ReportTab, key: string) => string | null
+  /**
+   * Runs `fetcher` **at most once** per `(tab, key)` while a request is in
+   * flight and resolves every caller with the same result.
+   *
+   * Two things need this:
+   *
+   *   - React `StrictMode` mounts effects twice in development, so a tab's
+   *     effect fires the same request twice before either response lands —
+   *     the cache cannot dedupe them because nothing has been written yet;
+   *   - two views of the same report (a tab and a dialog, or the screen and an
+   *     export) can ask for the same document concurrently.
+   *
+   * `force` bypasses the in-flight map (used by `reload`, which wants a fresh
+   * response rather than the one already on the wire).
+   */
+  fetchOnce: <T>(
+    tab: ReportTab,
+    key: string,
+    fetcher: () => Promise<T>,
+    options?: { force?: boolean }
+  ) => Promise<T>
 }
 
 export function useReportSession(): ReportSessionResult {
   const cacheRef = useRef<Map<ReportTab, CacheEntry>>(new Map())
+  // Keyed `tab|key`; deleted as soon as the request settles either way.
+  const inFlightRef = useRef<Map<string, Promise<unknown>>>(new Map())
   // Bumped on every write so consumers re-render when a cache entry lands.
   const [, setVersion] = useState(0)
 
@@ -64,5 +87,33 @@ export function useReportSession(): ReportSessionResult {
     return entry && entry.key === key ? entry.generatedAt : null
   }, [])
 
-  return { read, write, clear, generatedAt }
+  const fetchOnce = useCallback(
+    <T,>(
+      tab: ReportTab,
+      key: string,
+      fetcher: () => Promise<T>,
+      options: { force?: boolean } = {}
+    ): Promise<T> => {
+      const slot = `${tab}|${key}`
+      const existing = inFlightRef.current.get(slot)
+
+      // Only join a request that is still on the wire; a settled entry is
+      // removed in `finally`, so this can never return a stale promise.
+      if (existing && !options.force) return existing as Promise<T>
+
+      const request = fetcher().finally(() => {
+        // Only clear the slot if it still holds *this* request: a forced
+        // reload may have replaced it in the meantime.
+        if (inFlightRef.current.get(slot) === request) {
+          inFlightRef.current.delete(slot)
+        }
+      })
+
+      inFlightRef.current.set(slot, request)
+      return request
+    },
+    []
+  )
+
+  return { read, write, clear, generatedAt, fetchOnce }
 }
