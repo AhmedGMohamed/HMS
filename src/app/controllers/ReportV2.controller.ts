@@ -30,6 +30,12 @@ import NurseReportModel, {
 import PatientReportModel, {
 	PATIENT_SORT_COLUMNS,
 } from "../models/reports/PatientReport.model.js";
+import EmployeePaymentReportModel, {
+	EMPLOYEE_PAYMENT_GROUPINGS,
+	EMPLOYEE_PAYMENT_SORT_COLUMNS,
+	EMPLOYEE_PAYMENT_TYPE_FILTERS,
+	type EmployeePaymentGrouping,
+} from "../models/reports/EmployeePaymentReport.model.js";
 import StatisticsReportModel, {
 	STATISTICS_GROUPINGS,
 	type StatisticsGrouping,
@@ -386,6 +392,109 @@ export class ReportV2Controller {
 			sendError(res, error, "export statistics report");
 		}
 	}
+
+	/* -------------------------------------------------------------- */
+	/* Employee payments (payroll)                                     */
+	/* -------------------------------------------------------------- */
+
+	/**
+	 * `GET /api/reports/v2/employee-payments`
+	 *
+	 * Query: `start_date`, `end_date`, `employee_type`, `employee_id`,
+	 * `search`, `grouping`, `page`, `page_size`, `sort`, `dir`.
+	 */
+	async listEmployeePayments(req: Request, res: Response) {
+		try {
+			const filters = parseEmployeePaymentFilters(req.query);
+			const paging = parsePaging(req.query);
+			const sort = parseSort(req.query, EMPLOYEE_PAYMENT_SORT_COLUMNS, "net", "desc");
+
+			const payload = await EmployeePaymentReportModel.listEmployeePayments({
+				...filters,
+				paging,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "load employee payments report");
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/employee-payments/:employeeId`
+	 *
+	 * The employee's identity, pay configuration, summary, one page of payments
+	 * and every period deduction.
+	 */
+	async getEmployeePayment(req: Request, res: Response) {
+		try {
+			const employeeId = parseRequiredId(req.params.employeeId, "employeeId");
+
+			const payload = await EmployeePaymentReportModel.getEmployeeDetail(
+				employeeId,
+				{
+					range: parseDateRange(req.query),
+					paging: parsePaging(req.query),
+				}
+			);
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(
+				res,
+				error,
+				"load employee payment details",
+				"Employee not found"
+			);
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/employee-payments/:employeeId/payments/:paymentId`
+	 *
+	 * The patient work behind one payment. No range: the associations belong to
+	 * the payment, and hiding work outside the window would misstate it.
+	 */
+	async getPaymentAssociations(req: Request, res: Response) {
+		try {
+			const employeeId = parseRequiredId(req.params.employeeId, "employeeId");
+			const paymentId = parseRequiredId(req.params.paymentId, "paymentId");
+
+			const payload = await EmployeePaymentReportModel.getPaymentAssociations(
+				employeeId,
+				paymentId
+			);
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(
+				res,
+				error,
+				"load payment associations",
+				"Payment not found"
+			);
+		}
+	}
+
+	/**
+	 * `GET /api/reports/v2/employee-payments/export`
+	 *
+	 * Same filters as the list, no paging: every employee with every payment,
+	 * every association and every period deduction. `manage_reports` is
+	 * enforced by the route.
+	 */
+	async exportEmployeePayments(req: Request, res: Response) {
+		try {
+			const filters = parseEmployeePaymentFilters(req.query);
+			const sort = parseSort(req.query, EMPLOYEE_PAYMENT_SORT_COLUMNS, "net", "desc");
+
+			const payload = await EmployeePaymentReportModel.exportEmployeePayments({
+				...filters,
+				sort,
+			});
+			res.status(200).json(payload);
+		} catch (error) {
+			sendError(res, error, "export employee payments report");
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -480,6 +589,49 @@ function parseStatisticsFilters(query: Record<string, unknown>) {
 	return {
 		range: parseDateRange(query),
 		grouping: parseStatisticsGrouping(query.grouping),
+	};
+}
+
+/**
+ * Payroll grouping; absent means monthly buckets.
+ *
+ * A payroll list is a per-employee table, so the timeline only has a handful of
+ * buckets even over a year — `month` is the useful default where the statistics
+ * tab defaults to `day`.
+ */
+function parseEmployeePaymentGrouping(
+	value: unknown
+): EmployeePaymentGrouping {
+	return parseEnumParam(
+		value,
+		EMPLOYEE_PAYMENT_GROUPINGS,
+		"grouping",
+		"month"
+	) as EmployeePaymentGrouping;
+}
+
+/**
+ * Shared payroll filter parsing for the list and export endpoints.
+ *
+ * `employee_type` defaults to `all` rather than erroring, so a link without the
+ * param still renders a report; an unknown value is a 400 (a typo should not
+ * silently widen the population).
+ */
+function parseEmployeePaymentFilters(query: Record<string, unknown>) {
+	const employeeType =
+		parseEnumParam(
+			query.employee_type,
+			EMPLOYEE_PAYMENT_TYPE_FILTERS,
+			"employee_type",
+			"all"
+		) ?? "all";
+
+	return {
+		range: parseDateRange(query),
+		employeeType,
+		employeeId: parseOptionalId(query.employee_id, "employee_id"),
+		search: parseSearch(query),
+		grouping: parseEmployeePaymentGrouping(query.grouping),
 	};
 }
 

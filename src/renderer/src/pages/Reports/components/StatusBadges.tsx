@@ -102,6 +102,42 @@ export function EmployeeTypeBadge({ value }: { value: string | null | undefined 
 }
 
 /* ------------------------------------------------------------------ */
+/* Payroll payment type                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `salary` / `bonus` / `manual` / `overtime` — the `EmployeePayment.payment_type`
+ * values.
+ *
+ * Kept separate from `PaymentTypeBadge` (which is cash/credit/insurance for a
+ * **bill**): the two enums share no values, and reusing one for the other
+ * rendered "salary" as an unstyled fallback.
+ */
+const PAYROLL_PAYMENT_STYLES: Record<string, string> = {
+  salary: "border-success/40 bg-success-light text-success-dark",
+  bonus: "border-warning/40 bg-warning-light text-text-primary",
+  overtime: "border-info/40 bg-info-light text-info",
+  manual: "border-border-strong bg-surface-muted text-text-secondary",
+}
+
+export function PayrollPaymentTypeBadge({
+  value,
+}: {
+  value: string | null | undefined
+}) {
+  const { t } = useTranslation()
+  const key = value ?? "manual"
+  return (
+    <SoftBadge
+      label={t(`reports.payrollReports.paymentTypes.${key}`, {
+        defaultValue: key,
+      })}
+      className={PAYROLL_PAYMENT_STYLES[key] ?? undefined}
+    />
+  )
+}
+
+/* ------------------------------------------------------------------ */
 /* Attendance                                                          */
 /* ------------------------------------------------------------------ */
 

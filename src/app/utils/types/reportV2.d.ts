@@ -430,6 +430,16 @@ export interface EmployeePaymentCharts {
 	by_type: Array<{ payment_type: string; total: number }>;
 }
 
+/**
+ * The list document: one page of employees plus the whole-set summary and the
+ * two chart series. `charts` describe the **filtered set**, not the page, so a
+ * page change never redraws them.
+ */
+export interface EmployeePaymentReportDTO
+	extends ReportListEnvelope<EmployeePaymentSummary, EmployeePaymentRow> {
+	charts: EmployeePaymentCharts;
+}
+
 export interface EmployeePaymentDetailRow {
 	payment_id: number;
 	payment_date: string;
@@ -450,7 +460,23 @@ export interface PeriodDeductionRow {
 	clock_out: string | null;
 	hours_worked: number;
 	pay_deduction: number;
+	/** `on_time` | `late` | `early` | `incomplete` (shared helper, contract 51). */
 	status: string;
+}
+
+/** The employee's configured pay rules — the legacy "breakdown" card. */
+export interface EmployeePaymentBreakdown {
+	base_pay: number;
+	base_extra_amount: number;
+	base_extra_payment_type: string | null;
+	per_patient_payment_type: string | null;
+	percentage_scope: string | null;
+	need_clock_in: boolean;
+	shift_type: string | null;
+	shift_start_time: string | null;
+	shift_end_time: string | null;
+	total_work_days: number;
+	total_patients_served: number;
 }
 
 export interface EmployeePaymentDetailDTO {
@@ -460,19 +486,7 @@ export interface EmployeePaymentDetailDTO {
 		employee_type: string;
 		hire_date: string | null;
 	};
-	breakdown: {
-		base_pay: number;
-		base_extra_amount: number;
-		base_extra_payment_type: string | null;
-		per_patient_payment_type: string | null;
-		percentage_scope: string | null;
-		need_clock_in: boolean;
-		shift_type: string | null;
-		shift_start_time: string | null;
-		shift_end_time: string | null;
-		total_work_days: number;
-		total_patients_served: number;
-	};
+	breakdown: EmployeePaymentBreakdown;
 	summary: {
 		total_payments: number;
 		total_base_pay: number;
@@ -501,6 +515,49 @@ export interface PaymentAssociationRow {
 	hours_worked: number;
 	payment_amount: number;
 	payment_type: string;
+}
+
+/** `GET /employee-payments/:employeeId/payments/:paymentId`. */
+export interface EmployeePaymentAssociationsDTO {
+	payment: EmployeePaymentDetailRow;
+	associations: PaymentAssociationRow[];
+}
+
+/** One payment inside a payroll export row, with its patient associations. */
+export interface EmployeePaymentExportPayment extends EmployeePaymentDetailRow {
+	associations: PaymentAssociationRow[];
+}
+
+/**
+ * One employee in the payroll export.
+ *
+ * The per-employee roll-up is `totals`, never `summary` (contract 36): the
+ * envelope already has a `summary` and the two must not be confused.
+ */
+export interface EmployeePaymentExportRow {
+	employee_id: number;
+	employee_name: string;
+	employee_type: string;
+	hire_date: string | null;
+	totals: {
+		payments: number;
+		base_pay: number;
+		extra_pay: number;
+		deductions: number;
+		paid: number;
+		unpaid: number;
+		net: number;
+	};
+	breakdown: EmployeePaymentBreakdown;
+	payments: EmployeePaymentExportPayment[];
+	period_deductions: PeriodDeductionRow[];
+}
+
+export interface EmployeePaymentExportPayload
+	extends ReportExportEnvelope<EmployeePaymentSummary, EmployeePaymentExportRow> {
+	/** The grouping the timeline in the document was bucketed with. */
+	grouping: ReportGrouping;
+	charts: EmployeePaymentCharts;
 }
 
 /* ------------------------------------------------------------------ */

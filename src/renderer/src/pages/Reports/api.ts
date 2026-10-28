@@ -47,6 +47,19 @@ import {
   isNurseSortColumn,
 } from "@/pages/Reports/types/nurseReport"
 import type {
+  EmployeePaymentAssociationsPayload,
+  EmployeePaymentDetailPayload,
+  EmployeePaymentExportPayload,
+  EmployeePaymentListPayload,
+  EmployeePaymentQueryFilters,
+  EmployeePaymentQueryPaging,
+  EmployeePaymentSortColumn,
+} from "@/pages/Reports/types/employeePaymentReport"
+import {
+  EMPLOYEE_PAYMENT_SORT_COLUMNS,
+  isEmployeePaymentSortColumn,
+} from "@/pages/Reports/types/employeePaymentReport"
+import type {
   PatientQueryFilters,
   PatientQueryPaging,
   PatientReportDetail,
@@ -386,5 +399,116 @@ export function exportStatistics(
   return api.get<StatisticsReportExportPayload>(
     "/reports/v2/statistics/export",
     statisticsParams(filters)
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Employee payments (payroll)                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for the payroll endpoints.
+ *
+ * `employee_type` is omitted for `all` (an absent filter is "no filter"), and
+ * `employee_id` only when a single employee was chosen. `grouping` is always
+ * sent so the timeline's bucket size is explicit in the URL and the logs.
+ */
+function employeePaymentParams(filters: EmployeePaymentQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    employee_type:
+      filters.employeeType !== "all" ? filters.employeeType : undefined,
+    employee_id: filters.employeeId ?? undefined,
+    search: filters.search.trim() || undefined,
+    grouping: filters.grouping,
+  }
+}
+
+/** Maps a payroll-table column id to the server's sort key. */
+function employeePaymentSortParam(paging: EmployeePaymentQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isEmployeePaymentSortColumn(columnId)) return {}
+  return {
+    sort: EMPLOYEE_PAYMENT_SORT_COLUMNS[columnId as EmployeePaymentSortColumn],
+    dir: paging.sort?.direction ?? "desc",
+  }
+}
+
+/** `GET /api/reports/v2/employee-payments` — one page + summary + charts. */
+export function getEmployeePayments(
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentListPayload> {
+  return api.get<EmployeePaymentListPayload>("/reports/v2/employee-payments", {
+    ...employeePaymentParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...employeePaymentSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/v2/employee-payments/:employeeId` — identity, config,
+ * summary, one page of payments and every period deduction.
+ *
+ * The id lives in the path; `employee_id` is not sent again. `grouping` is not
+ * a detail parameter (the dialog has no timeline), so it is dropped.
+ */
+export function getEmployeePaymentDetail(
+  employeeId: number,
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentDetailPayload> {
+  const params = employeePaymentParams(filters)
+
+  return api.get<EmployeePaymentDetailPayload>(
+    `/reports/v2/employee-payments/${employeeId}`,
+    {
+      start_date: params.start_date,
+      end_date: params.end_date,
+      employee_type: params.employee_type,
+      search: params.search,
+      page: paging.page,
+      page_size: paging.pageSize,
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/v2/employee-payments/:employeeId/payments/:paymentId`.
+ *
+ * No range: the associations belong to the payment, and hiding work done
+ * outside the report window would misstate the payment.
+ */
+export function getPaymentAssociations(
+  employeeId: number,
+  paymentId: number
+): Promise<EmployeePaymentAssociationsPayload> {
+  return api.get<EmployeePaymentAssociationsPayload>(
+    `/reports/v2/employee-payments/${employeeId}/payments/${paymentId}`
+  )
+}
+
+/**
+ * `GET /api/reports/v2/employee-payments/export` — every matching employee.
+ *
+ * Exports always re-fetch with the **generated** parameters (never the
+ * paginated list, never the current form state), so what is downloaded is
+ * always what the report describes.
+ */
+export function exportEmployeePayments(
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentExportPayload> {
+  return api.get<EmployeePaymentExportPayload>(
+    "/reports/v2/employee-payments/export",
+    {
+      ...employeePaymentParams(filters),
+      ...employeePaymentSortParam(paging),
+    }
   )
 }

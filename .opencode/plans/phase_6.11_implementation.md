@@ -1013,7 +1013,159 @@ pages its own sub-table**. Reuse `GroupByField`, the payroll timeline from the p
 
 ---
 
-## 12. Quick reference — surface map (6.11.0 → 6.11.4)
+## 12. 6.11.5 — Employee payments (as built)
+
+### 12.1 What shipped
+
+**Backend** (all additive under `/api/reports/v2`; legacy `/api/reports/*` untouched):
+
+```
+src/app/models/reports/shared.ts                    # + clockStatusFor / ClockStatus / CLOCK_GRACE_MINUTES
+src/app/models/reports/EmployeePaymentReport.model.ts
+src/app/controllers/ReportV2.controller.ts          # + 4 handlers + payroll parsers
+src/app/routes/reportV2.routes.ts                   # + 4 routes, PAYROLL_READ pair
+src/app/utils/types/reportV2.d.ts                   # + payroll DTOs
+src/app/tests/models/EmployeePaymentReport.spec.ts  # 34 specs
+src/app/tests/controllers/ReportV2.controller.spec.ts  # + 13 specs
+```
+
+| Route | Permission pair | Statements |
+|---|---|---|
+| `GET /employee-payments` | `view_reports` + `manage_employees` | 4 — page, whole-set summary, timeline, type split |
+| `GET /employee-payments/:employeeId` | same | 3 — header+config+summary, one page of payments, period deductions |
+| `GET /employee-payments/:employeeId/payments/:paymentId` | same | 1 — the associations of that payment (no range) |
+| `GET /employee-payments/export` | same + `manage_reports` | **5**, fixed (contract 52) |
+
+Query parameters: `start_date`, `end_date` (half-open, end date inclusive of the whole day),
+`grouping` (`day|week|month|year`), `employee_type` (`all|doctor|nurse|other`), `employee_id`,
+`search`, `page`, `page_size`, `sort`, `dir`. Sort whitelist:
+`name | payments | base | extra | deductions | net`, default `net` **descending** — the list opens on
+the largest net, and the first request, the header arrow and the server agree.
+
+**Frontend**:
+
+```
+pages/Reports/types/employeePaymentReport.ts
+pages/Reports/hooks/useEmployeePaymentsReport.ts      # fetchOnce (contract 48)
+pages/Reports/hooks/useEmployeePaymentDetail.ts
+pages/Reports/employeePayments/EmployeePaymentsTab.tsx
+pages/Reports/employeePayments/EmployeePaymentDetailDialog.tsx
+pages/Reports/employeePayments/PayrollCharts.tsx      # timeline + donut + snapshot slots
+pages/Reports/employeePayments/payrollChartSnapshot.ts
+pages/Reports/employeePayments/employeePaymentsColumns.tsx
+pages/Reports/export/pdf/buildEmployeePaymentsReportPdf.ts
+pages/Reports/export/csv/exportEmployeePaymentsCsv.ts
+pages/Reports/components/StatusBadges.tsx             # + PayrollPaymentTypeBadge
+pages/Reports/api.ts                                  # 4 calls + employeePaymentParams/SortParam
+pages/Reports/ReportsPage.tsx                         # payments branch + canViewPayroll gate
+pages/Reports/state/reportParams.ts                   # payroll grouping default = month
+src/renderer/test/employeePaymentReportExport.spec.ts # 15 specs
+```
+
+`ReportsPage` renders `EmployeePaymentsTab` for `tab === "payments"` when `canViewPayroll`, and the
+`TabPlaceholder blocked` variant otherwise — the tab is not merely empty without the pair, it is
+explained.
+
+### 12.2 Contracts that 6.11.5 added (continues §11.2)
+
+51. **Clock status is one function, shared with the clock-in tab.** `clockStatusFor(timestamp,
+    clockOut, shift)` in `models/reports/shared.ts` returns `on_time | late | early | incomplete`
+    with `CLOCK_GRACE_MINUTES` applied, so "late" means the same thing in the payroll deduction table
+    and in the clock-in report that follows. It needs the **raw** `timestamp` (`Date`) — passing
+    `toTimestampString()` output makes every comparison a string comparison and every row `on_time`.
+52. **The payroll export is five fixed statements, never one per employee.** Employee rows and both
+    chart series, then the pay configuration, then every payment with its associations folded in via
+    one `ANY(ids)` statement, then every deduction. The legacy `getEmployeePaymentReport` ran a query
+    per employee; that is the regression this contract exists to prevent. The envelope `summary` is
+    derived from the same `rows` by `summariseRows(rows)` — there is no second summary query, so the
+    document cannot disagree with itself.
+53. **Deductions are period-scoped, once per employee.** `EmployeeClockIn` rows in range with
+    `pay_deduction > 0`, summed once and reported as an employee column and a detail table — **never**
+    attributed to a payment. The legacy page recomputed them per payment over a rolling 30 days,
+    which multiplied the same deduction by the payment count. Paid/unpaid are **gross**
+    (`base + extra`); only `net` subtracts deductions, so the columns reconcile arithmetically.
+54. **`getPaymentAssociations(employeeId, paymentId)` takes no range.** The associations belong to
+    the payment, not to the window the report was generated with; adding a range would silently
+    truncate the work behind a payment that straddles the boundary.
+55. **A KPI strip with 7 or 8 cards must pass `xl:grid-cols-4` explicitly.**
+    `ReportKpiStrip.gridColumnsFor` caps at five columns and appends `xl:grid-cols-5`, which
+    `tailwind-merge` then re-adds over any caller class that does not name `xl`. An 8-card strip
+    therefore rendered 5 + 3 with a short last row; passing `sm:grid-cols-2 lg:grid-cols-4
+    xl:grid-cols-4` gives the intended 4 × 2. Found in the live EN screenshot, not by a unit test.
+56. **Every export row's per-employee roll-up is `totals`** (contract 36, restated because payroll is
+    the first tab with two levels of totals): `totals` per employee, `summary` only on the envelope.
+    A reader must be able to tell a per-employee figure from a whole-set figure without reading code.
+
+### 12.3 Deviations from the plan for this tab
+
+| Plan | As built | Why |
+|---|---|---|
+| One 8-card KPI strip at `xl:grid-cols-8` | Two rows of four via `xl:grid-cols-4` | Eight currency cards at 1/8 width clip `EGP 49,890`; contract 55 |
+| Deductions per payment | Period total, once per employee | The legacy bug (contract 53); also what `pay_deduction` actually means |
+| `parseSort` asc default | `parseSort(..., "net", "desc")` — 4th arg added | A payroll list that opens on the alphabetically first employee hides the report's whole point |
+| Payroll grouping default `day` | `month` (`defaultDraftForTab`) | 132 buckets over 2020→2030 instead of 4,018 points; the tab's first question is monthly |
+| Detail dialog fetches its own list | Dialog reuses the generated range and pages its own payments table | Same shape as the nurse dialog; the list row already carries the employee id |
+| `grouping` sent to the detail endpoint | Dropped | The dialog has no timeline; sending it would imply it did |
+| Payment associations in the dialog body | Real `<tr>` sub-row via `DataTable`'s `expandedRowIds`/`renderExpanded`, cached in a `useRef<Map<paymentId, payload>>` | Reuses the table's expansion instead of a second table; the cache stops a re-expand from refetching |
+| `PaymentTypeBadge` reused | `PayrollPaymentTypeBadge` | Payroll types (`salary`, `bonus`, `service`, …) share no values with patient payment types (`cash`/`credit`/`insurance`) |
+| Currency with 2 decimals everywhere | EGP with **0** decimals in the list/KPI strip, 2 in the dialog and the PDF | Payroll figures are whole pounds on screen; the detail is where the fraction matters |
+
+### 12.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend specs (payroll) | `$env:NODE_ENV="test"; npx jasmine --filter="employee payments"` | **47/47** (34 model + 13 controller), exit 0 |
+| Backend specs (all v2) | `--filter="Reports v2"` / `--filter="ReportV2Controller"` | **143/143** / **56/56** |
+| API smoke (live) | `payroll-probe.cjs` | 200; `997 employees / 1,001 payments / base 49,850 / extra 50 / deductions 52 / paid 10 / unpaid 49,890 / net 49,848`; 132 month buckets |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
+| Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/test/employeePaymentReportExport.spec.ts` | Clean |
+| Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **70/70** (7 files; 15 in `employeePaymentReportExport.spec.ts`) |
+| Bundle | `npm run build:renderer` | OK |
+| i18n | `npm run check-i18n` | No new payroll key missing (only the pre-existing list) |
+
+Live Playwright pass (**47/47**, Admin JWT, Express :3000 + Vite :5173, EN + AR):
+
+- eight KPI cards present and laid out 4 × 2; both charts rendered (2 `recharts-surface` nodes);
+  footer `TOTALS` equals the KPI strip; **no `NaN`**, **no `$`-prefixed amount**;
+- the first list request is
+  `…&grouping=month&page=1&page_size=25&sort=net&dir=desc` — one request per generated report;
+- clicking a row opens the dialog with configuration, payments and clock-in deductions, and states
+  "counted once for the whole period, not once per payment"; expanding a payment fires exactly one
+  `200 /employee-payments/:id/payments/:pid` and shows the patient-work panel;
+- CSV `employee-payments-report_2020-01-01_2030-12-31.csv` with `Summary` + `Employees` +
+  `TOTALS` + the conditional sections, no `EGP`, no `$` amount;
+- `Export PDF` → `200` on `/employee-payments/export`, no error toast; document verified in-page
+  (`loadPdfMake` + `buildPdfShellDoc` + `employeePaymentsReportDocContent` → `getBuffer`):
+  **36,371 bytes, header `%PDF-`**;
+- employee type → `employee_type=doctor`, picker + search → `employee_id=…&search=a` round-trip
+  through the URL and the list collapses to the one employee; a 2019 range shows
+  "No Employee Payments" with no `NaN`;
+- AR page `dir=rtl` with Arabic KPI and chart titles, **charts stay LTR**, no `NaN`, no `$` amount.
+
+**Notes found during the pass:**
+
+1. **`$` assertions must be `/\$\s?\d/`, not `includes("$")`.** The dev DB seeds hostile-looking
+   employee names (`';print(chr(122)…)`, `#set($engine=…)`, `S${print(...)}`) to exercise escaping;
+   a bare `$` check fails on the data, not on the formatting. The CSV writer quotes them correctly —
+   verified by reading the downloaded file.
+2. **The KPI strip rendered 5 + 3** at 1500 px width; see contract 55. Caught only by looking at the
+   screenshot.
+3. `getEmployeePaymentDetail` builds its params explicitly instead of destructuring-with-rest:
+   `no-unused-vars` rejects the discarded `_grouping` / `_employeeId` bindings.
+
+### 12.5 Continue here — 6.11.6 Clock-in
+
+Plan §3.5.7 (contract), §5.6 (UX), §6.11.6 (gates). Reuse `clockStatusFor` (contract 51) — the tab
+and the payroll deductions must agree on `late`/`early`/`incomplete`, and the raw `timestamp` must
+reach it. The tab is the first with a **daily grid** (employee × day) rather than a flat list, so
+decide the shape of the grid early: the plan's gate list asks for missing/incomplete days to be
+visible, which a flat row-per-clock-in list cannot show. Exports stay English-only, the per-entity
+roll-up is `totals` (contract 36), and the snapshot keys must be added to the `ChartAnimationContext`
+path like `payroll-timeline` / `payroll-type`.
+
+---
+
+## 13. Quick reference — surface map (6.11.0 → 6.11.5)
 
 | Surface | File |
 |---|---|
@@ -1030,6 +1182,11 @@ pages its own sub-table**. Reuse `GroupByField`, the payroll timeline from the p
 | Statistics tab (6.11.4) | `pages/Reports/statistics/StatisticsReportTab.tsx` + `models/reports/StatisticsReport.model.ts` |
 | Statistics charts + snapshot slots | `pages/Reports/statistics/StatisticsCharts.tsx` + `statistics/statisticsChartSnapshot.ts` |
 | Statistics exports (8 chart+table sections) | `pages/Reports/export/pdf/buildStatisticsReportPdf.ts`, `export/csv/exportStatisticsReportCsv.ts` |
+| Payroll tab (6.11.5) | `pages/Reports/employeePayments/EmployeePaymentsTab.tsx` + `models/reports/EmployeePaymentReport.model.ts` |
+| Payroll detail dialog + payment expansion | `employeePayments/EmployeePaymentDetailDialog.tsx` |
+| Payroll charts + snapshot slots | `employeePayments/PayrollCharts.tsx` + `employeePayments/payrollChartSnapshot.ts` |
+| Payroll exports (summary → charts → index → per-employee) | `export/pdf/buildEmployeePaymentsReportPdf.ts`, `export/csv/exportEmployeePaymentsCsv.ts` |
+| Shared clock status (`late`/`early`/`incomplete`) | `models/reports/shared.ts` (`clockStatusFor`, contract 51) |
 | Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
 | Chart animation switch (contract 49) | `src/renderer/src/components/charts/chartAnimation.ts` + `ChartSnapshotSurface.tsx` |
 | Chart bitmap capture (geometry wait) | `src/renderer/src/lib/chartSnapshot.ts` |

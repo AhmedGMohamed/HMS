@@ -84,7 +84,10 @@ export function defaultDraftForTab(
 ): ReportDraft {
   return {
     range,
-    grouping: "day",
+    // Payroll opens on month buckets: a day timeline over a year is thousands
+    // of points, and the report's first question ("what did we pay and when")
+    // is answered at month resolution. Every other tab stays on days.
+    grouping: tab === "payments" ? "month" : "day",
     paymentType: "all",
     insuranceId: null,
     search: "",
