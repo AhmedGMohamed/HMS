@@ -7,8 +7,11 @@ export interface Bill {
 	discount_type: "fixed" | "percentage" | null;
 	discount: number;
 	administrative_expenses: number;
+	medical_tests_amount: number;
 	vat_percentage: number | null;
 	vat_scope: "services" | "drugs" | "both" | null;
+	discount_scope?: string[]; // ['services', 'drugs', 'supplies', 'tests']
+	vat_scope_custom?: string[]; // ['services', 'drugs', 'supplies', 'tests']
 	generated_at: Date;
 	updated_at: Date;
 	issued_by_user_id: number;
@@ -22,6 +25,8 @@ export interface BillDetail {
 	service_name?: string;
 	drug_shipment_id: number | null;
 	drug_name?: string;
+	medical_supply_shipment_id: number | null;
+	medical_supply_name?: string;
 	quantity: number;
 	unit_price: number;
 	charge_type: string;
@@ -43,8 +48,11 @@ export interface UpdateBillDTO {
 	discount_type?: "fixed" | "percentage";
 	discount?: number;
 	administrative_expenses?: number;
+	medical_tests_amount?: number;
 	vat_percentage?: number;
 	vat_scope?: "services" | "drugs" | "both";
+	discount_scope?: string[];
+	vat_scope_custom?: string[];
 	paid_amount?: number;
 }
 

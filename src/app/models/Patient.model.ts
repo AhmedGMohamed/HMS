@@ -15,6 +15,7 @@ import {
 	CreateEmployeePaymentDTO,
 	PaymentPatientAssociation
 } from "../utils/types/employees.js";
+import BillModel from "./Bill.model.js";
 
 export class PatientModel {
 	async getAllPatients(): Promise<Patient[]> {
@@ -529,15 +530,15 @@ export class PatientModel {
 					);
 
 					const admissionTime = new Date(admission.admission_time);
-					let hoursWorked = 1.0;
+					// let hoursWorked = 1.0;
 
 					if (admissionTime.toISOString().split("T")[0] < today) {
-						hoursWorked = 24.0;
+						// hoursWorked = 24.0;
 					} else {
-						hoursWorked = Math.max(
-							1.0,
-							(now.getTime() - admissionTime.getTime()) / 3600000
-						);
+						// hoursWorked = Math.max(
+						// 	1.0,
+						// 	(now.getTime() - admissionTime.getTime()) / 3600000
+						// );
 					}
 
 					await query(
@@ -704,6 +705,12 @@ export class PatientModel {
 				[data.patient_id]
 			);
 
+			// Set remaining medical supply usage to 0
+			await query(
+				"UPDATE MedicalSupplyUsage SET remaining_quantity = 0 WHERE patient_id = $1",
+				[data.patient_id]
+			);
+
 			// Get final bill
 			const finalBill = await this.getPatientBill(
 				currentAdmission.bill_id!
@@ -720,12 +727,8 @@ export class PatientModel {
 		}
 	}
 
-	async handlePatientDischarge(
-		patientId: number,
-		currentAdmission: PatientHistory
-	): Promise<void> {
+	async handlePatientDischarge(patientId: number): Promise<void> {
 		const now = new Date();
-		const today = now.toISOString().split("T")[0];
 
 		// End all current assignments
 		await query(
@@ -744,31 +747,31 @@ export class PatientModel {
 		// Create final daily assignment records
 		await query(
 			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-        	 SELECT pd.doctor_id, $1, $2, 
-        	        CASE 
-        	            WHEN pd.assigned_at::date = $2 THEN 
-        	                EXTRACT(EPOCH FROM ($3 - pd.assigned_at)) / 3600.0
-        	            ELSE 24.0 
-        	        END
-        	 FROM PatientDoctor pd
-        	 WHERE pd.patient_id = $1 AND pd.unassigned_at = $3
-        	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-        	    hours_worked = EXCLUDED.hours_worked`,
+			 SELECT pd.doctor_id, $1, $2, 
+					CASE 
+						WHEN pd.assigned_at::date = $2 THEN 
+							EXTRACT(EPOCH FROM ($3 - pd.assigned_at)) / 3600.0
+						ELSE 24.0 
+					END
+			 FROM PatientDoctor pd
+			 WHERE pd.patient_id = $1 AND pd.unassigned_at = $3
+			 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+				hours_worked = EXCLUDED.hours_worked`,
 			[patientId, today, now]
 		);
 
 		await query(
 			`INSERT INTO DailyStaffAssignment (employee_id, patient_id, work_date, hours_worked)
-        	 SELECT pn.nurse_id, $1, $2, 
-        	        CASE 
-        	            WHEN pn.assigned_at::date = $2 THEN 
-        	                EXTRACT(EPOCH FROM ($3 - pn.assigned_at)) / 3600.0
-        	            ELSE 24.0 
-        	        END
-        	 FROM PatientNurse pn
-        	 WHERE pn.patient_id = $1 AND pn.unassigned_at = $3
-        	 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
-        	    hours_worked = EXCLUDED.hours_worked`,
+			 SELECT pn.nurse_id, $1, $2, 
+					CASE 
+						WHEN pn.assigned_at::date = $2 THEN 
+							EXTRACT(EPOCH FROM ($3 - pn.assigned_at)) / 3600.0
+						ELSE 24.0 
+					END
+			 FROM PatientNurse pn
+			 WHERE pn.patient_id = $1 AND pn.unassigned_at = $3
+			 ON CONFLICT (employee_id, patient_id, work_date) DO UPDATE SET
+				hours_worked = EXCLUDED.hours_worked`,
 			[patientId, today, now]
 		);*/
 	}
@@ -912,6 +915,7 @@ export class PatientModel {
     	        ph.leave_reason,
     	        b.total_amount,
     	        b.paid_amount,
+				b.medical_tests_amount,
     	        array_agg(DISTINCT e_doc.name) FILTER (WHERE e_doc.name IS NOT NULL) as assigned_doctors,
     	        array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as assigned_nurses,
     	        (
@@ -932,7 +936,7 @@ export class PatientModel {
     	    LEFT JOIN Employee e_nurse ON nph.nurse_id = e_nurse.employee_id
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NOT NULL
     	    GROUP BY ph.patient_history_id, ph.diagnosis, ph.admission_time, 
-    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.bill_id, ph.quick_check
+    	             ph.discharge_time, ph.leave_reason, b.total_amount, b.paid_amount, b.medical_tests_amount, b.bill_id, ph.quick_check
     	    ORDER BY ph.discharge_time DESC;
     	`;
 		const result = await query(sql, [patientId]);
@@ -982,8 +986,11 @@ export class PatientModel {
     	        b.discount_type,
     	        b.discount,
     	        b.administrative_expenses,
-    	        b.vat_percentage,
+            b.medical_tests_amount,
+            b.vat_percentage,
     	        b.vat_scope,
+				b.vat_scope_custom,
+				b.discount_scope,
     	        COALESCE(da.assigned_doctors, '[]'::json) as assigned_doctors,
     	        COALESCE(na.assigned_nurses, '[]'::json) as assigned_nurses
     	    FROM PatientHistory ph
@@ -1046,6 +1053,29 @@ export class PatientModel {
 		const drugsResult = await query(drugsSql, [admission.bill_id]);
 		admission.drugs = drugsResult.rows;
 
+		// Get detailed medical supplies for this admission
+		const suppliesSql = `
+        SELECT 
+            bd.bill_detail_id,
+            bd.quantity,
+            bd.unit_price,
+            bd.charge_type,
+            bd.generated_at,
+            ms.supply_id,
+            ms.name as medical_supply_name,
+            ms.manufacturer,
+            mss.shipment_id as medical_supply_shipment_id,
+            (bd.quantity * bd.unit_price) as total_cost
+        FROM BillDetail bd
+        JOIN MedicalSupplyShipment mss ON bd.medical_supply_shipment_id = mss.shipment_id
+        JOIN MedicalSupply ms ON mss.supply_id = ms.supply_id
+        WHERE bd.bill_id = $1 AND bd.medical_supply_shipment_id IS NOT NULL
+        ORDER BY bd.generated_at DESC;
+    `;
+
+		const suppliesResult = await query(suppliesSql, [admission.bill_id]);
+		admission.supplies = suppliesResult.rows;
+
 		// Calculate summary totals
 		admission.services_total = admission.services.reduce(
 			(sum: number, service: any) =>
@@ -1054,6 +1084,10 @@ export class PatientModel {
 		);
 		admission.drugs_total = admission.drugs.reduce(
 			(sum: number, drug: any) => sum + parseFloat(drug.total_cost || 0),
+			0
+		);
+		admission.supplies_total = admission.supplies.reduce(
+			(sum: number, supply: any) => sum + parseFloat(supply.total_cost || 0),
 			0
 		);
 
@@ -1170,6 +1204,50 @@ export class PatientModel {
 				userId
 			);
 
+			// Create Doctor Service Payment
+			const doctors = await query(`
+                SELECT d.doctor_id, d.doctor_type, e.extra_payment_type, e.percentage_scope, dsp.price
+                FROM PatientDoctor pd
+                JOIN Doctor d ON pd.doctor_id = d.doctor_id
+                JOIN Employee e ON d.doctor_id = e.employee_id
+                JOIN DoctorServicePrice dsp ON d.doctor_id = dsp.doctor_id AND dsp.service_id = $1
+                WHERE pd.patient_id = $2 AND pd.unassigned_at IS NULL
+            `, [serviceId, patientId]);
+
+			for (const doctor of doctors.rows) {
+				if (Number(doctor.price) > 0) {
+
+					const payment: CreateEmployeePaymentDTO = {
+						employee_id: doctor.doctor_id,
+						payment_amount: 0.0,
+						payment_type: "service",
+						extra_payment_type: doctor.extra_payment_type || "per_patient",
+						extra_amount: doctor.price,
+						percentage_scope: doctor.percentage_scope,
+						paid_by_user_id: null
+					};
+
+					const workDate = new Date().toISOString().split("T")[0];
+
+					const associations: PaymentPatientAssociation[] = [
+						{
+							patient_id: patientId,
+							patient_history_id: currentAdmission.patient_history_id,
+							work_date: workDate,
+							hours_worked: 0.0,
+							payment_amount: doctor.price,
+							payment_type: "service",
+							active_service_id: activeServiceResult.rows[0].active_service_id
+						}
+					];
+
+					await EmployeePaymentModel.createPaymentWithPatients(
+						payment,
+						associations
+					);
+				}
+			}
+
 			await query("COMMIT");
 			return {
 				service: activeServiceResult.rows[0],
@@ -1252,20 +1330,15 @@ export class PatientModel {
 				[currentAdmission.bill_id, activeServiceId]
 			);
 
+			// Remove service payments
+			await EmployeePaymentModel.removeServicePayments(activeServiceId);
+
 			// Remove service from ActivePatientService
 			await query(
 				`DELETE FROM ActivePatientService 
                  WHERE active_service_id = $1`,
 				[serviceResult.rows[0].active_service_id]
 			);
-
-			// TODO: Implement proper service drug linking for accurate removal
-			// Handle removing service drugs if any
-			/*await this.removeServiceDrugsFromPatient(
-				patientId,
-				serviceId,
-				currentAdmission.bill_id!
-			);*/
 
 			// Update bill total
 			await this.updateBillTotal(currentAdmission.bill_id!);
@@ -1286,10 +1359,10 @@ export class PatientModel {
 	): Promise<void> {
 		// Get drugs associated with this service
 		const serviceDrugsSql = `
-            SELECT sd.drug_id
-            FROM ServiceDrug sd
-            WHERE sd.service_id = $1;
-        `;
+			SELECT sd.drug_id
+			FROM ServiceDrug sd
+			WHERE sd.service_id = $1;
+		`;
 		const serviceDrugsResult = await query(serviceDrugsSql, [serviceId]);
 
 		for (const drugInfo of serviceDrugsResult.rows) {
@@ -1341,7 +1414,7 @@ export class PatientModel {
 			await query(
 				`DELETE FROM BillDetail
 				 WHERE bill_detail_id = (
-				 	SELECT bill_detail_id
+					  SELECT bill_detail_id
 					FROM BillDetail
 					WHERE bill_id = $1 AND drug_shipment_id = $2
 					AND charge_type = 'service'
@@ -1467,12 +1540,10 @@ export class PatientModel {
 			// Add to active patient services
 			const isOnce = service.service_type === "once";
 			const insertedServiceResult = await query(
-				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${
-					isOnce ? " end_date," : ""
+				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${isOnce ? " end_date," : ""
 				} is_active, last_renewed) 
-                 	 VALUES ($1, $2, CURRENT_TIMESTAMP,${
-							isOnce ? " CURRENT_TIMESTAMP," : ""
-						} ${isOnce ? "false," : "true,"} NULL) RETURNING *`,
+                 	 VALUES ($1, $2, CURRENT_TIMESTAMP,${isOnce ? " CURRENT_TIMESTAMP," : ""
+				} ${isOnce ? "false," : "true,"} NULL) RETURNING *`,
 				[patientId, service.service_id]
 			);
 
@@ -1669,16 +1740,7 @@ export class PatientModel {
 	}
 
 	private async updateBillTotal(billId: number): Promise<void> {
-		const totalSql = `
-            UPDATE Bill 
-            SET total_amount = (
-                SELECT COALESCE(SUM(quantity * unit_price), 0)
-                FROM BillDetail 
-                WHERE bill_id = $1
-            )
-            WHERE bill_id = $1;
-        `;
-		await query(totalSql, [billId]);
+		await BillModel.recalculateTotal(billId);
 	}
 
 	private async getPatientBill(billId: number): Promise<Bill> {
@@ -1785,9 +1847,10 @@ export class PatientModel {
 				throw new Error("Patient is not currently admitted");
 			}
 			const sql = `
-				SELECT du.*, dc.name as drug_name, dc.unit_conversion
+				SELECT du.*, dc.name as drug_name, dc.unit_conversion, dt.quantity as initial_quantity, dt.timestamp as start_date
 				FROM DrugUsage du
 				JOIN DrugCard dc ON du.drug_id = dc.drug_id
+				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
 				WHERE du.patient_id = $1
 				AND du.patient_history_id = $2
 				ORDER BY du.last_administered DESC NULLS LAST;
@@ -1830,6 +1893,237 @@ export class PatientModel {
 
 			// Update bill total
 			await this.updateBillTotal(currentAdmission.bill_id!);
+
+			await query("COMMIT");
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	/**
+	 * Add medical supply to an active patient's bill
+	 */
+	async addMedicalSupplyToPatient(
+		patientId: number,
+		supplyId: number,
+		shipmentId: number,
+		quantity: number,
+		price: number,
+		userId: number
+	): Promise<any> {
+		await query("BEGIN");
+		try {
+			// Verify patient is active and admitted
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+
+			if (!currentAdmission.bill_id) {
+				throw new Error("No active bill found for patient");
+			}
+
+			// Verify supply exists
+			const supplyResult = await query(
+				"SELECT supply_id FROM MedicalSupply WHERE supply_id = $1",
+				[supplyId]
+			);
+
+			if (supplyResult.rows.length === 0) {
+				throw new Error("Medical supply not found");
+			}
+
+			// Verify shipment exists and belongs to the correct supply
+			const shipmentResult = await query(
+				`
+				SELECT shipment_id, quantity, supply_id 
+				FROM MedicalSupplyShipment 
+				WHERE shipment_id = $1 AND supply_id = $2
+			`,
+				[shipmentId, supplyId]
+			);
+
+			if (shipmentResult.rows.length === 0) {
+				throw new Error("Invalid shipment for this medical supply");
+			}
+
+			// Check if sufficient quantity available
+			if (quantity > shipmentResult.rows[0].quantity) {
+				throw new Error("Insufficient quantity in selected shipment");
+			}
+
+			// Update shipment quantity
+			await query(
+				`
+				UPDATE MedicalSupplyShipment
+				SET quantity = quantity - $1
+				WHERE shipment_id = $2
+			`,
+				[quantity, shipmentId]
+			);
+
+			// Create transaction
+			const transactionResult = await query(
+				`
+				INSERT INTO MedicalSupplyTransaction (
+					shipment_id, transaction_type, quantity,
+					price, created_by_user_id
+				)
+				VALUES ($1, 'patient', $2, $3, $4)
+				RETURNING transaction_id
+			`,
+				[shipmentId, quantity, price, userId]
+			);
+
+			const transactionId = transactionResult.rows[0].transaction_id;
+
+			// Create usage record
+			const usageResult = await query(
+				`
+				INSERT INTO MedicalSupplyUsage (
+					patient_id, supply_id, transaction_id, patient_history_id,
+					remaining_quantity, last_administered
+				)
+				VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+				RETURNING usage_id
+			`,
+				[
+					patientId,
+					supplyId,
+					transactionId,
+					currentAdmission.patient_history_id,
+					quantity
+				]
+			);
+
+			// Add to bill
+			const billDetailResult = await query(
+				`
+				INSERT INTO BillDetail (
+					bill_id, medical_supply_shipment_id, quantity,
+					unit_price, sale_type
+				)
+				VALUES ($1, $2, $3, $4, 'admitted')
+				RETURNING bill_detail_id
+			`,
+				[currentAdmission.bill_id, shipmentId, quantity, price]
+			);
+
+			// Update bill total
+			await query(
+				`
+				UPDATE Bill
+				SET total_amount = total_amount + $1
+				WHERE bill_id = $2
+			`,
+				[quantity * price, currentAdmission.bill_id]
+			);
+
+			await query("COMMIT");
+
+			return {
+				usage_id: usageResult.rows[0].usage_id,
+				bill_detail_id: billDetailResult.rows[0].bill_detail_id,
+				transaction_id: transactionId
+			};
+		} catch (error) {
+			await query("ROLLBACK");
+			throw error;
+		}
+	}
+
+	/**
+	 * Remove medical supply from patient (reverses the transaction)
+	 */
+	async removeMedicalSupplyFromPatient(
+		patientId: number,
+		usageId: number,
+		userId: number
+	): Promise<void> {
+		await query("BEGIN");
+		try {
+			// Get usage details
+			const usageResult = await query(
+				`
+				SELECT 
+					msu.usage_id,
+					msu.patient_id,
+					msu.supply_id,
+					msu.transaction_id,
+					msu.patient_history_id,
+					msu.remaining_quantity,
+					mst.shipment_id,
+					mst.quantity as original_quantity,
+					mst.price,
+					ph.bill_id
+				FROM MedicalSupplyUsage msu
+				JOIN MedicalSupplyTransaction mst ON msu.transaction_id = mst.transaction_id
+				JOIN PatientHistory ph ON msu.patient_history_id = ph.patient_history_id
+				WHERE msu.usage_id = $1 AND msu.patient_id = $2
+			`,
+				[usageId, patientId]
+			);
+
+			if (usageResult.rows.length === 0) {
+				throw new Error("Medical supply usage not found for this patient");
+			}
+
+			const usage = usageResult.rows[0];
+
+			// Verify patient is still admitted
+			const currentAdmission = await this.getCurrentAdmission(patientId);
+			if (!currentAdmission) {
+				throw new Error("Patient is not currently admitted");
+			}
+
+			// Return quantity to shipment
+			await query(
+				`
+				UPDATE MedicalSupplyShipment
+				SET quantity = quantity + $1
+				WHERE shipment_id = $2
+			`,
+				[usage.original_quantity, usage.shipment_id]
+			);
+
+			// Remove from bill
+			const billDetailResult = await query(
+				`
+				DELETE FROM BillDetail
+				WHERE bill_id = $1 
+				AND medical_supply_shipment_id = (
+					SELECT shipment_id FROM MedicalSupplyTransaction WHERE transaction_id = $2
+				)
+				RETURNING quantity, unit_price
+			`,
+				[usage.bill_id, usage.transaction_id]
+			);
+
+			if (billDetailResult.rows.length > 0) {
+				const removedCost =
+					billDetailResult.rows[0].quantity * billDetailResult.rows[0].unit_price;
+
+				// Update bill total
+				await query(
+					`
+					UPDATE Bill
+					SET total_amount = total_amount - $1
+					WHERE bill_id = $2
+				`,
+					[removedCost, usage.bill_id]
+				);
+			}
+
+			// Delete usage record
+			await query("DELETE FROM MedicalSupplyUsage WHERE usage_id = $1", [
+				usageId
+			]);
+
+			// Delete transaction
+			await query("DELETE FROM MedicalSupplyTransaction WHERE transaction_id = $1", [
+				usage.transaction_id
+			]);
 
 			await query("COMMIT");
 		} catch (error) {

@@ -57,6 +57,15 @@ router.get(
 
 // Manual payment endpoints
 router.get(
+	"/patient-vat-admin",
+	verifyToken,
+	checkPermission("view_vault"),
+	auditLogger,
+	(req, res) => VaultController.getPatientVatAndAdminExpenses(req, res)
+);
+
+// Manual payment endpoints
+router.get(
 	"/manual-payments",
 	verifyToken,
 	checkPermission("view_vault"),

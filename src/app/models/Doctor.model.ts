@@ -211,4 +211,27 @@ export default class DoctorModel {
 		const { rows } = await query(sql, [`%${name}%`]);
 		return rows;
 	}
+
+	static async getDoctorServicePrices(doctor_id: number): Promise<any[]> {
+		const sql = `
+			SELECT dsp.doctor_id, dsp.service_id, s.name as service_name, dsp.price
+			FROM DoctorServicePrice dsp
+			JOIN Service s ON dsp.service_id = s.service_id
+			WHERE dsp.doctor_id = $1
+		`;
+		const { rows } = await query(sql, [doctor_id]);
+		return rows;
+	}
+
+	static async setDoctorServicePrice(doctor_id: number, service_id: number, price: number): Promise<void> {
+		const sql = `
+			INSERT INTO DoctorServicePrice (doctor_id, service_id, price)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (doctor_id, service_id)
+			DO UPDATE SET
+				price = EXCLUDED.price,
+				updated_at = CURRENT_TIMESTAMP
+		`;
+		await query(sql, [doctor_id, service_id, price]);
+	}
 }

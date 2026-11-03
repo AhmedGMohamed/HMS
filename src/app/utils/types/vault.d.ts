@@ -2,9 +2,13 @@ export interface VaultSummary {
 	// Patient Revenue
 	patient_services_total: number;
 	patient_drugs_total: number;
+	patient_supplies_total: number;
+	patient_medical_tests_total: number;
 	patient_payments_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;
+	patient_vat_total: number;
+	patient_admin_total: number;
 
 	// Manual Payments
 	manual_additions_total: number;
@@ -15,6 +19,11 @@ export interface VaultSummary {
 	drug_shipment_costs_total: number;
 	drug_sales_revenue_total: number;
 	drug_sales_profit_total: number;
+
+	// Medical Supplies
+	supply_shipment_costs_total: number;
+	supply_sales_revenue_total: number;
+	supply_sales_profit_total: number;
 
 	// Employee Wages
 	wages_owed_total: number;
@@ -42,17 +51,17 @@ export interface ManualPayment {
 
 export interface VaultReportData {
 	type:
-		| "patient_services"
-		| "patient_drugs"
-		| "patient_payments"
-		| "patient_outstanding"
-		| "patient_discounts"
-		| "manual_payments"
-		| "drug_shipments"
-		| "drug_sales"
-		| "drug_profits"
-		| "wages_owed"
-		| "wages_paid";
+	| "patient_services"
+	| "patient_drugs"
+	| "patient_payments"
+	| "patient_outstanding"
+	| "patient_discounts"
+	| "manual_payments"
+	| "drug_shipments"
+	| "drug_sales"
+	| "drug_profits"
+	| "wages_owed"
+	| "wages_paid";
 	startDate: string;
 	endDate: string;
 	data: any[];

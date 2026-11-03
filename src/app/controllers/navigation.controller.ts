@@ -89,6 +89,15 @@ export class NavigationController {
 				permission: "manage_clocking"
 			},
 
+			// Services
+			{
+				id: "services",
+				label: "Services",
+				icon: "bi-clipboard2-pulse",
+				url: "/services",
+				permission: "manage_services"
+			},
+
 			// Pharmacy
 			{
 				id: "pharmacy",
@@ -98,13 +107,13 @@ export class NavigationController {
 				permission: "manage_pharmacy"
 			},
 
-			// Services
+			// Medical Supplies
 			{
-				id: "services",
-				label: "Services",
-				icon: "bi-clipboard2-pulse",
-				url: "/services",
-				permission: "manage_services"
+				id: "supplies",
+				label: "Medical Supplies",
+				icon: "bi-bandaid-fill",
+				url: "/supplies",
+				permission: "manage_pharmacy"
 			},
 
 			// Price Lists
