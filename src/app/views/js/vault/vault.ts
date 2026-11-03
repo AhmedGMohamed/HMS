@@ -8,7 +8,11 @@ interface VaultSummary {
 	// Patient Revenue
 	patient_services_total: number;
 	patient_drugs_total: number;
+	patient_supplies_total: number;
+	patient_medical_tests_total: number;
 	patient_payments_total: number;
+	patient_vat_total: number;
+	patient_admin_total: number;
 	patient_outstanding_total: number;
 	patient_discounts_total: number;
 
@@ -26,6 +30,9 @@ interface VaultSummary {
 	drug_shipment_costs_total: number;
 	drug_sales_revenue_total: number;
 	drug_sales_profit_total: number;
+	supply_shipment_costs_total: number;
+	supply_sales_revenue_total: number;
+	supply_sales_profit_total: number;
 
 	// Employee Wages
 	wages_owed_total: number;
@@ -242,22 +249,26 @@ class VaultManager {
 
 		const netProfitElement = document.getElementById("netProfit")!;
 		netProfitElement.textContent = i18n.formatCurrency(summary.net_profit);
-		netProfitElement.className = `summary-amount ${
-			summary.net_profit >= 0 ? "text-success" : "text-danger"
-		}`;
+		netProfitElement.className = `summary-amount ${summary.net_profit >= 0 ? "text-success" : "text-danger"
+			}`;
 
 		// Update patient revenue metrics
 		document.getElementById("patientServicesTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_services_total);
 		document.getElementById("patientDrugsTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_drugs_total);
+		document.getElementById("patientSuppliesTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_supplies_total);
+		document.getElementById("patientMedicalTestsTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_medical_tests_total);
+		document.getElementById("patientDiscountsTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_discounts_total);
+		document.getElementById("patientVatAndAdminTotal")!.textContent =
+			i18n.formatCurrency(summary.patient_vat_total + summary.patient_admin_total);
 		document.getElementById("patientPaymentsTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_payments_total);
 		document.getElementById("patientOutstandingTotal")!.textContent =
 			i18n.formatCurrency(summary.patient_outstanding_total);
-		document.getElementById("patientDiscountsTotal")!.textContent =
-			i18n.formatCurrency(summary.patient_discounts_total);
-
 		// Update manual payments metrics
 		document.getElementById("manualAdditionsTotal")!.textContent =
 			i18n.formatCurrency(summary.manual_additions_total);
@@ -268,9 +279,8 @@ class VaultManager {
 		manualNetElement.textContent = i18n.formatCurrency(
 			summary.manual_net_total
 		);
-		manualNetElement.className = `metric-value ${
-			summary.manual_net_total >= 0 ? "text-success" : "text-danger"
-		}`;
+		manualNetElement.className = `metric-value ${summary.manual_net_total >= 0 ? "text-success" : "text-danger"
+			}`;
 
 		document.getElementById("insurancePaymentsTotal")!.textContent =
 			i18n.formatCurrency(summary.insurance_payments_total);
@@ -286,6 +296,13 @@ class VaultManager {
 			i18n.formatCurrency(summary.drug_sales_revenue_total);
 		document.getElementById("drugSalesProfitTotal")!.textContent =
 			i18n.formatCurrency(summary.drug_sales_profit_total);
+
+		document.getElementById("medicalSupplyShipmentCostsTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_shipment_costs_total);
+		document.getElementById("medicalSupplySalesRevenueTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_sales_revenue_total);
+		document.getElementById("medicalSupplySalesProfitTotal")!.textContent =
+			i18n.formatCurrency(summary.supply_sales_profit_total);
 
 		// Update wages metrics
 		document.getElementById("wagesOwedTotal")!.textContent =
@@ -403,12 +420,12 @@ class VaultManager {
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">${i18n.t(
-							"common.loading"
-						)}</span>
+				"common.loading"
+			)}</span>
                     </div>
                     <p class="mt-3">${i18n.t(
-						"vault.messages.loadingReportData"
-					)}</p>
+				"vault.messages.loadingReportData"
+			)}</p>
                 </div>
             `;
 
@@ -464,13 +481,13 @@ class VaultManager {
 		container.innerHTML = `
             <div class="report-header mb-4">
                 <h6 class="text-muted">${i18n.t(
-					"vault.report.dateRange"
-				)}: ${i18n.formatDate(
+			"vault.report.dateRange"
+		)}: ${i18n.formatDate(
 			this.currentDateRange!.start
 		)} - ${i18n.formatDate(this.currentDateRange!.end)}</h6>
                 <h6 class="text-muted">${i18n.t(
-					"vault.report.totalRecords"
-				)}: ${i18n.formatNumber(data.length, 0)}</h6>
+			"vault.report.totalRecords"
+		)}: ${i18n.formatNumber(data.length, 0)}</h6>
             </div>
             ${summaryHtml}
             ${tableHtml}
@@ -491,7 +508,8 @@ class VaultManager {
 						const formattedValue = this.formatReportValue(
 							value,
 							col.type,
-							col.formatter
+							col.formatter,
+							row
 						);
 						return `<td>${formattedValue}</td>`;
 					})
@@ -528,19 +546,18 @@ class VaultManager {
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">${i18n.t(
-							`vault.reportSummary.${key}`
-						)}</h6>
-                        <h4 class="mb-0">${
-							typeof value === "number" &&
-							!key.includes("count") &&
-							!key.includes("records") &&
-							!key.includes("unique") &&
-							!key.includes("quantity") &&
-							!key.includes("total_shipments") &&
-							!key.includes("total_transactions")
-								? i18n.formatCurrency(value)
-								: i18n.formatNumber(value as number, 0)
-						}</h4>
+					`vault.reportSummary.${key}`
+				)}</h6>
+                        <h4 class="mb-0">${typeof value === "number" &&
+						!key.includes("count") &&
+						!key.includes("records") &&
+						!key.includes("unique") &&
+						!key.includes("quantity") &&
+						!key.includes("total_shipments") &&
+						!key.includes("total_transactions")
+						? i18n.formatCurrency(value)
+						: i18n.formatNumber(value as number, 0)
+					}</h4>
                     </div>
                 </div>
             </div>
@@ -572,15 +589,34 @@ class VaultManager {
 					avg_per_patient:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(
-											row.services_total ||
-												row.drugs_total ||
-												0
-										),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(
+										row.services_total ||
+										row.drugs_total ||
+										0
+									),
+								0
+							) / data.length
+							: 0
+				};
+
+			case "patient-medical-tests":
+				return {
+					total_revenue: data.reduce(
+						(sum, row) =>
+							sum + parseFloat(row.medical_tests_amount || 0),
+						0
+					),
+					total_records: data.length,
+					avg_per_patient:
+						data.length > 0
+							? data.reduce(
+								(sum, row) =>
+									sum +
+									parseFloat(row.medical_tests_amount || 0),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -594,10 +630,10 @@ class VaultManager {
 					avg_payment:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum + parseFloat(row.paid_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum + parseFloat(row.paid_amount || 0),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -612,11 +648,11 @@ class VaultManager {
 					avg_outstanding:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(row.outstanding_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(row.outstanding_amount || 0),
+								0
+							) / data.length
 							: 0
 				};
 
@@ -625,6 +661,20 @@ class VaultManager {
 					total_discounts: data.reduce(
 						(sum, row) =>
 							sum + parseFloat(row.discount_amount || 0),
+						0
+					),
+					total_records: data.length
+				};
+
+			case "patient-vat-admin":
+				return {
+					total_vat: data.reduce(
+						(sum, row) => sum + parseFloat(row.vat_amount || 0),
+						0
+					),
+					total_admin_expenses: data.reduce(
+						(sum, row) =>
+							sum + parseFloat(row.administrative_expenses || 0),
 						0
 					),
 					total_records: data.length
@@ -659,11 +709,11 @@ class VaultManager {
 					avg_payment:
 						data.length > 0
 							? data.reduce(
-									(sum, row) =>
-										sum +
-										parseFloat(row.payment_amount || 0),
-									0
-							  ) / data.length
+								(sum, row) =>
+									sum +
+									parseFloat(row.payment_amount || 0),
+								0
+							) / data.length
 							: 0,
 					unique_companies: new Set(
 						data.map((row) => row.insurance_id)
@@ -788,7 +838,7 @@ class VaultManager {
 				}
 			],
 			styles: {
-				
+
 			}
 		};
 	}
@@ -798,16 +848,18 @@ class VaultManager {
 		const titles: { [key: string]: string } = {
 			"patient-services": "Patient Services Revenue",
 			"patient-drugs": "Patient Drugs Revenue",
+			"patient-discounts": "Patient Discounts",
+			"patient-vat-admin": "Patient VAT & Admin Expenses",
 			"patient-payments": "Patient Payments",
 			"patient-outstanding": "Outstanding Balances",
-			"patient-discounts": "Patient Discounts",
 			"manual-payments": "Manual Payments",
 			"insurance-payments": "Insurance Payments",
 			"drug-shipments": "Drug Shipment Costs",
 			"drug-sales": "Drug Sales Revenue",
 			"drug-profits": "Drug Sales Profit",
 			"wages-owed": "Wages Owed",
-			"wages-paid": "Wages Paid"
+			"wages-paid": "Wages Paid",
+			"patient-medical-tests": "Medical Tests Revenue"
 		};
 		return titles[reportType] || "Report";
 	}
@@ -816,16 +868,18 @@ class VaultManager {
 		const endpoints: { [key: string]: string } = {
 			"patient-services": "patient-services",
 			"patient-drugs": "patient-drugs",
+			"patient-discounts": "patient-discounts",
+			"patient-vat-admin": "patient-vat-admin",
 			"patient-payments": "patient-payments",
 			"patient-outstanding": "patient-outstanding",
-			"patient-discounts": "patient-discounts",
 			"manual-payments": "manual-payments",
 			"insurance-payments": "insurance-payments",
 			"drug-shipments": "drug-shipments",
 			"drug-sales": "drug-sales",
 			"drug-profits": "drug-profits",
 			"wages-owed": "wages-owed",
-			"wages-paid": "wages-paid"
+			"wages-paid": "wages-paid",
+			"patient-medical-tests": "patient-medical-tests"
 		};
 		return endpoints[reportType] || "";
 	}
@@ -870,6 +924,32 @@ class VaultManager {
 					type: "currency"
 				}
 			],
+			"patient-medical-tests": [
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
+				{
+					key: "medical_tests_amount",
+					label: "Amount",
+					labelKey: "vault.reportColumns.amount",
+					type: "currency"
+				}
+			],
 			"patient-drugs": [
 				{
 					key: "patient_name",
@@ -905,6 +985,72 @@ class VaultManager {
 					key: "paid_amount",
 					label: "Paid",
 					labelKey: "vault.reportColumns.paid",
+					type: "currency"
+				}
+			],
+			"patient-discounts": [
+				{
+					key: "patient_name",
+					label: "Patient Name",
+					labelKey: "vault.reportColumns.patientName",
+					type: "text"
+				},
+				{
+					key: "bill_id",
+					label: "Bill ID",
+					labelKey: "vault.reportColumns.billId",
+					type: "text"
+				},
+				{
+					key: "generated_at",
+					label: "Date",
+					labelKey: "vault.reportColumns.date",
+					type: "date"
+				},
+				{ key: "discount_type", label: "Discount Type", labelKey: "vault.reportColumns.discountType", type: "string" },
+				{
+					key: "discount",
+					labelKey: "Discount Amount",
+					label: "vault.reportColumns.discountValue",
+					formatter: (val: number, row: Record<string, string | number>) => {
+						return row.discount_type === "percentage"
+							? `${val}%`
+							: i18n.formatCurrency(val);
+					},
+					type: "text"
+				},
+				{
+					key: "total_amount",
+					label: "Total Amount",
+					labelKey: "vault.reportColumns.totalAmount",
+					type: "currency"
+				},
+				{
+					key: "discount_amount",
+					label: "Discount Total",
+					labelKey: "vault.reportColumns.discountTotal",
+					type: "currency"
+				}
+			],
+			"patient-vat-admin": [
+				{ key: "generated_at", label: "Date", labelKey: "common.date", type: "date" },
+				{ key: "patient_name", label: "Patient Name", labelKey: "vault.reportColumns.patientName", type: "text" },
+				{
+					key: "total_amount",
+					label: "Total Amount",
+					labelKey: "vault.reportColumns.totalAmount",
+					type: "currency"
+				},
+				{
+					key: "administrative_expenses",
+					label: "Administrative Expenses",
+					labelKey: "vault.fields.adminExpenses",
+					type: "currency"
+				},
+				{
+					key: "vat_amount",
+					label: "VAT Amount",
+					labelKey: "vault.fields.vatAmount",
 					type: "currency"
 				}
 			],
@@ -988,50 +1134,6 @@ class VaultManager {
 					label: "Payment Type",
 					labelKey: "vault.reportColumns.paymentType",
 					type: "text"
-				}
-			],
-			"patient-discounts": [
-				{
-					key: "patient_name",
-					label: "Patient Name",
-					labelKey: "vault.reportColumns.patientName",
-					type: "text"
-				},
-				{
-					key: "bill_id",
-					label: "Bill ID",
-					labelKey: "vault.reportColumns.billId",
-					type: "text"
-				},
-				{
-					key: "generated_at",
-					label: "Date",
-					labelKey: "vault.reportColumns.date",
-					type: "date"
-				},
-				{
-					key: "total_amount",
-					label: "Total Amount",
-					labelKey: "vault.reportColumns.totalAmount",
-					type: "currency"
-				},
-				{
-					key: "discount_type",
-					label: "Discount Type",
-					labelKey: "vault.reportColumns.discountType",
-					type: "text"
-				},
-				{
-					key: "discount",
-					label: "Discount Value",
-					labelKey: "vault.reportColumns.discountValue",
-					type: "text"
-				},
-				{
-					key: "discount_amount",
-					label: "Discount Amount",
-					labelKey: "vault.reportColumns.discountAmount",
-					type: "currency"
 				}
 			],
 			"manual-payments": [
@@ -1332,12 +1434,13 @@ class VaultManager {
 	private formatReportValue(
 		value: any,
 		type: string,
-		formatter?: Function
+		formatter?: Function,
+		row?: Record<string, any>
 	): string {
 		if (value == null || value === undefined) return "-";
 
 		if (formatter) {
-			return formatter(value);
+			return formatter(value, row);
 		}
 
 		switch (type) {
@@ -1382,16 +1485,6 @@ class VaultManager {
 	private showError(message: string): void {
 		//@ts-ignore
 		toastr.error(message);
-	}
-
-	private showInfo(message: string): void {
-		//@ts-ignore
-		toastr.info(message);
-	}
-
-	private showWarning(message: string): void {
-		//@ts-ignore
-		toastr.warning(message);
 	}
 }
 

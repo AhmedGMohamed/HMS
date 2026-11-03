@@ -221,6 +221,51 @@
                 <div class="col-md-6 col-lg-4">
                   <div class="metric-item">
                     <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.suppliesRevenue">Supplies Revenue</span>
+                      <span class="metric-value" id="patientSuppliesTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-supplies" data-i18n-title="vault.reportButtons.viewSuppliesReport" title="View Supplies Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <!-- Medical Tests Revenue -->
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.medicalTestsRevenue">Medical Tests Revenue</span>
+                      <span class="metric-value" id="patientMedicalTestsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-medical-tests" data-i18n-title="vault.reportButtons.viewMedicalTestsReport" title="View Medical Tests Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.totalDiscounts">Total Discounts</span>
+                      <span class="metric-value text-info" id="patientDiscountsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-discounts" data-i18n-title="vault.reportButtons.viewDiscountsReport" title="View Discounts Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label">Total VAT/Admin. Expenses</span>
+                      <span class="metric-value text-secondary" id="patientVatAndAdminTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-vat-admin" title="View VAT & Admin Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
                       <span class="metric-label" data-i18n="vault.metrics.totalPayments">Total Payments</span>
                       <span class="metric-value text-success" id="patientPaymentsTotal">$0.00</span>
                     </div>
@@ -236,17 +281,6 @@
                       <span class="metric-value text-warning" id="patientOutstandingTotal">$0.00</span>
                     </div>
                     <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-outstanding" data-i18n-title="vault.reportButtons.viewOutstandingReport" title="View Outstanding Report">
-                      <i class="bi bi-file-earmark-text"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                  <div class="metric-item">
-                    <div class="metric-info">
-                      <span class="metric-label" data-i18n="vault.metrics.totalDiscounts">Total Discounts</span>
-                      <span class="metric-value text-info" id="patientDiscountsTotal">$0.00</span>
-                    </div>
-                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="patient-discounts" data-i18n-title="vault.reportButtons.viewDiscountsReport" title="View Discounts Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>
@@ -388,6 +422,39 @@
                       <span class="metric-value text-primary" id="drugSalesProfitTotal">$0.00</span>
                     </div>
                     <button class="btn btn-outline-primary btn-sm report-btn" data-type="drug-profits" data-i18n-title="vault.reportButtons.viewProfitsReport" title="View Profits Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.supplyShipmentCosts">Supply Shipment Costs</span>
+                      <span class="metric-value text-danger" id="medicalSupplyShipmentCostsTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="supply-shipments" data-i18n-title="vault.reportButtons.viewSupplyShipmentsReport" title="View Supply Shipments Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.supplySalesRevenue">Supply Sales Revenue</span>
+                      <span class="metric-value text-success" id="medicalSupplySalesRevenueTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="supply-sales" data-i18n-title="vault.reportButtons.viewSupplySalesReport" title="View Supply Sales Report">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="metric-item">
+                    <div class="metric-info">
+                      <span class="metric-label" data-i18n="vault.metrics.supplySalesProfit">Supply Sales Profit</span>
+                      <span class="metric-value text-primary" id="medicalSupplySalesProfitTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm report-btn" data-type="supply-profits" data-i18n-title="vault.reportButtons.viewSupplyProfitsReport" title="View Supply Profits Report">
                       <i class="bi bi-file-earmark-text"></i>
                     </button>
                   </div>

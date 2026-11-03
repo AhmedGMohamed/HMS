@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
+import { createDBIfNotExists } from "./utils/setUpDatabase.js";
 import apiRoutes from "./routes/api.routes.js";
 import pageRoutes from "./routes/page.routes.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
@@ -9,12 +10,17 @@ import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
 import EmployeePaymentCron from "./cron/employeePaymentCron.js";
 import PatientAutoRenewalCron from "./cron/patientAutoRenewalCron.js";
-
-overridePgDate();
-dotenv.config();
+import { Request, Response } from "express";
 
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
+
+overridePgDate();
+dotenv.config({
+	path: path.join(__dirname, ".env")
+});
+
+await createDBIfNotExists(process.env.DB_NAME as string || "HMS");
 
 const app = express();
 
@@ -26,6 +32,15 @@ app.use("/css", express.static(path.join(__dirname, "views/css")));
 app.use("/js", express.static(path.join(__dirname, "views/js")));
 app.use("/utils", express.static(path.join(__dirname, "views/utils")));
 app.use("/locales", express.static(path.join(__dirname, "views/locales")));
+
+app.use("/health", (_req: Request, res: Response): void => {
+	res.status(200).json({
+		status: "ok",
+		timestamp: new Date().toISOString(),
+		service: "Hospital Management System",
+		version: "0.3.42"
+	});
+});
 
 // API routes
 app.use("/api", apiRoutes);
@@ -50,4 +65,6 @@ try {
 	console.error("Error starting cron jobs: ", error);
 }
 
-export default app;
+app.listen(process.env.PORT, () => {
+	console.log(`Server started on port ${process.env.PORT}`);
+});

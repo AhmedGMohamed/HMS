@@ -12,6 +12,7 @@ interface PriceList {
 interface PriceListStats {
 	total_services: number;
 	total_drugs: number;
+	total_supplies: number;
 }
 
 interface Service {
@@ -49,6 +50,22 @@ interface DrugPrice {
 	prepayment_amount?: number;
 }
 
+interface MedicalSupplyShipment {
+	shipment_id: number;
+	supply_id: number;
+	supply_name: string;
+	quantity: number;
+	expiry_date: string;
+	warehouse_name: string;
+	prices: MedicalSupplyPrice[];
+}
+
+interface MedicalSupplyPrice {
+	pricelist_id?: number;
+	shipment_id: number;
+	price: number;
+}
+
 class PriceListManager {
 	//@ts-ignore
 	private priceListModal: Modal;
@@ -61,8 +78,10 @@ class PriceListManager {
 	private priceListStats: Map<number, PriceListStats> = new Map();
 	private services: Service[] = [];
 	private drugShipments: DrugShipment[] = [];
+	private medicalSupplyShipments: MedicalSupplyShipment[] = [];
 	private filteredServices: Service[] = [];
 	private filteredDrugShipments: DrugShipment[] = [];
+	private filteredMedicalSupplyShipments: MedicalSupplyShipment[] = [];
 	private currentPriceListId: number | null = null;
 
 	constructor() {
@@ -165,7 +184,17 @@ class PriceListManager {
 			?.addEventListener("input", (e) => {
 				const searchTerm = (e.target as HTMLInputElement).value;
 				this.filterDrugs(searchTerm);
+				this.filterDrugs(searchTerm);
 			});
+
+		document
+			.getElementById("supplySearchInput")
+			?.addEventListener("input", (e) => {
+				const searchTerm = (e.target as HTMLInputElement).value;
+				this.filterMedicalSupplies(searchTerm);
+			});
+
+
 
 		// Default checkbox handler
 		const defaultCheckbox = document.getElementById(
@@ -264,19 +293,37 @@ class PriceListManager {
 				(shipment: DrugShipment) => shipment.quantity > 0
 			);
 
+			// Load medical supply shipments
+			const suppliesResponse = await fetch("/api/pharmacy/medical-supply-shipments", {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
+
+			if (!suppliesResponse.ok)
+				throw new Error("Failed to fetch medical supply shipments");
+			this.medicalSupplyShipments = (await suppliesResponse.json()).filter(
+				(shipment: MedicalSupplyShipment) => shipment.quantity > 0
+			);
+
 			// Initialize filtered lists
 			this.filteredServices = [...this.services];
 			this.filteredDrugShipments = [...this.drugShipments];
+			this.filteredMedicalSupplyShipments = [...this.medicalSupplyShipments];
 
 			// Render lists
 			this.renderServicesList();
 			this.renderDrugsList();
+			this.renderMedicalSuppliesList();
 
 			// Update counts
 			document.getElementById("servicesCount")!.textContent =
 				this.services.length.toString();
 			document.getElementById("drugsCount")!.textContent =
 				this.drugShipments.length.toString();
+			document.getElementById("suppliesCount")!.textContent =
+				this.medicalSupplyShipments.length.toString();
+
 		} catch (error) {
 			console.error("Error loading services and drugs:", error);
 			this.showError("Failed to load services and drug shipments");
@@ -301,6 +348,16 @@ class PriceListManager {
 		this.renderDrugsList();
 	}
 
+	private filterMedicalSupplies(searchTerm: string): void {
+		const term = searchTerm.toLowerCase();
+		this.filteredMedicalSupplyShipments = this.medicalSupplyShipments.filter(
+			(shipment) =>
+				shipment.supply_name.toLowerCase().includes(term) ||
+				shipment.warehouse_name.toLowerCase().includes(term)
+		);
+		this.renderMedicalSuppliesList();
+	}
+
 	private renderServicesList(): void {
 		const container = document.getElementById("servicesListContainer")!;
 
@@ -309,8 +366,8 @@ class PriceListManager {
             <div class="text-center py-4">
                 <i class="bi bi-inbox" style="font-size: 2rem; color: var(--bs-gray-400);"></i>
                 <p class="mt-2 text-muted" data-i18n="priceLists.messages.noServices">${i18n.t(
-					"priceLists.messages.noServices"
-				)}</p>
+				"priceLists.messages.noServices"
+			)}</p>
             </div>
         `;
 			return;
@@ -329,115 +386,103 @@ class PriceListManager {
 				return `
 		        <div class="card mb-3 ${hasExistingPrice ? "border-primary" : ""}">
 		            <div class="card-body">
-		                ${
-							hasExistingPrice
-								? `
+		                ${hasExistingPrice
+						? `
 		                <div class="badge bg-primary position-absolute top-0 end-0 m-2">
 		                    <i class="bi bi-check-circle"></i> ${i18n.t(
-								"priceLists.status.hasPrice"
-							)}
+							"priceLists.status.hasPrice"
+						)}
 		                </div>
 		                `
-								: ""
-						}
+						: ""
+					}
 		                <div class="row align-items-center">
 		                    <div class="col-md-4">
 		                        <h6 class="mb-1">${this.escapeHtml(service.name)}</h6>
 		                        <small class="text-muted">
 									<span class="badge bg-info">${i18n.t(
-										`priceLists.serviceTypes.${service.service_type}`
-									)}</span>
+						`priceLists.serviceTypes.${service.service_type}`
+					)}</span>
 		                        </small>
 		                    </div>
 		                    <div class="col-md-8">
 		                        <div class="row g-2">
 		                            <div class="col-md-4">
 		                                <label class="form-label small" data-i18n="priceLists.fields.price">${i18n.t(
-											"priceLists.fields.price"
-										)}</label>
+						"priceLists.fields.price"
+					)}</label>
 		                                <input type="number" 
 		                                       class="form-control form-control-sm" 
 		                                       id="service_price_${service.service_id}"
 		                                       placeholder="0" 
 		                                       step="0.01" 
 		                                       min="0"
-		                                       value="${
-													hasExistingPrice
-														? existingPrice.price
-														: ""
-												}">
+		                                       value="${hasExistingPrice
+						? existingPrice.price
+						: ""
+					}">
 		                            </div>
 		                            <div class="col-md-8">
 		                                <div class="form-check mt-4">
 		                                    <input class="form-check-input" 
 		                                           type="checkbox" 
-		                                           id="service_prepayment_${
-														service.service_id
-													}"
+		                                           id="service_prepayment_${service.service_id
+					}"
 		                                           ${hasPrepayment ? "checked" : ""}
-		                                           onchange="priceListManager.togglePrepaymentFields('service', ${
-														service.service_id
-													})">
-		                                    <label class="form-check-label small" for="service_prepayment_${
-												service.service_id
-											}" data-i18n="priceLists.fields.requirePrepayment">
+		                                           onchange="priceListManager.togglePrepaymentFields('service', ${service.service_id
+					})">
+		                                    <label class="form-check-label small" for="service_prepayment_${service.service_id
+					}" data-i18n="priceLists.fields.requirePrepayment">
 		                                        ${i18n.t(
-													"priceLists.fields.requirePrepayment"
-												)}
+						"priceLists.fields.requirePrepayment"
+					)}
 		                                    </label>
 		                                </div>
 		                            </div>
 		                        </div>
-		                        <div class="row g-2 mt-1 ${
-									hasPrepayment ? "" : "d-none"
-								}" id="service_prepayment_fields_${
-					service.service_id
-				}">
+		                        <div class="row g-2 mt-1 ${hasPrepayment ? "" : "d-none"
+					}" id="service_prepayment_fields_${service.service_id
+					}">
 		                            <div class="col-md-6">
 		                                <label class="form-label small" data-i18n="priceLists.fields.prepaymentType">${i18n.t(
-											"priceLists.fields.prepaymentType"
-										)}</label>
-		                                <select class="form-select form-select-sm" id="service_prepayment_type_${
-											service.service_id
-										}">
-		                                    <option value="fixed" ${
-												hasPrepayment &&
-												existingPrice.prepayment_type ===
-													"fixed"
-													? "selected"
-													: ""
-											} data-i18n="priceLists.prepaymentTypes.fixed">${i18n.t(
-					"priceLists.prepaymentTypes.fixed"
-				)}</option>
-		                                    <option value="percentage" ${
-												hasPrepayment &&
-												existingPrice.prepayment_type ===
-													"percentage"
-													? "selected"
-													: ""
-											} data-i18n="priceLists.prepaymentTypes.percentage">${i18n.t(
-					"priceLists.prepaymentTypes.percentage"
-				)}</option>
+						"priceLists.fields.prepaymentType"
+					)}</label>
+		                                <select class="form-select form-select-sm" id="service_prepayment_type_${service.service_id
+					}">
+		                                    <option value="fixed" ${hasPrepayment &&
+						existingPrice.prepayment_type ===
+						"fixed"
+						? "selected"
+						: ""
+					} data-i18n="priceLists.prepaymentTypes.fixed">${i18n.t(
+						"priceLists.prepaymentTypes.fixed"
+					)}</option>
+		                                    <option value="percentage" ${hasPrepayment &&
+						existingPrice.prepayment_type ===
+						"percentage"
+						? "selected"
+						: ""
+					} data-i18n="priceLists.prepaymentTypes.percentage">${i18n.t(
+						"priceLists.prepaymentTypes.percentage"
+					)}</option>
 		                                </select>
 		                            </div>
 		                            <div class="col-md-6">
 		                                <label class="form-label small" data-i18n="priceLists.fields.prepaymentAmount">${i18n.t(
-											"priceLists.fields.prepaymentAmount"
-										)}</label>
+						"priceLists.fields.prepaymentAmount"
+					)}</label>
 		                                <input type="number" 
 		                                       class="form-control form-control-sm" 
-		                                       id="service_prepayment_amount_${
-													service.service_id
-												}"
+		                                       id="service_prepayment_amount_${service.service_id
+					}"
 		                                       placeholder="0" 
 		                                       step="0.01" 
 		                                       min="0"
-		                                       value="${
-													hasPrepayment &&
-													existingPrice.prepayment_amount
-														? existingPrice.prepayment_amount
-														: ""
-												}">
+		                                       value="${hasPrepayment &&
+						existingPrice.prepayment_amount
+						? existingPrice.prepayment_amount
+						: ""
+					}">
 		                            </div>
 		                        </div>
 		                    </div>
@@ -457,8 +502,8 @@ class PriceListManager {
             <div class="text-center py-4">
                 <i class="bi bi-inbox" style="font-size: 2rem; color: var(--bs-gray-400);"></i>
                 <p class="mt-2 text-muted" data-i18n="priceLists.messages.noDrugs">${i18n.t(
-					"priceLists.messages.noDrugs"
-				)}</p>
+				"priceLists.messages.noDrugs"
+			)}</p>
             </div>
         `;
 			return;
@@ -486,129 +531,208 @@ class PriceListManager {
 				return `
 		        <div class="card mb-3 ${hasExistingPrice ? "border-primary" : ""}">
 		            <div class="card-body">
-		                ${
-							hasExistingPrice
-								? `
+		                ${hasExistingPrice
+						? `
 		                <div class="badge bg-primary position-absolute top-0 end-0 m-2">
 		                    <i class="bi bi-check-circle"></i> ${i18n.t(
-								"priceLists.status.hasPrice"
-							)}
+							"priceLists.status.hasPrice"
+						)}
 		                </div>
 		                `
-								: ""
-						}
+						: ""
+					}
 		                <div class="row align-items-center">
 		                    <div class="col-md-4">
 		                        <h6 class="mb-1">${this.escapeHtml(
-									shipment.drug_name
-								)}</h6>
+						shipment.drug_name
+					)}</h6>
 		                        <small class="text-muted">
 		                            <span data-i18n="priceLists.fields.warehouse">${i18n.t(
-										"priceLists.fields.warehouse"
-									)}</span>: ${this.escapeHtml(
-					shipment.warehouse_name
-				)}<br>
+						"priceLists.fields.warehouse"
+					)}</span>: ${this.escapeHtml(
+						shipment.warehouse_name
+					)}<br>
 		                            <span data-i18n="priceLists.fields.quantity">${i18n.t(
-										"priceLists.fields.quantity"
-									)}</span>: ${i18n.formatCurrency(
-					shipment.quantity
-				)}<br>
+						"priceLists.fields.quantity"
+					)}</span>: ${i18n.formatCurrency(
+						shipment.quantity
+					)}<br>
 		                            <span data-i18n="priceLists.fields.expiry">${i18n.t(
-										"priceLists.fields.expiry"
-									)}</span>: ${i18n.formatDate(
-					new Date(shipment.expiry_date)
-				)}
+						"priceLists.fields.expiry"
+					)}</span>: ${i18n.formatDate(
+						new Date(shipment.expiry_date)
+					)}
 		                        </small>
 		                    </div>
 		                    <div class="col-md-8">
 		                        <div class="row g-2">
 		                            <div class="col-md-4">
 		                                <label class="form-label small" data-i18n="priceLists.fields.price">${i18n.t(
-											"priceLists.fields.price"
-										)}</label>
+						"priceLists.fields.price"
+					)}</label>
 		                                <input type="number" 
 		                                       class="form-control form-control-sm" 
 		                                       id="drug_price_${shipment.shipment_id}"
 		                                       placeholder="0" 
 		                                       step="0.01" 
 		                                       min="0"
-		                                       value="${
-													hasExistingPrice
-														? existingPrice?.price
-														: ""
-												}">
+		                                       value="${hasExistingPrice
+						? existingPrice?.price
+						: ""
+					}">
 		                            </div>
 		                            <div class="col-md-8">
 		                                <div class="form-check mt-4">
 		                                    <input class="form-check-input" 
 		                                           type="checkbox" 
-		                                           id="drug_prepayment_${
-														shipment.shipment_id
-													}"
+		                                           id="drug_prepayment_${shipment.shipment_id
+					}"
 		                                           ${hasPrepayment ? "checked" : ""}
-		                                           onchange="priceListManager.togglePrepaymentFields('drug', ${
-														shipment.shipment_id
-													})">
-		                                    <label class="form-check-label small" for="drug_prepayment_${
-												shipment.shipment_id
-											}" data-i18n="priceLists.fields.requirePrepayment">
+		                                           onchange="priceListManager.togglePrepaymentFields('drug', ${shipment.shipment_id
+					})">
+		                                    <label class="form-check-label small" for="drug_prepayment_${shipment.shipment_id
+					}" data-i18n="priceLists.fields.requirePrepayment">
 		                                        ${i18n.t(
-													"priceLists.fields.requirePrepayment"
-												)}
+						"priceLists.fields.requirePrepayment"
+					)}
 		                                    </label>
 		                                </div>
 		                            </div>
 		                        </div>
-		                        <div class="row g-2 mt-1 ${
-									hasPrepayment ? "" : "d-none"
-								}" id="drug_prepayment_fields_${
-					shipment.shipment_id
-				}">
+		                        <div class="row g-2 mt-1 ${hasPrepayment ? "" : "d-none"
+					}" id="drug_prepayment_fields_${shipment.shipment_id
+					}">
 		                            <div class="col-md-6">
 		                                <label class="form-label small" data-i18n="priceLists.fields.prepaymentType">${i18n.t(
-											"priceLists.fields.prepaymentType"
-										)}</label>
-		                                <select class="form-select form-select-sm" id="drug_prepayment_type_${
-											shipment.shipment_id
-										}">
-		                                    <option value="fixed" ${
-												hasPrepayment &&
-												existingPrice?.prepayment_type ===
-													"fixed"
-													? "selected"
-													: ""
-											} data-i18n="priceLists.prepaymentTypes.fixed">${i18n.t(
-					"priceLists.prepaymentTypes.fixed"
-				)}</option>
-		                                    <option value="percentage" ${
-												hasPrepayment &&
-												existingPrice?.prepayment_type ===
-													"percentage"
-													? "selected"
-													: ""
-											} data-i18n="priceLists.prepaymentTypes.percentage">${i18n.t(
-					"priceLists.prepaymentTypes.percentage"
-				)}</option>
+						"priceLists.fields.prepaymentType"
+					)}</label>
+		                                <select class="form-select form-select-sm" id="drug_prepayment_type_${shipment.shipment_id
+					}">
+		                                    <option value="fixed" ${hasPrepayment &&
+						existingPrice?.prepayment_type ===
+						"fixed"
+						? "selected"
+						: ""
+					} data-i18n="priceLists.prepaymentTypes.fixed">${i18n.t(
+						"priceLists.prepaymentTypes.fixed"
+					)}</option>
+		                                    <option value="percentage" ${hasPrepayment &&
+						existingPrice?.prepayment_type ===
+						"percentage"
+						? "selected"
+						: ""
+					} data-i18n="priceLists.prepaymentTypes.percentage">${i18n.t(
+						"priceLists.prepaymentTypes.percentage"
+					)}</option>
 		                                </select>
 		                            </div>
 		                            <div class="col-md-6">
 		                                <label class="form-label small" data-i18n="priceLists.fields.prepaymentAmount">${i18n.t(
-											"priceLists.fields.prepaymentAmount"
-										)}</label>
+						"priceLists.fields.prepaymentAmount"
+					)}</label>
 		                                <input type="number" 
 		                                       class="form-control form-control-sm" 
-		                                       id="drug_prepayment_amount_${
-													shipment.shipment_id
-												}"
+		                                       id="drug_prepayment_amount_${shipment.shipment_id
+					}"
 		                                       placeholder="0" 
 		                                       step="0.01" 
 		                                       min="0"
-		                                       value="${
-													hasPrepayment &&
-													existingPrice?.prepayment_amount
-														? existingPrice.prepayment_amount
-														: ""
-												}">
+		                                       value="${hasPrepayment &&
+						existingPrice?.prepayment_amount
+						? existingPrice.prepayment_amount
+						: ""
+					}">
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </div>
+		        </div>
+		    `;
+			})
+			.join("");
+	}
+
+	private renderMedicalSuppliesList(): void {
+		const container = document.getElementById("suppliesListContainer")!;
+
+		if (this.filteredMedicalSupplyShipments.length === 0) {
+			container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-inbox" style="font-size: 2rem; color: var(--bs-gray-400);"></i>
+                <p class="mt-2 text-muted" data-i18n="priceLists.messages.noSupplies">${i18n.t(
+				"priceLists.messages.noSupplies"
+			) || 'No supplies found'}</p>
+            </div>
+        `;
+			return;
+		}
+
+		container.innerHTML = this.filteredMedicalSupplyShipments
+			.map((shipment) => {
+				let existingPrice = undefined;
+				let hasExistingPrice = false;
+
+				if (shipment.prices) {
+					existingPrice = shipment.prices.find(
+						(price) =>
+							price.pricelist_id === this.currentPriceListId
+					);
+					hasExistingPrice = !!(existingPrice && existingPrice.price !== undefined);
+				}
+
+				return `
+		        <div class="card mb-3 ${hasExistingPrice ? "border-primary" : ""}">
+		            <div class="card-body">
+		                ${hasExistingPrice
+						? `
+		                <div class="badge bg-primary position-absolute top-0 end-0 m-2">
+		                    <i class="bi bi-check-circle"></i> ${i18n.t(
+							"priceLists.status.hasPrice"
+						)}
+		                </div>
+		                `
+						: ""
+					}
+		                <div class="row align-items-center">
+		                    <div class="col-md-4">
+		                        <h6 class="mb-1">${this.escapeHtml(
+						shipment.supply_name
+					)}</h6>
+		                        <small class="text-muted">
+		                            <span data-i18n="priceLists.fields.warehouse">${i18n.t(
+						"priceLists.fields.warehouse"
+					)}</span>: ${this.escapeHtml(
+						shipment.warehouse_name
+					)}<br>
+		                            <span data-i18n="priceLists.fields.quantity">${i18n.t(
+						"priceLists.fields.quantity"
+					)}</span>: ${i18n.formatCurrency(
+						shipment.quantity
+					)}<br>
+		                            <span data-i18n="priceLists.fields.expiry">${i18n.t(
+						"priceLists.fields.expiry"
+					)}</span>: ${i18n.formatDate(
+						new Date(shipment.expiry_date)
+					)}
+		                        </small>
+		                    </div>
+		                    <div class="col-md-8">
+		                        <div class="row g-2">
+		                            <div class="col-md-12">
+		                                <label class="form-label small" data-i18n="priceLists.fields.price">${i18n.t(
+						"priceLists.fields.price"
+					)}</label>
+		                                <input type="number" 
+		                                       class="form-control form-control-sm" 
+		                                       id="supply_price_${shipment.shipment_id}"
+		                                       placeholder="0" 
+		                                       step="0.01" 
+		                                       min="0"
+		                                       value="${hasExistingPrice
+						? existingPrice?.price
+						: ""
+					}">
 		                            </div>
 		                        </div>
 		                    </div>
@@ -641,12 +765,17 @@ class PriceListManager {
 
 			const servicePrices: ServicePrice[] = [];
 			const drugPrices: DrugPrice[] = [];
+			const supplyPrices: MedicalSupplyPrice[] = [];
+
 
 			// Collect service prices
 			for (const service of this.services) {
 				const priceInput = document.getElementById(
 					`service_price_${service.service_id}`
 				) as HTMLInputElement;
+
+				if (!priceInput) continue;
+
 				const price = parseFloat(priceInput.value);
 
 				if (priceInput.value && !isNaN(price) && price > 0) {
@@ -681,6 +810,9 @@ class PriceListManager {
 				const priceInput = document.getElementById(
 					`drug_price_${shipment.shipment_id}`
 				) as HTMLInputElement;
+
+				if (!priceInput) continue;
+
 				const price = parseFloat(priceInput.value);
 
 				if (priceInput.value && !isNaN(price) && price > 0) {
@@ -706,6 +838,24 @@ class PriceListManager {
 								prepaymentAmount.value
 							)
 						})
+					});
+				}
+			}
+
+			// Collect supply prices
+			for (const shipment of this.medicalSupplyShipments) {
+				const priceInput = document.getElementById(
+					`supply_price_${shipment.shipment_id}`
+				) as HTMLInputElement;
+
+				if (!priceInput) continue;
+
+				const price = parseFloat(priceInput.value);
+
+				if (priceInput.value && !isNaN(price) && price > 0) {
+					supplyPrices.push({
+						shipment_id: shipment.shipment_id,
+						price
 					});
 				}
 			}
@@ -786,6 +936,36 @@ class PriceListManager {
 				}
 			}
 
+			// Save supply prices
+			for (const supplyPrice of supplyPrices) {
+				const response = await fetch(
+					`/api/pharmacy/medical-supply-shipments/${supplyPrice.shipment_id}`,
+					{
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${localStorage.getItem(
+								"token"
+							)}`
+						},
+						body: JSON.stringify({
+							prices: [
+								{
+									pricelist_id: this.currentPriceListId,
+									price: supplyPrice.price
+								}
+							]
+						})
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error(
+						`Failed to save price for supply shipment ${supplyPrice.shipment_id}`
+					);
+				}
+			}
+
 			this.addPricesModal.hide();
 			await this.loadPriceLists();
 
@@ -795,7 +975,7 @@ class PriceListManager {
 				text: i18n.t("priceLists.messages.pricesAddedSuccess", {
 					services: servicePrices.length,
 					drugs: drugPrices.length
-				}),
+				}) + (supplyPrices.length > 0 ? `, ${supplyPrices.length} Supplies` : ""),
 				toast: true,
 				position: "top-end",
 				showConfirmButton: false,
@@ -823,8 +1003,8 @@ class PriceListManager {
 						<div class="card-body text-center py-5">
 							<i class="bi bi-list-ul" style="font-size: 3rem; color: var(--bs-gray-400);"></i>
 							<p class="mt-3 mb-3 text-muted">${i18n.t(
-								"priceLists.messages.noPriceLists"
-							)}</p>
+				"priceLists.messages.noPriceLists"
+			)}</p>
 							<button type="button" class="btn btn-primary" onclick="priceListManager.showPriceListModal()">
 								<i class="bi bi-plus-circle"></i> ${i18n.t("priceLists.buttons.createFirst")}
 							</button>
@@ -841,80 +1021,80 @@ class PriceListManager {
 					priceList.pricelist_id
 				) || {
 					total_services: 0,
-					total_drugs: 0
+					total_drugs: 0,
+					total_supplies: 0
 				};
 
 				return `
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card price-list-card ${
-						priceList.is_default ? "default" : ""
+                    <div class="card price-list-card ${priceList.is_default ? "default" : ""
 					}">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title">
                                 ${this.escapeHtml(priceList.name)}
-                                ${
-									priceList.is_default
-										? `<span class="default-badge">${i18n.t(
-												"priceLists.status.default"
-										  )}</span>`
-										: ""
-								}
+                                ${priceList.is_default
+						? `<span class="default-badge">${i18n.t(
+							"priceLists.status.default"
+						)}</span>`
+						: ""
+					}
                             </h5>
                             <div class="action-buttons">
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="priceListManager.editPriceList(${
-											priceList.pricelist_id
-										})"
+                                        onclick="priceListManager.editPriceList(${priceList.pricelist_id
+					})"
                                         title="${i18n.t("common.edit")}">
                                     <i class="bi bi-pencil"></i> ${i18n.t(
-										"common.edit"
-									)}
+						"common.edit"
+					)}
                                 </button>
                                 <button class="btn btn-sm btn-outline-info" 
-                                        onclick="priceListManager.showAddPricesModal(${
-											priceList.pricelist_id
-										})"
+                                        onclick="priceListManager.showAddPricesModal(${priceList.pricelist_id
+					})"
                                         title="${i18n.t(
-											"priceLists.buttons.addPrices"
-										)}">
+						"priceLists.buttons.addPrices"
+					)}">
                                     <i class="bi bi-plus-circle"></i> ${i18n.t(
-										"priceLists.buttons.addPrices"
-									)}
+						"priceLists.buttons.addPrices"
+					)}
                                 </button>
-                                ${
-									!priceList.is_default
-										? `
+                                ${!priceList.is_default
+						? `
                                     <button class="btn btn-sm btn-outline-danger" 
-                                            onclick="priceListManager.deletePriceList(${
-												priceList.pricelist_id
-											})"
+                                            onclick="priceListManager.deletePriceList(${priceList.pricelist_id
+						})"
                                             title="${i18n.t("common.delete")}">
                                         <i class="bi bi-trash"></i> ${i18n.t(
-											"common.delete"
-										)}
+							"common.delete"
+						)}
                                     </button>
                                 `
-										: ""
-								}
+						: ""
+					}
                             </div>
                         </div>
                         <div class="card-body">
                             <div class="price-list-stats">
                                 <div class="stat-item">
-                                    <div class="stat-value">${
-										stats.total_services
-									}</div>
+                                    <div class="stat-value">${stats.total_services
+					}</div>
                                     <div class="stat-label">${i18n.t(
-										"priceLists.stats.services"
-									)}</div>
+						"priceLists.stats.services"
+					)}</div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-value">${
-										stats.total_drugs
-									}</div>
+                                    <div class="stat-value">${stats.total_drugs
+					}</div>
                                     <div class="stat-label">${i18n.t(
-										"priceLists.stats.drugs"
-									)}</div>
+						"priceLists.stats.drugs"
+					)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">${stats.total_supplies || 0
+					}</div>
+                                    <div class="stat-label">${i18n.t(
+						"priceLists.stats.supplies"
+					) || "Supplies"}</div>
                                 </div>
                             </div>
                         </div>

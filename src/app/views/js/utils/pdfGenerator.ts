@@ -40,6 +40,7 @@ interface ReportField {
 	label: string;
 	type: "text" | "number" | "currency" | "date" | "boolean";
 	formatter?: (value: any, item?: any) => string;
+	labelFormatter?: (data: any) => string;
 	alignment?: "left" | "center" | "right";
 	bold?: boolean;
 	width?: string | number;
@@ -84,7 +85,9 @@ function groupBillDetails(billDetails: BillDetail[]): BillDetail[] {
 		// Create a unique key for grouping
 		const key = detail.service_id
 			? `service_${detail.service_id}`
-			: `drug_${detail.drug_shipment_id}`;
+			: detail.drug_shipment_id
+				? `drug_${detail.drug_shipment_id}`
+				: `supply_${detail.medical_supply_shipment_id}`;
 
 		if (grouped.has(key)) {
 			// Add to existing group
@@ -296,8 +299,8 @@ function buildTable(section: ReportSection, data: any): any {
 				return rowIndex === 0
 					? "#f0f0f0"
 					: rowIndex % 2 === 0
-					? "#f9f9f9"
-					: null;
+						? "#f9f9f9"
+						: null;
 			}
 		}
 	};
@@ -318,8 +321,10 @@ function buildSummary(section: ReportSection, data: any): any {
 		const value = calculateSummaryValue(field, data);
 		const formattedValue = formatValue(value, field, data); // Pass data as context
 
+		const actualLabel = field.labelFormatter ? field.labelFormatter(data) : field.label;
+
 		return [
-			field.label,
+			actualLabel,
 			field.bold ? { text: formattedValue, bold: true } : formattedValue
 		];
 	});
@@ -371,20 +376,26 @@ function calculateSummaryValue(field: ReportField, data: any): any {
 	switch (field.key) {
 		case "calculated.subtotal":
 			return (
-				data.billDetails?.reduce(
+				(data.billDetails?.reduce(
 					(sum: number, detail: BillDetail) =>
 						sum + detail.quantity * detail.unit_price,
 					0
-				) || 0
+				) || 0) + (data.bill?.medical_tests_amount || 0)
 			);
 		case "calculated.vat_amount":
+			// If VAT amount is explicitly provided in the bill object, use it.
+			// This is important when VAT calculation logic involves complex scoping (e.g. services vs drugs vs supplies)
+			// that is handled by the caller (manager).
+			if (data.bill && typeof data.bill.vat_amount === "number") {
+				return data.bill.vat_amount;
+			}
 			const subtotal = calculateSummaryValue(
 				{ key: "calculated.subtotal" } as ReportField,
 				data
 			);
 			return data.bill?.vat_percentage
 				? (subtotal - (data.bill?.discount || 0)) *
-						(data.bill.vat_percentage / 100)
+				(data.bill.vat_percentage / 100)
 				: 0;
 		case "calculated.balance":
 			return (
@@ -473,11 +484,26 @@ export const reportTemplates = {
 							return (
 								item.service_name ||
 								item.drug_name ||
+								item.medical_supply_name ||
 								item.description ||
 								"Unknown Item"
 							);
 						},
 						width: "*"
+					},
+					{
+						key: "type",
+						label: "Type",
+						type: "text" as const,
+						formatter: (_value: any, item: any) => {
+							if (!item) return "Unknown";
+							if (item.type === "service" || item.service_id) return "Service";
+							if (item.type === "drug" || item.drug_shipment_id) return "Drug";
+							if (item.type === "supply" || item.medical_supply_shipment_id) return "Medical Supply";
+							if (item.type === "test") return "Medical Test";
+							return "Unknown";
+						},
+						width: "auto"
 					},
 					{
 						key: "quantity",
@@ -513,7 +539,7 @@ export const reportTemplates = {
 				],
 				tableConfig: {
 					headerRows: 1,
-					widths: ["*", "auto", "auto", "auto"],
+					widths: ["*", "auto", "auto", "auto", "auto"],
 					groupBy: "billDetails"
 				}
 			},
@@ -529,7 +555,14 @@ export const reportTemplates = {
 						key: "bill.discount",
 						label: "Discount:",
 						type: "currency" as const,
-						condition: "show_discount"
+						condition: "show_discount",
+						labelFormatter: (data: any) => {
+							const scope = data.bill?.discount_scope;
+							if (scope && Array.isArray(scope) && scope.length > 0 && scope.length < 4) {
+								return `Discount (${scope.join(", ")}):`;
+							}
+							return "Discount:";
+						}
 					},
 					{
 						key: "bill.administrative_expenses",
@@ -537,9 +570,22 @@ export const reportTemplates = {
 						type: "currency" as const
 					},
 					{
+						key: "bill.medical_tests_amount",
+						label: "Medical Tests:",
+						type: "currency" as const
+					},
+					{
 						key: "calculated.vat_amount",
 						label: "VAT:",
-						type: "currency" as const
+						type: "currency" as const,
+						labelFormatter: (data: any) => {
+							const pct = data.bill?.vat_percentage || 0;
+							const scope = data.bill?.vat_scope_custom;
+							if (scope && Array.isArray(scope) && scope.length > 0 && scope.length < 4) {
+								return `${pct}% VAT (${scope.join(", ")}):`;
+							}
+							return `${pct}% VAT:`;
+						}
 					},
 					{
 						key: "bill.total_amount",

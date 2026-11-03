@@ -338,7 +338,7 @@
 
           <!-- Services & Drugs Section -->
           <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-6 col-lg-4">
               <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                   <h5 class="mb-0" data-i18n="patients.sections.assignedServices">Assigned Services</h5>
@@ -353,7 +353,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 col-lg-4">
               <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                   <h5 class="mb-0" data-i18n="patients.sections.assignedDrugs">Assigned Drugs</h5>
@@ -364,6 +364,21 @@
                 <div class="card-body">
                   <div class="assigned-list" id="assignedDrugs">
                     <!-- Assigned drugs will be listed here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0" data-i18n="patients.sections.assignedSupplies">Assigned Supplies</h5>
+                  <button class="btn btn-sm btn-outline-primary" id="addSupplyBtn">
+                    <i class="bi bi-plus-circle"></i> <span data-i18n="patients.buttons.addSupply">Add Supply</span>
+                  </button>
+                </div>
+                <div class="card-body">
+                  <div class="assigned-list" id="assignedSupplies">
+                    <!-- Assigned supplies will be listed here -->
                   </div>
                 </div>
               </div>
@@ -393,6 +408,21 @@
                   </div>
                 </div>
                 <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.suppliesTotal">Supplies Total</label>
+                  <div class="input-group">
+                    <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                    <input type="text" class="form-control" id="suppliesTotal" readonly value="0.00">
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.medicalTestsTotal">Medical Tests</label>
+                  <div class="input-group">
+                    <span class="input-group-text" data-i18n="common.currency">EGP</span>
+                    <input type="number" class="form-control" id="medicalTestsAmount" value="0" min="0" step="0.01">
+                  </div>
+                </div>
+                <!-- Second Row -->
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.paidAmount">Paid Amount</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
@@ -411,8 +441,27 @@
                     </div>
                   </div>
                 </div>
-
-                <!-- Second Row -->
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.applyDiscountOn">Apply Discount On:</label>
+                  <div class="btn-group-checkbox d-flex gap-3 flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountServices" value="services" checked>
+                      <label class="form-check-label" for="discountServices" data-i18n="patients.billing.scope.services">Services</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountDrugs" value="drugs" checked>
+                      <label class="form-check-label" for="discountDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountSupplies" value="supplies" checked>
+                      <label class="form-check-label" for="discountSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input discount-scope" type="checkbox" id="discountTests" value="tests" checked>
+                      <label class="form-check-label" for="discountTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                    </div>
+                  </div>
+                </div>
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.discountTotal">Discount Total</label>
                   <div class="input-group">
@@ -420,6 +469,7 @@
                     <input type="text" class="form-control" id="discountTotal" readonly value="0.00">
                   </div>
                 </div>
+                <!-- Third Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.totalAfterDiscount">Total After Discount</label>
                   <div class="input-group">
@@ -428,26 +478,44 @@
                   </div>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label" data-i18n="patients.billing.vatPercentage">VAT %</label>
-                  <input type="number" class="form-control" id="vatPercentage" value="0" min="0" max="100" step="0.1">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label" data-i18n="patients.billing.vatScope">VAT Scope</label>
-                  <select class="form-select" id="vatScope">
-                    <option value="both" data-i18n="patients.billing.vatScopeBoth">Services & Drugs</option>
-                    <option value="services" data-i18n="patients.billing.vatScopeServices">Services Only</option>
-                    <option value="drugs" data-i18n="patients.billing.vatScopeDrugs">Drugs Only</option>
-                  </select>
-                </div>
-
-                <!-- Third Row -->
-                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.adminExpenses">Administrative Expenses</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="number" class="form-control" id="administrativeExpenses" value="0" min="0" step="0.01">
                   </div>
                 </div>
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.vatPercentage">VAT %</label>
+                  <input type="number" class="form-control" id="vatPercentage" value="0" min="0" max="100" step="0.1">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label" data-i18n="patients.billing.applyVatOn">Apply VAT On:</label>
+                  <div class="btn-group-checkbox d-flex gap-3 flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatServices" value="services" checked>
+                      <label class="form-check-label" for="vatServices" data-i18n="patients.billing.scope.services">Services</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatDrugs" value="drugs" checked>
+                      <label class="form-check-label" for="vatDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatSupplies" value="supplies" checked>
+                      <label class="form-check-label" for="vatSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input vat-scope" type="checkbox" id="vatTests" value="tests" checked>
+                      <label class="form-check-label" for="vatTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                    </div>
+                  </div>
+                  <!-- Hidden input for backward compatibility if needed, though we won't use it -->
+                  <select class="form-select d-none" id="vatScope">
+                    <option value="both">Both</option>
+                    <option value="services">Services</option>
+                    <option value="drugs">Drugs</option>
+                  </select>
+                </div>
+                <!-- Fourth Row -->
                 <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.totalFee">Total Fee</label>
                   <div class="input-group">
@@ -469,16 +537,15 @@
                     <input type="text" class="form-control remaining-patient" id="remainingPatient" readonly value="0.00">
                   </div>
                 </div>
-
-                <!-- Payment Row -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label" data-i18n="patients.billing.paymentAmount">Payment Amount</label>
                   <div class="input-group">
                     <span class="input-group-text" data-i18n="common.currency">EGP</span>
                     <input type="number" class="form-control" id="paymentAmount" value="0" step="0.01">
                   </div>
                 </div>
-                <div class="col-md-8 d-flex align-items-end">
+                <!-- Fifth Row -->
+                <div class="col-md-12 d-flex align-items-center justify-content-end">
                   <div class="button-group">
                     <button type="button" class="btn btn-success" id="confirmPaymentBtn">
                       <i class="bi bi-check-circle"></i> <span data-i18n="patients.buttons.confirmPayment">Confirm Payment</span>
@@ -726,6 +793,60 @@
     </div>
   </div>
 
+  <!-- Add Supply Modal -->
+  <div class="modal fade" id="addSupplyModal" tabindex="-1" aria-labelledby="addSupplyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addSupplyModalLabel" data-i18n="patients.modals.addSupply">Add Supply to Patient</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control" id="supplySearch" data-i18n-placeholder="patients.placeholders.searchSupplies" placeholder="Search supplies...">
+              </div>
+            </div>
+          </div>
+          <div class="available-supplies-list" id="availableSuppliesList">
+            <!-- Available supplies will be loaded here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Item Details Modal -->
+  <div class="modal fade" id="viewItemDetailsModal" tabindex="-1" aria-labelledby="viewItemDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewItemDetailsModalLabel">Item Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-striped" id="itemDetailsTable">
+              <thead id="itemDetailsTableHead">
+                <!-- Table headers will be populated dynamically -->
+              </thead>
+              <tbody id="itemDetailsTableBody">
+                <!-- Table rows will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Discharge Patient Modal -->
   <div class="modal fade" id="dischargeModal" tabindex="-1" aria-labelledby="dischargeModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -786,6 +907,9 @@
                   <button type="button" class="btn btn-sm btn-outline-primary" id="addPrintDrugBtn">
                     <i class="bi bi-plus-circle"></i> <span data-i18n="patients.buttons.addDrug">Add Drug</span>
                   </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="addPrintSupplyBtn">
+                    <i class="bi bi-plus-circle"></i> <span data-i18n="patients.buttons.addSupply">Add Supply</span>
+                  </button>
                 </div>
               </div>
 
@@ -834,18 +958,36 @@
                   <div class="row g-2">
                     <div class="col-8" data-i18n="patients.billing.subtotal">Subtotal:</div>
                     <div class="col-4 text-end fw-bold" id="printSubtotal">$0.00</div>
-                    <div class="col-6 d-flex align-items-end">
+                    <div class="col-3 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.servicesTotal">Services Total:</small><br>
                         <span id="printServicesTotal" class="fw-bold">$0.00</span>
                       </div>
                     </div>
-                    <div class="col-6 d-flex align-items-end">
+                    <div class="col-3 d-flex align-items-end">
                       <div class="text-end w-100">
                         <small class="text-muted" data-i18n="patients.billing.drugsTotal">Drugs Total:</small><br>
                         <span id="printDrugsTotal" class="fw-bold">$0.00</span>
                       </div>
                     </div>
+                    <div class="col-3 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted" data-i18n="patients.billing.suppliesTotal">Supplies Total:</small><br>
+                        <span id="printSuppliesTotal" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+                    <div class="col-3 d-flex align-items-end">
+                      <div class="text-end w-100">
+                        <small class="text-muted" data-i18n="patients.billing.medicalTestsTotal">Medical Tests:</small><br>
+                        <span id="printMedicalTestsTotal" class="fw-bold">$0.00</span>
+                      </div>
+                    </div>
+
+                    <div class="col-6">
+                      <label class="form-label mb-1" data-i18n="patients.billing.medicalTestsTotal">Medical Tests Amount:</label>
+                      <input type="number" class="form-control form-control-sm" id="printMedicalTestsAmount" value="0" min="0" step="0.01">
+                    </div>
+                    <div class="col-6"></div>
 
                     <div class="col-6">
                       <div class="form-check mb-2">
@@ -861,6 +1003,27 @@
                           <div class="form-check mb-0">
                             <input class="form-check-input" type="checkbox" id="printDiscountType"> <label class="form-check-label" for="printDiscountType">%</label>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label mb-1" data-i18n="patients.billing.applyDiscountOn">Apply Discount On:</label>
+                      <div class="btn-group-checkbox d-flex gap-2 flex-wrap" style="font-size: 0.875em;">
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountServices" value="services" checked>
+                          <label class="form-check-label" for="printDiscountServices" data-i18n="patients.billing.scope.services">Services</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountDrugs" value="drugs" checked>
+                          <label class="form-check-label" for="printDiscountDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountSupplies" value="supplies" checked>
+                          <label class="form-check-label" for="printDiscountSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-0">
+                          <input class="form-check-input print-discount-scope" type="checkbox" id="printDiscountTests" value="tests" checked>
+                          <label class="form-check-label" for="printDiscountTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
                         </div>
                       </div>
                     </div>
@@ -882,11 +1045,27 @@
                       </div>
                     </div>
                     <div class="col-6">
-                      <label class="form-label mb-1" data-i18n="patients.billing.vatScope">VAT Scope:</label>
-                      <select class="form-select form-select-sm" id="printVatScope">
-                        <option value="both" data-i18n="patients.billing.vatScopeBoth">Services & Drugs</option>
-                        <option value="services" data-i18n="patients.billing.vatScopeServices">Services Only</option>
-                        <option value="drugs" data-i18n="patients.billing.vatScopeDrugs">Drugs Only</option>
+                      <label class="form-label mb-1" data-i18n="patients.billing.applyVatOn">Apply VAT On:</label>
+                      <div class="btn-group-checkbox d-flex gap-2 flex-wrap" style="font-size: 0.875em;">
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatServices" value="services" checked>
+                          <label class="form-check-label" for="printVatServices" data-i18n="patients.billing.scope.services">Services</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatDrugs" value="drugs" checked>
+                          <label class="form-check-label" for="printVatDrugs" data-i18n="patients.billing.scope.drugs">Drugs</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-2">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatSupplies" value="supplies" checked>
+                          <label class="form-check-label" for="printVatSupplies" data-i18n="patients.billing.scope.supplies">Medical Supplies</label>
+                        </div>
+                        <div class="form-check form-check-inline mb-1 me-0">
+                          <input class="form-check-input print-vat-scope" type="checkbox" id="printVatTests" value="tests" checked>
+                          <label class="form-check-label" for="printVatTests" data-i18n="patients.billing.scope.tests">Medical Tests</label>
+                        </div>
+                      </div>
+                      <select class="form-select d-none" id="printVatScope">
+                        <option value="both">Both</option>
                       </select>
                     </div>
 
