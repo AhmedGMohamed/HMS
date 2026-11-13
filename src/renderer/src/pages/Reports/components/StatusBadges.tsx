@@ -143,7 +143,7 @@ export function PayrollPaymentTypeBadge({
 
 const ATTENDANCE_VARIANTS: Record<string, { variant: BadgeVariant; className?: string }> = {
   on_time: { variant: "outline", className: "border-success/40 bg-success-light text-success-dark" },
-  late: { variant: "outline", className: "border-warning/40 bg-warning-light text-warning-dark" },
+  late: { variant: "outline", className: "border-warning/40 bg-warning-light text-warning" },
   early: { variant: "outline", className: "border-info/40 bg-info-light text-info" },
   incomplete: { variant: "outline", className: "border-border-strong bg-surface-muted text-text-tertiary" },
   missing: { variant: "destructive" },

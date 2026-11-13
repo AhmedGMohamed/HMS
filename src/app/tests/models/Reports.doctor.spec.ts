@@ -1,4 +1,4 @@
-// src/app/tests/models/ReportV2.doctor.spec.ts
+// src/app/tests/models/Reports.doctor.spec.ts
 //
 // Phase 6.11.2 — doctor report. Covers the relationship populations
 // (referred / attended / supervised), the deduplicated summary, paging,
@@ -238,12 +238,12 @@ function patientQuery(
 /* Specs                                                               */
 /* ------------------------------------------------------------------ */
 
-describe("Reports v2 — doctor report", () => {
+describe("Reports — doctor report", () => {
 	let fixture: Fixture;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

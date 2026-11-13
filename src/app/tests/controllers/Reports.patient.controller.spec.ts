@@ -1,4 +1,4 @@
-// src/app/tests/controllers/ReportV2.patient.controller.spec.ts
+// src/app/tests/controllers/Reports.patient.controller.spec.ts
 //
 // Phase 6.11.1 — patient report controller. Covers the query contract
 // (snake_case params in, snake_case envelope out), the 400/404/500 paths and
@@ -6,7 +6,7 @@
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import PatientReportModel from "../../models/reports/PatientReport.model.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
 
@@ -53,12 +53,12 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — patient report", () => {
+describe("ReportsController — patient report", () => {
 	let data: TestData;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -68,7 +68,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("returns the list envelope with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -96,7 +96,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("honours payment_type, search and pagination", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({
 				...RANGE,
 				payment_type: "cash",
@@ -118,7 +118,7 @@ describe("ReportV2Controller — patient report", () => {
 		const companyId = data.insuranceCompanies[0].insurance_id;
 
 		const cash = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({
 				...RANGE,
 				payment_type: "cash",
@@ -132,7 +132,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("rejects a missing or malformed date range with 400", async () => {
 		const missing = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ end_date: RANGE.end_date }),
 			asResponse(missing)
 		);
@@ -140,7 +140,7 @@ describe("ReportV2Controller — patient report", () => {
 		expect(lastPayload(missing).error).toContain("start_date");
 
 		const malformed = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ start_date: "30/09/2026", end_date: RANGE.end_date }),
 			asResponse(malformed)
 		);
@@ -148,7 +148,7 @@ describe("ReportV2Controller — patient report", () => {
 		expect(lastPayload(malformed).error).toContain("YYYY-MM-DD");
 
 		const inverted = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ start_date: RANGE.end_date, end_date: RANGE.start_date }),
 			asResponse(inverted)
 		);
@@ -157,7 +157,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("rejects an unsupported page size and sort column with 400", async () => {
 		const pageSize = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ ...RANGE, page_size: "5000" }),
 			asResponse(pageSize)
 		);
@@ -165,7 +165,7 @@ describe("ReportV2Controller — patient report", () => {
 		expect(lastPayload(pageSize).error).toContain("page_size");
 
 		const sort = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ ...RANGE, sort: "national_id" }),
 			asResponse(sort)
 		);
@@ -175,7 +175,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("rejects an unknown payment type with 400", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ ...RANGE, payment_type: "barrier" }),
 			asResponse(res)
 		);
@@ -186,7 +186,7 @@ describe("ReportV2Controller — patient report", () => {
 	it("returns the patient detail envelope", async () => {
 		const patientId = String(data.patients[0].patient_id);
 		const res = makeResponse();
-		await ReportV2Controller.getPatient(
+		await ReportsController.getPatient(
 			makeRequest({ ...RANGE }, { patientId }),
 			asResponse(res)
 		);
@@ -200,7 +200,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("returns 404 for an unknown patient and 400 for a bad id", async () => {
 		const missing = makeResponse();
-		await ReportV2Controller.getPatient(
+		await ReportsController.getPatient(
 			makeRequest({ ...RANGE }, { patientId: "999999" }),
 			asResponse(missing)
 		);
@@ -208,7 +208,7 @@ describe("ReportV2Controller — patient report", () => {
 		expect(lastPayload(missing)).toEqual({ error: "Patient not found" });
 
 		const bad = makeResponse();
-		await ReportV2Controller.getPatient(
+		await ReportsController.getPatient(
 			makeRequest({ ...RANGE }, { patientId: "abc" }),
 			asResponse(bad)
 		);
@@ -217,7 +217,7 @@ describe("ReportV2Controller — patient report", () => {
 
 	it("returns the export envelope without paging keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportPatients(
+		await ReportsController.exportPatients(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -242,7 +242,7 @@ describe("ReportV2Controller — patient report", () => {
 			Promise.reject(new Error("kaboom"))
 		);
 
-		await ReportV2Controller.listPatients(
+		await ReportsController.listPatients(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);

@@ -10,7 +10,7 @@
  *   - the per-tab result cache (`useReportSession`),
  *   - permission gates: `view_reports` for the page (route), `manage_employees`
  *     for the payroll tab, `manage_reports` for exports,
- *   - filter options (`/api/reports/v2/options`).
+ *   - filter options (`/api/reports/options`).
  *
  * Everything below a tab — filters, KPIs, table, detail dialog, exports — is
  * owned by that tab's own component. Subphase 6.11.1 ships the patient tab and

@@ -1,7 +1,7 @@
 // src/app/tests/models/billFinancials.spec.ts
 //
 // Phase 6.11 §3.4: the bill math lives in `calculateBillFinancials` and is
-// used by both `Bill.model.recalculateTotal` and the Reports v2 aggregation.
+// used by both `Bill.model.recalculateTotal` and the Reports aggregation.
 // These are pure unit tests — no database — covering every branch of the
 // legacy algorithm so a refactor cannot silently change bill totals.
 

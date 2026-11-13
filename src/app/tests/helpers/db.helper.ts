@@ -968,7 +968,7 @@ export const dbHelper = {
 			//
 			// Two ordering rules are load-bearing and were learned the hard way:
 			//   - `PatientHistory.bill_id` references `Bill`, so a test that links
-			//     a bill to an admission (every Reports v2 patient spec does)
+			//     a bill to an admission (every Reports patient spec does)
 			//     makes `DELETE FROM Bill` fail unless PatientHistory is cleared
 			//     first. `ActivePatientService`, `DrugUsage` and
 			//     `DoctorPatientHistory` also reference PatientHistory and must go
@@ -1019,14 +1019,14 @@ export const dbHelper = {
 	},
 
 	/**
-	 * Additive schema required by the Reports v2 specs (Phase 6.11).
+	 * Additive schema required by the Reports specs (Phase 6.11).
 	 *
 	 * `HMS_test` may predate the bill scope columns and the report indexes, so
-	 * the v2 suites call this from `beforeAll` instead of relying on
+	 * the Reports suites call this from `beforeAll` instead of relying on
 	 * `initDB()` (which only runs when the database is first created). Every
 	 * statement is idempotent.
 	 */
-	async ensureReportV2Schema(): Promise<void> {
+	async ensureReportsSchema(): Promise<void> {
 		await query(`
 			ALTER TABLE Bill
 				ADD COLUMN IF NOT EXISTS discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',

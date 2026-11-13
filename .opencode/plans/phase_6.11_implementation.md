@@ -1,7 +1,7 @@
 # Phase 6.11 — Reports & Analytics · Implementation Record
 
 **Status:** 6.11.0 complete and verified · **6.11.1 (patient report) complete and verified, including the follow-up that makes both exports carry every admission (§8.5)** · 6.11.2–6.11.7 not started
-**Scope:** Replace the React Reports placeholder with the full six-tab module **and** add a purpose-built `/api/reports/v2/*` backend. The legacy `/reports` HTML page and `/api/reports/*` endpoints remain untouched until Phase 7.
+**Scope:** Replace the React Reports placeholder with the full six-tab module **and** add a purpose-built `/api/reports/*` backend. The legacy `/reports` HTML page and `/api/reports/*` endpoints remain untouched until Phase 7.
 **Companion docs:** `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md` (the approved plan: decisions, defect ledger, per-endpoint contracts, subphase breakdown, "as built" appendix), `react_implementation_plan.md` §6.11 (superseded), `design.md`, `phase_6.10_implementation.md` (report/PDF precedent).
 
 > **If you are picking this phase up later:** read §3 (contracts) and §8 (continue here) first. Everything in §3 is load-bearing — later subphases must not invent parallel conventions.
@@ -10,7 +10,7 @@
 
 ## 1. What 6.11.0 shipped
 
-The goal of the subphase was: a working `/reports` shell with URL state, tabs, filters, permission gates and not-generated states, plus every shared primitive the five remaining tabs need — with `/api/reports/v2/options` live.
+The goal of the subphase was: a working `/reports` shell with URL state, tabs, filters, permission gates and not-generated states, plus every shared primitive the five remaining tabs need — with `/api/reports/options` live.
 
 ### 1.1 Backend (new, additive)
 
@@ -20,12 +20,12 @@ The goal of the subphase was: a working `/reports` shell with URL state, tabs, f
 | `src/app/models/Bill.model.ts` | `recalculateTotal` now fetches config + the three category subtotals in **one** query and delegates to the helper. Passes the **unrounded** total so `DECIMAL(15,2)` remains the rounder (identical behaviour to before). |
 | `src/app/models/reports/shared.ts` | Validation + SQL-safety helpers (details in §3.2). |
 | `src/app/models/reports/OptionsReport.model.ts` | All five picker lists; payroll list skipped entirely without `manage_employees`. |
-| `src/app/controllers/ReportV2.controller.ts` | `getOptions`, `sendError`, `NotFoundError`, `userHasPermission`, `userHasAllPermissions`. |
-| `src/app/routes/reportV2.routes.ts` | Mounted at `/api/reports/v2` **before** the legacy `/api/reports` router in `api.routes.ts`. |
-| `src/app/utils/types/reportV2.d.ts` | Wire contracts for all six reports (options + patient + doctor + nurse + statistics + payroll + clock-in). Later subphases consume these types; only `*-options` are implemented so far. |
-| `src/app/models/database/migrations/003_report_v2_indexes.sql` | Additive indexes, mirrored in `setUpDatabase.ts`: `EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false`, `EmployeeClockIn(employee_id, clock_in)`, partial `pay_deduction > 0`, `Employee(need_clock_in, is_active)`. |
+| `src/app/controllers/Reports.controller.ts` | `getOptions`, `sendError`, `NotFoundError`, `userHasPermission`, `userHasAllPermissions`. |
+| `src/app/routes/reports.routes.ts` | Mounted at `/api/reports` **before** the legacy `/api/reports` router in `api.routes.ts`. |
+| `src/app/utils/types/reports.d.ts` | Wire contracts for all six reports (options + patient + doctor + nurse + statistics + payroll + clock-in). Later subphases consume these types; only `*-options` are implemented so far. |
+| `src/app/models/database/migrations/003_reports_indexes.sql` | Additive indexes, mirrored in `setUpDatabase.ts`: `EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false`, `EmployeeClockIn(employee_id, clock_in)`, partial `pay_deduction > 0`, `Employee(need_clock_in, is_active)`. |
 
-Tests: `billFinancials.spec.ts` (21 pure cases), `ReportV2.options.spec.ts` (options + `Bill.model` parity), `ReportV2.controller.spec.ts` (envelope, payroll filtering, admin bypass, 500 path, permission helpers).
+Tests: `billFinancials.spec.ts` (21 pure cases), `Reports.options.spec.ts` (options + `Bill.model` parity), `Reports.controller.spec.ts` (envelope, payroll filtering, admin bypass, 500 path, permission helpers).
 
 ### 1.2 Frontend
 
@@ -107,7 +107,7 @@ Bootstrap change: `createDBIfNotExists` now calls the **application's** `initDB`
 
 New helper for existing test databases:
 ```ts
-await dbHelper.ensureReportV2Schema(); // beforeAll in every Reports v2 spec
+await dbHelper.ensureReportsSchema(); // beforeAll in every Reports spec
 ```
 It idempotently adds `Bill.discount_scope` / `Bill.vat_scope_custom` and the four report indexes. `HMS_test` may predate them.
 
@@ -119,7 +119,7 @@ A fresh install could not build its schema either — both fixed:
 - `get_default_pricelist_id()` was declared before `PriceList`. An SQL-language function body is validated at creation time, so this failed with `relation "pricelist" does not exist`. Moved after the table.
 - `ActivePatientService` referenced `PatientHistory` before it existed. Moved after `PatientHistory`.
 - `Bill` now declares `discount_scope` / `vat_scope_custom` as an idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (the columns previously only existed in `migrations/add_bill_scope_columns.sql`, so a fresh install's `recalculateTotal` would have failed).
-- Report v2 indexes added to the index block.
+- Reports indexes added to the index block.
 
 ### 2.3 Rebuilding `HMS_test` from scratch
 
@@ -144,9 +144,9 @@ npx tsc --project ./src/app/tsconfig.json
 - **Money:** every `NUMERIC` is coerced to a finite `number` server-side (`toMoneyNumber`). Never let a string reach the client.
 - **Envelopes:**
   - list: `{ summary, data, total, page, page_size }`
-  - detail: `{ summary, data, … }` (per-report shape in `reportV2.d.ts`)
+  - detail: `{ summary, data, … }` (per-report shape in `reports.d.ts`)
   - export: `{ generated_at, range: { start_date, end_date }, summary, data }`
-- **Errors:** `400 { error }` (validation), `403 { error: "Insufficient permissions" }`, `404`, `500`. Use `sendError(res, error, context)` from `ReportV2.controller.ts` — it maps `ReportValidationError`→400, `NotFoundError`→404, logs and returns a generic 500.
+- **Errors:** `400 { error }` (validation), `403 { error: "Insufficient permissions" }`, `404`, `500`. Use `sendError(res, error, context)` from `Reports.controller.ts` — it maps `ReportValidationError`→400, `NotFoundError`→404, logs and returns a generic 500.
 
 ### 3.2 Validation & SQL safety (`models/reports/shared.ts`)
 
@@ -176,7 +176,7 @@ Never `BETWEEN` on a timestamp — that is the legacy end-day bug. Pure `DATE` c
 | Surface | Requirement |
 |---|---|
 | Page `/reports` | `view_reports` (route already) |
-| All v2 read routes | `view_reports` |
+| All reports read routes | `view_reports` |
 | Patient/doctor/nurse/statistics/clock-in exports | + `manage_reports` |
 | Payroll tab + all payroll routes | + `manage_employees` (server `checkPermissions([...])`) |
 | Payroll export | `view_reports` + `manage_employees` + `manage_reports` |
@@ -232,13 +232,13 @@ For PDFs: render the chart again inside `ChartSnapshotSurface` with `locale="en-
 | App types | `npx tsc --project ./src/app/tsconfig.json --noEmit` | No errors in touched files |
 | Renderer types | `npx tsc --project src/renderer/tsconfig.json --noEmit` | No errors in touched files |
 | Lint | `npx eslint <changed files>` | Clean |
-| Backend specs | `npx tsc -p ./src/app/tsconfig.json` then `npx jasmine --filter="Reports v2"` / `"ReportV2Controller"` | 9/9 and 7/7 |
+| Backend specs | `npx tsc -p ./src/app/tsconfig.json` then `npx jasmine --filter="Reports"` / `"ReportsController"` | 9/9 and 7/7 |
 | Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | 26/26 (13 new) |
 | Full backend suite | `npm test` | 415 specs, **33 failures — all pre-existing** (§6) |
 | Bundle | `npm run build:renderer` | OK, `ReportsPage` chunk emitted |
 | i18n | `node src/renderer/scripts/check-i18n.mjs` | No missing `reports.*`; EN/AR 332 = 332 |
 
-Live check (Express + Vite + Playwright, Admin JWT cookie): EN and AR/RTL render; tab click writes `?tab=statistics&from=…&to=…&group=day&dist=payment`; Generate appends `run=1`; changing the date leaves the generated range in the URL and shows the stale banner; `GET /api/reports/v2/options` → 200 (admin: payroll populated; `view_reports`-only: `payroll_employees: []`); legacy `/api/reports/patients` still → 200.
+Live check (Express + Vite + Playwright, Admin JWT cookie): EN and AR/RTL render; tab click writes `?tab=statistics&from=…&to=…&group=day&dist=payment`; Generate appends `run=1`; changing the date leaves the generated range in the URL and shows the stale banner; `GET /api/reports/options` → 200 (admin: payroll populated; `view_reports`-only: `payroll_employees: []`); legacy `/api/reports/patients` still → 200.
 
 Two UI defects found and fixed in that pass: the shadcn `TabsTrigger` styles `data-active` while Radix emits `data-state="active"` (active tab was invisible — fixed locally on the Reports strip), and the two dates inside the range button were bidi-reordered in Arabic (now isolated `dir="ltr"` runs).
 
@@ -250,7 +250,7 @@ Two UI defects found and fixed in that pass: the shadcn `TabsTrigger` styles `da
 |---|---|---|
 | Response keys snake_case | Confirmed snake_case (first pass mistakenly returned camelCase) | Consistency with every other endpoint; `lib/api` converts once |
 | `TAB_META` / descriptors inside the page module | Moved to `state/tabMeta.ts` | `react-refresh` only tolerates component exports |
-| `ReportOptionsDTO` declared in the model | Imported from `reportV2.d.ts` | One contract, no drift |
+| `ReportOptionsDTO` declared in the model | Imported from `reports.d.ts` | One contract, no drift |
 | `useReportOptions` set `loading` inside the effect | State object updated only from promise callbacks; `reload()` sets it in an event handler | `react-hooks/set-state-in-effect` lint rule |
 | `lib/csv.ts` promoted "and update Vault/Insurance imports" | Originals converted to re-export shims | Zero churn, both paths work |
 | Test bootstrap left alone | `db.helper` now delegates to the app's `initDB` | The local copy could never run |
@@ -314,17 +314,17 @@ For a payroll-gated check you need a user whose **server** permissions are `view
 
 ### 8.1 What shipped
 
-**Backend (all additive, under `/api/reports/v2`):**
+**Backend (all additive, under `/api/reports`):**
 
 | File | Role |
 |---|---|
 | `src/app/utils/nationalId.ts` | Egyptian national-ID parsing: `parseNationalId` → `{ birthDate, gender, valid }`; age derived from the **report end date**, not `today`, so historical reports stay stable. |
 | `src/app/models/reports/PatientReport.model.ts` | `listPatients` (admissions CTE → per-patient aggregate → filters → whitelisted sort → `LIMIT/OFFSET` + a separate summary query), `getPatientDetail` (**3** queries: patient+admissions, all `BillDetail` rows for those bills, `DailyStaffAssignment` in range), `exportPatients` (**5** queries, see §8.5 — every row carries all of its admissions). |
-| `src/app/controllers/ReportV2.controller.ts` | `listPatients`, `getPatient`, `exportPatients`; exports wrapped in `checkPermissions(["view_reports","manage_reports"])`. |
-| `src/app/routes/reportV2.routes.ts` | Order matters: `/patients/export` → `/patients/:patientId` → `/patients`. |
-| `src/app/utils/types/reportV2.d.ts` | `PatientReportListResponse`, `PatientReportRow`, `PatientReportDetail`, `PatientReportAdmission`, item/staff DTOs. |
+| `src/app/controllers/Reports.controller.ts` | `listPatients`, `getPatient`, `exportPatients`; exports wrapped in `checkPermissions(["view_reports","manage_reports"])`. |
+| `src/app/routes/reports.routes.ts` | Order matters: `/patients/export` → `/patients/:patientId` → `/patients`. |
+| `src/app/utils/types/reports.d.ts` | `PatientReportListResponse`, `PatientReportRow`, `PatientReportDetail`, `PatientReportAdmission`, item/staff DTOs. |
 
-Specs: `ReportV2.patient.spec.ts` (**27/27**) and `ReportV2.patient.controller.spec.ts` (**10/10**).
+Specs: `Reports.patient.spec.ts` (**27/27**) and `Reports.patient.controller.spec.ts` (**10/10**).
 
 **Frontend:**
 
@@ -381,14 +381,14 @@ i18n: **31 keys added to each locale** (36 top-level `reports` groups): `reports
 | Gate | Command | Result |
 |---|---|---|
 | Backend model specs | `npx tsc -p ./src/app/tsconfig.json` → `$env:NODE_ENV="test"; npx jasmine --filter="Patient report"` | 27/27 |
-| Backend controller specs | same, `--filter="ReportV2PatientController"` | 10/10 |
+| Backend controller specs | same, `--filter="ReportsController — patient report"` | 10/10 |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | 5 errors, all pre-existing in `pages/Employees` (§6); none in Reports/lib |
 | Lint | `npx eslint src/renderer/src/pages/Reports` | Clean |
 | Renderer unit | `npm run test:renderer` | 26/26 |
 | Bundle | `npm run build:renderer` | OK |
 | i18n | key-diff script against `reports.{en,ar}.json` | `reports.*` missing = 0 in both |
 
-Live Playwright pass (Admin JWT, Express :3000 + Vite :5173), EN and AR/RTL: not-generated state → generate → KPI/meta → sort asc→desc (server round trip) → search + Generate (URL write) → row click → detail dialog (identity, Admission 1, print buttons) → CSV download `patient-report_2026-01-01_2026-10-27.csv` (correct headers/rows) → stale banner → Arabic list + dialog with `dir=rtl`. **Zero console errors**; every `/api/reports/v2/*` call 200 with snake_case params; no per-row queries.
+Live Playwright pass (Admin JWT, Express :3000 + Vite :5173), EN and AR/RTL: not-generated state → generate → KPI/meta → sort asc→desc (server round trip) → search + Generate (URL write) → row click → detail dialog (identity, Admission 1, print buttons) → CSV download `patient-report_2026-01-01_2026-10-27.csv` (correct headers/rows) → stale banner → Arabic list + dialog with `dir=rtl`. **Zero console errors**; every `/api/reports/*` call 200 with snake_case params; no per-row queries.
 
 **Two defects found in the visual pass, fixed:**
 
@@ -525,7 +525,7 @@ document to 1 block and removes the break.
 
 Plan §3.5.4 (contract), §3.4 "Nurse queries" (SQL), §5.3 (UX), §6.11.3 (gates).
 
-1. **Backend** — `models/reports/NurseReport.model.ts` (+ `utils/types/reportV2.d.ts` DTOs, controller, routes with `/nurses/export` → `/nurses/:nurseId` → `/nurses`):
+1. **Backend** — `models/reports/NurseReport.model.ts` (+ `utils/types/reports.d.ts` DTOs, controller, routes with `/nurses/export` → `/nurses/:nurseId` → `/nurses`):
    - list: `Employee e WHERE employee_type='nurse' AND EXISTS (in-range DSA)`; aggregate
      `COUNT(DISTINCT dsa.patient_id)`, `COUNT(DISTINCT dsa.work_date)`, `SUM(dsa.hours_worked)`,
      `MAX(dsa.work_date)`; sort `name|patients|days|hours`; pagination.
@@ -553,19 +553,19 @@ Plan §3.5.4 (contract), §3.4 "Nurse queries" (SQL), §5.3 (UX), §6.11.3 (gate
 
 ### 9.1 What shipped
 
-**Backend (additive, under `/api/reports/v2/doctors`):**
+**Backend (additive, under `/api/reports/doctors`):**
 
 | File | Role |
 |---|---|
 | `src/app/models/reports/DoctorReport.model.ts` | `buildPairsCte(relationship)` builds **one row per (doctor, patient, admission)** — that is what keeps every aggregate a plain `COUNT`/`SUM` with no fan-out. `FILTERED_CTE` applies range/doctor/search, `DOCTOR_AGG_CTE` rolls up per doctor. `listDoctors` = rows + summary (2 queries); `getDoctorDetail` = header + patient page + summary; `exportDoctors` = rows + summary (+ `getPairRefs` when `include_admissions`), then reuses `PatientReportModel.getPatientsByDoctor`'s admission/item/staff shapes. |
-| `src/app/controllers/ReportV2.controller.ts` | `listDoctors`, `getDoctor`, `exportDoctors`, `parseDoctorFilters`. |
-| `src/app/routes/reportV2.routes.ts` | `GET /doctors/export` → `/doctors/:doctorId` → `/doctors` (order matters). |
-| `src/app/utils/types/reportV2.d.ts` | `DoctorReportSummary`, `DoctorReportRow`, `DoctorPatientRow`, `DoctorReportListResponse`, `DoctorReportDetailDTO`, `DoctorExportRow`, `DoctorReportExportPayload`. |
+| `src/app/controllers/Reports.controller.ts` | `listDoctors`, `getDoctor`, `exportDoctors`, `parseDoctorFilters`. |
+| `src/app/routes/reports.routes.ts` | `GET /doctors/export` → `/doctors/:doctorId` → `/doctors` (order matters). |
+| `src/app/utils/types/reports.d.ts` | `DoctorReportSummary`, `DoctorReportRow`, `DoctorPatientRow`, `DoctorReportListResponse`, `DoctorReportDetailDTO`, `DoctorExportRow`, `DoctorReportExportPayload`. |
 
 Sort maps: `DOCTOR_SORT_COLUMNS` (`name|patients|admissions|billed|paid`, default `name`) and
 `DOCTOR_PATIENT_SORT_COLUMNS` (`name|admissions|billed|paid|last_admission`).
 
-Specs: `ReportV2.doctor.spec.ts` (**29/29**) and `ReportV2.doctor.controller.spec.ts` (**12/12**);
+Specs: `Reports.doctor.spec.ts` (**29/29**) and `Reports.doctor.controller.spec.ts` (**12/12**);
 `clearDoctorPatientHistory()` added to `tests/helpers/db.helper.ts` so the relationship fixtures
 stay independent.
 
@@ -646,7 +646,7 @@ pages/Reports/
 | Gate | Command | Result |
 |---|---|---|
 | Backend model specs | `npx tsc -p ./src/app/tsconfig.json` → `$env:NODE_ENV="test"; npx jasmine --filter="doctor report"` | 29/29 |
-| Backend controller specs | same, `--filter="ReportV2DoctorController"` | 12/12 |
+| Backend controller specs | same, `--filter="ReportsController — doctor report"` | 12/12 |
 | API smoke (live server) | `doctor-api-smoke.cjs` over all three relationships | list/detail/export all 200; `supervised` + referring id → **400**; end-before-start → **400** |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | 5 errors, all pre-existing `pages/Employees` (§6) |
 | Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/src/lib/pdf src/renderer/src/components/common/DataTable.tsx` | Clean |
@@ -688,19 +688,19 @@ Live Playwright pass (**29/29**, Admin JWT, Express :3000 + Vite :5173), EN and 
 
 ### 10.1 What shipped
 
-**Backend (additive, under `/api/reports/v2/nurses`):**
+**Backend (additive, under `/api/reports/nurses`):**
 
 | File | Role |
 |---|---|
 | `src/app/models/reports/NurseReport.model.ts` | `PAIRS_CTE` builds **one row per (nurse, patient, work_date)** straight from `DailyStaffAssignment` — its unique constraint means every aggregate is a plain `COUNT`/`SUM`, with no fan-out to dedupe. The range filters on `work_date`, so a 3-day stay inside a 1-day window counts only the days that fall inside it. Diagnosis comes from a `LATERAL` latest admission **overlapping** the range (not merely started inside it). `listNurses` = rows + summary (2 queries); `getNurseDetail` = header+summary (1 statement) + patient page + whole accordion; `exportNurses` = rows + summary, then every nurse's patients and days in two batched queries (**4 total**). |
-| `src/app/controllers/ReportV2.controller.ts` | `listNurses`, `getNurse`, `exportNurses`, `parseNurseFilters`. |
-| `src/app/routes/reportV2.routes.ts` | `GET /nurses/export` → `/nurses/:nurseId` → `/nurses` (order matters). |
-| `src/app/utils/types/reportV2.d.ts` | `NurseReportSummary`, `NurseReportRow`, `NursePatientRow`, `NurseDailyAssignment`, `NurseReportListResponse`, `NurseReportDetailDTO`, `NurseExportRow`, `NurseReportExportPayload`. |
+| `src/app/controllers/Reports.controller.ts` | `listNurses`, `getNurse`, `exportNurses`, `parseNurseFilters`. |
+| `src/app/routes/reports.routes.ts` | `GET /nurses/export` → `/nurses/:nurseId` → `/nurses` (order matters). |
+| `src/app/utils/types/reports.d.ts` | `NurseReportSummary`, `NurseReportRow`, `NursePatientRow`, `NurseDailyAssignment`, `NurseReportListResponse`, `NurseReportDetailDTO`, `NurseExportRow`, `NurseReportExportPayload`. |
 
 Sort maps: `NURSE_SORT_COLUMNS` (`name|patients|days|hours|last_work`, default `name`) and
 `NURSE_PATIENT_SORT_COLUMNS` (`name|days|hours|last_admission`).
 
-Specs: `ReportV2.nurse.spec.ts` (**19/19**) and `ReportV2.nurse.controller.spec.ts` (**9/9**).
+Specs: `Reports.nurse.spec.ts` (**19/19**) and `Reports.nurse.controller.spec.ts` (**9/9**).
 
 **Frontend:**
 
@@ -833,20 +833,20 @@ carry forward: exports are English-only, and every export row's per-group block 
 
 ### 11.1 What shipped
 
-**Backend (additive, under `/api/reports/v2/statistics`):**
+**Backend (additive, under `/api/reports/statistics`):**
 
 | File | Role |
 |---|---|
 | `src/app/models/reports/StatisticsReport.model.ts` | `getStatistics` runs **seven independent statements in parallel** (`Promise.all`), so latency is one round trip rather than seven sequential ones: (1) KPIs as scalar subqueries, (2) census/admissions/discharges/average stay per bucket, (3) revenue per bucket, (4) the 2-D distribution, (5) top services, (6) top drugs, (7) staff utilisation. `exportStatistics` calls `getStatistics` and adds `generated_at` — there is deliberately no second implementation. |
-| `src/app/controllers/ReportV2.controller.ts` | `getStatistics`, `exportStatistics`, `parseStatisticsFilters`, `parseStatisticsGrouping` (default `day`). |
-| `src/app/routes/reportV2.routes.ts` | `GET /statistics/export` → `/statistics`. No id segment, so ordering is only about the static `export` suffix. |
-| `src/app/utils/types/reportV2.d.ts` | `StatisticsReportDTO` (already declared in 6.11.0) plus the new `StatisticsReportExportPayload`. |
+| `src/app/controllers/Reports.controller.ts` | `getStatistics`, `exportStatistics`, `parseStatisticsFilters`, `parseStatisticsGrouping` (default `day`). |
+| `src/app/routes/reports.routes.ts` | `GET /statistics/export` → `/statistics`. No id segment, so ordering is only about the static `export` suffix. |
+| `src/app/utils/types/reports.d.ts` | `StatisticsReportDTO` (already declared in 6.11.0) plus the new `StatisticsReportExportPayload`. |
 
 `generate_series` produces the buckets (`bucketPlan` truncates the bounds for month/year), so a
 quiet period is a zero row instead of a gap. Census and admissions are separate subqueries of the
 same bucket row, which is what stops the legacy "Admission Trends is actually a census" defect.
 
-Specs: `ReportV2.statistics.spec.ts` (**22**) and `ReportV2.statistics.controller.spec.ts` (**5**).
+Specs: `Reports.statistics.spec.ts` (**22**) and `Reports.statistics.controller.spec.ts` (**5**).
 
 **Frontend:**
 
@@ -1017,16 +1017,16 @@ pages its own sub-table**. Reuse `GroupByField`, the payroll timeline from the p
 
 ### 12.1 What shipped
 
-**Backend** (all additive under `/api/reports/v2`; legacy `/api/reports/*` untouched):
+**Backend** (all additive under `/api/reports`; legacy `/api/reports/*` untouched):
 
 ```
 src/app/models/reports/shared.ts                    # + clockStatusFor / ClockStatus / CLOCK_GRACE_MINUTES
 src/app/models/reports/EmployeePaymentReport.model.ts
-src/app/controllers/ReportV2.controller.ts          # + 4 handlers + payroll parsers
-src/app/routes/reportV2.routes.ts                   # + 4 routes, PAYROLL_READ pair
-src/app/utils/types/reportV2.d.ts                   # + payroll DTOs
+src/app/controllers/Reports.controller.ts          # + 4 handlers + payroll parsers
+src/app/routes/reports.routes.ts                   # + 4 routes, PAYROLL_READ pair
+src/app/utils/types/reports.d.ts                   # + payroll DTOs
 src/app/tests/models/EmployeePaymentReport.spec.ts  # 34 specs
-src/app/tests/controllers/ReportV2.controller.spec.ts  # + 13 specs
+src/app/tests/controllers/Reports.controller.spec.ts  # + 13 specs
 ```
 
 | Route | Permission pair | Statements |
@@ -1115,7 +1115,7 @@ explained.
 | Gate | Command | Result |
 |---|---|---|
 | Backend specs (payroll) | `$env:NODE_ENV="test"; npx jasmine --filter="employee payments"` | **47/47** (34 model + 13 controller), exit 0 |
-| Backend specs (all v2) | `--filter="Reports v2"` / `--filter="ReportV2Controller"` | **143/143** / **56/56** |
+| Backend specs (all reports) | `--filter="Reports"` / `--filter="ReportsController"` | **143/143** / **56/56** |
 | API smoke (live) | `payroll-probe.cjs` | 200; `997 employees / 1,001 payments / base 49,850 / extra 50 / deductions 52 / paid 10 / unpaid 49,890 / net 49,848`; 132 month buckets |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
 | Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/test/employeePaymentReportExport.spec.ts` | Clean |
@@ -1169,7 +1169,7 @@ path like `payroll-timeline` / `payroll-type`.
 
 ### 13.1 What shipped
 
-**Backend** (`/api/reports/v2/clock-ins*`, additive; the legacy `/api/reports/employees/clock-ins*`
+**Backend** (`/api/reports/clock-ins*`, additive; the legacy `/api/reports/employees/clock-ins*`
 routes and the `/reports` HTML page are untouched until Phase 7):
 
 | Route | Permission | Queries |
@@ -1182,9 +1182,9 @@ routes and the `/reports` HTML page are untouched until Phase 7):
   clock-in **or** has an assignment in range, and `hire_date <= range end`), `CLOCK_IN_SORT_KEYS`,
   `parseClockInSort`, `clockStatusFor` reuse, `eligibleDaysFor`, `buildRecords`, `summariseRows`,
   `buildCharts` (hours capped at 12 bars).
-- `ReportV2Controller.listClockIns` / `getClockInEmployee` / `exportClockIns` +
+- `ReportsController.listClockIns` / `getClockInEmployee` / `exportClockIns` +
   `parseClockInFilters` / `parseClockInStatus` / `parseClockInSort`.
-- DTOs in `src/app/utils/types/reportV2.d.ts`.
+- DTOs in `src/app/utils/types/reports.d.ts`.
 
 **Frontend** (`pages/Reports/`):
 
@@ -1204,7 +1204,7 @@ routes and the `/reports` HTML page are untouched until Phase 7):
 (EN + AR). `reports.enums.shiftType` has exactly two keys because the `shift_type` enum has exactly
 two values.
 
-**Tests** — `ReportV2.clockIn.spec.ts` (25), `ReportV2.clockIn.controller.spec.ts` (13),
+**Tests** — `Reports.clockIn.spec.ts` (25), `Reports.clockIn.controller.spec.ts` (13),
 `src/renderer/test/clockInReportExport.spec.ts` (16).
 
 ### 13.2 Contracts that 6.11.6 added (continues 12.2)
@@ -1235,7 +1235,7 @@ two values.
 | Gate | Command | Result |
 |---|---|---|
 | Backend specs (clock-in) | `$env:NODE_ENV="test"; npx jasmine --filter="clock-ins"` | **38/38** (25 model + 13 controller) |
-| Backend specs (all v2) | `--filter="Reports v2"` / `--filter="ReportV2Controller"` | **168/168** / **69/69** |
+| Backend specs (all reports) | `--filter="Reports"` / `--filter="ReportsController"` | **168/168** / **69/69** |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
 | Lint | `npx eslint src/renderer/src/pages/Reports src/renderer/test/clockInReportExport.spec.ts` | Clean |
 | Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **86/86** (8 files; 16 in `clockInReportExport.spec.ts`) |
@@ -1310,14 +1310,14 @@ Live Playwright pass (**62/62**, Admin JWT, Express :3000 + Vite :5173, EN + AR)
 | Shared report shell (+ large-export strip) | `pages/Reports/components/ReportShell.tsx` |
 | Keyboard row activation (contract 63) | `src/renderer/src/components/common/DataTable.tsx` |
 | Dialog `aria-modal` + focus restore (contract 64) | `src/renderer/src/components/ui/dialog.tsx` |
-| Large-export threshold + server log (contract 65) | `ReportShell.tsx` (`EXPORT_ROW_WARNING_THRESHOLD`) + `controllers/reportV2.controller.ts` (`warnIfLargeExport`, `countStatisticsExportRows`) |
+| Large-export threshold + server log (contract 65) | `ReportShell.tsx` (`EXPORT_ROW_WARNING_THRESHOLD`) + `controllers/Reports.controller.ts` (`warnIfLargeExport`, `countStatisticsExportRows`) |
 | Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
 | Chart animation switch (contract 49) | `src/renderer/src/components/charts/chartAnimation.ts` + `ChartSnapshotSurface.tsx` |
 | Chart bitmap capture (geometry wait) | `src/renderer/src/lib/chartSnapshot.ts` |
 | URL + draft state (incl. `dist` view param) | `pages/Reports/state/useReportUrlState.ts`, `state/reportParams.ts` |
 | Route permission | `src/renderer/src/lib/routes.ts` (`view_reports`) |
 | Sidebar entry | `src/renderer/src/lib/navigation.ts` |
-| API mount | `src/app/routes/api.routes.ts` → `/reports/v2` before `/reports` |
+| API mount | `src/app/routes/api.routes.ts` → `reportsRoutes` at `/reports` **before** the legacy `reportRoutes` at `/reports` (five shared paths resolve to the new router, §16) |
 | Legacy (untouched until Phase 7) | `src/app/views/reports/*`, `src/app/models/Report.model.ts`, `src/app/controllers/Report.controller.ts`, `src/app/routes/report.routes.ts` |
 | Plan | `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md` |
 | This record | `.opencode/plans/phase_6.11_implementation.md` |
@@ -1377,7 +1377,7 @@ UI warning; neither existed.
   per **session**), and the sum of all seven series for statistics (it has no
   total).
 - Server: `warnIfLargeExport(label, rowCount)` + `countStatisticsExportRows` in
-  `reportV2.controller.ts`, called from all six `export*` handlers. It logs; it
+  `reports.controller.ts`, called from all six `export*` handlers. It logs; it
   never truncates. Contract 65.
 - i18n: `reports.state.largeExport` in both locales.
 
@@ -1385,7 +1385,7 @@ UI warning; neither existed.
 built" block with the real endpoint list and the deviations from the original
 sketch. Phase 7 checklist is in §15.5 below — **not executed**.
 
-### 15.2 Contracts that 6.11.7 added (continues 13.2)
+### 15.2 Contracts that 6.11.7 added (continues 13.2; 67–68 added by §16)
 
 | # | Contract |
 |---|---|
@@ -1393,6 +1393,8 @@ sketch. Phase 7 checklist is in §15.5 below — **not executed**.
 | 64 | **A dialog with no trigger must restore focus itself.** Radix restores focus to a `DialogTrigger`; every Reports dialog is opened by a row or a button inside one, so `DialogContent` captures `document.activeElement` on open and restores it on close, and sets `aria-modal`. A consumer's `onCloseAutoFocus` that calls `preventDefault` still wins. |
 | 65 | **Exports are uncapped, so the warning is a threshold, not a limit.** `> 5000` (not `>=`), shared by the client strip and the server log. The count is *rows the document lays out*: sessions for clock-in, the series sum for statistics, the entity count elsewhere. Truncating would silently change a legal document. |
 | 66 | **`labelKey` holds a full key.** The i18n checker's static-key regex reads `labelKey: "…"` as a complete key, so a bare suffix (`allReferring`) is reported missing while its real key is reported unused. Option arrays must carry `reports.<tab>.types.<suffix>` and call `t(option.labelKey)`. |
+| 67 | **The reports router is mounted before the legacy one.** Both live at `/api/reports`; the five shared paths (`/patients`, `/patients/formatted`, `/doctors/referred`, `/doctors/attended`, `/nurses/attended`) resolve to the new controller. Reordering the mounts silently hands them back to the legacy controller, whose payload shapes the React code cannot read. |
+| 68 | **A class name must exist in `@theme`.** `text-warning-dark` was never defined (only `--color-warning` and `--color-warning-light`), so three "warning" cells rendered with no colour at all. Semantic text on a `*-light` surface uses the base token (`text-warning`, design.md §4.1.3); Tailwind emits nothing for an unknown token, and no test catches it. |
 
 ### 15.3 Performance (dev dataset)
 
@@ -1431,9 +1433,9 @@ Bundle split (`npm run build:renderer`):
 
 | Gate | Command | Result |
 |---|---|---|
-| Backend specs (all v2) | `$env:NODE_ENV="test"; npx jasmine --filter="ReportV2Controller"` | **73/73** (69 + 4 new warning specs) |
+| Backend specs (all reports) | `$env:NODE_ENV="test"; npx jasmine --filter="ReportsController"` | **73/73** (69 + 4 new warning specs) |
 | Backend specs (large export) | `--filter="large export warning"` | **4/4** |
-| Backend types | `npx tsc -p ./src/app/tsconfig.json` | No `ReportV2.controller` / spec errors |
+| Backend types | `npx tsc -p ./src/app/tsconfig.json` | No `Reports.controller` / spec errors |
 | Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **91/91** (9 files; +5 `reportShellExportWarning.spec.tsx`) |
 | Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
 | Lint | `npx eslint` on every touched file | Clean |
@@ -1481,43 +1483,25 @@ Both PDFs were built in-page (`api.export*` → `*DocContent` →
 which is a separate window, not a browser download — so there is no `download`
 event to capture.
 
-### 15.5 Phase 7 cleanup checklist (do not execute)
+### 15.5 Phase 7 cleanup checklist — status after the post-6.11.7 pass
 
-Ordered so each step is independently revertible. Nothing below is done.
+Run on 2026-11-13 with two constraints from the product owner: **the legacy
+surface and its keys stay**, and the new API must live at `/api/reports` with no
+`v2` segment anywhere. Steps 1 and 3 were therefore skipped; step 2 was
+executed; the rest were verified. See §16 for what the rename changed.
 
-1. **Delete the legacy reports surface.** `src/app/views/reports/*` (html, css,
-   `js/reports/reports.ts`), `src/app/models/Report.model.ts`,
-   `src/app/controllers/Report.controller.ts`, `src/app/routes/report.routes.ts`,
-   and the `/reports` page route in `page.routes.ts`.
-2. **Unmount the legacy API.** Remove the `/reports` mount in
-   `api.routes.ts`; keep `/reports/v2` (rename to `/reports` only if a versioned
-   client no longer matters — otherwise leave the `/v2` segment alone).
-3. **Delete the legacy locale keys.** Once step 1 is gone, prune
-   `reports.*` from `src/app/views/locales/{en,ar}.json`. Re-run
-   `npm run check-i18n:legacy` afterwards; the 26 template-literal artifacts
-   disappear with the files that produced them.
-4. **Delete the dead renderer keys the checker still cannot see.** 1,201
-   "potentially unused" keys remain, 804 of them outside `reports`. They are
-   *not* provably dead — the checker cannot see template literals or
-   `labelKey` indirection. Prune per namespace with a dynamic-prefix proof (the
-   method used for the 149 reports keys), never by trusting the raw list.
-5. **Retire the dual reports test suites.** Keep
-   `ReportV2.*.spec.ts`; delete any legacy report spec.
-6. **Move the plan records.** `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md`
-   is outside the repo. Either copy it into `.opencode/plans/` or leave §14/§15
-   as the authoritative record.
-7. **Re-check the `$` guard.** Dev seed data contains names with `$`,
-   `#set(...)` and `chr(...)`; every "no dollar amount" assertion must stay
-   `/\$\s?\d/`, not `includes("$")`.
-8. **Do not "fix" the tab roving tabindex.** `TabsList` is the single tab stop
-   and every `TabsTrigger` is `tabindex="-1"` by design (contract 63's
-   neighbour). A sweep that "adds" `tabIndex={0}` to each trigger would create
-   six tab stops per page.
-9. **`AttendanceStatusBadge` and `STATUS_COLORS` must stay in sync.** Contract
-   61; a palette refactor in one file silently re-colours the other.
-10. **Keep the export warning threshold in one place per side.** If the server
-    constant moves, move the client one with it — they are documented as the
-    same number, and the client copy is what the user actually sees.
+| # | Step | Status |
+|---|---|---|
+| 1 | Delete the legacy reports surface | **Skipped by decision.** `src/app/views/reports/reports.html`, `views/js/reports/reports.ts`, `models/Report.model.ts`, `controllers/Report.controller.ts`, `routes/report.routes.ts` and the `/reports` page route all remain. |
+| 2 | Unmount the legacy API / rename the mount | **Done.** The new router is mounted at `/api/reports` *before* the legacy one, so the new paths win. The legacy mount stays and is shadowed on the five shared paths. |
+| 3 | Delete the legacy locale keys | **Skipped by decision.** `src/app/views/locales/{en,ar}.json` untouched. |
+| 4 | Delete the dead renderer keys the checker cannot see | **Deferred.** 1,201 "potentially unused" keys remain, 804 outside `reports`. They are *not* provably dead — the checker cannot see template literals or `labelKey` indirection. Prune per namespace with a dynamic-prefix proof (the method used for the 149 reports keys), never by trusting the raw list. |
+| 5 | Retire the dual reports test suites | **Done.** Specs renamed `Reports.*.spec.ts`; no legacy report spec existed to delete. |
+| 6 | Move the plan records | **Done.** `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md` copied to `.opencode/plans/phase_6.11_plan.md`. |
+| 7 | Re-check the `$` guard | **Verified.** No `includes("$")` assertion anywhere; every "no dollar amount" check is `/\$\s?\d/`. Dev seed data contains names with `$`, `#set(...)` and `chr(...)`. |
+| 8 | Do not "fix" the tab roving tabindex | **Verified, untouched.** `TabsList` is the single tab stop; every `TabsTrigger` is `tabindex="-1"`. |
+| 9 | `AttendanceStatusBadge` and `STATUS_COLORS` must stay in sync | **Verified + one fix.** Both maps hold exactly `on_time`, `late`, `early`, `incomplete`, `missing`. The audit also found `text-warning-dark` — a token that does not exist in `@theme` — in `StatusBadges.tsx`, `patientColumns.tsx` and `AdmissionSection.tsx`; all three now use `text-warning` (design.md §4.1.3). |
+| 10 | Keep the export warning threshold in one place per side | **Verified.** 5000 on both sides, strict `>`. |
 
 ### 15.6 Deviations from the plan for this subphase
 
@@ -1548,3 +1532,85 @@ Ordered so each step is independently revertible. Nothing below is done.
    keys off `exportRowCount`, not on `onExportPdf` — deliberate, so a tab cannot
    show a warning it cannot act on but also cannot *hide* a real one by
    forgetting a prop.
+
+---
+
+## 16. Post-6.11.7 — the `/v2` segment removed (as built)
+
+Executed after 6.11.7 at the product owner's request: **no `v2` anywhere**, the
+new API at `/api/reports`, and the legacy surface + keys kept. This supersedes
+every `/api/reports/v2` path in §1–§15; the sections above were rewritten to the
+new paths rather than left as dead references.
+
+### 16.1 What changed
+
+| Before | After |
+|---|---|
+| `router.use("/reports/v2", reportV2Routes)` | `router.use("/reports", reportsRoutes)` before `router.use("/reports", reportRoutes)` |
+| `ReportV2.controller.ts` / `ReportV2Controller` | `Reports.controller.ts` / `ReportsController` |
+| `reportV2.routes.ts` | `reports.routes.ts` |
+| `utils/types/reportV2.d.ts` | `utils/types/reportsApi.d.ts` |
+| `ReportV2.*.spec.ts` (7 controller + 7 model) | `Reports.*.spec.ts` |
+| `003_report_v2_indexes.sql` | `003_reports_indexes.sql` |
+| `db.helper.ensureReportV2Schema()` | `ensureReportsSchema()` |
+
+`reportsApi.d.ts` is deliberately **not** `reports.d.ts`: that name already
+belongs to the legacy wire types imported by `Report.model.ts` and
+`Report.controller.ts`. The first rename attempt overwrote it (both are
+`.d.ts`); it was restored from git and the 6.11 types moved to `reportsApi.d.ts`.
+The seven `models/reports/*.model.ts` imports were repointed; the two legacy
+imports were not.
+
+### 16.2 Mount order and shadowing
+
+`api.routes.ts` mounts `reportsRoutes` first, then `reportRoutes`. Both live at
+`/api/reports`, so the new router wins where they overlap:
+
+| Path | Now served by | Legacy page effect |
+|---|---|---|
+| `/patients` | new list | **broken** (payload shape differs) |
+| `/patients/formatted` | new `/patients/:patientId` → 400 | **broken** |
+| `/doctors/referred`, `/doctors/attended` | new `/doctors/:doctorId` → 400 | **broken** |
+| `/nurses/attended` | new `/nurses/:nurseId` → 400 | **broken** |
+| `/statistics/*`, `/employees/*`, `/summary`, `/admissions/*` | legacy (falls through) | works |
+
+That is an explicit decision, not an oversight: the legacy files, page route and
+locale keys stay until Phase 7, but the five shared paths are accepted as broken
+rather than keeping a versioned namespace. Contract 67.
+
+### 16.3 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Routing probe | `routing-probe.cjs` | **8/8** — new paths return the new envelope; `statistics/comprehensive`, `employees/clock-ins`, `summary` still 200 from the legacy controller; the three shadowed paths return the new 400 |
+| Permission matrix + PDF/CSV | `permissions-and-exports.cjs` | **44/44** (patient CSV 76 lines, clock-in 367; patient PDF 68,649 B portrait, clock-in 145,708 B landscape) |
+| Consolidated UI gate | `reports-6.11.7-check.cjs` | **89/89** |
+| Backend specs | `--filter="ReportsController"` / `--filter="Reports"` | **73/73** / **241/241** |
+| Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **91/91** |
+| Backend types | `npx tsc -p ./src/app/tsconfig.json` | Only the pre-existing view/`toastr` errors |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors |
+| Lint | `npx eslint` on every touched file | Clean; the pre-existing `db.helper.ts` `no-explicit-any` errors remain (4-line rename only) |
+| Build | `npm run build:renderer` | OK |
+| i18n | `npm run check-i18n:renderer` | **1625 / 26 / 1201** — unchanged |
+
+Stale compiled outputs (`dist-electron/app/tests/**/ReportV2.*.spec.js`, the old
+controller and route JS) were deleted before the backend run. `tsc` never prunes
+them, so without that step the old suites would run a second time against files
+that no longer exist in source.
+
+### 16.4 Notes
+
+1. **`reports.d.ts` was already taken.** A blind "rename the type file" step
+   destroys the legacy types; check the target name first. The new file is
+   `reportsApi.d.ts`.
+2. **The legacy page's breakage is limited to the five shadowed paths.** Its
+   statistics, payroll, clock-in and summary tabs still work, which is why
+   "keep the legacy surface" was affordable.
+3. **`text-warning-dark` never existed.** The audit replaced it with
+   `text-warning` in `StatusBadges.tsx`, `patientColumns.tsx` and
+   `AdmissionSection.tsx`. Contract 68.
+4. **The rename is filesystem-level.** Git sees the moves as deletes + adds;
+   `git diff --find-renames` (or the commit summary) reconstructs them. Do not
+   `git mv` a file onto an existing name — that is exactly how `reports.d.ts`
+   was lost.
+

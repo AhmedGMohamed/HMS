@@ -3,7 +3,7 @@
  *
  * Replaces the legacy `Report.model.getPatientReports` / `getPatientReportFormatted`
  * pair, which ran **one query per patient** (and then three more per
- * admission). The v2 model is fixed-cost:
+ * admission). The Reports model is fixed-cost:
  *
  *   - `listPatients`: 2 queries (page + summary) over one CTE. Both share
  *     `buildAggregateCte` so the page and the summary can never disagree
@@ -44,7 +44,7 @@ import type {
 	PatientReportSummary,
 	ReportExportEnvelope,
 	ReportListEnvelope,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { query } from "../database/connection.js";
 import {
 	END_EXCLUSIVE_OFFSET,

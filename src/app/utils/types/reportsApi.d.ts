@@ -1,7 +1,7 @@
 /**
- * Reports v2 wire types — Phase 6.11.
+ * Reports wire types — Phase 6.11.
  *
- * These describe the JSON the `/api/reports/v2/*` endpoints return. Field
+ * These describe the JSON the `/api/reports/*` endpoints return. Field
  * names are snake_case on the wire; the renderer's `lib/api.ts` converts
  * them to camelCase once at the boundary, so the React code never sees
  * these names directly.

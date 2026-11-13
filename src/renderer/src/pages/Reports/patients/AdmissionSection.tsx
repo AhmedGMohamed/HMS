@@ -175,7 +175,7 @@ export function AdmissionSection({
       case "success":
         return "text-success-dark"
       case "warning":
-        return "text-warning-dark"
+        return "text-warning"
       default:
         return "text-foreground"
     }

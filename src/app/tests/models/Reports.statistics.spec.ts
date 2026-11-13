@@ -1,4 +1,4 @@
-// src/app/tests/models/ReportV2.statistics.spec.ts
+// src/app/tests/models/Reports.statistics.spec.ts
 //
 // Phase 6.11.4 — statistics report. Covers the seven series the tab renders:
 // generated buckets (including the quiet ones), census vs admissions,
@@ -113,12 +113,12 @@ async function buildFixture(data: TestData): Promise<Fixture> {
 /* Specs                                                               */
 /* ------------------------------------------------------------------ */
 
-describe("Reports v2 — statistics report", () => {
+describe("Reports — statistics report", () => {
 	let fixture: Fixture;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

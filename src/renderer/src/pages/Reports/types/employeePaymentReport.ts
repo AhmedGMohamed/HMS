@@ -2,7 +2,7 @@
  * Employee payments (payroll) report types — Phase 6.11.5.
  *
  * camelCase mirrors of the payroll slice of
- * `src/app/utils/types/reportV2.d.ts` (the model emits snake_case; `lib/api.ts`
+ * `src/app/utils/types/reports.d.ts` (the model emits snake_case; `lib/api.ts`
  * normalizes keys at the boundary).
  *
  * Four shapes:

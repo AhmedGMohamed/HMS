@@ -3,7 +3,7 @@
  *
  * Replaces the legacy nurse endpoints, which listed the nurses and then ran a
  * **patient query and a daily-assignment query per nurse** (the accordion was
- * built client-side from N responses). The v2 model is fixed-cost:
+ * built client-side from N responses). The Reports model is fixed-cost:
  *
  *   - `listNurses`: 2 queries — the page and the whole-set summary, both over
  *     the same `pairs` CTE so they cannot disagree about the population.
@@ -48,7 +48,7 @@ import type {
 	NurseReportSummary,
 	ReportExportEnvelope,
 	ReportListEnvelope,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { query } from "../database/connection.js";
 import {
 	END_EXCLUSIVE_OFFSET,

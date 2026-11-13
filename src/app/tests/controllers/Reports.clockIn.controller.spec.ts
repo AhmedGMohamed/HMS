@@ -1,4 +1,4 @@
-// src/app/tests/controllers/ReportV2.clockIn.controller.spec.ts
+// src/app/tests/controllers/Reports.clockIn.controller.spec.ts
 //
 // Phase 6.11.6 — clock-in controller. Covers the wire contract (snake_case in,
 // snake_case out), the sort/status whitelists, paging, the 400/404 paths and
@@ -6,7 +6,7 @@
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import { query } from "../../models/database/connection.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
 
@@ -57,14 +57,14 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — clock-ins", () => {
+describe("ReportsController — clock-ins", () => {
 	let data: TestData;
 	let doctorId: string;
 	let nurseId: string;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -99,7 +99,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("returns the list envelope with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -158,7 +158,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("defaults to sorting by name and to the whole staff", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -173,7 +173,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("accepts employee_type, employee_id, search, sort, dir and paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({
 				...RANGE,
 				employee_type: "doctor",
@@ -196,7 +196,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s when the dates are missing", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ start_date: localDate(-1) }),
 			asResponse(res)
 		);
@@ -207,7 +207,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s on an unknown employee_type", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE, employee_type: "contractor" }),
 			asResponse(res)
 		);
@@ -218,7 +218,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s on an unknown sort key", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE, sort: "salary" }),
 			asResponse(res)
 		);
@@ -229,7 +229,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s on an unknown direction", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE, dir: "up" }),
 			asResponse(res)
 		);
@@ -240,7 +240,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s on a page size outside the whitelist", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listClockIns(
+		await ReportsController.listClockIns(
 			makeRequest({ ...RANGE, page_size: "999" }),
 			asResponse(res)
 		);
@@ -251,7 +251,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("returns the detail envelope with the attendance summary", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getClockInEmployee(
+		await ReportsController.getClockInEmployee(
 			makeRequest({ ...RANGE, page_size: "10" }, { employeeId: nurseId }),
 			asResponse(res)
 		);
@@ -302,7 +302,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("filters the detail records by status", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getClockInEmployee(
+		await ReportsController.getClockInEmployee(
 			makeRequest(
 				{ ...RANGE, status: "late", page_size: "10" },
 				{ employeeId: nurseId }
@@ -320,7 +320,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("400s on an unknown status", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getClockInEmployee(
+		await ReportsController.getClockInEmployee(
 			makeRequest({ ...RANGE, status: "absent" }, { employeeId: nurseId }),
 			asResponse(res)
 		);
@@ -331,7 +331,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("404s for an unknown employee", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getClockInEmployee(
+		await ReportsController.getClockInEmployee(
 			makeRequest({ ...RANGE }, { employeeId: "999999" }),
 			asResponse(res)
 		);
@@ -342,7 +342,7 @@ describe("ReportV2Controller — clock-ins", () => {
 
 	it("returns the export envelope without paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportClockIns(
+		await ReportsController.exportClockIns(
 			makeRequest({ ...RANGE, page: "2", page_size: "10" }),
 			asResponse(res)
 		);

@@ -1,4 +1,4 @@
-// src/app/tests/models/ReportV2.patient.spec.ts
+// src/app/tests/models/Reports.patient.spec.ts
 //
 // Phase 6.11.1 — patient report. Covers the two-query list, the three-query
 // detail, filters, sorting, paging, the half-open end-date window, the
@@ -171,12 +171,12 @@ function listQuery(overrides: Partial<Parameters<typeof PatientReportModel.listP
 /* Specs                                                               */
 /* ------------------------------------------------------------------ */
 
-describe("Reports v2 — patient report", () => {
+describe("Reports — patient report", () => {
 	let fixture: Fixture;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

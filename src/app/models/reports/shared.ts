@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the Reports v2 models (Phase 6.11).
+ * Shared helpers for the Reports models (Phase 6.11).
  *
  * Everything here is deliberately dependency-free and synchronous so the
  * models, controllers and specs can share exactly one implementation of the
@@ -152,7 +152,7 @@ export interface DateRangeQuery {
 }
 
 /**
- * Validates the `start_date` / `end_date` pair every v2 endpoint requires.
+ * Validates the `start_date` / `end_date` pair every reports endpoint requires.
  * Both bounds are inclusive; `start_date > end_date` is a 400.
  */
 export function parseDateRange(query: Record<string, unknown>): DateRangeQuery {

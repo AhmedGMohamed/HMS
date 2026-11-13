@@ -528,8 +528,8 @@ export async function initDB() {
 		-- Create indexes for DoctorServicePrice
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_doctor ON DoctorServicePrice(doctor_id);
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_service ON DoctorServicePrice(service_id);
-		-- Reports v2 (Phase 6.11): payroll + clock-in range scans.
-		-- Keep in sync with src/app/models/database/migrations/003_report_v2_indexes.sql
+		-- Reports (Phase 6.11): payroll + clock-in range scans.
+		-- Keep in sync with src/app/models/database/migrations/003_reports_indexes.sql
 		CREATE INDEX IF NOT EXISTS idx_employee_payment_employee_issued
 			ON EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false;
 		CREATE INDEX IF NOT EXISTS idx_employee_clock_in_employee_clock_in

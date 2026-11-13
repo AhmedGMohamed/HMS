@@ -980,9 +980,11 @@ legacy `reports.ts` was read. What shipped:
 - **`ReportShell.tsx`** plays the role sketched as `ReportLayout.tsx`: heading +
   Generate + export buttons + filter card + stale strip + large-export strip +
   body + generated-metadata footer. It is shared, not per-tab.
-- **A purpose-built backend** rather than the legacy `/api/reports/*`. The legacy
+- **A purpose-built backend** rather than the legacy report endpoints. The legacy
   controller, models and `/reports` HTML page were left untouched (Phase 7
-  removes them). New surface, all `GET`, all under `/api/reports/v2`:
+  removes them); the new router is mounted at `/api/reports` **before** the
+  legacy one, so the five shared paths resolve to the new controller. New
+  surface, all `GET`:
   `options`; `patients`, `patients/export`, `patients/:patientId`;
   `doctors`, `doctors/export`, `doctors/:doctorId`;
   `nurses`, `nurses/export`, `nurses/:nurseId`;
@@ -999,7 +1001,7 @@ legacy `reports.ts` was read. What shipped:
   need `manage_employees` too, and `options` only lists employees for a caller
   who holds it.
 - **Design record**: `.opencode/plans/phase_6.11_implementation.md` holds the
-  per-subphase build notes, the contract list (1–63) and the surface map. Read
+  per-subphase build notes, the contract list (1–68) and the surface map. Read
   that file before changing any Reports code — most of its rules exist because
   something broke once.
 

@@ -1,7 +1,7 @@
--- Reports v2 indexes — Phase 6.11.
+-- Reports indexes — Phase 6.11.
 --
 -- Additive only: none of these replace or drop an existing index. They back
--- the aggregate scans the new `/api/reports/v2/*` endpoints perform:
+-- the aggregate scans the new `/api/reports/*` endpoints perform:
 --
 --   * EmployeePayment  — payroll list/summary scans filter `is_void = false`
 --                        and range on `issued_timestamp` per employee.

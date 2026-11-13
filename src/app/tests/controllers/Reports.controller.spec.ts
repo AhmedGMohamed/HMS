@@ -1,18 +1,18 @@
-// src/app/tests/controllers/ReportV2.controller.spec.ts
+// src/app/tests/controllers/Reports.controller.spec.ts
 //
-// Phase 6.11.0 — foundations. Verifies the `/api/reports/v2/options`
+// Phase 6.11.0 — foundations. Verifies the `/api/reports/options`
 // controller: response envelope, permission-driven payroll filtering, admin
 // bypass, and the 500 path.
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller, {
+import ReportsController, {
 	EXPORT_ROW_WARNING_THRESHOLD,
 	countStatisticsExportRows,
 	userHasAllPermissions,
 	userHasPermission,
 	warnIfLargeExport,
-} from "../../controllers/ReportV2.controller.js";
+} from "../../controllers/Reports.controller.js";
 import OptionsReportModel from "../../models/reports/OptionsReport.model.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
 
@@ -40,12 +40,12 @@ function makeRequest(
 	return { user, query } as unknown as Request;
 }
 
-describe("ReportV2Controller — options", () => {
+describe("ReportsController — options", () => {
 	let insertedData: TestData;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -55,7 +55,7 @@ describe("ReportV2Controller — options", () => {
 
 	it("returns every picker list for a view_reports user", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getOptions(
+		await ReportsController.getOptions(
 			makeRequest({
 				userId: 1,
 				username: "viewer",
@@ -82,7 +82,7 @@ describe("ReportV2Controller — options", () => {
 
 	it("withholds the payroll employee list without manage_employees", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getOptions(
+		await ReportsController.getOptions(
 			makeRequest({
 				userId: 2,
 				username: "reporter",
@@ -98,7 +98,7 @@ describe("ReportV2Controller — options", () => {
 
 	it("includes the payroll employee list with manage_employees", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getOptions(
+		await ReportsController.getOptions(
 			makeRequest({
 				userId: 3,
 				username: "hr",
@@ -114,7 +114,7 @@ describe("ReportV2Controller — options", () => {
 
 	it("treats Admin as holding every permission", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getOptions(
+		await ReportsController.getOptions(
 			makeRequest({
 				userId: 4,
 				username: "admin",
@@ -134,7 +134,7 @@ describe("ReportV2Controller — options", () => {
 			Promise.reject(new Error("kaboom"))
 		);
 
-		await ReportV2Controller.getOptions(
+		await ReportsController.getOptions(
 			makeRequest({
 				userId: 5,
 				username: "viewer",
@@ -151,7 +151,7 @@ describe("ReportV2Controller — options", () => {
 	});
 });
 
-describe("ReportV2Controller — permission helpers", () => {
+describe("ReportsController — permission helpers", () => {
 	it("userHasPermission mirrors the server middleware", () => {
 		const plain = makeRequest({
 			userId: 1,
@@ -191,7 +191,7 @@ describe("ReportV2Controller — permission helpers", () => {
  * threshold and the client shows the same warning. The helper is pure, so it
  * needs no database.
  */
-describe("ReportV2Controller — large export warning", () => {
+describe("ReportsController — large export warning", () => {
 	const originalWarn = console.warn;
 
 	afterEach(() => {

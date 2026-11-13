@@ -83,7 +83,7 @@ class BillModel {
      * The category subtotals and the bill configuration are fetched in one
      * round trip, then the arithmetic is delegated to the shared
      * `calculateBillFinancials` helper so the billing write path and the
-     * Reports v2 aggregation can never disagree. See
+     * Reports aggregation can never disagree. See
      * `src/app/utils/billFinancials.ts` for the documented semantics.
      */
     async recalculateTotal(billId: number): Promise<void> {
