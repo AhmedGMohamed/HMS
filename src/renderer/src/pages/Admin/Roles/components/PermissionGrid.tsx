@@ -8,6 +8,7 @@ import {
   permissionLabel,
   sortPermissions,
 } from "@/pages/Admin/shared/permissionKeys"
+import { cn } from "@/lib/utils"
 import type { Permission } from "@/pages/Admin/Roles/types/role"
 
 export interface PermissionGridProps {
@@ -91,24 +92,52 @@ export function PermissionGrid({
           {ordered.map((permission) => {
             const id = `perm-${permission.permissionId}`
             const checked = selected.has(permission.permissionId)
+            const label = permissionLabel(permission.featureName, t)
             return (
-              <div key={permission.permissionId} className="flex items-start gap-2">
+              <div
+                key={permission.permissionId}
+                // The whole tile is the hit area, so it must look tappable and
+                // take focus where the user expects it (on the checkbox).
+                onClick={(event) => {
+                  if (disabled) return
+                  // The checkbox handles its own clicks; without this guard the
+                  // bubble would toggle it straight back.
+                  if (
+                    (event.target as HTMLElement).closest('[role="checkbox"]')
+                  ) {
+                    return
+                  }
+                  toggle(permission.permissionId, !checked)
+                }}
+                className={cn(
+                  "flex items-start gap-2 rounded-md border p-2 transition-colors",
+                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                  checked
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-transparent hover:bg-muted/60"
+                )}
+              >
                 <Checkbox
                   id={id}
                   checked={checked}
                   disabled={disabled}
+                  aria-label={label}
                   onCheckedChange={(next) =>
                     toggle(permission.permissionId, next === true)
                   }
                   className="mt-0.5"
                 />
                 <div className="space-y-0.5">
-                  <label
-                    htmlFor={id}
-                    className="cursor-pointer text-sm leading-tight text-foreground"
+                  {/* Was a `<label htmlFor>` pointing at a Radix button, which
+                      never forwarded the click. The tile handles it now. */}
+                  <span
+                    className={cn(
+                      "block text-sm leading-tight text-foreground",
+                      checked && "font-medium"
+                    )}
                   >
-                    {permissionLabel(permission.featureName, t)}
-                  </label>
+                    {label}
+                  </span>
                   {permission.description ? (
                     <p className="text-xs text-muted-foreground">
                       {permission.description}
