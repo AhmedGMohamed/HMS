@@ -214,12 +214,131 @@ describe("UserModel", () => {
 	});
 
 	describe("getAllUsers", () => {
-		it("should return all users with role info", async () => {
-			const users = await userModel.getAllUsers();
+		it("should return the human users with role info", async () => {
+			const { rows, total } = await userModel.getAllUsers();
 
-			expect(users.length).toBeGreaterThan(0);
-			expect(users[0].role_name).toBeDefined();
-			expect(users[0].password_hash).toBeUndefined();
+			expect(total).toBeGreaterThan(0);
+			expect(rows.length).toBeGreaterThan(0);
+			expect(rows[0].role_name).toBeDefined();
+			expect(rows[0].password_hash).toBeUndefined();
+		});
+
+		it("should exclude system accounts from rows and total", async () => {
+			const { rows, total } = await userModel.getAllUsers();
+
+			expect(rows.some((u) => u.username === "system")).toBeFalse();
+			expect(total).toBe(rows.length);
+			expect(rows.every((u) => u.is_system === false)).toBeTrue();
+		});
+
+		it("should expose is_active and last_login", async () => {
+			const { rows } = await userModel.getAllUsers();
+
+			expect(rows[0].is_active).toBeTrue();
+			expect(rows[0].last_login).toBeNull();
+		});
+
+		it("should filter by roleId", async () => {
+			const roles = insertedData.roles;
+			const adminRoleId = roles.find((r) => r.name === "Admin")!.role_id;
+
+			const { rows, total } = await userModel.getAllUsers({
+				roleId: adminRoleId
+			});
+
+			expect(total).toBe(rows.length);
+			expect(rows.every((u) => u.role_id === adminRoleId)).toBeTrue();
+			expect(rows.some((u) => u.username === "admin")).toBeTrue();
+		});
+
+		it("should compose q with roleId", async () => {
+			const roles = insertedData.roles;
+			const adminRoleId = roles.find((r) => r.name === "Admin")!.role_id;
+
+			const { rows } = await userModel.getAllUsers({
+				roleId: adminRoleId,
+				q: "adm"
+			});
+
+			expect(rows.length).toBe(1);
+			expect(rows[0].username).toBe("admin");
+		});
+
+		it("should sort by username ascending by default", async () => {
+			const { rows } = await userModel.getAllUsers();
+			const names = rows.map((u) => u.username);
+
+			expect(names).toEqual([...names].sort());
+		});
+
+		it("should sort by createdAt descending", async () => {
+			const { rows } = await userModel.getAllUsers({
+				sort: "createdAt",
+				order: "desc"
+			});
+
+			expect(rows.length).toBeGreaterThan(0);
+		});
+
+		it("should fall back to username for an unknown sort column", async () => {
+			const injected = await userModel.getAllUsers({
+				sort: "username; DROP TABLE \"User\"",
+				order: "asc"
+			});
+			const plain = await userModel.getAllUsers();
+
+			// Identifier injection must not reach the query.
+			expect(injected.rows.map((u) => u.username)).toEqual(
+				plain.rows.map((u) => u.username)
+			);
+		});
+
+		it("should honour limit and offset", async () => {
+			const page1 = await userModel.getAllUsers({ limit: 1, offset: 0 });
+			const page2 = await userModel.getAllUsers({ limit: 1, offset: 1 });
+
+			expect(page1.rows.length).toBe(1);
+			expect(page2.rows.length).toBe(1);
+			expect(page1.rows[0].user_id).not.toBe(page2.rows[0].user_id);
+		});
+	});
+
+	describe("getAuthState", () => {
+		it("should return is_active and role_name for an existing user", async () => {
+			const users = insertedData.users;
+			const admin = users.find((u) => u.username === "admin")!;
+
+			const state = await userModel.getAuthState(admin.user_id);
+
+			expect(state).not.toBeNull();
+			expect(state!.is_active).toBeTrue();
+			expect(state!.role_name).toBe("Admin");
+		});
+
+		it("should return null for a non-existent user", async () => {
+			expect(await userModel.getAuthState(999999)).toBeNull();
+		});
+
+		it("should report a deactivated account", async () => {
+			const users = insertedData.users;
+			const plain = users.find((u) => u.username === "user")!;
+
+			await userModel.updateUser({ user_id: plain.user_id, is_active: false });
+			const state = await userModel.getAuthState(plain.user_id);
+
+			expect(state!.is_active).toBeFalse();
+		});
+	});
+
+	describe("recordLogin", () => {
+		it("should stamp last_login", async () => {
+			const users = insertedData.users;
+			const admin = users.find((u) => u.username === "admin")!;
+
+			await userModel.recordLogin(admin.user_id);
+			const refreshed = await userModel.getUserById(admin.user_id);
+
+			expect(refreshed!.last_login).not.toBeNull();
 		});
 	});
 

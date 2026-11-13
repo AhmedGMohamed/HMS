@@ -2,11 +2,21 @@
   "roles": {
     "pageTitle": "HMS - Role Management",
     "title": "Role Management",
+    "subtitle": "Define what each role can do, and who holds it.",
     "createNewRole": "Create New Role",
     "editRole": "Edit Role",
+    "table": {
+      "name": "Role",
+      "permissions": "Permissions",
+      "users": "Users"
+    },
     "fields": {
       "roleName": "Role Name",
       "permissions": "Permissions"
+    },
+    "modal": {
+      "createDescription": "Create a role and choose the features it can access.",
+      "editDescription": "Adjust the role's name or permission set."
     },
     "validation": {
       "roleNameLength": "Role name must be between 3 and 50 characters"
@@ -18,6 +28,7 @@
       "manage_services": "Manage Services",
       "manage_billing": "Manage Billing",
       "manage_pharmacy": "Manage Pharmacy",
+      "manage_supplies": "Manage Supplies",
       "manage_shipments": "Manage Shipments",
       "manage_insurance": "Manage Insurance",
       "manage_employees": "Manage Employees",
@@ -39,14 +50,19 @@
     "noPermissions": "No permissions assigned",
     "messages": {
       "deleteConfirmTitle": "Are you sure?",
-      "deleteConfirmText": "This action cannot be undone!",
+      "deleteConfirmText": "{{roleName}} will be permanently deleted. This action cannot be undone.",
       "deleteSuccess": "Role has been deleted",
       "createSuccess": "Role successfully created",
       "updateSuccess": "Role successfully updated",
       "loadError": "Failed to load roles",
       "saveError": "Failed to save role",
       "deleteError": "Failed to delete role",
-      "cannotDeleteAdmin": "Admin role cannot be deleted"
+      "cannotDeleteAdmin": "Admin role cannot be deleted",
+      "emptyTable": "No roles yet. Create one to get started.",
+      "roleNameTaken": "That role name is already taken",
+      "roleInUse": "This role is assigned to users. Reassign them before deleting.",
+      "roleNameImmutable": "This role is referenced by the system and cannot be renamed or deleted",
+      "systemRoleProtected": "System roles cannot be modified"
     },
     "buttons": {
       "edit": "Edit",

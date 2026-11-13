@@ -116,6 +116,13 @@ export function useLogin(options: UseLoginOptions = {}): UseLoginResult {
             if (state.locked) {
               setLockedUntilMs(Date.now() + state.retryAfterMs)
             }
+          } else if (err.code === "ACCOUNT_DEACTIVATED") {
+            // Correct credentials on a disabled account. Not an auth failure,
+            // so it must not increment the lockout counter.
+            setError({
+              kind: "server",
+              message: t("login.accountDeactivated"),
+            })
           } else if (err.statusCode >= 500) {
             setError({
               kind: "server",

@@ -26,25 +26,28 @@ router.delete("/:id", validateId, auditLogger, (req, res) =>
 	RoleController.deleteRole(req, res)
 );
 
-// Permission assignment routes
-router.post("/roles/:id/permissions", validateId, auditLogger, (req, res) =>
+// Permission assignment routes.
+// NOTE: this router is mounted at `/roles`, so the paths must not repeat the
+// `/roles` segment — the old `/roles/:id/...` form resolved to
+// `/api/roles/roles/:id/...` and was unreachable.
+router.post("/:id/permissions", validateId, auditLogger, (req, res) =>
 	RoleController.assignPermissions(req, res)
 );
 
-router.delete("/roles/:id/permissions", validateId, auditLogger, (req, res) =>
+router.delete("/:id/permissions", validateId, auditLogger, (req, res) =>
 	RoleController.removePermissions(req, res)
 );
 
-router.put("/roles/:id/permissions", validateId, auditLogger, (req, res) =>
+router.put("/:id/permissions", validateId, auditLogger, (req, res) =>
 	RoleController.syncPermissions(req, res)
 );
 
 // Permission checking routes
-router.get("/roles/:id/check-permission", validateId, (req, res) =>
+router.get("/:id/check-permission", validateId, (req, res) =>
 	RoleController.checkPermission(req, res)
 );
 
-router.get("/roles/:id/check-permissions", validateId, (req, res) =>
+router.get("/:id/check-permissions", validateId, (req, res) =>
 	RoleController.checkPermissions(req, res)
 );
 

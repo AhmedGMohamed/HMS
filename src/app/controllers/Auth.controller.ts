@@ -24,6 +24,17 @@ export class AuthController {
 				return;
 			}
 
+			// Credentials were valid but the account is disabled. This must not
+			// be folded into the `null` branch above, or the form would claim the
+			// password was wrong.
+			if (user.is_active === false) {
+				res.status(403).json({
+					error: "Account is deactivated",
+					code: "ACCOUNT_DEACTIVATED"
+				});
+				return;
+			}
+
 			const permissions = await UserModel.getUserPermissions(
 				user.user_id
 			);
@@ -52,6 +63,13 @@ export class AuthController {
 				}
 			});
 
+			// Best-effort: a failed timestamp must never block a valid login.
+			try {
+				await UserModel.recordLogin(user.user_id);
+			} catch (timestampError) {
+				console.error("Failed to record last_login:", timestampError);
+			}
+
 			res.cookie("auth", token).json({
 				user: {
 					user_id: user.user_id,
@@ -71,29 +89,37 @@ export class AuthController {
 		try {
 			const authCookie = req.cookies["auth"];
 			const token = req.headers.authorization?.split(" ")[1];
-			let decoded;
+			const raw = authCookie || token;
 
-			if (authCookie) {
-				decoded = jwt.verify(
-					authCookie,
-					process.env.JWT_SECRET || "your-secret-key"
-				);
-
-				res.json({ valid: true, user: decoded });
+			if (!raw) {
+				res.status(401).json({ error: "No token provided" });
 				return;
 			}
 
-			if (token) {
-				const decoded = jwt.verify(
-					token,
-					process.env.JWT_SECRET || "your-secret-key"
-				);
+			const decoded = jwt.verify(
+				raw,
+				process.env.JWT_SECRET || "your-secret-key"
+			) as { userId: number; [key: string]: unknown };
 
-				res.json({ valid: true, user: decoded });
+			// Re-check the account so a deactivated or deleted user cannot keep
+			// browsing on a token issued before the change.
+			const state = await UserModel.getAuthState(decoded.userId);
+			if (!state) {
+				res.status(401).json({ error: "User no longer exists" });
+				return;
+			}
+			if (!state.is_active) {
+				res.status(401).json({
+					error: "Account is deactivated",
+					code: "ACCOUNT_DEACTIVATED"
+				});
 				return;
 			}
 
-			res.status(401).json({ error: "No token provided" });
+			res.json({
+				valid: true,
+				user: { ...decoded, role: state.role_name }
+			});
 			return;
 		} catch (error) {
 			res.status(401).json({ error: "Invalid token" });

@@ -12,6 +12,7 @@
     "submitting": "Signing in…",
     "hint": "Use your hospital credentials to access the system.",
     "invalidCredentials": "Invalid username or password",
+    "accountDeactivated": "This account has been deactivated. Contact an administrator.",
     "rateLimited": "Too many attempts. Try again in a minute.",
     "lockedOutTitle": "Account temporarily locked",
     "lockedOutText": "You have exceeded the maximum number of failed attempts. Please wait a minute before trying again.",

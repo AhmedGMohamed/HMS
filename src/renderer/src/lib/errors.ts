@@ -7,15 +7,27 @@
  *   - 403 → show Sonner `warning` toast ("Insufficient permission").
  *   - 404 → render <EmptyState> with the resource-specific message.
  *   - 5xx → fail back to Sonner `error` toast with retry CTA.
+ *
+ * `code` carries the server's machine-readable failure code (e.g.
+ * `USER_IN_USE`, `ROLE_NAME_IMMUTABLE`) when the endpoint supplies one. Status
+ * codes are too coarse for the admin console — several distinct failures share
+ * 400 — and `message` is English, so a bilingual UI must branch on `code`.
  */
 export class ApiError extends Error {
   readonly statusCode: number
   readonly endpoint: string
+  readonly code?: string
 
-  constructor(statusCode: number, message: string, endpoint: string) {
+  constructor(
+    statusCode: number,
+    message: string,
+    endpoint: string,
+    code?: string
+  ) {
     super(message)
     this.name = "ApiError"
     this.statusCode = statusCode
     this.endpoint = endpoint
+    this.code = code
   }
 }

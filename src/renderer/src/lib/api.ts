@@ -60,9 +60,10 @@ async function request<T>(
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
       error?: string
+      code?: string
     } | null
     const message = errBody?.error || res.statusText || `HTTP ${res.status}`
-    throw new ApiError(res.status, message, url)
+    throw new ApiError(res.status, message, url, errBody?.code)
   }
 
   if (res.status === 204) return undefined as T

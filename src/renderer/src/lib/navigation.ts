@@ -1,4 +1,5 @@
 import type { NavigationItem, User } from "@/types"
+import { isPrivilegedRole } from "@/lib/roles"
 
 /**
  * Sidebar navigation source of truth.
@@ -115,7 +116,7 @@ export const NAV_CONFIG: NavigationItem[] = [
 
 function hasPermission(user: User | null, permission: string): boolean {
   if (!user) return false
-  if (user.role === "Admin") return true
+  if (isPrivilegedRole(user.role)) return true
   return user.permissions.includes(permission)
 }
 
@@ -136,7 +137,15 @@ export function filterNavForUser(
   const filtered: NavigationItem[] = []
 
   for (const item of items) {
-    if (item.role && user?.role !== item.role) continue
+    /* `role` entries gate on the exact role, except that privileged roles
+       (`Admin`, `System`) satisfy any role gate — mirroring the server. */
+    if (
+      item.role &&
+      user?.role !== item.role &&
+      !isPrivilegedRole(user?.role)
+    ) {
+      continue
+    }
     if (item.permission && !hasPermission(user, item.permission)) continue
 
     if (item.children && item.children.length > 0) {

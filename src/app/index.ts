@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
-import { createDBIfNotExists } from "./utils/setUpDatabase.js";
+import { createDBIfNotExists, ensureAdminSchema } from "./utils/setUpDatabase.js";
 import apiRoutes from "./routes/api.routes.js";
 import pageRoutes from "./routes/page.routes.js";
 import dotenv from "dotenv";
@@ -20,6 +20,7 @@ dotenv.config({
 });
 
 await createDBIfNotExists(process.env.DB_NAME as string || "HMS");
+await ensureAdminSchema();
 
 const app = express();
 

@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/store/authStore"
+import { isPrivilegedRole } from "@/lib/roles"
 import type { Role } from "@/types"
 
 /**
@@ -7,23 +8,28 @@ import type { Role } from "@/types"
  * the 403 the API would return — defense in depth.
  *
  * Rules (must match between client & server):
- *   - Admin role bypasses all permission checks.
+ *   - Privileged roles (`Admin`, `System`) bypass all permission checks.
  *   - Otherwise the required permission must be on the user's `permissions`.
- *   - `usePermission().hasRole('Admin')` complements permission checks for
- *     role-only routes (e.g. /admin/users → Admin-only).
+ *   - `isPrivileged()` complements permission checks for role-only routes
+ *     (e.g. /admin/users).
+ *
+ * `isAdmin()` is kept as an alias of `isPrivileged()` for existing call sites;
+ * the name is historical. Prefer `isPrivileged()` in new code.
  */
 export function usePermission() {
   const user = useAuthStore((s) => s.user)
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false
-    if (user.role === "Admin") return true
+    if (isPrivilegedRole(user.role)) return true
     return user.permissions.includes(permission)
   }
 
   const hasRole = (role: Role): boolean => user?.role === role
 
-  const isAdmin = (): boolean => user?.role == "Admin"
+  const isPrivileged = (): boolean => isPrivilegedRole(user?.role)
 
-  return { user, hasPermission, hasRole, isAdmin }
+  const isAdmin = (): boolean => isPrivileged()
+
+  return { user, hasPermission, hasRole, isPrivileged, isAdmin }
 }
