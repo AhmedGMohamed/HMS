@@ -1025,6 +1025,49 @@ RolesPage.tsx
   - Permission list fetched from GET /api/permissions
 ```
 
+**As built (Phase 6.12 — complete).** The sketch above was close, but three things
+turned out to matter more than the layout:
+
+- **Both pages were unreachable before this phase.** `PermissionRoute` had no
+  branch for `mode: "admin"`, so `/admin/users` and `/admin/roles` redirected to
+  `/dashboard` for every role. The gate is now the pure, tested
+  `canAccessRoute(requirement, { hasPermission, isPrivileged })` in `lib/routes.ts`.
+- **`is_system` means "automation", not "administrator".** `"User".is_system`
+  flags the `system` cron account; `Role.is_system` flags a new `System` role. The
+  **Admin role is not a system role** — it is visible and its permissions are
+  editable, protected only because its name is a code contract. One predicate,
+  `isPrivilegedRole(name) = Admin || System`, replaced eight hardcoded
+  `role === "Admin"` checks on the server and three on the client, and
+  `checkSelfOrAdmin` lost its `username == "system"` hack.
+- **System principals are hidden server-side**, from the users list, the roles
+  list, `total`, and `user_count` — so rows and counts always agree. `Admin` shows
+  `user_count: 1`, not 2.
+
+Also shipped beyond the sketch: `is_active` **enforced in `verifyToken`** (async,
+one indexed read per request, live role name so a demotion cannot ride a stale
+claim) with login → 403 `ACCOUNT_DEACTIVATED` but middleware → 401 so the client
+clears the session; `last_login` stamped on login; server-side `roleId` filter and
+whitelisted `sort`/`order` (`NULLS LAST` + pk tiebreak); self-protection on both
+tiers (`CANNOT_DELETE_SELF`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DEACTIVATE_SELF`,
+`ADMIN_ONLY_FIELD`) — blocking *any* self role change also closes a privilege
+escalation path that `checkSelfOrAdmin` left open; `23503` → 409 `USER_IN_USE`;
+`user_count` + LATERAL rewrite of the role queries (dropping the
+`permissions[0] === null` hack); `withTransaction()` applied to `Role.model` and
+`Permission.model` (the other 55 blocks are in
+`.opencode/plans/code_debt_transactions.md`); and two route fixes —
+`permission.routes.ts` route order (`GET /api/permissions/role/:id` was shadowed by
+`/:id` and rejected by `validateId`) and the double-prefixed
+`/api/roles/roles/:id/permissions`.
+
+Error bodies carry a `code` so the Arabic UI never renders an English server
+string; `ApiError` gained the matching `code` field.
+
+**Design record:** `.opencode/plans/phase_6.12_implementation.md` — schema,
+contracts, guards, verification numbers and known limitations. Read it before
+changing Users/Roles code. Backend baseline at `8595585` was 640 specs with 30
+pre-existing failures; after 6.12 it is 694 specs with 27 (the three fixed were
+stale assertions in these suites).
+
 ---
 
 ### Phase 7 — Express Integration

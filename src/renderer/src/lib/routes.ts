@@ -67,4 +67,35 @@ export function findRouteRequirement(path: string): RouteRequirement {
   return best.requirement
 }
 
+export interface RouteAccessContext {
+  hasPermission: (permission: string) => boolean
+  /** `Admin` or `System` — see `lib/roles.ts`. */
+  isPrivileged: () => boolean
+}
+
+/**
+ * Pure decision function for a resolved route requirement.
+ *
+ * Extracted from `PermissionRoute` so the four modes can be unit-tested
+ * without a router. The `admin` case used to be missing entirely, which made
+ * `/admin/users` and `/admin/roles` redirect to `/dashboard` for *everyone*
+ * regardless of role.
+ *
+ * Exhaustive over the union: adding a mode without handling it is a type error.
+ */
+export function canAccessRoute(
+  requirement: RouteRequirement,
+  ctx: RouteAccessContext
+): boolean {
+  switch (requirement.mode) {
+    case "public":
+    case "private":
+      return true
+    case "permission":
+      return ctx.hasPermission(requirement.permission)
+    case "admin":
+      return ctx.isPrivileged()
+  }
+}
+
 export type { RouteRequirement }

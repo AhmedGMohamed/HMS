@@ -3,12 +3,16 @@ export interface User {
 	username: string;
 	password_hash: string;
 	role_id: number;
+	is_active: boolean;
+	is_system: boolean;
+	last_login: Date | null;
 	created_at: Date;
 }
 
 export interface Role {
 	role_id: number;
 	name: string;
+	is_system: boolean;
 }
 
 export interface Permission {
@@ -42,6 +46,7 @@ export interface CreateUserDTO {
 	username: string;
 	password: string;
 	role_id: number;
+	is_active?: boolean;
 }
 
 export interface UpdateUserDTO {
@@ -49,6 +54,7 @@ export interface UpdateUserDTO {
 	username?: string;
 	password?: string;
 	role_id?: number;
+	is_active?: boolean;
 }
 
 export interface CreateRoleDTO {
@@ -71,4 +77,6 @@ export interface UserWithRole extends User {
 
 export interface RoleWithPermissions extends Role {
 	permissions: Permission[];
+	/** Human (non-system) accounts currently assigned. `::int` from Postgres. */
+	user_count: number;
 }

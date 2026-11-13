@@ -59,9 +59,12 @@ export const dbHelper = {
 	},
 	// Core System Tables
 	async seedRoles(): Promise<Role[]> {
+		// The System (automation) role is appended LAST so the existing
+		// roles[0..2] indices used across the specs stay valid.
 		const result = await query(`
-            INSERT INTO Role (name) VALUES 
-            ('Admin'), ('User'), ('Limited User')
+            INSERT INTO Role (name, is_system) VALUES 
+            ('Admin', FALSE), ('User', FALSE), ('Limited User', FALSE),
+            ('System', TRUE)
             RETURNING *;
         `);
 		return result.rows;
@@ -119,12 +122,12 @@ export const dbHelper = {
 	): Promise<User[]> {
 		const result = await query(
 			`
-            INSERT INTO "User" (username, password_hash, role_id)
+            INSERT INTO "User" (username, password_hash, role_id, is_system)
             VALUES
-            ('admin', $4, $1),
-            ('user', $5, $2),
-            ('limited', $6, $3),
-			('system', $7, $1)
+            ('admin', $4, $1, FALSE),
+            ('user', $5, $2, FALSE),
+            ('limited', $6, $3, FALSE),
+			('system', $7, (SELECT role_id FROM Role WHERE is_system = TRUE ORDER BY role_id LIMIT 1), TRUE)
             RETURNING *;
         `,
 			[
@@ -626,6 +629,9 @@ export const dbHelper = {
 	async seedDatabase(): Promise<TestData> {
 		try {
 			overridePgDate();
+			// Must run before the transaction: `HMS_test` may predate the
+			// Phase 6.12 columns.
+			await this.ensureAdminSchema();
 			await query("BEGIN");
 
 			// Seed core system tables
@@ -1039,6 +1045,29 @@ export const dbHelper = {
 				ON EmployeeClockIn(employee_id, clock_in) WHERE pay_deduction > 0;
 			CREATE INDEX IF NOT EXISTS idx_employee_need_clock_in
 				ON Employee(need_clock_in, is_active);
+		`);
+	},
+
+	/**
+	 * Additive schema required by the Admin specs (Phase 6.12).
+	 *
+	 * Same rationale as `ensureReportsSchema`: `initDB()` only runs when the
+	 * database is first created, so a pre-existing `HMS_test` needs the new
+	 * columns added explicitly.
+	 *
+	 * Deliberately limited to columns + indexes. The `System` role row is
+	 * seeded by `seedRoles()` — the production `ensureAdminSchema()` bootstraps
+	 * it when missing, and doing that here too would create a duplicate.
+	 */
+	async ensureAdminSchema(): Promise<void> {
+		await query(`
+			ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_active  BOOLEAN NOT NULL DEFAULT TRUE;
+			ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+			ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+			ALTER TABLE Role   ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+			CREATE INDEX IF NOT EXISTS idx_user_role_id   ON "User"(role_id);
+			CREATE INDEX IF NOT EXISTS idx_user_is_active ON "User"(is_active);
+			CREATE INDEX IF NOT EXISTS idx_user_is_system ON "User"(is_system);
 		`);
 	},
 

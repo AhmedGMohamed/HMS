@@ -4,22 +4,25 @@ import { usePermission } from "@/hooks/usePermission"
 import { toast } from "sonner"
 
 /**
- * Admin-only gate. Mirrors the server's `adminOnly` middleware — exact
- * `user.role === 'Admin'` check, no permission fallback.
+ * Admin-only gate. Mirrors the server's `adminOnly` middleware, which now
+ * accepts any privileged role (`Admin` and the automation `System` role).
+ *
+ * `PermissionRoute` already handles `{ mode: "admin" }` for `/admin/*`; this
+ * inner gate is defense in depth.
  */
 export function AdminRoute() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAdmin } = usePermission()
+  const { isPrivileged } = usePermission()
 
   useEffect(() => {
-    if (isAdmin()) return
+    if (isPrivileged()) return
     navigate("/dashboard", { replace: true })
     toast.warning("adminOnly", {
       description: "That page is restricted to administrators.",
     })
-  }, [isAdmin, navigate, location.pathname])
+  }, [isPrivileged, navigate, location.pathname])
 
-  if (!isAdmin()) return null
+  if (!isPrivileged()) return null
   return <Outlet />
 }

@@ -18,6 +18,7 @@
 
 import { Request, Response } from "express";
 
+import { isPrivilegedRole } from "../utils/roles.js";
 import OptionsReportModel from "../models/reports/OptionsReport.model.js";
 import DoctorReportModel, {
 	DOCTOR_PATIENT_SORT_COLUMNS,
@@ -62,20 +63,20 @@ import {
 
 export { NotFoundError };
 
-/** Admin bypass mirrors `auth.middleware.checkPermissions`. */
+/** Privileged-role bypass mirrors `auth.middleware.checkPermissions`. */
 export function userHasPermission(req: Request, permission: string): boolean {
 	if (!req.user) return false;
-	if (req.user.role === "Admin") return true;
+	if (isPrivilegedRole(req.user.role)) return true;
 	return req.user.permissions.includes(permission);
 }
 
-/** Admin bypass for an "all of these" check. */
+/** Privileged-role bypass for an "all of these" check. */
 export function userHasAllPermissions(
 	req: Request,
 	permissions: string[]
 ): boolean {
 	if (!req.user) return false;
-	if (req.user.role === "Admin") return true;
+	if (isPrivilegedRole(req.user.role)) return true;
 	return permissions.every((permission) =>
 		req.user!.permissions.includes(permission)
 	);

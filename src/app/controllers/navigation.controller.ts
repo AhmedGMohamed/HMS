@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { isPrivilegedRole } from "../utils/roles.js";
 
 interface NavigationItem {
 	id: string;
@@ -226,7 +227,7 @@ export class NavigationController {
 	}
 
 	private hasPermission(user: any, permission: string): boolean {
-		if (user.role === "Admin") return true;
+		if (isPrivilegedRole(user.role)) return true;
 		return user.permissions && user.permissions.includes(permission);
 	}
 }

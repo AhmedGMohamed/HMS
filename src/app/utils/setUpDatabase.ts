@@ -50,7 +50,8 @@ export async function initDB() {
 		-- Core tables
 		CREATE TABLE IF NOT EXISTS Role (
 			role_id SERIAL PRIMARY KEY,
-			name VARCHAR(255) NOT NULL
+			name VARCHAR(255) NOT NULL,
+			is_system BOOLEAN NOT NULL DEFAULT FALSE
 		);
 		CREATE TABLE IF NOT EXISTS Permission (
 			permission_id SERIAL PRIMARY KEY,
@@ -62,6 +63,9 @@ export async function initDB() {
 			username VARCHAR(255) UNIQUE NOT NULL,
 			password_hash VARCHAR(255) NOT NULL,
 			role_id INTEGER REFERENCES Role(role_id),
+			is_active BOOLEAN NOT NULL DEFAULT TRUE,
+			is_system BOOLEAN NOT NULL DEFAULT FALSE,
+			last_login TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS RolePermission (
@@ -803,21 +807,24 @@ export async function initDB() {
 			),
 			('view_reports', 'Can view facility reports'),
 			('view_only', 'Can only view records');
-		INSERT INTO Role (name)
-		VALUES ('Admin');
+		INSERT INTO Role (name, is_system)
+		VALUES ('Admin', FALSE),
+			('System', TRUE);
 		INSERT INTO RolePermission (role_id, permission_id)
 		VALUES (1, 14),
 			(1, 15);
-		INSERT INTO "User" (username, password_hash, role_id)
+		INSERT INTO "User" (username, password_hash, role_id, is_system)
 		VALUES (
 				'admin',
 				'$2a$10$5wtO8QuMZ3X62mmnwXzyXu3ZPKeSxJsafylPqLVLQG8dpTOxR0PdO',
-				1
+				1,
+				FALSE
 			),
 			(
 				'system',
 				'$2a$10$yYxnEDZ6MLLzxXHn/T.ba.mm/F.9drU/l0E6QbPi/l72KSp7dciuS',
-				1
+				2,
+				TRUE
 			);
 		INSERT INTO PriceList (name, is_default)
 		VALUES ('Default', TRUE);
@@ -826,4 +833,57 @@ export async function initDB() {
 		SET timezone TO 'Africa/Cairo';
 		SET TIME ZONE 'Africa/Cairo';
 `);
+}
+
+/**
+ * Brings an existing database up to the Phase 6.12 admin schema.
+ *
+ * `initDB()` runs only when the database is first *created*, so every
+ * pre-existing install would otherwise miss these columns forever. Every
+ * statement here is idempotent and safe to run on every boot; the caller
+ * (`src/app/index.ts`) invokes it unconditionally right after
+ * `createDBIfNotExists`.
+ *
+ * The `LOWER(name)` matching below is a one-time bootstrap affordance: it
+ * promotes an already-present role literally named "System", otherwise creates
+ * it. After that, `Role.is_system` is authoritative and the name is never
+ * consulted again.
+ */
+export async function ensureAdminSchema() {
+	return await query(`
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_active  BOOLEAN NOT NULL DEFAULT TRUE;
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+		ALTER TABLE Role   ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+
+		-- Bootstrap the System role (automation principal) if it is missing.
+		UPDATE Role
+		   SET is_system = TRUE
+		 WHERE LOWER(name) = 'system'
+		   AND is_system = FALSE;
+
+		INSERT INTO Role (name, is_system)
+		SELECT 'System', TRUE
+		 WHERE NOT EXISTS (
+			SELECT 1 FROM Role WHERE LOWER(name) = 'system'
+		 );
+
+		-- Move the automation account off the Admin role and onto System.
+		UPDATE "User"
+		   SET is_system = TRUE
+		 WHERE username = 'system';
+
+		UPDATE "User"
+		   SET role_id = (
+				SELECT role_id FROM Role WHERE is_system = TRUE ORDER BY role_id LIMIT 1
+			   )
+		 WHERE is_system = TRUE
+		   AND role_id IS DISTINCT FROM (
+				SELECT role_id FROM Role WHERE is_system = TRUE ORDER BY role_id LIMIT 1
+			   );
+
+		CREATE INDEX IF NOT EXISTS idx_user_role_id   ON "User"(role_id);
+		CREATE INDEX IF NOT EXISTS idx_user_is_active ON "User"(is_active);
+		CREATE INDEX IF NOT EXISTS idx_user_is_system ON "User"(is_system);
+	`);
 }

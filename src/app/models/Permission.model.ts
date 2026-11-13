@@ -1,5 +1,5 @@
 // src/app/models/Permission.model.ts
-import { query } from "./database/connection.js";
+import { query, withTransaction } from "./database/connection.js";
 import { Permission, CreatePermissionDTO, UpdatePermissionDTO } from "../utils/types/users.js";
 
 export class PermissionModel {
@@ -88,11 +88,9 @@ export class PermissionModel {
 	}
 
 	async deletePermission(permissionId: number): Promise<void> {
-		try {
-			await query("BEGIN");
-
+		await withTransaction(async (client) => {
 			// Check if permission is assigned to any roles
-			const rolePermissions = await query(
+			const rolePermissions = await client.query(
 				"SELECT role_id FROM RolePermission WHERE permission_id = $1",
 				[permissionId]
 			);
@@ -103,7 +101,7 @@ export class PermissionModel {
 				);
 			}
 
-			const result = await query(
+			const result = await client.query(
 				"DELETE FROM Permission WHERE permission_id = $1 RETURNING *",
 				[permissionId]
 			);
@@ -111,12 +109,7 @@ export class PermissionModel {
 			if (result.rows.length === 0) {
 				throw new Error("Permission not found");
 			}
-
-			await query("COMMIT");
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async getPermissionById(permissionId: number): Promise<Permission | null> {

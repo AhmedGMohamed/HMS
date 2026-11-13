@@ -143,6 +143,58 @@ describe("RoleModel", () => {
 				roleModel.updateRole(updateData)
 			).toBeRejectedWithError("Role name already exists");
 		});
+
+		it("should reject renaming a privileged role", async () => {
+			await expectAsync(
+				roleModel.updateRole({
+					role_id: insertedData.roles[0].role_id,
+					name: "Super Admin"
+				})
+			).toBeRejectedWithError(
+				"This role is referenced by the system and cannot be renamed or deleted"
+			);
+		});
+
+		it("should reject any change to the system role", async () => {
+			const systemRole = insertedData.roles.find((r) => r.is_system)!;
+
+			await expectAsync(
+				roleModel.updateRole({
+					role_id: systemRole.role_id,
+					permissions: {
+						add: [insertedData.permissions[0].permission_id]
+					}
+				})
+			).toBeRejectedWithError("System role cannot be modified");
+		});
+
+		it("should still allow editing a privileged role's permissions", async () => {
+			// Admin is protected by name only for rename/delete — its
+			// permission set stays editable.
+			const result = await roleModel.updateRole({
+				role_id: insertedData.roles[0].role_id,
+				permissions: {
+					add: [insertedData.permissions[2].permission_id]
+				}
+			});
+
+			expect(
+				result.permissions.some(
+					(p) =>
+						p.permission_id ===
+						insertedData.permissions[2].permission_id
+				)
+			).toBeTrue();
+		});
+
+		it("should allow renaming a normal role to a new name", async () => {
+			const result = await roleModel.updateRole({
+				role_id: insertedData.roles[2].role_id,
+				name: "Restricted User"
+			});
+
+			expect(result.name).toBe("Restricted User");
+		});
 	});
 
 	describe("deleteRole", () => {
@@ -160,12 +212,30 @@ describe("RoleModel", () => {
 		});
 
 		it("should reject deleting role assigned to users", async () => {
-			// Try to delete Admin role which has users
+			// `User` is non-privileged but has an account assigned.
 			await expectAsync(
-				roleModel.deleteRole(insertedData.roles[0].role_id)
+				roleModel.deleteRole(insertedData.roles[1].role_id)
 			).toBeRejectedWithError(
 				"Cannot delete role: role is assigned to users"
 			);
+		});
+
+		it("should reject deleting a privileged role by name", async () => {
+			// `Admin` is a code contract for `isPrivilegedRole`; deleting or
+			// renaming it would silently break every authorization gate.
+			await expectAsync(
+				roleModel.deleteRole(insertedData.roles[0].role_id)
+			).toBeRejectedWithError(
+				"This role is referenced by the system and cannot be renamed or deleted"
+			);
+		});
+
+		it("should reject deleting the system role", async () => {
+			const systemRole = insertedData.roles.find((r) => r.is_system)!;
+
+			await expectAsync(
+				roleModel.deleteRole(systemRole.role_id)
+			).toBeRejectedWithError("System role cannot be modified");
 		});
 
 		it("should reject deleting non-existent role", async () => {
@@ -214,6 +284,39 @@ describe("RoleModel", () => {
 
 			expect(noPermRole).toBeDefined();
 			expect(noPermRole?.permissions).toEqual([]);
+		});
+
+		it("should hide system roles", async () => {
+			const roles = await roleModel.getAllRoles();
+
+			expect(roles.some((r) => r.is_system)).toBeFalse();
+			expect(roles.some((r) => r.name === "System")).toBeFalse();
+		});
+
+		it("should expose is_system as false on normal roles", async () => {
+			const roles = await roleModel.getAllRoles();
+			const admin = roles.find((r) => r.name === "Admin")!;
+
+			expect(admin.is_system).toBeFalse();
+		});
+
+		it("should return user_count as a number and exclude system accounts", async () => {
+			const roles = await roleModel.getAllRoles();
+			const admin = roles.find((r) => r.name === "Admin")!;
+
+			// `admin` is the only human account on Admin; `system` shares the
+			// Admin role in nothing — it sits on the System role — but the
+			// exclusion is asserted explicitly for clarity.
+			expect(typeof admin.user_count).toBe("number");
+			expect(admin.user_count).toBe(1);
+		});
+
+		it("should order permissions deterministically by feature_name", async () => {
+			const roles = await roleModel.getAllRoles();
+			const admin = roles.find((r) => r.name === "Admin")!;
+			const names = admin.permissions.map((p) => p.feature_name);
+
+			expect(names).toEqual([...names].sort());
 		});
 	});
 
@@ -345,8 +448,10 @@ describe("RoleModel", () => {
 			const result = await roleModel.syncRolePermissions(syncData);
 
 			expect(result.length).toBe(2);
-			expect(result.map((p) => p.permission_id)).toEqual(
-				syncData.permission_ids
+			// The endpoint returns the role's permissions ordered by
+			// `feature_name` (stable, deterministic), not in request order.
+			expect(result.map((p) => p.permission_id).sort((a, b) => a - b)).toEqual(
+				[...syncData.permission_ids].sort((a, b) => a - b)
 			);
 		});
 
