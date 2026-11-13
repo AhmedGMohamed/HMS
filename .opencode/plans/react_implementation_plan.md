@@ -971,6 +971,38 @@ Reports/types/ (one file per report type, code-split via React.lazy):
   All chart instances are lazy via `React.lazy()` and wrapped in `<Suspense>` with a `<Skeleton>` fallback so the Reports bundle stays lean.
 ```
 
+**As built (Phase 6.11 — complete).** The sketch above was a guess made before the
+legacy `reports.ts` was read. What shipped:
+
+- **Six tabs**, not the six guessed report types: Patients, Doctors, Nurses,
+  Statistics, Employee Payments (payroll), Clock-In. Medical Supplies is *not*
+  part of this page.
+- **`ReportShell.tsx`** plays the role sketched as `ReportLayout.tsx`: heading +
+  Generate + export buttons + filter card + stale strip + large-export strip +
+  body + generated-metadata footer. It is shared, not per-tab.
+- **A purpose-built backend** rather than the legacy `/api/reports/*`. The legacy
+  controller, models and `/reports` HTML page were left untouched (Phase 7
+  removes them). New surface, all `GET`, all under `/api/reports/v2`:
+  `options`; `patients`, `patients/export`, `patients/:patientId`;
+  `doctors`, `doctors/export`, `doctors/:doctorId`;
+  `nurses`, `nurses/export`, `nurses/:nurseId`;
+  `statistics`, `statistics/export`;
+  `employee-payments`, `employee-payments/export`,
+  `employee-payments/:employeeId`, `employee-payments/:employeeId/payments/:paymentId`;
+  `clock-ins`, `clock-ins/export`, `clock-ins/:employeeId`.
+- **Exports are server-fed, client-built**: dedicated `*/export` endpoints return
+  the full unpaginated document; the client renders PDF with `pdfmake` and CSV
+  with a hand-written writer. There is no `usePDF()` and no browser print path.
+  The clock-in PDF is **landscape**; every other document is portrait.
+- **Permissions**: page and list/detail reads need `view_reports`; exports and
+  the detail-print actions additionally need `manage_reports`. Payroll endpoints
+  need `manage_employees` too, and `options` only lists employees for a caller
+  who holds it.
+- **Design record**: `.opencode/plans/phase_6.11_implementation.md` holds the
+  per-subphase build notes, the contract list (1–63) and the surface map. Read
+  that file before changing any Reports code — most of its rules exist because
+  something broke once.
+
 ---
 
 #### 6.12 Admin — Users & Roles

@@ -112,10 +112,13 @@ const INITIAL_PATIENT_PAGING: NurseQueryPaging = {
   sort: { columnId: "name", direction: "asc" },
 }
 
-/** Report-type values encode the scope; there is no relationship dimension. */
+/**
+ * Report-type values encode the scope; there is no relationship dimension.
+ * `labelKey` holds the full key — see the same note in `DoctorReportTab`.
+ */
 const REPORT_TYPE_OPTIONS = [
-  { value: "all-nurses", scope: "all", labelKey: "allNurses" },
-  { value: "specific-nurse", scope: "specific", labelKey: "specificNurse" },
+  { value: "all-nurses", scope: "all", labelKey: "reports.nurseReports.types.allNurses" },
+  { value: "specific-nurse", scope: "specific", labelKey: "reports.nurseReports.types.specificNurse" },
 ] as const satisfies ReadonlyArray<{
   value: string
   scope: ReportScope
@@ -464,6 +467,7 @@ export function NurseReportTab({
         exportDisabled={exportDisabled}
         exportDisabledReason={exportDisabled ? exportDisabledReason : undefined}
         exporting={exporting}
+        exportRowCount={payload?.total}
         meta={
           payload
             ? [period, t("reports.state.records", { count: payload.total })].join(
@@ -484,7 +488,7 @@ export function NurseReportTab({
               value={reportTypeValue}
               options={REPORT_TYPE_OPTIONS.map((option) => ({
                 value: option.value,
-                label: t(`reports.nurseReports.types.${option.labelKey}`),
+                label: t(option.labelKey),
               }))}
               onChange={handleReportTypeChange}
             />

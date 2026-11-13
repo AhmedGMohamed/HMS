@@ -409,6 +409,7 @@ export function EmployeePaymentsTab({
         exportDisabled={exportDisabled}
         exportDisabledReason={exportDisabled ? exportDisabledReason : undefined}
         exporting={exporting}
+        exportRowCount={payload?.total}
         meta={
           payload
             ? [
