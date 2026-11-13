@@ -100,13 +100,15 @@ export function PermissionGrid({
                 // take focus where the user expects it (on the checkbox).
                 onClick={(event) => {
                   if (disabled) return
-                  // The checkbox handles its own clicks; without this guard the
-                  // bubble would toggle it straight back.
-                  if (
-                    (event.target as HTMLElement).closest('[role="checkbox"]')
-                  ) {
-                    return
-                  }
+                  // Radix mirrors the checkbox into a hidden `input` that sits
+                  // *beside* the button, and dispatches a bubbling synthetic
+                  // `click` on it every time `checked` flips. That click lands
+                  // here with `target` set to the input — toggling again would
+                  // flip the value straight back, re-arm the same dispatch and
+                  // loop forever ("Maximum update depth exceeded"). So ignore
+                  // anything that is not the tile's own text.
+                  const target = event.target as HTMLElement
+                  if (target.closest('[role="checkbox"], input')) return
                   toggle(permission.permissionId, !checked)
                 }}
                 className={cn(
