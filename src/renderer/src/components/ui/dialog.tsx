@@ -51,19 +51,45 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  /**
+   * Radix restores focus to a `DialogTrigger`. Most dialogs in this app have no
+   * trigger — the thing that opened them is a table row (or a button inside a
+   * row) — so closing used to drop focus on `<body>` and a keyboard user had to
+   * tab in from the top of the page again. Capturing the active element as the
+   * content takes focus, and restoring it on close, fixes every dialog at once.
+   */
+  const returnFocusRef = React.useRef<HTMLElement | null>(null)
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        aria-modal="true"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
+        onOpenAutoFocus={(event) => {
+          const active = document.activeElement
+          if (active instanceof HTMLElement && active !== document.body) {
+            returnFocusRef.current = active
+          }
+          onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocusRef.current
+          onCloseAutoFocus?.(event)
+          if (event.defaultPrevented || !target?.isConnected) return
+          event.preventDefault()
+          target.focus()
+        }}
         {...props}
       >
         {children}

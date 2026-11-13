@@ -1280,7 +1280,7 @@ Live Playwright pass (**62/62**, Admin JWT, Express :3000 + Vite :5173, EN + AR)
 
 ---
 
-## 14. Quick reference — surface map (6.11.0 → 6.11.6)
+## 14. Quick reference — surface map (6.11.0 → 6.11.7)
 
 | Surface | File |
 |---|---|
@@ -1307,6 +1307,10 @@ Live Playwright pass (**62/62**, Admin JWT, Express :3000 + Vite :5173, EN + AR)
 | Clock-in charts + snapshot slots | `clockIns/ClockInCharts.tsx` + `clockIns/clockInChartSnapshot.ts` |
 | Clock-in exports (landscape summary → charts → index → per-employee) | `export/pdf/buildClockInReportPdf.ts`, `export/csv/exportClockInReportCsv.ts` |
 | Shared clock status (`late`/`early`/`incomplete`) | `models/reports/shared.ts` (`clockStatusFor`, contract 51) |
+| Shared report shell (+ large-export strip) | `pages/Reports/components/ReportShell.tsx` |
+| Keyboard row activation (contract 63) | `src/renderer/src/components/common/DataTable.tsx` |
+| Dialog `aria-modal` + focus restore (contract 64) | `src/renderer/src/components/ui/dialog.tsx` |
+| Large-export threshold + server log (contract 65) | `ReportShell.tsx` (`EXPORT_ROW_WARNING_THRESHOLD`) + `controllers/reportV2.controller.ts` (`warnIfLargeExport`, `countStatisticsExportRows`) |
 | Session cache + in-flight dedupe | `pages/Reports/state/useReportSession.ts` (`read`/`write`/`clear`/`fetchOnce`) |
 | Chart animation switch (contract 49) | `src/renderer/src/components/charts/chartAnimation.ts` + `ChartSnapshotSurface.tsx` |
 | Chart bitmap capture (geometry wait) | `src/renderer/src/lib/chartSnapshot.ts` |
@@ -1317,3 +1321,230 @@ Live Playwright pass (**62/62**, Admin JWT, Express :3000 + Vite :5173, EN + AR)
 | Legacy (untouched until Phase 7) | `src/app/views/reports/*`, `src/app/models/Report.model.ts`, `src/app/controllers/Report.controller.ts`, `src/app/routes/report.routes.ts` |
 | Plan | `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md` |
 | This record | `.opencode/plans/phase_6.11_implementation.md` |
+
+---
+
+## 15. 6.11.7 — Hardening, i18n audit, documentation (as built)
+
+Closes Phase 6.11. No new feature work: the tab code, models and exports are
+unchanged except where the four audits below found something wrong.
+
+### 15.1 What shipped
+
+**i18n audit.** `npm run check-i18n:renderer` went from **1624 keys used / 42
+missing / 1515 unused** to **1625 / 26 / 1201**.
+
+- 149 dead `reports.*` keys were pruned from `reports.en.json` +
+  `reports.ar.json` only (185-line diff each, CRLF + 2-space formatting
+  preserved byte-for-byte, empty parent objects removed bottom-up).
+- The 42 "missing" keys were **16 false positives + 26 pre-existing misses in
+  other features**. The 16 were the doctor/nurse report-type option suffixes:
+  the checker's static-key regex reads `labelKey: "…"` as a **complete** key, so
+  a suffix like `allReferring` was reported missing while the real key was
+  reported unused. Both option arrays now carry full keys
+  (`reports.doctorReports.types.*`) and the call sites are `t(option.labelKey)`.
+  Contract 66.
+- The 26 remaining misses (`common.record`, `patients.*`,
+  `medicalSupplies.*`, `employees.servicePrices`) belong to other features and
+  were **documented, not fixed**.
+- Legacy `src/app/views/locales/*.json` was **not** pruned. The legacy checker
+  cannot see `showSuccess("reports.messages.…")` calls, so its unused list is
+  unreliable there; that surface dies in Phase 7 anyway. Its 27/28 "missing"
+  are 26 `${…}` template-literal artifacts plus `"{"` from `dashboard.html`.
+
+**Accessibility.** Three fixes, each in one shared component rather than five
+copies:
+
+- `components/common/DataTable.tsx` — a clickable row is a control: `tabIndex=0`,
+  Enter/Space activation, `focus-visible` inset ring. `role` stays `row`.
+  Contract 63.
+- `components/ui/dialog.tsx` — `aria-modal="true"`, plus capture of
+  `document.activeElement` on open and restore on close. Radix only restores to
+  a `DialogTrigger`, and every Reports dialog is opened by a table row, so
+  closing used to drop focus on `<body>`. Contract 64.
+- Verified unchanged: the chart `sr-only` table wrapper, labelled filter
+  controls, Radix's roving tabindex (the **list** is the tab stop, every trigger
+  is `-1` — that is correct, not a bug).
+
+**Large-export warning.** Plan §3.7 requires a server log above 5,000 rows and a
+UI warning; neither existed.
+
+- Client: `ReportShell` gained an optional `exportRowCount` and renders a
+  `role="status"` strip above the body when it exceeds
+  `EXPORT_ROW_WARNING_THRESHOLD`. Each tab passes the rows its document will lay
+  out — `payload.total` for the five entity reports,
+  `payload.summary.totalClockIns` for clock-in (the document prints one record
+  per **session**), and the sum of all seven series for statistics (it has no
+  total).
+- Server: `warnIfLargeExport(label, rowCount)` + `countStatisticsExportRows` in
+  `reportV2.controller.ts`, called from all six `export*` handlers. It logs; it
+  never truncates. Contract 65.
+- i18n: `reports.state.largeExport` in both locales.
+
+**Documentation.** `react_implementation_plan.md` §6.11 now carries an "As
+built" block with the real endpoint list and the deviations from the original
+sketch. Phase 7 checklist is in §15.5 below — **not executed**.
+
+### 15.2 Contracts that 6.11.7 added (continues 13.2)
+
+| # | Contract |
+|---|---|
+| 63 | **A clickable table row is a keyboard control.** `onRowClick` implies `tabIndex=0`, Enter/Space activation and a `focus-visible` ring. The handler must bail when `event.target !== event.currentTarget`, or pressing Enter on a button inside the row fires the row too. `role` stays `row` — a `<tr>` turned into a button loses the table semantics that make its columns readable. |
+| 64 | **A dialog with no trigger must restore focus itself.** Radix restores focus to a `DialogTrigger`; every Reports dialog is opened by a row or a button inside one, so `DialogContent` captures `document.activeElement` on open and restores it on close, and sets `aria-modal`. A consumer's `onCloseAutoFocus` that calls `preventDefault` still wins. |
+| 65 | **Exports are uncapped, so the warning is a threshold, not a limit.** `> 5000` (not `>=`), shared by the client strip and the server log. The count is *rows the document lays out*: sessions for clock-in, the series sum for statistics, the entity count elsewhere. Truncating would silently change a legal document. |
+| 66 | **`labelKey` holds a full key.** The i18n checker's static-key regex reads `labelKey: "…"` as a complete key, so a bare suffix (`allReferring`) is reported missing while its real key is reported unused. Option arrays must carry `reports.<tab>.types.<suffix>` and call `t(option.labelKey)`. |
+
+### 15.3 Performance (dev dataset)
+
+Measured with `pg.Pool.prototype.query` patched, so the counts are statements
+actually issued, including the `Promise.all` groups. Single cold call each,
+against the dev database (2 patients, 2 employees, 340 clock-in sessions, 997
+payment rows).
+
+| Surface | Statements | Latency | Documented |
+|---|---|---|---|
+| clock-ins list | **2** | 79 ms | 2 (+1 assignments) |
+| clock-ins detail | **3** | 57 ms | 3 |
+| clock-ins export | **3** | 5 ms | 3 |
+| patients list | **2** | 4 ms | 2 |
+| patients export | **5** | 7 ms | 5 |
+| doctors list / export | **2 / 2** | 2 / 2 ms | 2 / 2 (+N when `include_admissions`) |
+| nurses list / export | **2 / 4** | 1.5 / 3 ms | 2 / 4 |
+| statistics (view and export) | **7 / 7** | 86 / 3 ms | 7 |
+| employee payments list / export | **4 / 6** | 9 / 35 ms | 4 / 6 |
+
+No N+1 anywhere: every "per row" section (patient admissions, doctor patients,
+nurse assignments, payroll associations, clock-in records) is one statement
+fetched with `ANY(ids)` and grouped in JS. The two slowest numbers are not SQL:
+clock-in list aggregates 340 sessions × 102 synthesized days in TS (contract
+51), statistics runs seven independent aggregates over the whole range.
+
+Bundle split (`npm run build:renderer`):
+
+| Chunk | Raw | Gzip |
+|---|---|---|
+| `ReportsPage-*.js` | 218.24 kB | 50.44 kB |
+| `charts-*.js` (Recharts, shared by all charts) | 395.56 kB | 113.86 kB |
+| `index-*.js` | 439.67 kB | 137.02 kB |
+
+### 15.4 Verification
+
+| Gate | Command | Result |
+|---|---|---|
+| Backend specs (all v2) | `$env:NODE_ENV="test"; npx jasmine --filter="ReportV2Controller"` | **73/73** (69 + 4 new warning specs) |
+| Backend specs (large export) | `--filter="large export warning"` | **4/4** |
+| Backend types | `npx tsc -p ./src/app/tsconfig.json` | No `ReportV2.controller` / spec errors |
+| Renderer unit | `npx vitest run --config src/renderer/vitest.config.ts` | **91/91** (9 files; +5 `reportShellExportWarning.spec.tsx`) |
+| Renderer types | `npx tsc -p src/renderer/tsconfig.json --noEmit` | Only the 5 pre-existing `pages/Employees` errors (§6) |
+| Lint | `npx eslint` on every touched file | Clean |
+| Bundle | `npm run build:renderer` | OK |
+| i18n (renderer) | `npm run check-i18n:renderer` | **1625 used / 26 missing / 1201 unused** — no Reports key missing, `largeExport` neither missing nor unused |
+| i18n (legacy) | `npm run check-i18n:legacy` | 27/28 missing (26 template artifacts), 303/301 unused — nothing actionable, surface dies in Phase 7 |
+
+Per-tab live gates, re-run after the accessibility changes (Admin JWT, Express
+:3000 + Vite :5173, EN + AR):
+
+| Tab | Checks |
+|---|---|
+| Clock-in | **62/62** |
+| Employee payments | **47/47** |
+| Statistics | **46/46** |
+| Nurses | **35/35** |
+| Doctors | **29/29** |
+
+Those five scripts lived in the session temp folder and were lost when the
+workspace was cleared, so the export-warning change was verified with one
+consolidated gate instead (**89/89**): 6 tabs × 2 locales for raw-key / `NaN` /
+`$`-amount / no-false-warning / heading, plus the a11y sweep (tablist, arrow
+keys, row focus, Enter, Escape, focus return, `sr` tables, labelled controls,
+AR dialog RTL, charts LTR) and the 12 report-type-select checks.
+
+**Permission matrix (28/28)** — `GET`, cookie auth, four identities:
+
+| Endpoint | Admin | `view_reports` | + `manage_reports` | none |
+|---|---|---|---|---|
+| `patients`, `clock-ins`, `options` | 200 | **200** | 200 | 403 |
+| `patients/export`, `clock-ins/export` | 200 | **403** | 200 | 403 |
+| `employee-payments` (+ `/export`) | 200 | 403 | **403** (needs `manage_employees`) | 403 |
+
+**PDF/CSV spot check (16/16)**:
+
+- `patient-report_2026-01-01_2026-12-31.csv` — 75 lines, sectioned, no `$`, no
+  `NaN`;
+- `clock-in-report_2026-01-01_2026-12-31.csv` — 367 lines, same checks;
+- patient PDF **68,526 bytes**, `%PDF-1.3`, `pageOrientation: portrait`;
+- clock-in PDF **145,708 bytes**, `%PDF-1.3`, `pageOrientation: landscape`;
+- no error toast on either export.
+
+Both PDFs were built in-page (`api.export*` → `*DocContent` →
+`buildPdfShellDoc` → `getBuffer`) because `openPdfShellDoc` calls `doc.open()`,
+which is a separate window, not a browser download — so there is no `download`
+event to capture.
+
+### 15.5 Phase 7 cleanup checklist (do not execute)
+
+Ordered so each step is independently revertible. Nothing below is done.
+
+1. **Delete the legacy reports surface.** `src/app/views/reports/*` (html, css,
+   `js/reports/reports.ts`), `src/app/models/Report.model.ts`,
+   `src/app/controllers/Report.controller.ts`, `src/app/routes/report.routes.ts`,
+   and the `/reports` page route in `page.routes.ts`.
+2. **Unmount the legacy API.** Remove the `/reports` mount in
+   `api.routes.ts`; keep `/reports/v2` (rename to `/reports` only if a versioned
+   client no longer matters — otherwise leave the `/v2` segment alone).
+3. **Delete the legacy locale keys.** Once step 1 is gone, prune
+   `reports.*` from `src/app/views/locales/{en,ar}.json`. Re-run
+   `npm run check-i18n:legacy` afterwards; the 26 template-literal artifacts
+   disappear with the files that produced them.
+4. **Delete the dead renderer keys the checker still cannot see.** 1,201
+   "potentially unused" keys remain, 804 of them outside `reports`. They are
+   *not* provably dead — the checker cannot see template literals or
+   `labelKey` indirection. Prune per namespace with a dynamic-prefix proof (the
+   method used for the 149 reports keys), never by trusting the raw list.
+5. **Retire the dual reports test suites.** Keep
+   `ReportV2.*.spec.ts`; delete any legacy report spec.
+6. **Move the plan records.** `C:\Users\gamal\.opencode\plan\phase_6.11_plan.md`
+   is outside the repo. Either copy it into `.opencode/plans/` or leave §14/§15
+   as the authoritative record.
+7. **Re-check the `$` guard.** Dev seed data contains names with `$`,
+   `#set(...)` and `chr(...)`; every "no dollar amount" assertion must stay
+   `/\$\s?\d/`, not `includes("$")`.
+8. **Do not "fix" the tab roving tabindex.** `TabsList` is the single tab stop
+   and every `TabsTrigger` is `tabindex="-1"` by design (contract 63's
+   neighbour). A sweep that "adds" `tabIndex={0}` to each trigger would create
+   six tab stops per page.
+9. **`AttendanceStatusBadge` and `STATUS_COLORS` must stay in sync.** Contract
+   61; a palette refactor in one file silently re-colours the other.
+10. **Keep the export warning threshold in one place per side.** If the server
+    constant moves, move the client one with it — they are documented as the
+    same number, and the client copy is what the user actually sees.
+
+### 15.6 Deviations from the plan for this subphase
+
+| Plan | As built | Why |
+|---|---|---|
+| "Prune dead legacy report keys that are not used elsewhere" | Pruned **renderer** keys only; legacy left alone | The legacy checker cannot see `showSuccess("…")` calls, so its unused list is unreliable; that surface is deleted in Phase 7 |
+| "Accessibility sweep: tables, dialogs, charts, focus, keyboard row activation, labels, RTL" | Fixed once in `DataTable` and `dialog.tsx` | Five dialogs and six tables share two components; per-tab copies would drift |
+| "Confirm export row warning" (as a check) | Built it first — it did not exist | Plan §3.7 required it and no subphase had implemented it |
+| Add missing edge-case specs | Added only the warning helpers (4 backend, 5 renderer) | Everything else was already covered; the 26 missing i18n keys belong to other features |
+| Measure "list/detail latency with seeded large data" | Measured on the dev dataset, cold | Seeding 5,000+ rows would rewrite the shared dev DB; statement counts are the invariant that matters and they are exact |
+
+**Notes found during the pass:**
+
+1. **The checker's `labelKey` regex is a trap.** It reads a bare suffix as a
+   full key, so the audit reported 16 missing keys and 16 unused keys that were
+   the same 16 keys. Contract 66.
+2. **Radix restores focus to `<body>` when there is no trigger.** Visible only
+   by tabbing into a row, pressing Enter, closing, and tabbing again — the page
+   scrolls to the top. Contract 64.
+3. **`document.body.innerText` contains `"reports.Patient"`** — the subtitle
+   ends with "…payroll reports." and the next tab label follows with no
+   separator. Any "no raw key" assertion must require two dot-separated
+   segments, or it fails on correct output.
+4. **`openPdfShellDoc` never fires a `download` event.** A Playwright
+   `waitForEvent("download")` on Export PDF hangs for the full timeout. Verify
+   the PDF through `getBuffer()` instead (§15.4).
+5. **`ReportShell` renders the warning strip even with no export handlers.** It
+   keys off `exportRowCount`, not on `onExportPdf` — deliberate, so a tab cannot
+   show a warning it cannot act on but also cannot *hide* a real one by
+   forgetting a prop.

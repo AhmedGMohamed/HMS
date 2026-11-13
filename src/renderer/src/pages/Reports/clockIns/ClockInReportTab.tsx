@@ -361,6 +361,12 @@ export function ClockInReportTab({
     ? { onExportPdf: handleExportPdf, onExportCsv: handleExportCsv }
     : {}
 
+  /**
+   * The export document prints one record per session, not one per employee, so
+   * sessions are the rows that drive build time.
+   */
+  const exportRowCount = payload?.summary.totalClockIns
+
   const employeeOptions = [
     { value: "", label: t("reports.filters.allEmployees") },
     ...employees.map((employee) => ({
@@ -382,6 +388,7 @@ export function ClockInReportTab({
         exportDisabled={exportDisabled}
         exportDisabledReason={exportDisabled ? exportDisabledReason : undefined}
         exporting={exporting}
+        exportRowCount={exportRowCount}
         meta={
           payload
             ? [period, t("reports.state.records", { count: payload.total })].join(

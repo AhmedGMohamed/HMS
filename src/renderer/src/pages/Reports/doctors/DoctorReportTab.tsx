@@ -116,14 +116,20 @@ const INITIAL_PATIENT_PAGING: DoctorQueryPaging = {
   sort: { columnId: "name", direction: "asc" },
 }
 
-/** Report-type values encode both halves of the choice in one select. */
+/**
+ * Report-type values encode both halves of the choice in one select.
+ *
+ * `labelKey` holds the **full** key, not a suffix: the i18n audit reads
+ * `labelKey: "…"` as a complete key, and a suffix would be reported missing
+ * while its real key was reported unused.
+ */
 const REPORT_TYPE_OPTIONS = [
-  { value: "all-referred", scope: "all", relationship: "referred", labelKey: "allReferring" },
-  { value: "specific-referred", scope: "specific", relationship: "referred", labelKey: "specificReferring" },
-  { value: "all-attended", scope: "all", relationship: "attended", labelKey: "allAttending" },
-  { value: "specific-attended", scope: "specific", relationship: "attended", labelKey: "specificAttending" },
-  { value: "all-supervised", scope: "all", relationship: "supervised", labelKey: "allSupervised" },
-  { value: "specific-supervised", scope: "specific", relationship: "supervised", labelKey: "specificSupervising" },
+  { value: "all-referred", scope: "all", relationship: "referred", labelKey: "reports.doctorReports.types.allReferring" },
+  { value: "specific-referred", scope: "specific", relationship: "referred", labelKey: "reports.doctorReports.types.specificReferring" },
+  { value: "all-attended", scope: "all", relationship: "attended", labelKey: "reports.doctorReports.types.allAttending" },
+  { value: "specific-attended", scope: "specific", relationship: "attended", labelKey: "reports.doctorReports.types.specificAttending" },
+  { value: "all-supervised", scope: "all", relationship: "supervised", labelKey: "reports.doctorReports.types.allSupervised" },
+  { value: "specific-supervised", scope: "specific", relationship: "supervised", labelKey: "reports.doctorReports.types.specificSupervising" },
 ] as const satisfies ReadonlyArray<{
   value: string
   scope: ReportScope
@@ -529,6 +535,7 @@ export function DoctorReportTab({
         exportDisabled={exportDisabled}
         exportDisabledReason={exportDisabled ? exportDisabledReason : undefined}
         exporting={exporting}
+        exportRowCount={payload?.total}
         meta={
           payload
             ? [period, t("reports.state.records", { count: payload.total })].join(
@@ -549,7 +556,7 @@ export function DoctorReportTab({
               value={reportTypeValue}
               options={REPORT_TYPE_OPTIONS.map((option) => ({
                 value: option.value,
-                label: t(`reports.doctorReports.types.${option.labelKey}`),
+                label: t(option.labelKey),
               }))}
               onChange={handleReportTypeChange}
             />

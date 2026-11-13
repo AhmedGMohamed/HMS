@@ -350,9 +350,31 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         className={cn(
                           "transition-colors hover:bg-primary-light/60",
                           clickable && "cursor-pointer",
+                          // A clickable row is a control, so it must also show
+                          // where the keyboard is (see `tabIndex` below).
+                          clickable &&
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
                           rowClassName?.(row)
                         )}
                         onClick={clickable ? () => onRowClick!(row) : undefined}
+                        // Mouse-only rows were unreachable by keyboard: the row
+                        // is the control, so it takes focus and answers
+                        // Enter/Space. `role` stays `row` — turning a `<tr>`
+                        // into a button would cost screen readers the table
+                        // semantics that make the columns readable.
+                        tabIndex={clickable ? 0 : undefined}
+                        onKeyDown={
+                          clickable
+                            ? (event) => {
+                                if (event.target !== event.currentTarget) return
+                                if (event.key !== "Enter" && event.key !== " ") {
+                                  return
+                                }
+                                event.preventDefault()
+                                onRowClick!(row)
+                              }
+                            : undefined
+                        }
                       >
                         {expandable ? (
                           <TableCell

@@ -7,8 +7,11 @@
 import type { Request, Response } from "express";
 
 import ReportV2Controller, {
+	EXPORT_ROW_WARNING_THRESHOLD,
+	countStatisticsExportRows,
 	userHasAllPermissions,
 	userHasPermission,
+	warnIfLargeExport,
 } from "../../controllers/ReportV2.controller.js";
 import OptionsReportModel from "../../models/reports/OptionsReport.model.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
@@ -180,5 +183,64 @@ describe("ReportV2Controller — permission helpers", () => {
 		expect(
 			userHasAllPermissions(req, ["view_reports", "manage_reports"])
 		).toBeFalse();
+	});
+});
+
+/**
+ * Plan §3.7 — exports are uncapped, so the server logs anything above the
+ * threshold and the client shows the same warning. The helper is pure, so it
+ * needs no database.
+ */
+describe("ReportV2Controller — large export warning", () => {
+	const originalWarn = console.warn;
+
+	afterEach(() => {
+		console.warn = originalWarn;
+	});
+
+	it("stays quiet at or below the threshold", () => {
+		const warn = jasmine.createSpy("warn");
+		console.warn = warn;
+
+		warnIfLargeExport("patients", 0);
+		warnIfLargeExport("patients", 1);
+		warnIfLargeExport("patients", EXPORT_ROW_WARNING_THRESHOLD);
+
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	it("warns above the threshold with the label and the count", () => {
+		const warn = jasmine.createSpy("warn");
+		console.warn = warn;
+
+		warnIfLargeExport("clock-ins", EXPORT_ROW_WARNING_THRESHOLD + 1);
+
+		expect(warn).toHaveBeenCalledTimes(1);
+		const message = String(warn.calls.mostRecent().args[0]);
+		expect(message).toContain("clock-ins");
+		expect(message).toContain(String(EXPORT_ROW_WARNING_THRESHOLD + 1));
+	});
+
+	it("ignores a non-finite row count instead of warning", () => {
+		const warn = jasmine.createSpy("warn");
+		console.warn = warn;
+
+		warnIfLargeExport("nurses", Number.NaN);
+
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	it("counts every statistics series, not just the first", () => {
+		const rows = countStatisticsExportRows({
+			patient_census: [1, 2],
+			revenue_trends: [1, 2, 3],
+			admission_discharge: [1],
+			average_stay: [],
+			top_services: [1, 2, 3, 4],
+			top_drugs: [1],
+			staff_utilization: [1, 2],
+		});
+
+		expect(rows).toBe(13);
 	});
 });

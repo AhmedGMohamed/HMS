@@ -45,6 +45,14 @@ export interface ReportShellProps {
   exportDisabledReason?: string
   /** Export currently running. */
   exporting?: "pdf" | "csv" | null
+  /**
+   * Rows the export document will contain, when the tab knows it.
+   *
+   * Above `EXPORT_ROW_WARNING_THRESHOLD` the shell shows a warning: the export
+   * re-fetches the whole filtered set and builds the document client-side, so a
+   * huge report takes a while and looks frozen.
+   */
+  exportRowCount?: number
   /** `true` when the form changed after the last Generate. */
   stale?: boolean
   /** Metadata strip (generated-at, range, record count). */
@@ -54,6 +62,12 @@ export interface ReportShellProps {
   children: ReactNode
   className?: string
 }
+
+/**
+ * Plan §3.7: exports have no hard cap, so the only defence is telling the user
+ * what they asked for. The server logs the same threshold.
+ */
+const EXPORT_ROW_WARNING_THRESHOLD = 5000
 
 export function ReportShell({
   title,
@@ -67,6 +81,7 @@ export function ReportShell({
   exportDisabled = false,
   exportDisabledReason,
   exporting = null,
+  exportRowCount,
   stale = false,
   meta,
   validationError,
@@ -173,6 +188,16 @@ export function ReportShell({
           className="rounded-md border border-warning/40 bg-warning-light px-3 py-2 text-xs text-text-primary"
         >
           {t("reports.state.stale")}
+        </div>
+      ) : null}
+
+      {exportRowCount !== undefined &&
+      exportRowCount > EXPORT_ROW_WARNING_THRESHOLD ? (
+        <div
+          role="status"
+          className="rounded-md border border-warning/40 bg-warning-light px-3 py-2 text-xs text-text-primary"
+        >
+          {t("reports.state.largeExport", { count: exportRowCount })}
         </div>
       ) : null}
 

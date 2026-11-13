@@ -323,6 +323,21 @@ export function StatisticsReportTab({
     </div>
   )
 
+  /**
+   * Statistics has no `total`: the export is the same document, so the figure
+   * that predicts build time is the number of table rows the PDF will lay out —
+   * every series, added up.
+   */
+  const exportRowCount = payload
+    ? payload.patientCensus.length +
+      payload.revenueTrends.length +
+      payload.admissionDischarge.length +
+      payload.averageStay.length +
+      payload.topServices.length +
+      payload.topDrugs.length +
+      payload.staffUtilization.length
+    : undefined
+
   return (
     <>
       <ReportShell
@@ -336,6 +351,7 @@ export function StatisticsReportTab({
         exportDisabled={exportDisabled}
         exportDisabledReason={exportDisabled ? exportDisabledReason : undefined}
         exporting={exporting}
+        exportRowCount={exportRowCount}
         meta={
           payload
             ? [

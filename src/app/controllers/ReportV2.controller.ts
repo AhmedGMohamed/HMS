@@ -100,6 +100,46 @@ export function sendError(
 	res.status(500).json({ error: `Failed to ${context}` });
 }
 
+/**
+ * Plan §3.7: exports are uncapped, so a huge report is allowed — it is just
+ * logged, and the client shows the same warning from `ReportShell`.
+ *
+ * This is the only server-side signal that an export was unusually expensive:
+ * the response itself carries no marker, because the document is the response.
+ */
+export const EXPORT_ROW_WARNING_THRESHOLD = 5000;
+
+export function warnIfLargeExport(label: string, rowCount: number): void {
+	if (!Number.isFinite(rowCount) || rowCount <= EXPORT_ROW_WARNING_THRESHOLD) {
+		return;
+	}
+	console.warn(
+		`Large report export: ${label} returned ${rowCount} rows ` +
+			`(threshold ${EXPORT_ROW_WARNING_THRESHOLD}).`
+	);
+}
+
+/** Total table rows a statistics document lays out (it has no single total). */
+export function countStatisticsExportRows(payload: {
+	patient_census: unknown[];
+	revenue_trends: unknown[];
+	admission_discharge: unknown[];
+	average_stay: unknown[];
+	top_services: unknown[];
+	top_drugs: unknown[];
+	staff_utilization: unknown[];
+}): number {
+	return (
+		payload.patient_census.length +
+		payload.revenue_trends.length +
+		payload.admission_discharge.length +
+		payload.average_stay.length +
+		payload.top_services.length +
+		payload.top_drugs.length +
+		payload.staff_utilization.length
+	);
+}
+
 export class ReportV2Controller {
 	/**
 	 * `GET /api/reports/v2/options`
@@ -185,6 +225,7 @@ export class ReportV2Controller {
 				...filters,
 				sort,
 			});
+			warnIfLargeExport("patients", payload.data.length);
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export patient report");
@@ -276,6 +317,7 @@ export class ReportV2Controller {
 				sort,
 				includeAdmissions,
 			});
+			warnIfLargeExport("doctors", payload.data.length);
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export doctor report");
@@ -355,6 +397,7 @@ export class ReportV2Controller {
 				...filters,
 				sort,
 			});
+			warnIfLargeExport("nurses", payload.data.length);
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export nurse report");
@@ -394,6 +437,7 @@ export class ReportV2Controller {
 			const payload = await StatisticsReportModel.exportStatistics(
 				parseStatisticsFilters(req.query)
 			);
+			warnIfLargeExport("statistics", countStatisticsExportRows(payload));
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export statistics report");
@@ -497,6 +541,7 @@ export class ReportV2Controller {
 				...filters,
 				sort,
 			});
+			warnIfLargeExport("employee payments", payload.data.length);
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export employee payments report");
@@ -564,6 +609,7 @@ export class ReportV2Controller {
 			const payload = await ClockInReportModel.exportClockIns(
 				parseClockInFilters(req.query)
 			);
+			warnIfLargeExport("clock-ins", payload.summary.total_clock_ins);
 			res.status(200).json(payload);
 		} catch (error) {
 			sendError(res, error, "export clock-in report");
