@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import { PageHeader } from "@/components/common/PageHeader"
+import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbLabel"
 import { Button } from "@/components/ui/button"
 import {
   Tabs,
@@ -90,6 +91,8 @@ export default function PatientDetailPage() {
   }
 
   const profile = usePatientProfile(patientId)
+
+  useBreadcrumbLabel(profile.patient?.name ?? null)
 
   /* ---- Print Bill (current admission) ----
      The page owns the dialog control so it doesn't matter which sub-
