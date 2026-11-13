@@ -1,4 +1,4 @@
-// src/app/tests/controllers/ReportV2.nurse.controller.spec.ts
+// src/app/tests/controllers/Reports.nurse.controller.spec.ts
 //
 // Phase 6.11.3 — nurse report controller. Covers the query contract
 // (snake_case params in, snake_case envelope out), the 400/404 paths and the
@@ -6,7 +6,7 @@
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import { query } from "../../models/database/connection.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
 
@@ -53,13 +53,13 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — nurse report", () => {
+describe("ReportsController — nurse report", () => {
 	let data: TestData;
 	let nurseId: string;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -84,7 +84,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("returns the list envelope with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listNurses(
+		await ReportsController.listNurses(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -121,7 +121,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("accepts nurse_id, search, sort and paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listNurses(
+		await ReportsController.listNurses(
 			makeRequest({
 				...RANGE,
 				nurse_id: nurseId,
@@ -142,7 +142,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("400s when the dates are missing", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listNurses(
+		await ReportsController.listNurses(
 			makeRequest({ start_date: localDate(-1) }),
 			asResponse(res)
 		);
@@ -153,7 +153,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("400s on an unknown sort key", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listNurses(
+		await ReportsController.listNurses(
 			makeRequest({ ...RANGE, sort: "salary" }),
 			asResponse(res)
 		);
@@ -164,7 +164,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("400s on a page size outside the whitelist", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listNurses(
+		await ReportsController.listNurses(
 			makeRequest({ ...RANGE, page_size: "999" }),
 			asResponse(res)
 		);
@@ -175,7 +175,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("returns the detail envelope with the daily accordion", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getNurse(
+		await ReportsController.getNurse(
 			makeRequest({ ...RANGE, page_size: "10" }, { nurseId }),
 			asResponse(res)
 		);
@@ -211,7 +211,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("404s for an unknown nurse", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getNurse(
+		await ReportsController.getNurse(
 			makeRequest({ ...RANGE }, { nurseId: "999999" }),
 			asResponse(res)
 		);
@@ -221,7 +221,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("404s when the id belongs to a doctor", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getNurse(
+		await ReportsController.getNurse(
 			makeRequest(
 				{ ...RANGE },
 				{ nurseId: String(data.doctors[0].doctor_id) }
@@ -234,7 +234,7 @@ describe("ReportV2Controller — nurse report", () => {
 
 	it("returns the export envelope without paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportNurses(
+		await ReportsController.exportNurses(
 			makeRequest({ ...RANGE, page: "2", page_size: "10" }),
 			asResponse(res)
 		);

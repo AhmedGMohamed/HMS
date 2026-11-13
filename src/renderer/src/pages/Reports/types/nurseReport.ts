@@ -1,7 +1,7 @@
 /**
  * Nurse report types — Phase 6.11.3.
  *
- * camelCase mirrors of the nurse slice of `src/app/utils/types/reportV2.d.ts`
+ * camelCase mirrors of the nurse slice of `src/app/utils/types/reports.d.ts`
  * (the models emit snake_case; `lib/api.ts` normalizes at the boundary).
  *
  * Three shapes:

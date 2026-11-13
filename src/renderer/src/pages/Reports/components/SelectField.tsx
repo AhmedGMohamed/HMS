@@ -5,7 +5,7 @@
  *
  * Same chrome as `GroupByField` (label + native select) but value-driven, so
  * the patient/doctor/nurse/payroll filters can render any option list —
- * including the ones built from `/api/reports/v2/options` — without a second
+ * including the ones built from `/api/reports/options` — without a second
  * select implementation.
  *
  * A native `<select>` is deliberate: it keeps keyboard and screen-reader

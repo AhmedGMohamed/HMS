@@ -1,4 +1,4 @@
-// src/app/tests/controllers/ReportV2.employeePayment.controller.spec.ts
+// src/app/tests/controllers/Reports.employeePayment.controller.spec.ts
 //
 // Phase 6.11.5 — payroll controller. Covers the query contract (snake_case
 // params in, snake_case envelope out), the filter defaults, the 400/404 paths
@@ -6,7 +6,7 @@
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import { query } from "../../models/database/connection.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
 
@@ -57,7 +57,7 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — employee payments", () => {
+describe("ReportsController — employee payments", () => {
 	let data: TestData;
 	let doctorId: string;
 	let nurseId: string;
@@ -65,7 +65,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -112,7 +112,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("returns the list envelope with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -159,7 +159,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("defaults the grouping to month and the employee type to all", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -172,7 +172,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("accepts employee_type, employee_id, search, grouping, sort and paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({
 				...RANGE,
 				employee_type: "doctor",
@@ -197,7 +197,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("400s when the dates are missing", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ start_date: localDate(-1) }),
 			asResponse(res)
 		);
@@ -208,7 +208,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("400s on an unknown employee_type", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE, employee_type: "contractor" }),
 			asResponse(res)
 		);
@@ -219,7 +219,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("400s on an unknown grouping", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE, grouping: "week" }),
 			asResponse(res)
 		);
@@ -230,7 +230,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("400s on an unknown sort key", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE, sort: "salary" }),
 			asResponse(res)
 		);
@@ -241,7 +241,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("400s on a page size outside the whitelist", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listEmployeePayments(
+		await ReportsController.listEmployeePayments(
 			makeRequest({ ...RANGE, page_size: "999" }),
 			asResponse(res)
 		);
@@ -252,7 +252,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("returns the detail envelope with breakdown, payments and deductions", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getEmployeePayment(
+		await ReportsController.getEmployeePayment(
 			makeRequest({ ...RANGE, page_size: "10" }, { employeeId: doctorId }),
 			asResponse(res)
 		);
@@ -280,7 +280,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("404s for an unknown employee", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getEmployeePayment(
+		await ReportsController.getEmployeePayment(
 			makeRequest({ ...RANGE }, { employeeId: "999999" }),
 			asResponse(res)
 		);
@@ -291,7 +291,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("returns the associations for one payment", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getPaymentAssociations(
+		await ReportsController.getPaymentAssociations(
 			makeRequest(
 				{},
 				{ employeeId: doctorId, paymentId: doctorPaymentId }
@@ -308,7 +308,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("404s when the payment belongs to another employee", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getPaymentAssociations(
+		await ReportsController.getPaymentAssociations(
 			makeRequest(
 				{},
 				{ employeeId: nurseId, paymentId: doctorPaymentId }
@@ -322,7 +322,7 @@ describe("ReportV2Controller — employee payments", () => {
 
 	it("returns the export envelope without paging", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportEmployeePayments(
+		await ReportsController.exportEmployeePayments(
 			makeRequest({ ...RANGE, page: "2", page_size: "10" }),
 			asResponse(res)
 		);

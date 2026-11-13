@@ -1,4 +1,4 @@
-// src/app/tests/models/ReportV2.employeePayment.spec.ts
+// src/app/tests/models/Reports.employeePayment.spec.ts
 //
 // Phase 6.11.5 — employee payments (payroll). Covers the three money rules
 // (deductions period-scoped once per employee, paid/unpaid gross, void
@@ -286,12 +286,12 @@ function filters(
 /* Specs                                                               */
 /* ------------------------------------------------------------------ */
 
-describe("Reports v2 — employee payments", () => {
+describe("Reports — employee payments", () => {
 	let fixture: Fixture;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

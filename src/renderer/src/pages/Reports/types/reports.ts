@@ -1,7 +1,7 @@
 /**
  * Reports page types — Phase 6.11.
  *
- * Wire types mirror `src/app/utils/types/reportV2.d.ts` but are written in
+ * Wire types mirror `src/app/utils/types/reports.d.ts` but are written in
  * camelCase because `lib/api.ts` normalizes keys at the boundary. Nothing in
  * this file should contain snake_case field names.
  */

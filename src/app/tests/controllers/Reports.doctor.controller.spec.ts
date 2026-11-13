@@ -1,4 +1,4 @@
-// src/app/tests/controllers/ReportV2.doctor.controller.spec.ts
+// src/app/tests/controllers/Reports.doctor.controller.spec.ts
 //
 // Phase 6.11.2 — doctor report controller. Covers the query contract
 // (snake_case params in, snake_case envelope out), the relationship default
@@ -6,7 +6,7 @@
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import DoctorReportModel from "../../models/reports/DoctorReport.model.js";
 import { query } from "../../models/database/connection.js";
 import { dbHelper, TestData } from "../helpers/db.helper.js";
@@ -54,13 +54,13 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — doctor report", () => {
+describe("ReportsController — doctor report", () => {
 	let data: TestData;
 	let referringId: string;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -78,7 +78,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("returns the list envelope with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -108,7 +108,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("defaults to the referred population", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -122,7 +122,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("honours the relationship, doctor_id, search and paging params", async () => {
 		const attended = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE, relationship: "attended" }),
 			asResponse(attended)
 		);
@@ -131,7 +131,7 @@ describe("ReportV2Controller — doctor report", () => {
 		expect(attendedPayload.data[0].doctor_id).toBe(data.doctors[0].doctor_id);
 
 		const one = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({
 				...RANGE,
 				doctor_id: referringId,
@@ -149,7 +149,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("rejects an unknown relationship, page size or sort with 400", async () => {
 		const relationship = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE, relationship: "haunted" }),
 			asResponse(relationship)
 		);
@@ -157,7 +157,7 @@ describe("ReportV2Controller — doctor report", () => {
 		expect(lastPayload(relationship).error).toContain("relationship");
 
 		const pageSize = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE, page_size: "5000" }),
 			asResponse(pageSize)
 		);
@@ -165,7 +165,7 @@ describe("ReportV2Controller — doctor report", () => {
 		expect(lastPayload(pageSize).error).toContain("page_size");
 
 		const sort = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE, sort: "national_id" }),
 			asResponse(sort)
 		);
@@ -175,7 +175,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("rejects a missing date range with 400", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ end_date: RANGE.end_date }),
 			asResponse(res)
 		);
@@ -185,7 +185,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("returns the detail envelope", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getDoctor(
+		await ReportsController.getDoctor(
 			makeRequest({ ...RANGE }, { doctorId: referringId }),
 			asResponse(res)
 		);
@@ -212,7 +212,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("returns 404 for an unknown doctor and 400 for a bad id", async () => {
 		const missing = makeResponse();
-		await ReportV2Controller.getDoctor(
+		await ReportsController.getDoctor(
 			makeRequest({ ...RANGE }, { doctorId: "999999" }),
 			asResponse(missing)
 		);
@@ -220,7 +220,7 @@ describe("ReportV2Controller — doctor report", () => {
 		expect(lastPayload(missing)).toEqual({ error: "Doctor not found" });
 
 		const bad = makeResponse();
-		await ReportV2Controller.getDoctor(
+		await ReportsController.getDoctor(
 			makeRequest({ ...RANGE }, { doctorId: "abc" }),
 			asResponse(bad)
 		);
@@ -229,7 +229,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("rejects a supervised report for a non-supervising doctor with 400", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getDoctor(
+		await ReportsController.getDoctor(
 			makeRequest(
 				{ ...RANGE, relationship: "supervised" },
 				{ doctorId: referringId }
@@ -243,7 +243,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("returns the export envelope without paging keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportDoctors(
+		await ReportsController.exportDoctors(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -272,7 +272,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("attaches admissions only for a single-doctor export", async () => {
 		const single = makeResponse();
-		await ReportV2Controller.exportDoctors(
+		await ReportsController.exportDoctors(
 			makeRequest({
 				...RANGE,
 				doctor_id: referringId,
@@ -287,7 +287,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 		// Without `doctor_id` the flag is ignored, not an error.
 		const all = makeResponse();
-		await ReportV2Controller.exportDoctors(
+		await ReportsController.exportDoctors(
 			makeRequest({ ...RANGE, include_admissions: "true" }),
 			asResponse(all)
 		);
@@ -296,7 +296,7 @@ describe("ReportV2Controller — doctor report", () => {
 
 	it("accepts include_admissions=false as false", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportDoctors(
+		await ReportsController.exportDoctors(
 			makeRequest({
 				...RANGE,
 				doctor_id: referringId,
@@ -314,7 +314,7 @@ describe("ReportV2Controller — doctor report", () => {
 			Promise.reject(new Error("kaboom"))
 		);
 
-		await ReportV2Controller.listDoctors(
+		await ReportsController.listDoctors(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);

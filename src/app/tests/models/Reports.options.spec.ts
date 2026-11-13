@@ -1,6 +1,6 @@
-// src/app/tests/models/ReportV2.options.spec.ts
+// src/app/tests/models/Reports.options.spec.ts
 //
-// Phase 6.11.0 — foundations. Covers the `/api/reports/v2/options` data
+// Phase 6.11.0 — foundations. Covers the `/api/reports/options` data
 // source and the `Bill.model.recalculateTotal` refactor onto the shared
 // `calculateBillFinancials` helper (a parity check against fixed, seeded
 // bills).
@@ -25,12 +25,12 @@ function detailSum(
 		);
 }
 
-describe("Reports v2 — foundations", () => {
+describe("Reports — foundations", () => {
 	let insertedData: TestData;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

@@ -55,7 +55,7 @@ import type {
 	StatisticsReportDTO,
 	TopDrugRow,
 	TopServiceRow,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { roundMoney } from "../../utils/billFinancials.js";
 import { query } from "../database/connection.js";
 import {

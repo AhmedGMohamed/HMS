@@ -1,11 +1,11 @@
-// src/app/tests/controllers/ReportV2.statistics.controller.spec.ts
+// src/app/tests/controllers/Reports.statistics.controller.spec.ts
 //
 // Phase 6.11.4 — statistics controller. Covers the query contract (grouping
 // default + validation, 400 paths) and the export envelope.
 
 import type { Request, Response } from "express";
 
-import ReportV2Controller from "../../controllers/ReportV2.controller.js";
+import ReportsController from "../../controllers/Reports.controller.js";
 import { query } from "../../models/database/connection.js";
 import { dbHelper } from "../helpers/db.helper.js";
 
@@ -43,10 +43,10 @@ function lastPayload(res: MockResponse): any {
 	return res.json.calls.mostRecent().args[0];
 }
 
-describe("ReportV2Controller — statistics", () => {
+describe("ReportsController — statistics", () => {
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {
@@ -67,7 +67,7 @@ describe("ReportV2Controller — statistics", () => {
 
 	it("returns the statistics document with snake_case keys", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getStatistics(
+		await ReportsController.getStatistics(
 			makeRequest({ ...RANGE, grouping: "month" }),
 			asResponse(res)
 		);
@@ -106,7 +106,7 @@ describe("ReportV2Controller — statistics", () => {
 
 	it("defaults to daily buckets when grouping is absent", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getStatistics(
+		await ReportsController.getStatistics(
 			makeRequest({ ...RANGE }),
 			asResponse(res)
 		);
@@ -120,7 +120,7 @@ describe("ReportV2Controller — statistics", () => {
 
 	it("rejects an unknown grouping with 400", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getStatistics(
+		await ReportsController.getStatistics(
 			makeRequest({ ...RANGE, grouping: "week" }),
 			asResponse(res)
 		);
@@ -131,7 +131,7 @@ describe("ReportV2Controller — statistics", () => {
 
 	it("rejects a reversed range with 400", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.getStatistics(
+		await ReportsController.getStatistics(
 			makeRequest({ start_date: "2026-03-31", end_date: "2026-01-01" }),
 			asResponse(res)
 		);
@@ -142,7 +142,7 @@ describe("ReportV2Controller — statistics", () => {
 
 	it("returns the export envelope with generated_at", async () => {
 		const res = makeResponse();
-		await ReportV2Controller.exportStatistics(
+		await ReportsController.exportStatistics(
 			makeRequest({ ...RANGE, grouping: "month" }),
 			asResponse(res)
 		);

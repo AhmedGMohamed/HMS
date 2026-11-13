@@ -178,7 +178,7 @@ export function buildPatientColumns({
         <span
           className={
             row.totalOutstanding > 0
-              ? "font-medium text-warning-dark"
+              ? "font-medium text-warning"
               : "text-success-dark"
           }
         >

@@ -1,9 +1,10 @@
 /**
- * Reports v2 data layer — Phase 6.11.
+ * Reports data layer — Phase 6.11.
  *
- * Every call targets the additive `/api/reports/v2/*` namespace; the legacy
- * `/api/reports/*` endpoints are untouched and keep serving the legacy HTML
- * page until Phase 7.
+ * Every call targets `/api/reports/*`. The legacy reports endpoints share that
+ * prefix but are mounted after this router, so the five paths they share
+ * resolve here (see `routes/api.routes.ts`); the legacy HTML page keeps
+ * working on every other path until Phase 7.
  *
  * Conventions:
  *   - Query params are snake_case (Express reads `req.query.start_date`);
@@ -88,9 +89,9 @@ import type {
 } from "@/pages/Reports/types/statisticsReport"
 import type { ReportOptions } from "@/pages/Reports/types/reports"
 
-/** `GET /api/reports/v2/options` — all picker lists in one round trip. */
+/** `GET /api/reports/options` — all picker lists in one round trip. */
 export function getReportOptions(): Promise<ReportOptions> {
-  return api.get<ReportOptions>("/reports/v2/options")
+  return api.get<ReportOptions>("/reports/options")
 }
 
 /* ------------------------------------------------------------------ */
@@ -132,12 +133,12 @@ function sortParam(paging: PatientQueryPaging): {
   }
 }
 
-/** `GET /api/reports/v2/patients` — one page + the whole-set summary. */
+/** `GET /api/reports/patients` — one page + the whole-set summary. */
 export function getPatients(
   filters: PatientQueryFilters,
   paging: PatientQueryPaging
 ): Promise<PatientReportListPayload> {
-  return api.get<PatientReportListPayload>("/reports/v2/patients", {
+  return api.get<PatientReportListPayload>("/reports/patients", {
     ...patientParams(filters),
     page: paging.page,
     page_size: paging.pageSize,
@@ -145,19 +146,19 @@ export function getPatients(
   })
 }
 
-/** `GET /api/reports/v2/patients/:patientId` — patient + admissions. */
+/** `GET /api/reports/patients/:patientId` — patient + admissions. */
 export function getPatientDetail(
   patientId: number,
   range: PatientQueryFilters["range"]
 ): Promise<PatientReportDetail> {
-  return api.get<PatientReportDetail>(`/reports/v2/patients/${patientId}`, {
+  return api.get<PatientReportDetail>(`/reports/patients/${patientId}`, {
     start_date: range.from,
     end_date: range.to,
   })
 }
 
 /**
- * `GET /api/reports/v2/patients/export` — every matching patient.
+ * `GET /api/reports/patients/export` — every matching patient.
  *
  * Exports always re-fetch with the **generated** parameters (never the
  * paginated list, never the current form state), so what is downloaded is
@@ -167,7 +168,7 @@ export function exportPatients(
   filters: PatientQueryFilters,
   paging: PatientQueryPaging
 ): Promise<PatientReportExportPayload> {
-  return api.get<PatientReportExportPayload>("/reports/v2/patients/export", {
+  return api.get<PatientReportExportPayload>("/reports/patients/export", {
     ...patientParams(filters),
     ...sortParam(paging),
   })
@@ -221,12 +222,12 @@ function doctorPatientSortParam(paging: DoctorQueryPaging): {
   }
 }
 
-/** `GET /api/reports/v2/doctors` — one page of doctors + whole-set summary. */
+/** `GET /api/reports/doctors` — one page of doctors + whole-set summary. */
 export function getDoctors(
   filters: DoctorQueryFilters,
   paging: DoctorQueryPaging
 ): Promise<DoctorReportListPayload> {
-  return api.get<DoctorReportListPayload>("/reports/v2/doctors", {
+  return api.get<DoctorReportListPayload>("/reports/doctors", {
     ...doctorParams(filters),
     page: paging.page,
     page_size: paging.pageSize,
@@ -235,7 +236,7 @@ export function getDoctors(
 }
 
 /**
- * `GET /api/reports/v2/doctors/:doctorId` — doctor header + one page of
+ * `GET /api/reports/doctors/:doctorId` — doctor header + one page of
  * patients.
  *
  * The filters carry `search` (patient name) but not `doctorId`: the id is in
@@ -249,7 +250,7 @@ export function getDoctorDetail(
   // The id lives in the path; sending it twice invites them to disagree.
   const params = doctorParams({ ...filters, doctorId: null })
   return api.get<DoctorReportDetailPayload>(
-    `/reports/v2/doctors/${doctorId}`,
+    `/reports/doctors/${doctorId}`,
     {
       ...params,
       page: paging.page,
@@ -260,7 +261,7 @@ export function getDoctorDetail(
 }
 
 /**
- * `GET /api/reports/v2/doctors/export` — every matching doctor.
+ * `GET /api/reports/doctors/export` — every matching doctor.
  *
  * The endpoint only sorts by doctor-list keys, so the caller passes list
  * paging even when the visible table is the patient table. Admissions are
@@ -271,7 +272,7 @@ export function exportDoctors(
   paging: DoctorQueryPaging,
   includeAdmissions: boolean
 ): Promise<DoctorReportExportPayload> {
-  return api.get<DoctorReportExportPayload>("/reports/v2/doctors/export", {
+  return api.get<DoctorReportExportPayload>("/reports/doctors/export", {
     ...doctorParams(filters),
     ...doctorSortParam(paging),
     include_admissions: includeAdmissions ? true : undefined,
@@ -324,12 +325,12 @@ function nursePatientSortParam(paging: NurseQueryPaging): {
   }
 }
 
-/** `GET /api/reports/v2/nurses` — one page of nurses + whole-set summary. */
+/** `GET /api/reports/nurses` — one page of nurses + whole-set summary. */
 export function getNurses(
   filters: NurseQueryFilters,
   paging: NurseQueryPaging
 ): Promise<NurseReportListPayload> {
-  return api.get<NurseReportListPayload>("/reports/v2/nurses", {
+  return api.get<NurseReportListPayload>("/reports/nurses", {
     ...nurseParams(filters),
     page: paging.page,
     page_size: paging.pageSize,
@@ -338,7 +339,7 @@ export function getNurses(
 }
 
 /**
- * `GET /api/reports/v2/nurses/:nurseId` — nurse header + one page of patients
+ * `GET /api/reports/nurses/:nurseId` — nurse header + one page of patients
  * + the whole daily-assignment accordion.
  *
  * The id lives in the path; sending it in the query as well invites the two to
@@ -350,7 +351,7 @@ export function getNurseDetail(
   paging: NurseQueryPaging
 ): Promise<NurseReportDetailPayload> {
   const params = nurseParams({ ...filters, nurseId: null })
-  return api.get<NurseReportDetailPayload>(`/reports/v2/nurses/${nurseId}`, {
+  return api.get<NurseReportDetailPayload>(`/reports/nurses/${nurseId}`, {
     ...params,
     page: paging.page,
     page_size: paging.pageSize,
@@ -359,7 +360,7 @@ export function getNurseDetail(
 }
 
 /**
- * `GET /api/reports/v2/nurses/export` — every matching nurse.
+ * `GET /api/reports/nurses/export` — every matching nurse.
  *
  * The endpoint sorts by nurse-list keys only, so the caller passes list paging
  * even when the visible table is the patient table.
@@ -368,7 +369,7 @@ export function exportNurses(
   filters: NurseQueryFilters,
   paging: NurseQueryPaging
 ): Promise<NurseReportExportPayload> {
-  return api.get<NurseReportExportPayload>("/reports/v2/nurses/export", {
+  return api.get<NurseReportExportPayload>("/reports/nurses/export", {
     ...nurseParams(filters),
     ...nurseSortParam(paging),
   })
@@ -391,7 +392,7 @@ function statisticsParams(filters: StatisticsQueryFilters) {
 }
 
 /**
- * `GET /api/reports/v2/statistics` — KPIs plus every chart series.
+ * `GET /api/reports/statistics` — KPIs plus every chart series.
  *
  * The distribution returns both splits in one payload, so the donut toggle
  * never issues a request.
@@ -400,17 +401,17 @@ export function getStatistics(
   filters: StatisticsQueryFilters
 ): Promise<StatisticsReportPayload> {
   return api.get<StatisticsReportPayload>(
-    "/reports/v2/statistics",
+    "/reports/statistics",
     statisticsParams(filters)
   )
 }
 
-/** `GET /api/reports/v2/statistics/export` — the same document + `generatedAt`. */
+/** `GET /api/reports/statistics/export` — the same document + `generatedAt`. */
 export function exportStatistics(
   filters: StatisticsQueryFilters
 ): Promise<StatisticsReportExportPayload> {
   return api.get<StatisticsReportExportPayload>(
-    "/reports/v2/statistics/export",
+    "/reports/statistics/export",
     statisticsParams(filters)
   )
 }
@@ -451,12 +452,12 @@ function employeePaymentSortParam(paging: EmployeePaymentQueryPaging): {
   }
 }
 
-/** `GET /api/reports/v2/employee-payments` — one page + summary + charts. */
+/** `GET /api/reports/employee-payments` — one page + summary + charts. */
 export function getEmployeePayments(
   filters: EmployeePaymentQueryFilters,
   paging: EmployeePaymentQueryPaging
 ): Promise<EmployeePaymentListPayload> {
-  return api.get<EmployeePaymentListPayload>("/reports/v2/employee-payments", {
+  return api.get<EmployeePaymentListPayload>("/reports/employee-payments", {
     ...employeePaymentParams(filters),
     page: paging.page,
     page_size: paging.pageSize,
@@ -465,7 +466,7 @@ export function getEmployeePayments(
 }
 
 /**
- * `GET /api/reports/v2/employee-payments/:employeeId` — identity, config,
+ * `GET /api/reports/employee-payments/:employeeId` — identity, config,
  * summary, one page of payments and every period deduction.
  *
  * The id lives in the path; `employee_id` is not sent again. `grouping` is not
@@ -479,7 +480,7 @@ export function getEmployeePaymentDetail(
   const params = employeePaymentParams(filters)
 
   return api.get<EmployeePaymentDetailPayload>(
-    `/reports/v2/employee-payments/${employeeId}`,
+    `/reports/employee-payments/${employeeId}`,
     {
       start_date: params.start_date,
       end_date: params.end_date,
@@ -492,7 +493,7 @@ export function getEmployeePaymentDetail(
 }
 
 /**
- * `GET /api/reports/v2/employee-payments/:employeeId/payments/:paymentId`.
+ * `GET /api/reports/employee-payments/:employeeId/payments/:paymentId`.
  *
  * No range: the associations belong to the payment, and hiding work done
  * outside the report window would misstate the payment.
@@ -502,12 +503,12 @@ export function getPaymentAssociations(
   paymentId: number
 ): Promise<EmployeePaymentAssociationsPayload> {
   return api.get<EmployeePaymentAssociationsPayload>(
-    `/reports/v2/employee-payments/${employeeId}/payments/${paymentId}`
+    `/reports/employee-payments/${employeeId}/payments/${paymentId}`
   )
 }
 
 /**
- * `GET /api/reports/v2/employee-payments/export` — every matching employee.
+ * `GET /api/reports/employee-payments/export` — every matching employee.
  *
  * Exports always re-fetch with the **generated** parameters (never the
  * paginated list, never the current form state), so what is downloaded is
@@ -518,7 +519,7 @@ export function exportEmployeePayments(
   paging: EmployeePaymentQueryPaging
 ): Promise<EmployeePaymentExportPayload> {
   return api.get<EmployeePaymentExportPayload>(
-    "/reports/v2/employee-payments/export",
+    "/reports/employee-payments/export",
     {
       ...employeePaymentParams(filters),
       ...employeePaymentSortParam(paging),
@@ -561,12 +562,12 @@ function clockInSortParam(paging: ClockInQueryPaging): {
   }
 }
 
-/** `GET /api/reports/v2/clock-ins` — one page + summary + charts. */
+/** `GET /api/reports/clock-ins` — one page + summary + charts. */
 export function getClockIns(
   filters: ClockInQueryFilters,
   paging: ClockInQueryPaging
 ): Promise<ClockInListPayload> {
-  return api.get<ClockInListPayload>("/reports/v2/clock-ins", {
+  return api.get<ClockInListPayload>("/reports/clock-ins", {
     ...clockInParams(filters),
     page: paging.page,
     page_size: paging.pageSize,
@@ -575,7 +576,7 @@ export function getClockIns(
 }
 
 /**
- * `GET /api/reports/v2/clock-ins/:employeeId` — identity, attendance summary
+ * `GET /api/reports/clock-ins/:employeeId` — identity, attendance summary
  * and one page of records.
  *
  * `status` is applied **after** missing days are synthesized (they do not exist
@@ -589,7 +590,7 @@ export function getClockInEmployee(
   paging: ClockInDetailPaging
 ): Promise<ClockInDetailPayload> {
   return api.get<ClockInDetailPayload>(
-    `/reports/v2/clock-ins/${employeeId}`,
+    `/reports/clock-ins/${employeeId}`,
     {
       start_date: range.from,
       end_date: range.to,
@@ -601,7 +602,7 @@ export function getClockInEmployee(
 }
 
 /**
- * `GET /api/reports/v2/clock-ins/export` — every matching employee.
+ * `GET /api/reports/clock-ins/export` — every matching employee.
  *
  * No paging and no sort: the document is an employee index in name order, which
  * is the order a printed report is read in. Exports re-fetch with the
@@ -611,7 +612,7 @@ export function exportClockIns(
   filters: ClockInQueryFilters
 ): Promise<ClockInExportPayload> {
   return api.get<ClockInExportPayload>(
-    "/reports/v2/clock-ins/export",
+    "/reports/clock-ins/export",
     clockInParams(filters)
   )
 }

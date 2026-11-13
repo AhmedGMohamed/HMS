@@ -5,7 +5,7 @@
  *   - **Print patient report** — every admission in the generated range,
  *   - **Print admission** — one admission (`admissionId`).
  *
- * Layout is the 6.10 insurance patient report, adapted to the v2 payload:
+ * Layout is the 6.10 insurance patient report, adapted to the reports payload:
  *
  *   1. Report period.
  *   2. Patient information (one four-column label/value grid).

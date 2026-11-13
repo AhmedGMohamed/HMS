@@ -1,4 +1,4 @@
-// src/app/tests/models/ReportV2.clockIn.spec.ts
+// src/app/tests/models/Reports.clockIn.spec.ts
 //
 // Phase 6.11.6 — clock-in report. Covers the four things the legacy report got
 // wrong: missing days ignored the hire date and today, a second session on the
@@ -288,12 +288,12 @@ function rowFor(
 /* Specs                                                               */
 /* ------------------------------------------------------------------ */
 
-describe("Reports v2 — clock-ins", () => {
+describe("Reports — clock-ins", () => {
 	let fixture: Fixture;
 
 	beforeAll(async () => {
 		expect(process.env.NODE_ENV).toBe("test");
-		await dbHelper.ensureReportV2Schema();
+		await dbHelper.ensureReportsSchema();
 	});
 
 	beforeEach(async () => {

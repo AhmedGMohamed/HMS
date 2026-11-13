@@ -3,7 +3,7 @@
  *
  * Replaces the legacy doctor endpoints, which loaded the doctor list and then
  * ran **one patient query per doctor** (`getAllPatientsReferredByDoctors` →
- * `getPatientsReferredByDoctor` → `getDoctorPatientDetails`). The v2 model is
+ * `getPatientsReferredByDoctor` → `getDoctorPatientDetails`). The Reports model is
  * fixed-cost:
  *
  *   - `listDoctors`: 2 queries — the page and the whole-set summary, both
@@ -49,7 +49,7 @@ import type {
 	PatientReportAdmission,
 	ReportExportEnvelope,
 	ReportListEnvelope,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { query } from "../database/connection.js";
 import PatientReportModel from "./PatientReport.model.js";
 import {

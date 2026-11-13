@@ -2,7 +2,7 @@
  * Clock-in report types — Phase 6.11.6.
  *
  * camelCase mirrors of the clock-in slice of
- * `src/app/utils/types/reportV2.d.ts` (the model emits snake_case; `lib/api.ts`
+ * `src/app/utils/types/reports.d.ts` (the model emits snake_case; `lib/api.ts`
  * normalizes keys at the boundary).
  *
  * Four shapes:

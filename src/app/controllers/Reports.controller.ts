@@ -1,5 +1,5 @@
 /**
- * Reports v2 controller — Phase 6.11.
+ * Reports controller — Phase 6.11.
  *
  * Thin by design: validates/parses query params (via the shared helpers in
  * `models/reports/shared.ts`), calls one model method, and shapes the
@@ -140,9 +140,9 @@ export function countStatisticsExportRows(payload: {
 	);
 }
 
-export class ReportV2Controller {
+export class ReportsController {
 	/**
-	 * `GET /api/reports/v2/options`
+	 * `GET /api/reports/options`
 	 *
 	 * Picker lists for every tab. The payroll list is only populated when the
 	 * caller also holds `manage_employees` — the payroll endpoints enforce the
@@ -163,7 +163,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/patients`
+	 * `GET /api/reports/patients`
 	 *
 	 * Query: `start_date`, `end_date`, `payment_type`, `insurance_id`,
 	 * `search`, `page`, `page_size`, `sort`, `dir`.
@@ -186,7 +186,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/patients/:patientId`
+	 * `GET /api/reports/patients/:patientId`
 	 *
 	 * Returns the patient summary plus every admission in range, each with its
 	 * items grouped by date and its daily staff assignments.
@@ -212,7 +212,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/patients/export`
+	 * `GET /api/reports/patients/export`
 	 *
 	 * Same filters as the list, no paging — the PDF/CSV data source.
 	 */
@@ -237,7 +237,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/doctors`
+	 * `GET /api/reports/doctors`
 	 *
 	 * Query: `start_date`, `end_date`, `relationship`, `doctor_id`, `search`,
 	 * `page`, `page_size`, `sort`, `dir`.
@@ -260,7 +260,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/doctors/:doctorId`
+	 * `GET /api/reports/doctors/:doctorId`
 	 *
 	 * The doctor's header + summary and one page of their patients. `search`
 	 * narrows the patients by name (the doctor is already fixed by the route).
@@ -298,7 +298,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/doctors/export`
+	 * `GET /api/reports/doctors/export`
 	 *
 	 * Same filters as the list, no paging. `include_admissions` only has an
 	 * effect together with `doctor_id` (the single-doctor document).
@@ -329,7 +329,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/nurses`
+	 * `GET /api/reports/nurses`
 	 *
 	 * Query: `start_date`, `end_date`, `nurse_id`, `search`, `page`,
 	 * `page_size`, `sort`, `dir`.
@@ -352,7 +352,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/nurses/:nurseId`
+	 * `GET /api/reports/nurses/:nurseId`
 	 *
 	 * The nurse's header + summary, one page of their patients and the whole
 	 * daily-assignment accordion. `search` narrows the patients by name (and the
@@ -383,7 +383,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/nurses/export`
+	 * `GET /api/reports/nurses/export`
 	 *
 	 * Same filters as the list, no paging: every nurse with every patient and
 	 * every daily assignment.
@@ -409,7 +409,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/statistics`
+	 * `GET /api/reports/statistics`
 	 *
 	 * Query: `start_date`, `end_date`, `grouping` (`day|month|year`, default
 	 * `day`). Reads only — no paging, no sort: every series is returned whole so
@@ -427,7 +427,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/statistics/export`
+	 * `GET /api/reports/statistics/export`
 	 *
 	 * The same document plus `generated_at`; `manage_reports` is enforced by the
 	 * route.
@@ -449,7 +449,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/employee-payments`
+	 * `GET /api/reports/employee-payments`
 	 *
 	 * Query: `start_date`, `end_date`, `employee_type`, `employee_id`,
 	 * `search`, `grouping`, `page`, `page_size`, `sort`, `dir`.
@@ -472,7 +472,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/employee-payments/:employeeId`
+	 * `GET /api/reports/employee-payments/:employeeId`
 	 *
 	 * The employee's identity, pay configuration, summary, one page of payments
 	 * and every period deduction.
@@ -500,7 +500,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/employee-payments/:employeeId/payments/:paymentId`
+	 * `GET /api/reports/employee-payments/:employeeId/payments/:paymentId`
 	 *
 	 * The patient work behind one payment. No range: the associations belong to
 	 * the payment, and hiding work outside the window would misstate it.
@@ -526,7 +526,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/employee-payments/export`
+	 * `GET /api/reports/employee-payments/export`
 	 *
 	 * Same filters as the list, no paging: every employee with every payment,
 	 * every association and every period deduction. `manage_reports` is
@@ -553,7 +553,7 @@ export class ReportV2Controller {
 	/* -------------------------------------------------------------- */
 
 	/**
-	 * `GET /api/reports/v2/clock-ins`
+	 * `GET /api/reports/clock-ins`
 	 *
 	 * Query: `start_date`, `end_date`, `employee_type`, `employee_id`,
 	 * `search`, `page`, `page_size`, `sort`, `dir`.
@@ -572,7 +572,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/clock-ins/:employeeId`
+	 * `GET /api/reports/clock-ins/:employeeId`
 	 *
 	 * The employee's identity, the attendance summary for the whole range and
 	 * one page of records, with the `status` filter applied **after** missing
@@ -599,7 +599,7 @@ export class ReportV2Controller {
 	}
 
 	/**
-	 * `GET /api/reports/v2/clock-ins/export`
+	 * `GET /api/reports/clock-ins/export`
 	 *
 	 * Same filters as the list, no paging. `manage_reports` is enforced by the
 	 * route.
@@ -817,4 +817,4 @@ function parseClockInSort(query: Record<string, unknown>): {
 	return { column: raw as ClockInSortKey, direction: rawDir };
 }
 
-export default new ReportV2Controller();
+export default new ReportsController();

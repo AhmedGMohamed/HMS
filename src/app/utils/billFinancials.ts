@@ -1,7 +1,7 @@
 /**
  * Bill financial engine — single source of truth for the money math that
  * both the billing write path (`Bill.model.recalculateTotal`) and every
- * Reports v2 aggregation depend on.
+ * Reports aggregation depend on.
  *
  * Ported verbatim from `Bill.model.recalculateTotal` (which in turn mirrors
  * the renderer's `patients.ts` / `printBillManager.ts` calculators). The

@@ -1,7 +1,7 @@
 /**
  * Patient report types — Phase 6.11.1.
  *
- * camelCase mirrors of `src/app/utils/types/reportV2.d.ts` (the models emit
+ * camelCase mirrors of `src/app/utils/types/reports.d.ts` (the models emit
  * snake_case; `lib/api.ts` normalizes at the boundary). Nothing here may use
  * a snake_case field name.
  */

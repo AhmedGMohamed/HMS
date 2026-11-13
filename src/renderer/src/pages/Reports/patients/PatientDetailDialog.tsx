@@ -4,7 +4,7 @@
  * Patient report detail dialog — Phase 6.11.1.
  *
  * Opens from a row click (or the "View" action) and fetches
- * `/api/reports/v2/patients/:id` for the **generated** range, so the detail
+ * `/api/reports/patients/:id` for the **generated** range, so the detail
  * always describes the same period as the list behind it. The dialog owns its
  * own request because the list payload deliberately carries no admission
  * data (one query per page, not one per row).

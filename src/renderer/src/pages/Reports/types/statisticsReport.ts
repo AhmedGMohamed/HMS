@@ -2,7 +2,7 @@
  * Statistics report types — Phase 6.11.4.
  *
  * camelCase mirrors of the statistics slice of
- * `src/app/utils/types/reportV2.d.ts` (the model emits snake_case; `lib/api.ts`
+ * `src/app/utils/types/reports.d.ts` (the model emits snake_case; `lib/api.ts`
  * normalizes at the boundary).
  *
  * The payload is one document rather than a page, because every series covers

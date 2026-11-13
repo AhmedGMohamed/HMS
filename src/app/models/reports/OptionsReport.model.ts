@@ -4,7 +4,7 @@
  * One call replaces the three picker fetches the legacy page made
  * (`/api/insurance-companies`, `/api/doctors`, `/api/employees?type=nurse`).
  * The nurse picker used to require `manage_employees`, which silently broke
- * the Nurse tab for report-only roles; `/api/reports/v2/options` is gated by
+ * the Nurse tab for report-only roles; `/api/reports/options` is gated by
  * `view_reports` alone.
  *
  * The payroll employee list is the exception: it is only returned when the
@@ -19,7 +19,7 @@ import { query } from "../database/connection.js";
 import type {
 	ReportOptionDTO,
 	ReportOptionsDTO,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 
 export type { ReportOptionDTO, ReportOptionsDTO };
 

@@ -61,7 +61,7 @@ import type {
 	ClockInReportDTO,
 	ClockInReportRow,
 	ClockInReportSummary,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { query } from "../database/connection.js";
 import {
 	END_EXCLUSIVE_OFFSET,

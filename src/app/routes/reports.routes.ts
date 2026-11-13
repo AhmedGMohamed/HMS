@@ -1,9 +1,10 @@
 /**
- * Reports v2 routes — Phase 6.11.
+ * Reports routes — Phase 6.11.
  *
- * Mounted at `/api/reports/v2` **before** the legacy `/api/reports` router so
- * the v2 paths win. The legacy router and its controller/model stay in place
- * (the legacy HTML page still calls them) until Phase 7 cleanup.
+ * Mounted at `/api/reports`, **before** the legacy `/api/reports` router so
+ * the new paths win. The legacy router and its controller/model stay in place
+ * (the legacy HTML page still calls them) until Phase 7 cleanup; the five
+ * paths the two routers share resolve to this one.
  *
  * Permission matrix (plan §3.3 / §4.4):
  *   - every route: `verifyToken` + `auditLogger`
@@ -18,7 +19,7 @@
 
 import { Router } from "express";
 
-import ReportV2Controller from "../controllers/ReportV2.controller.js";
+import ReportsController from "../controllers/Reports.controller.js";
 import {
 	checkPermission,
 	checkPermissions,
@@ -37,7 +38,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getOptions(req, res)
+	(req, res) => ReportsController.getOptions(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -50,7 +51,7 @@ router.get(
 	verifyToken,
 	checkPermissions(["view_reports", "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportPatients(req, res)
+	(req, res) => ReportsController.exportPatients(req, res)
 );
 
 router.get(
@@ -58,7 +59,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getPatient(req, res)
+	(req, res) => ReportsController.getPatient(req, res)
 );
 
 router.get(
@@ -66,7 +67,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.listPatients(req, res)
+	(req, res) => ReportsController.listPatients(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -79,7 +80,7 @@ router.get(
 	verifyToken,
 	checkPermissions(["view_reports", "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportDoctors(req, res)
+	(req, res) => ReportsController.exportDoctors(req, res)
 );
 
 router.get(
@@ -87,7 +88,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getDoctor(req, res)
+	(req, res) => ReportsController.getDoctor(req, res)
 );
 
 router.get(
@@ -95,7 +96,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.listDoctors(req, res)
+	(req, res) => ReportsController.listDoctors(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -108,7 +109,7 @@ router.get(
 	verifyToken,
 	checkPermissions(["view_reports", "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportNurses(req, res)
+	(req, res) => ReportsController.exportNurses(req, res)
 );
 
 router.get(
@@ -116,7 +117,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getNurse(req, res)
+	(req, res) => ReportsController.getNurse(req, res)
 );
 
 router.get(
@@ -124,7 +125,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.listNurses(req, res)
+	(req, res) => ReportsController.listNurses(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -137,7 +138,7 @@ router.get(
 	verifyToken,
 	checkPermissions(["view_reports", "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportStatistics(req, res)
+	(req, res) => ReportsController.exportStatistics(req, res)
 );
 
 router.get(
@@ -145,7 +146,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getStatistics(req, res)
+	(req, res) => ReportsController.getStatistics(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -162,7 +163,7 @@ router.get(
 	verifyToken,
 	checkPermissions([...PAYROLL_READ, "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportEmployeePayments(req, res)
+	(req, res) => ReportsController.exportEmployeePayments(req, res)
 );
 
 // Deeper parametric path before the shallower one, so `/…/:employeeId` cannot
@@ -172,7 +173,7 @@ router.get(
 	verifyToken,
 	checkPermissions([...PAYROLL_READ]),
 	auditLogger,
-	(req, res) => ReportV2Controller.getPaymentAssociations(req, res)
+	(req, res) => ReportsController.getPaymentAssociations(req, res)
 );
 
 router.get(
@@ -180,7 +181,7 @@ router.get(
 	verifyToken,
 	checkPermissions([...PAYROLL_READ]),
 	auditLogger,
-	(req, res) => ReportV2Controller.getEmployeePayment(req, res)
+	(req, res) => ReportsController.getEmployeePayment(req, res)
 );
 
 router.get(
@@ -188,7 +189,7 @@ router.get(
 	verifyToken,
 	checkPermissions([...PAYROLL_READ]),
 	auditLogger,
-	(req, res) => ReportV2Controller.listEmployeePayments(req, res)
+	(req, res) => ReportsController.listEmployeePayments(req, res)
 );
 
 /* ------------------------------------------------------------------ */
@@ -201,7 +202,7 @@ router.get(
 	verifyToken,
 	checkPermissions(["view_reports", "manage_reports"]),
 	auditLogger,
-	(req, res) => ReportV2Controller.exportClockIns(req, res)
+	(req, res) => ReportsController.exportClockIns(req, res)
 );
 
 router.get(
@@ -209,7 +210,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.getClockInEmployee(req, res)
+	(req, res) => ReportsController.getClockInEmployee(req, res)
 );
 
 router.get(
@@ -217,7 +218,7 @@ router.get(
 	verifyToken,
 	checkPermission("view_reports"),
 	auditLogger,
-	(req, res) => ReportV2Controller.listClockIns(req, res)
+	(req, res) => ReportsController.listClockIns(req, res)
 );
 
 export default router;

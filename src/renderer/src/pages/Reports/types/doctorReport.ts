@@ -1,7 +1,7 @@
 /**
  * Doctor report types — Phase 6.11.2.
  *
- * camelCase mirrors of the doctor slice of `src/app/utils/types/reportV2.d.ts`
+ * camelCase mirrors of the doctor slice of `src/app/utils/types/reports.d.ts`
  * (the models emit snake_case; `lib/api.ts` normalizes at the boundary).
  *
  * Two envelopes are deliberately different shapes:

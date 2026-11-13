@@ -5,7 +5,7 @@
  * association query per payment and one 30-day deduction query per payment per
  * employee** — a report over ten employees could issue hundreds of statements
  * and the same clock-in deduction was counted once per payment in the window.
- * The v2 model is fixed-cost:
+ * The Reports model is fixed-cost:
  *
  *   - `listEmployeePayments`: 4 queries — the page, the whole-set summary, and
  *     the two chart series. The page and the summary share the same CTEs, so
@@ -61,7 +61,7 @@ import type {
 	PaymentAssociationRow,
 	PeriodDeductionRow,
 	ReportGrouping,
-} from "../../utils/types/reportV2.js";
+} from "../../utils/types/reportsApi.js";
 import { query } from "../database/connection.js";
 import {
 	END_EXCLUSIVE_OFFSET,

@@ -6,7 +6,7 @@
  *
  * Both the legacy patient report (`Report.model.calculateAgeFromNationalId`,
  * `views/js/reports/reports.ts:getBirthDateFromNationalId`) and the new
- * `/api/reports/v2` patient/doctor reports need the same derivation, and the
+ * `/api/reports` patient/doctor reports need the same derivation, and the
  * old code disagreed with itself (age returned `0` for "unknown", the birth
  * date returned `"N/A"`, and neither validated the calendar). This module is
  * the single implementation and reports "unknown" as `null` so the renderer
