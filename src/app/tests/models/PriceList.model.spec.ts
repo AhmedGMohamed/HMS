@@ -17,7 +17,7 @@ describe("PriceListModel", () => {
 
 	describe("getAllPriceLists", () => {
 		it("should return all price lists", async () => {
-			const result = await priceListModel.getAllPriceLists();
+			const { rows: result } = await priceListModel.getAllPriceLists();
 			const defaultList = result.find(
 				p => p.is_default === true
 			)
@@ -31,8 +31,32 @@ describe("PriceListModel", () => {
 		it("should return empty array when no price lists exist", async () => {
 			await dbHelper.clearDatabase();
 
-			const result = await priceListModel.getAllPriceLists();
+			const { rows: result } = await priceListModel.getAllPriceLists();
 			expect(result.length).toBe(0);
+		});
+
+		it("should paginate with a stable total", async () => {
+			const first = await priceListModel.getAllPriceLists({
+				offset: 0,
+				limit: 2
+			});
+			expect(first.total).toBe(3);
+			expect(first.rows.length).toBe(2);
+
+			const second = await priceListModel.getAllPriceLists({
+				offset: 2,
+				limit: 2
+			});
+			expect(second.total).toBe(3);
+			expect(second.rows.length).toBe(1);
+		});
+
+		it("should filter by name", async () => {
+			const { rows, total } = await priceListModel.getAllPriceLists({
+				search: "Stan"
+			});
+			expect(total).toBe(1);
+			expect(rows[0].name).toBe("Standard");
 		});
 	});
 
@@ -74,7 +98,7 @@ describe("PriceListModel", () => {
 			});
 
 			// Verify only the new one is default
-			const allLists = await priceListModel.getAllPriceLists();
+			const { rows: allLists } = await priceListModel.getAllPriceLists();
 			const defaultLists = allLists.filter((list) => list.is_default);
 
 			expect(defaultLists.length).toBe(1);
@@ -101,7 +125,7 @@ describe("PriceListModel", () => {
 				is_default: true
 			});
 
-			const updatedLists = await priceListModel.getAllPriceLists();
+			const { rows: updatedLists } = await priceListModel.getAllPriceLists();
 			expect(
 				updatedLists.find((l) => l.pricelist_id === list1.pricelist_id)!
 					.is_default
@@ -119,7 +143,7 @@ describe("PriceListModel", () => {
 
 			await priceListModel.deletePriceList(seededList.pricelist_id);
 
-			const lists = await priceListModel.getAllPriceLists();
+			const { rows: lists } = await priceListModel.getAllPriceLists();
 			expect(lists.length).toBe(2);
 		});
 

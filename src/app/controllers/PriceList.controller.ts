@@ -5,12 +5,38 @@ import {
 	UpdatePriceListDTO,
 	BulkPricesDTO
 } from "../utils/types/priceLists.js";
+import { buildPage, parsePagination } from "../utils/pagination.js";
+
+function readString(value: unknown): string | undefined {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (Array.isArray(value)) {
+		return readString(value[0]);
+	}
+	return undefined;
+}
+
+function readBoolean(value: unknown): boolean {
+	const raw = readString(value);
+	return raw === "true" || raw === "1";
+}
 
 export class PriceListController {
-	async getAllPriceLists(_req: Request, res: Response) {
+	async getAllPriceLists(req: Request, res: Response) {
 		try {
-			const priceLists = await PriceListModel.getAllPriceLists();
-			res.json(priceLists);
+			const pagination = parsePagination(req);
+			const all = readBoolean(req.query?.all);
+			const { rows, total } = await PriceListModel.getAllPriceLists({
+				offset: all ? undefined : pagination.offset,
+				limit: all ? undefined : pagination.limit,
+				search: readString(req.query?.search)
+			});
+			const page = all
+				? { ...pagination, page: 1, pageSize: rows.length }
+				: pagination;
+			res.json(buildPage(rows, total, page));
 		} catch (error) {
 			console.error("Error fetching price lists:", error);
 			res.status(500).json({ error: "Failed to fetch price lists" });

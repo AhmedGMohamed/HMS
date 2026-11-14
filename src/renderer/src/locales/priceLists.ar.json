@@ -43,6 +43,7 @@
       "supplies": "المستلزمات الطبية"
     },
     "placeholders": {
+      "searchPriceLists": "البحث عن قوائم الأسعار...",
       "searchServices": "البحث عن خدمات...",
       "searchDrugs": "البحث عن أدوية...",
       "searchSupplies": "البحث عن مستلزمات..."
@@ -77,6 +78,7 @@
     },
     "messages": {
       "noPriceLists": "لم يتم العثور على قوائم أسعار. قم بإنشاء أول قائمة أسعار للبدء.",
+      "noMatchingPriceLists": "لا توجد قوائم أسعار تطابق بحثك",
       "loadError": "فشل تحميل قوائم الأسعار",
       "createSuccess": "تم إنشاء قائمة الأسعار بنجاح",
       "updateSuccess": "تم تحديث قائمة الأسعار بنجاح",

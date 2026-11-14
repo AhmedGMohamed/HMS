@@ -15,7 +15,7 @@ import { ServiceFilters } from "@/pages/Services/components/ServiceFilters"
 import { ServicesTable } from "@/pages/Services/components/ServicesTable"
 import { ServiceModal } from "@/pages/Services/modals/ServiceModal"
 import { deleteService } from "@/pages/Services/api"
-import { usePriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
+import { useAllPriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
 import type { NormalizedService } from "@/pages/_shared/services/types"
 import type { ServiceType } from "@/pages/_shared/services/types"
 import { ApiError } from "@/lib/errors"
@@ -54,7 +54,7 @@ export default function ServicesPage() {
     drug: drugFilter,
     sort,
   })
-  const lists = usePriceLists()
+  const lists = useAllPriceLists()
 
   const hasFilters = Boolean(
     search.trim() || typeFilter || priceListFilter !== "" || drugFilter.trim()

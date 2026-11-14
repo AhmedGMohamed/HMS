@@ -147,7 +147,9 @@ export function getSupplyUsageSummary() {
 
 export function listPriceLists() {
   return api
-    .get<PriceList[] | PaginatedResponse<PriceList>>("/price-lists")
+    .get<PriceList[] | PaginatedResponse<PriceList>>("/price-lists", {
+      all: true,
+    })
     .then((res) => (Array.isArray(res) ? res : res.data))
 }
 

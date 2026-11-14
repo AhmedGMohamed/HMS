@@ -9,8 +9,30 @@ import {
 	BulkPricesResult
 } from "../utils/types/priceLists.js";
 
+export interface PriceListListOptions {
+	offset?: number;
+	limit?: number;
+	search?: string;
+}
+
 export class PriceListModel {
-	async getAllPriceLists(): Promise<PriceListWithStats[]> {
+	async getAllPriceLists(
+		options: PriceListListOptions = {}
+	): Promise<{ rows: PriceListWithStats[]; total: number }> {
+		const params: unknown[] = [];
+		let where = "";
+		if (options.search) {
+			params.push(`%${options.search}%`);
+			where = `WHERE pl.name ILIKE $1`;
+		}
+
+		const dataParams = [...params];
+		let paginationSql = "";
+		if (options.limit != null && options.offset != null) {
+			dataParams.push(options.limit, options.offset);
+			paginationSql = ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+		}
+
 		const sql = `
 			SELECT
 				pl.*,
@@ -24,10 +46,20 @@ export class PriceListModel {
 				 AND mss.quantity > 0
 				 WHERE medicalsupplyshipmentprice.pricelist_id = pl.pricelist_id) AS total_supplies
 			FROM PriceList pl
-			ORDER BY pl.name;
+			${where}
+			ORDER BY pl.name, pl.pricelist_id${paginationSql};
 		`;
-		const result = await query(sql);
-		return result.rows;
+		const countSql = `SELECT COUNT(*)::int AS total FROM PriceList pl ${where};`;
+
+		const [dataResult, countResult] = await Promise.all([
+			query(sql, dataParams),
+			query(countSql, params)
+		]);
+
+		return {
+			rows: dataResult.rows,
+			total: Number(countResult.rows[0]?.total ?? 0)
+		};
 	}
 
 	async getPriceListById(priceListId: number): Promise<PriceList> {
