@@ -1,4 +1,5 @@
 import { api } from "@/lib/api"
+import type { PaginatedResponse } from "@/types"
 
 import type {
   ClockIn,
@@ -11,12 +12,14 @@ import type {
 /**
  * Clocking module API — `/api/clock-ins` (§3.2 of `phase_6.8_plan.md`).
  *
- * The backend returns raw unordered rows and strings pg DECIMAL
- * `pay_deduction`; `normalize` coerces it to a number at the
- * boundary so page code only sees `ClockIn`. Payload datetimes are
- * local wall strings `"YYYY-MM-DDTHH:mm"` (minute precision, legacy
- * parity — plan A15); use `toLocalInputValue` / `nowLocalInputValue`
- * for `datetime-local` prefill and defaults.
+ * Both list endpoints answer with the shared
+ * `{ data, total, page, pageSize }` envelope, filter/sort/paginate in
+ * SQL, and return strings for pg DECIMAL `pay_deduction`;
+ * `normalize` coerces it to a number at the boundary so page code
+ * only sees `ClockIn`. Payload datetimes are local wall strings
+ * `"YYYY-MM-DDTHH:mm"` (minute precision, legacy parity — plan A15);
+ * use `toLocalInputValue` / `nowLocalInputValue` for `datetime-local`
+ * prefill and defaults.
  */
 
 /** pg DECIMAL arrives as a JSON string → coerce to number. */
@@ -24,8 +27,77 @@ function normalize(row: ClockInRow): ClockIn {
   return { ...row, payDeduction: Number(row.payDeduction ?? 0) }
 }
 
-export function listClockIns() {
-  return api.get<ClockInRow[]>("/clock-ins").then((rows) => rows.map(normalize))
+export interface ListClockInsParams {
+  page: number
+  pageSize: number
+  status?: "all" | "active" | "closed"
+  search?: string
+  /** `YYYY-MM-DD` local day. */
+  from?: string
+  /** `YYYY-MM-DD` local day (inclusive). */
+  to?: string
+  sort?: "employee" | "clockIn" | "clockOut" | "duration" | "payDeduction"
+  dir?: "asc" | "desc"
+}
+
+/** Paginated clock-in history (`GET /api/clock-ins`). */
+export function listClockIns(params: ListClockInsParams) {
+  return api
+    .get<PaginatedResponse<ClockInRow>>("/clock-ins", {
+      page: params.page,
+      pageSize: params.pageSize,
+      status: params.status,
+      search: params.search?.trim() || undefined,
+      from: params.from,
+      to: params.to,
+      sort: params.sort,
+      dir: params.dir,
+    })
+    .then((page) => ({ ...page, data: page.data.map(normalize) }))
+}
+
+export interface ListClockedInParams {
+  page: number
+  pageSize: number
+  missingOnly?: boolean
+  /** `YYYY-MM-DD` client-local day; DB falls back to `CURRENT_DATE`. */
+  today?: string
+  sort?: "clockIn" | "duration" | "employee"
+  dir?: "asc" | "desc"
+}
+
+/** Paginated currently-open rows (`GET /api/clock-ins/clocked-in`). */
+export function listClockedIn(params: ListClockedInParams) {
+  return api
+    .get<PaginatedResponse<ClockInRow>>("/clock-ins/clocked-in", {
+      page: params.page,
+      pageSize: params.pageSize,
+      missingOnly: params.missingOnly,
+      today: params.today,
+      sort: params.sort,
+      dir: params.dir,
+    })
+    .then((page) => ({ ...page, data: page.data.map(normalize) }))
+}
+
+/** KPI/badge figures over *all* open rows — never a page subset. */
+export interface ClockingStats {
+  activeCount: number
+  missingCount: number
+  over12hCount: number
+  duplicateEmployeeIds: number[]
+  openEmployeeIds: number[]
+}
+
+export function listClockedInStats(params?: { today?: string }) {
+  return api.get<ClockingStats>("/clock-ins/clocked-in/stats", params)
+}
+
+/** Unbounded open set for the Patients staff-status poll (`all=true`). */
+export function listAllClockedIn() {
+  return api
+    .get<PaginatedResponse<ClockInRow>>("/clock-ins/clocked-in", { all: true })
+    .then((page) => page.data.map(normalize))
 }
 
 /** Server ignores any client payDeduction and computes it from shift

@@ -16,7 +16,7 @@ import { LiveDuration } from "@/pages/Clocking/components/LiveDuration"
 import type { ClockIn, EligibleEmployee } from "@/pages/Clocking/types/clocking"
 
 interface HistoryTableProps {
-  /** Already filtered (search + range), sorted, and paged by the page. */
+  /** The current server page — search/range/sort/paging run in SQL. */
   rows: ClockIn[]
   loading?: boolean
   now: Date
@@ -42,9 +42,11 @@ interface HistoryTableProps {
  * History table (§B6 of `phase_6.8_ux_research.md`).
  *
  * Columns: Employee · Clock-In · Clock-Out · Duration (static) ·
- * Pay Deduction · Actions (edit / delete, `w-20`). Default sort
- * `clockIn` descending, client pagination 10/25/50/100 (default 25)
- * — both owned by the page.
+ * Pay Deduction · Actions (edit / delete, `w-20`). Server-paginated:
+ * search, date range, sort, page, and page size all travel to
+ * `GET /api/clock-ins` as query parameters, and the page sends
+ * `status=closed`. `rows` is therefore one page, and the default sort
+ * `clockIn` descending is owned by the page.
  *
  * Pay deduction is deliberately low-emphasis: always visible,
  * `tabular-nums`, `text-muted-foreground` (#475569 ≈7.5:1), zero

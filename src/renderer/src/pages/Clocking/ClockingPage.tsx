@@ -10,19 +10,13 @@ import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { ApiError } from "@/lib/errors"
-import { resolveLocale } from "@/lib/utils"
+import { resolveLocale, toLocalDateString } from "@/lib/utils"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { useUIStore } from "@/store/uiStore"
 import {
   quickClockOut,
   deleteClockIn,
 } from "@/pages/Clocking/api"
-import {
-  countMissingClockOut,
-  countOver12h,
-  duplicateActiveEmployeeIds,
-  isMissingClockOut,
-} from "@/pages/Clocking/components/anomaly"
 import {
   ActiveClockInsTable,
 } from "@/pages/Clocking/components/ActiveClockInsTable"
@@ -35,8 +29,10 @@ import {
   HistoryTable,
 } from "@/pages/Clocking/components/HistoryTable"
 import { ClockInModal } from "@/pages/Clocking/modals/ClockInModal"
+import { useActiveClockIns } from "@/pages/Clocking/hooks/useActiveClockIns"
 import { useClockIns } from "@/pages/Clocking/hooks/useClockIns"
 import { useClockingEmployees } from "@/pages/Clocking/hooks/useClockingEmployees"
+import { useClockingStats } from "@/pages/Clocking/hooks/useClockingStats"
 import { useNowTick } from "@/pages/Clocking/hooks/useNowTick"
 import type {
   ClockIn,
@@ -52,47 +48,16 @@ interface ModalState {
   clockIn: ClockIn | null
 }
 
-const HISTORY_PAGE_SIZES = [10, 25, 50, 100]
-const DEFAULT_HISTORY_PAGE_SIZE = 25
+const PAGE_SIZES = [10, 25, 50, 100]
+const DEFAULT_PAGE_SIZE = 25
 
-function startOfDay(date: Date): Date {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function toSortable(rows: ClockIn[], sort: SortState): ClockIn[] {
-  if (!sort) return rows
-  const factor = sort.direction === "asc" ? 1 : -1
-  const sorted = [...rows]
-  sorted.sort((a, b) => {
-    switch (sort.columnId) {
-      case "employee":
-        // Employee name sort falls back to id order for missing names.
-        return factor
-      case "clockIn":
-        return factor * (new Date(a.clockIn).getTime() - new Date(b.clockIn).getTime())
-      case "clockOut": {
-        const av = a.clockOut ? new Date(a.clockOut).getTime() : 0
-        const bv = b.clockOut ? new Date(b.clockOut).getTime() : 0
-        return factor * (av - bv)
-      }
-      case "duration": {
-        const av =
-          (a.clockOut ? new Date(a.clockOut).getTime() : Date.now()) -
-          new Date(a.clockIn).getTime()
-        const bv =
-          (b.clockOut ? new Date(b.clockOut).getTime() : Date.now()) -
-          new Date(b.clockIn).getTime()
-        return factor * (av - bv)
-      }
-      case "payDeduction":
-        return factor * (a.payDeduction - b.payDeduction)
-      default:
-        return 0
-    }
-  })
-  return sorted
+/**
+ * Last page that still has rows once `total` current rows shrink by
+ * one. Used after mutations so deleting/clocking out the only row on a
+ * trailing page does not strand the user on an empty page.
+ */
+function lastPageAfterRemoval(total: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(Math.max(0, total - 1) / pageSize))
 }
 
 /**
@@ -101,12 +66,16 @@ function toSortable(rows: ClockIn[], sort: SortState): ClockIn[] {
  * `views/employees/clocking.ts` page and the `ModulePlaceholder`
  * stub.
  *
- * Composition root: owns filter state (missingOnly chip, history
- * search + date range + sort + pagination), modal/confirm state, and
- * mutation handlers. All data derives client-side from the single
- * `GET /api/clock-ins` payload (backend has no query support) plus
- * the `manage_clocking`-scoped employee list (D1a). One shared 1s
- * tick feeds every live duration (legacy per-row interval leak fixed).
+ * Composition root. Both tabs are server-paginated:
+ *  - Active  → `GET /api/clock-ins/clocked-in`
+ *  - History → `GET /api/clock-ins` (`status=closed`)
+ * Filters (missingOnly, employee search, date range), sorting, and
+ * paging are query parameters, so the tables only ever hold one page.
+ * The KPI strip, tab badge, duplicate badges, and the new-clock-in
+ * picker guard read the separate `/clocked-in/stats` aggregate — the
+ * figures stay correct even though the page subset is small. One
+ * shared 1s tick feeds every live duration (legacy per-row interval
+ * leak fixed).
  */
 export function ClockingPage() {
   const { t } = useTranslation()
@@ -114,13 +83,14 @@ export function ClockingPage() {
   const language = (useUIStore((s) => s.language) ?? "en") as "en" | "ar"
   const locale = resolveLocale(language)
 
-  const { clockIns, loading, error, refresh } = useClockIns()
   const {
     employees,
     loading: employeesLoading,
     error: employeesError,
   } = useClockingEmployees()
   const now = useNowTick(1000)
+  /** Ticking local day — rolls the missing-clock-out filters at midnight. */
+  const today = toLocalDateString(now)
 
   // ── Filter / UI state ────────────────────────────────────────
   const [tab, setTab] = useState<ClockingTab>("active")
@@ -129,6 +99,8 @@ export function ClockingPage() {
     columnId: "clockIn",
     direction: "asc",
   })
+  const [activePage, setActivePage] = useState(1)
+  const [activePageSize, setActivePageSize] = useState(DEFAULT_PAGE_SIZE)
   const [historySort, setHistorySort] = useState<SortState>({
     columnId: "clockIn",
     direction: "desc",
@@ -136,9 +108,25 @@ export function ClockingPage() {
   const [historySearch, setHistorySearch] = useState("")
   const [historyRange, setHistoryRange] = useState<HistoryFiltersState["range"]>({})
   const [historyPage, setHistoryPage] = useState(1)
-  const [historyPageSize, setHistoryPageSize] = useState(
-    DEFAULT_HISTORY_PAGE_SIZE,
-  )
+  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE)
+
+  // ── Server state ─────────────────────────────────────────────
+  const active = useActiveClockIns({
+    page: activePage,
+    pageSize: activePageSize,
+    missingOnly,
+    sort: activeSort,
+    today,
+  })
+  const history = useClockIns({
+    page: historyPage,
+    pageSize: historyPageSize,
+    search: historySearch,
+    from: historyRange.from ? toLocalDateString(historyRange.from) : undefined,
+    to: historyRange.to ? toLocalDateString(historyRange.to) : undefined,
+    sort: historySort,
+  })
+  const stats = useClockingStats(today)
 
   // ── Modal / confirm state ────────────────────────────────────
   const [modal, setModal] = useState<ModalState | null>(null)
@@ -162,83 +150,70 @@ export function ClockingPage() {
     [employees],
   )
 
-  const openEmployeeIds = useMemo(() => {
-    const ids = new Set<number>()
-    for (const row of clockIns) {
-      if (!row.clockOut) ids.add(row.employeeId)
-    }
-    return ids
-  }, [clockIns])
+  // ── Filter handlers (each resets its tab's page) ─────────────
+  function handleMissingOnlyToggle() {
+    setMissingOnly((value) => !value)
+    setTab("active")
+    setActivePage(1)
+  }
 
-  const duplicateIds = useMemo(() => duplicateActiveEmployeeIds(clockIns), [clockIns])
+  function handleActiveSortToggle(
+    _id: string,
+    next: { columnId: string; direction: "asc" | "desc" },
+  ) {
+    setActiveSort(next)
+    setActivePage(1)
+  }
 
-  const active = useMemo(
-    () => clockIns.filter((row) => !row.clockOut),
-    [clockIns],
-  )
-  const history = useMemo(
-    () => clockIns.filter((row) => row.clockOut),
-    [clockIns],
-  )
+  function handleActivePageSize(size: number) {
+    setActivePageSize(size)
+    setActivePage(1)
+  }
 
-  const missingCount = useMemo(
-    () => countMissingClockOut(clockIns, now),
-    [clockIns, now],
-  )
-  const over12hCount = useMemo(
-    () => countOver12h(clockIns, now),
-    [clockIns, now],
-  )
-
-  const activeRows = useMemo(() => {
-    const filtered = missingOnly
-      ? active.filter((row) => isMissingClockOut(row, now))
-      : active
-    return toSortable(filtered, activeSort)
-  }, [active, missingOnly, now, activeSort])
-
-  const historyRows = useMemo(() => {
-    const search = historySearch.trim().toLowerCase()
-    const from = historyRange.from ? startOfDay(historyRange.from).getTime() : null
-    const to = historyRange.to
-      ? startOfDay(historyRange.to).getTime() + 86_399_999
-      : null
-    const filtered = history.filter((row) => {
-      if (search) {
-        const name = employeeMap.get(row.employeeId)?.name ?? ""
-        if (!name.toLowerCase().includes(search)) return false
-      }
-      const clockInMs = new Date(row.clockIn).getTime()
-      if (from !== null && clockInMs < from) return false
-      if (to !== null && clockInMs > to) return false
-      return true
-    })
-    return toSortable(filtered, historySort)
-  }, [history, historySearch, historyRange, historySort, employeeMap])
-
-  const pagedHistory = useMemo(() => {
-    const start = (historyPage - 1) * historyPageSize
-    return historyRows.slice(start, start + historyPageSize)
-  }, [historyRows, historyPage, historyPageSize])
-
-  // Reset to page 1 whenever the filter set changes under the user.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- derived-key reset, same pattern as useServices
+  function handleHistorySearch(value: string) {
+    setHistorySearch(value)
     setHistoryPage(1)
-  }, [historySearch, historyRange, historySort, historyPageSize])
+  }
+
+  function handleHistoryRange(next: HistoryFiltersState["range"]) {
+    setHistoryRange(next)
+    setHistoryPage(1)
+  }
+
+  function handleHistorySortToggle(
+    _id: string,
+    next: { columnId: string; direction: "asc" | "desc" },
+  ) {
+    setHistorySort(next)
+    setHistoryPage(1)
+  }
+
+  function handleHistoryPageSize(size: number) {
+    setHistoryPageSize(size)
+    setHistoryPage(1)
+  }
 
   // ── Load errors → persistent toasts + retryable empty states ──
+  // One toast for all three list sources so a network blip cannot
+  // stack three identical messages.
   useEffect(() => {
-    if (error) {
+    if (history.error || active.error || stats.error) {
       toast.error(t("clocking.messages.loadClockInsError"))
     }
-  }, [error, t])
+  }, [history.error, active.error, stats.error, t])
 
   useEffect(() => {
     if (employeesError) {
       toast.error(t("clocking.messages.loadEmployeesError"))
     }
   }, [employeesError, t])
+
+  /** Every mutation moves rows between the tabs and shifts the KPIs. */
+  function refreshAll() {
+    history.refresh()
+    active.refresh()
+    stats.refresh()
+  }
 
   // ── Mutation handlers ────────────────────────────────────────
   function handleClockOut(row: ClockIn) {
@@ -258,7 +233,10 @@ export function ClockingPage() {
       await quickClockOut(clockOutTarget.clockId, toWallNow())
       toast.success(t("clocking.messages.clockOutSuccess"))
       setClockOutTarget(null)
-      refresh()
+      // The row leaves the Active list — step back off a trailing page.
+      const last = lastPageAfterRemoval(active.total, activePageSize)
+      if (activePage > last) setActivePage(last)
+      refreshAll()
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -277,8 +255,16 @@ export function ClockingPage() {
       // 204 even for an already-deleted row — treated as success.
       await deleteClockIn(deleteTarget.clockId)
       toast.success(t("clocking.messages.deleteSuccess"))
+      // An open row disappears from Active, a closed one from History.
+      if (deleteTarget.clockOut) {
+        const last = lastPageAfterRemoval(history.total, historyPageSize)
+        if (historyPage > last) setHistoryPage(last)
+      } else {
+        const last = lastPageAfterRemoval(active.total, activePageSize)
+        if (activePage > last) setActivePage(last)
+      }
       setDeleteTarget(null)
-      refresh()
+      refreshAll()
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -299,7 +285,7 @@ export function ClockingPage() {
     )
   }
 
-  const loadFailed = Boolean(error)
+  const loadFailed = Boolean(history.error || active.error)
 
   return (
     <div className="flex flex-col gap-6">
@@ -319,36 +305,42 @@ export function ClockingPage() {
       />
 
       <ClockingKpiStrip
-        activeCount={active.length}
-        missingCount={missingCount}
-        over12hCount={over12hCount}
+        activeCount={stats.activeCount}
+        missingCount={stats.missingCount}
+        over12hCount={stats.over12hCount}
         missingFilterActive={missingOnly}
-        loading={loading}
+        loading={stats.loading}
         onResetFilter={() => {
           setMissingOnly(false)
+          setActivePage(1)
           setTab("active")
         }}
-        onToggleMissingOnly={() => {
-          setMissingOnly((value) => !value)
-          setTab("active")
-        }}
+        onToggleMissingOnly={handleMissingOnlyToggle}
       />
 
       <ClockingTabs
         tab={tab}
         onTabChange={setTab}
-        activeCount={active.length}
+        activeCount={stats.activeCount}
       >
         <TabsContent value="active" className="mt-0">
           <ActiveClockInsTable
-            rows={activeRows}
-            loading={loading}
+            rows={active.rows}
+            loading={active.loading}
             now={now}
             employeeMap={employeeMap}
-            duplicateIds={duplicateIds}
+            duplicateIds={stats.duplicateIds}
             locale={locale}
             sort={activeSort}
-            onSortToggle={(_id, next) => setActiveSort(next)}
+            onSortToggle={handleActiveSortToggle}
+            pagination={{
+              page: activePage,
+              pageSize: activePageSize,
+              total: active.total,
+              onPageChange: setActivePage,
+              onPageSizeChange: handleActivePageSize,
+              pageSizes: PAGE_SIZES,
+            }}
             onClockOut={handleClockOut}
             onEdit={(row) => setModal({ mode: "edit", clockIn: row })}
             onDelete={setDeleteTarget}
@@ -364,7 +356,7 @@ export function ClockingPage() {
             }
             emptyAction={
               loadFailed ? (
-                <Button type="button" variant="outline" onClick={refresh}>
+                <Button type="button" variant="outline" onClick={refreshAll}>
                   {t("clocking.messages.retry")}
                 </Button>
               ) : undefined
@@ -374,34 +366,33 @@ export function ClockingPage() {
 
         <TabsContent value="history" className="mt-0">
           <HistoryTable
-            rows={pagedHistory}
-            loading={loading}
+            rows={history.clockIns}
+            loading={history.loading}
             now={now}
             employeeMap={employeeMap}
             locale={locale}
             sort={historySort}
-            onSortToggle={(_id, next) => setHistorySort(next)}
+            onSortToggle={handleHistorySortToggle}
             pagination={{
               page: historyPage,
               pageSize: historyPageSize,
-              total: historyRows.length,
+              total: history.total,
               onPageChange: setHistoryPage,
-              onPageSizeChange: setHistoryPageSize,
-              pageSizes: HISTORY_PAGE_SIZES,
+              onPageSizeChange: handleHistoryPageSize,
+              pageSizes: PAGE_SIZES,
             }}
             onEdit={(row) => setModal({ mode: "edit", clockIn: row })}
             onDelete={setDeleteTarget}
             toolbar={
               <HistoryFilters
                 range={historyRange}
-                onChange={setHistoryRange}
+                onChange={handleHistoryRange}
               />
             }
             search={{
               value: historySearch,
-              onChange: setHistorySearch,
+              onChange: handleHistorySearch,
               placeholder: t("clocking.placeholders.searchEmployee"),
-              debounceMs: 300,
             }}
             emptyTitle={
               loadFailed
@@ -415,7 +406,7 @@ export function ClockingPage() {
             }
             emptyAction={
               loadFailed ? (
-                <Button type="button" variant="outline" onClick={refresh}>
+                <Button type="button" variant="outline" onClick={refreshAll}>
                   {t("clocking.messages.retry")}
                 </Button>
               ) : undefined
@@ -432,8 +423,8 @@ export function ClockingPage() {
         clockIn={modal?.mode === "edit" ? modal.clockIn : null}
         employees={pickerEmployees}
         employeesLoading={employeesLoading}
-        openEmployeeIds={openEmployeeIds}
-        onSaved={refresh}
+        openEmployeeIds={stats.openEmployeeIds}
+        onSaved={refreshAll}
       />
 
       {/* Quick clock-out — warning tier, no destructive icon (markPaid

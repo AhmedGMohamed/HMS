@@ -299,9 +299,14 @@ export function listSupplyShipments(supplyId: number) {
    ---------------------------------------------------------------- */
 
 export function listClockedInStaff() {
-  return api.get<
-    import("@/pages/Patients/types/patient").ClockedInEmployeeRow[]
-  >("/clock-ins/clocked-in")
+  return api
+    .get<
+      | import("@/pages/Patients/types/patient").ClockedInEmployeeRow[]
+      | PaginatedResponse<
+          import("@/pages/Patients/types/patient").ClockedInEmployeeRow
+        >
+    >("/clock-ins/clocked-in", { all: true })
+    .then((res) => parseLegacyList(res))
 }
 
 /* ----------------------------------------------------------------

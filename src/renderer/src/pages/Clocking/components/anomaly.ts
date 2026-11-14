@@ -3,10 +3,14 @@ import type { ClockIn } from "@/pages/Clocking/types/clocking"
 /**
  * Anomaly derivation for clock-in rows (§B3 of `phase_6.8_ux_research.md`).
  *
- * Pure, client-side, computed from the single `/api/clock-ins` payload —
- * no backend support required. Drives three reinforcing surfaces:
- * KPI cards (discovery), the `missingOnly` filter chip (action), and
- * per-row status badges (context).
+ * Pure, client-side, computed from the rows currently on screen. Drives
+ * the per-row status badges only — the KPI counts and the
+ * "already clocked in" picker guard come from the server aggregate
+ * (`/api/clock-ins/clocked-in/stats`) now that the tables are
+ * server-paginated, so the page-tier `countMissingClockOut` /
+ * `countOver12h` / `duplicateActiveEmployeeIds` helpers are no longer
+ * used there (kept because they document the same predicates and stay
+ * useful for standalone row-level work).
  */
 
 const DAY_MS = 86_400_000

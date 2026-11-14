@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import {
   DataTable,
   type ColumnDef,
+  type DataTablePaginationSlot,
 } from "@/components/common/DataTable"
 import { formatDateTime } from "@/lib/utils"
 import { AnomalyBadge } from "@/pages/Clocking/components/AnomalyBadge"
@@ -16,7 +17,7 @@ import { LiveDuration } from "@/pages/Clocking/components/LiveDuration"
 import type { ClockIn, EligibleEmployee } from "@/pages/Clocking/types/clocking"
 
 interface ActiveClockInsTableProps {
-  /** Already filtered (missingOnly) and sorted by the page. */
+  /** The current server page — filtering/sorting/paging live in SQL. */
   rows: ClockIn[]
   loading?: boolean
   /** Shared 1s tick. */
@@ -29,6 +30,7 @@ interface ActiveClockInsTableProps {
     id: string,
     next: { columnId: string; direction: "asc" | "desc" },
   ) => void
+  pagination?: DataTablePaginationSlot
   onClockOut: (row: ClockIn) => void
   onEdit: (row: ClockIn) => void
   onDelete: (row: ClockIn) => void
@@ -40,11 +42,15 @@ interface ActiveClockInsTableProps {
 /**
  * Active clock-ins table (§B6 of `phase_6.8_ux_research.md`).
  *
- * Columns: Employee (identity disc) · Clock-In (sortable,
- * tabular-nums) · Duration (live tick + anomaly badge) · Actions
- * (clock out / edit / delete, always visible, `w-28`). No search, no
- * pagination — the active list is by definition short. Default sort
- * `clockIn` ascending (longest-on-shift first) is owned by the page.
+ * Columns: Employee (identity disc, sortable) · Clock-In (sortable,
+ * tabular-nums) · Duration (live tick + anomaly badge, sortable) ·
+ * Actions (clock out / edit / delete, always visible, `w-28`).
+ *
+ * The page owns paging and the server owns filtering/sorting, so the
+ * active list is no longer assumed to be short: `rows` is one page and
+ * `sort` only drives the header indicators plus the next query. Default
+ * sort `clockIn` ascending (longest-on-shift first) is owned by the
+ * page.
  */
 export function ActiveClockInsTable({
   rows,
@@ -55,6 +61,7 @@ export function ActiveClockInsTable({
   locale,
   sort,
   onSortToggle,
+  pagination,
   onClockOut,
   onEdit,
   onDelete,
@@ -68,6 +75,8 @@ export function ActiveClockInsTable({
     {
       id: "employee",
       header: t("clocking.table.employeeName"),
+      sortable: true,
+      sortKey: (row) => employeeMap.get(row.employeeId)?.name ?? "",
       cell: (row) => (
         <EmployeeCell
           name={employeeMap.get(row.employeeId)?.name}
@@ -163,6 +172,7 @@ export function ActiveClockInsTable({
       getRowId={(row) => row.clockId}
       sort={sort}
       onSortToggle={onSortToggle}
+      pagination={pagination}
       stickyHeader
       ariaLabel={t("clocking.table.activeCaption")}
       emptyTitle={emptyTitle}
