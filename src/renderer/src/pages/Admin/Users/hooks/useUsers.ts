@@ -17,10 +17,10 @@ import type { AdminUser } from "@/pages/Admin/Users/types/user"
 export function useUsers(enabled = true) {
   return useListData<AdminUser>({
     enabled,
-    initialPageSize: 25,
+    initialPageSize: 10,
     searchDebounceMs: 400,
     fetcher: {
-      params: { page: 1, pageSize: 25, search: "" },
+      params: { page: 1, pageSize: 10, search: "" },
       fetch: ({ page, pageSize, search, sort, filters }) =>
         listUsers({
           page,

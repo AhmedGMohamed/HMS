@@ -42,7 +42,7 @@ export function useEmployees(params: UseEmployeesParams): UseEmployeesResult {
   const {
     enabled = true,
     page = 1,
-    pageSize = 25,
+    pageSize = 10,
     type = "all",
     search = "",
     isActive,

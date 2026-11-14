@@ -65,7 +65,7 @@ describe("EmployeeClockInController", () => {
 			expect(body.data.length).toBe(2);
 			expect(body.total).toBe(2);
 			expect(body.page).toBe(1);
-			expect(body.pageSize).toBe(25);
+			expect(body.pageSize).toBe(10);
 		});
 
 		it("should honour page and pageSize", async () => {
@@ -132,7 +132,7 @@ describe("EmployeeClockInController", () => {
 			expect(body.data.length).toBe(1);
 			expect(body.data[0].clock_out).toBeNull();
 			expect(body.page).toBe(1);
-			expect(body.pageSize).toBe(25);
+			expect(body.pageSize).toBe(10);
 		});
 
 		it("should return the whole active set with all=true", async () => {

@@ -40,7 +40,7 @@ describe("ServiceController", () => {
 			expect(response.data.length).toBeGreaterThan(0);
 			expect(response.total).toBeGreaterThan(0);
 			expect(response.page).toBe(1);
-			expect(response.pageSize).toBe(25);
+			expect(response.pageSize).toBe(10);
 		});
 
 		it("should honour page and pageSize", async () => {

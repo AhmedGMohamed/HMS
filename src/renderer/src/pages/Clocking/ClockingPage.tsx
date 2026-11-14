@@ -49,7 +49,7 @@ interface ModalState {
 }
 
 const PAGE_SIZES = [10, 25, 50, 100]
-const DEFAULT_PAGE_SIZE = 25
+const DEFAULT_PAGE_SIZE = 10
 
 /**
  * Last page that still has rows once `total` current rows shrink by

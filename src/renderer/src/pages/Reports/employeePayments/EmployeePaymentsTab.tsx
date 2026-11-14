@@ -97,7 +97,7 @@ export interface EmployeePaymentsTabProps {
  */
 const INITIAL_PAGING: EmployeePaymentQueryPaging = {
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   sort: { columnId: "net", direction: "desc" },
 }
 

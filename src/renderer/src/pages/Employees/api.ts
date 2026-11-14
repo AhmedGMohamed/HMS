@@ -50,7 +50,7 @@ export interface EmployeeListParams {
 export function listEmployeesPage(params: EmployeeListParams = {}) {
   return api.get<PaginatedResponse<Employee>>("/employees", {
     page: params.page ?? 1,
-    pageSize: params.pageSize ?? 25,
+    pageSize: params.pageSize ?? 10,
     type: params.type && params.type !== "all" ? params.type : undefined,
     search: params.search?.trim() || undefined,
     isActive: params.isActive,
@@ -95,7 +95,7 @@ export interface DoctorListParams {
 export function listDoctorsPage(params: DoctorListParams = {}) {
   return api.get<PaginatedResponse<Doctor>>("/doctors", {
     page: params.page ?? 1,
-    pageSize: params.pageSize ?? 25,
+    pageSize: params.pageSize ?? 10,
     search: params.search?.trim() || undefined,
     isActive: params.isActive,
     shiftType: params.shiftType || undefined,
@@ -175,7 +175,7 @@ export function listPendingPaymentGroups(params: PendingGroupListParams = {}) {
     "/employee-payments/pending",
     {
       page: params.page ?? 1,
-      pageSize: params.pageSize ?? 25,
+      pageSize: params.pageSize ?? 10,
       from: params.from || undefined,
       to: params.to || undefined,
       search: params.search?.trim() || undefined,

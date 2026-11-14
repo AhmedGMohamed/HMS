@@ -56,7 +56,7 @@ type TabKey = (typeof TABS)[number]
 type SortState = { columnId: string; direction: "asc" | "desc" } | null
 
 const PAGE_SIZES = [10, 25, 50, 100]
-const DEFAULT_PAGE_SIZE = 25
+const DEFAULT_PAGE_SIZE = 10
 
 /** Payments-table column ids → server sort keys. */
 const PAYMENT_SORT_MAP: Record<string, PendingGroupSortKey> = {

@@ -58,7 +58,7 @@ describe("EmployeePaymentController", () => {
 			expect(body.data.length).toBe(2);
 			expect(body.total).toBe(2);
 			expect(body.page).toBe(1);
-			expect(body.pageSize).toBe(25);
+			expect(body.pageSize).toBe(10);
 		});
 
 		it("should honour page/pageSize and all=true", async () => {
@@ -106,7 +106,7 @@ describe("EmployeePaymentController", () => {
 			expect(body.data[0].payment_count).toBe(2);
 			expect(body.data[0].total_amount).toBe(150);
 			expect(body.page).toBe(1);
-			expect(body.pageSize).toBe(25);
+			expect(body.pageSize).toBe(10);
 		});
 
 		it("should pass search, pagination, and sort through", async () => {

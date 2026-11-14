@@ -134,7 +134,7 @@ export interface ReportPagingState {
 
 export const DEFAULT_REPORT_PAGING: ReportPagingState = {
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   sort: null,
 }
 
