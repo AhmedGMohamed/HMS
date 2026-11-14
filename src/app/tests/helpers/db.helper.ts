@@ -910,6 +910,10 @@ export const dbHelper = {
 		await query("DELETE FROM DoctorPatientHistory");
 	},
 
+	async clearNursePatientHistory() {
+		await query("DELETE FROM NursePatientHistory");
+	},
+
 	async clearPatientHistory() {
 		await query("DELETE FROM PatientHistory");
 	},
@@ -989,6 +993,7 @@ export const dbHelper = {
 			await this.clearBillDetails();
 			await this.clearActivePatientServices();
 			await this.clearDoctorPatientHistory();
+			await this.clearNursePatientHistory();
 			await this.clearPatientHistory();
 			await this.clearBills();
 			await this.clearServiceDrugs();
