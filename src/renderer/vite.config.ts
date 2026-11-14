@@ -17,11 +17,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         "/api": { target: apiTarget, changeOrigin: true },
-        "/navigation": { target: apiTarget, changeOrigin: true },
       },
     },
     build: {
-      outDir: path.resolve(__dirname, "../../dist-electron/renderer"),
+      outDir: path.resolve(__dirname, "../../dist-electron/app/renderer"),
       emptyOutDir: true,
     }
   }
