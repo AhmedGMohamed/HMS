@@ -1,10 +1,14 @@
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { SearchIcon } from "lucide-react"
 import { useUIStore } from "@/store/uiStore"
+import { Button } from "@/components/ui/button"
 import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Breadcrumbs } from "./Breadcrumbs"
+import { CommandPalette } from "./CommandPalette"
 import { LanguageToggle } from "./LanguageToggle"
 
 /**
@@ -26,6 +30,7 @@ export function TopBar() {
   const direction = language === "ar" ? "rtl" : "ltr"
   const { isMobile } = useSidebar()
   const { t } = useTranslation()
+  const [commandOpen, setCommandOpen] = useState(false)
 
   return (
     <header
@@ -38,8 +43,23 @@ export function TopBar() {
       />
       <Breadcrumbs />
       <div className="ms-auto flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 px-2 text-muted-foreground"
+          onClick={() => setCommandOpen(true)}
+          aria-label={t("topbar.search")}
+          aria-keyshortcuts="Control+K"
+        >
+          <SearchIcon className="size-4" aria-hidden />
+          <span className="hidden sm:inline">{t("topbar.search")}</span>
+          <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] md:inline">
+            Ctrl K
+          </kbd>
+        </Button>
         <LanguageToggle />
       </div>
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </header>
   )
 }

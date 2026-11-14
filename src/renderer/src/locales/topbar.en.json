@@ -1,6 +1,11 @@
 {
   "topbar": {
     "search": "Search",
+    "commandTitle": "Command palette",
+    "commandDescription": "Search for a page to open.",
+    "commandPlaceholder": "Search pages...",
+    "commandEmpty": "No pages found.",
+    "commandNavigation": "Navigation",
     "toggleNavigation": "Toggle navigation",
     "toggleLanguage": "Toggle language",
     "openMenu": "Open user menu"
