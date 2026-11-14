@@ -2,16 +2,106 @@
 import { query } from "./database/connection.js";
 import { Doctor, CreateDoctorDTO, Employee } from "../utils/types/employees.js";
 
+export interface DoctorListOptions {
+	offset?: number;
+	limit?: number;
+	search?: string;
+	isActive?: boolean;
+	shiftType?: "morning" | "night";
+	doctorType?: string;
+	sort?:
+		| "name"
+		| "doctorType"
+		| "hireDate"
+		| "dailyPay"
+		| "perPatientPay"
+		| "shiftType";
+	dir?: "asc" | "desc";
+}
+
+const DOCTOR_SORT_COLUMNS = {
+	name: "e.name",
+	doctorType: "d.doctor_type",
+	hireDate: "e.hire_date",
+	dailyPay: "d.daily_pay",
+	perPatientPay: "d.per_patient_pay",
+	shiftType: "e.shift_type"
+} as const;
+
+/**
+ * Shared WHERE builder for the doctor list + count queries. `is_active`
+ * comes from the Doctor row (it shadows the Employee column in the
+ * selected payload), so filters, sort, and displayed value agree.
+ */
+function buildDoctorWhere(options: DoctorListOptions): {
+	where: string;
+	params: unknown[];
+} {
+	const clauses: string[] = [];
+	const params: unknown[] = [];
+
+	if (options.search) {
+		params.push(`%${options.search}%`);
+		clauses.push(`e.name ILIKE $${params.length}`);
+	}
+	if (options.isActive != null) {
+		params.push(options.isActive);
+		clauses.push(`d.is_active = $${params.length}`);
+	}
+	if (options.shiftType) {
+		params.push(options.shiftType);
+		clauses.push(`e.shift_type = $${params.length}`);
+	}
+	if (options.doctorType) {
+		params.push(options.doctorType);
+		clauses.push(`d.doctor_type = $${params.length}`);
+	}
+
+	return {
+		where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+		params
+	};
+}
+
 export default class DoctorModel {
-	static async getAllDoctors(): Promise<Doctor[]> {
+	static async getAllDoctors(
+		options: DoctorListOptions = {}
+	): Promise<{ rows: Doctor[]; total: number }> {
+		const { where, params } = buildDoctorWhere(options);
+		const sortColumn = DOCTOR_SORT_COLUMNS[options.sort ?? "name"];
+		const dir = options.dir === "desc" ? "DESC" : "ASC";
+
+		const dataParams = [...params];
+		let paginationSql = "";
+		if (options.limit != null && options.offset != null) {
+			dataParams.push(options.limit, options.offset);
+			paginationSql = ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+		}
+
 		const sql = `
       SELECT e.*, d.doctor_type, d.is_active, d.daily_pay, d.per_patient_pay, 
              d.payment_calculation, d.referral_bonus
       FROM Employee e
       JOIN Doctor d ON e.employee_id = d.doctor_id
+      ${where}
+      ORDER BY ${sortColumn} ${dir} NULLS LAST, e.employee_id ${dir}${paginationSql}
     `;
-		const { rows } = await query(sql);
-		return rows;
+		const countSql = `
+      SELECT COUNT(*)::int AS total
+      FROM Employee e
+      JOIN Doctor d ON e.employee_id = d.doctor_id
+      ${where};
+    `;
+
+		const [dataResult, countResult] = await Promise.all([
+			query(sql, dataParams),
+			query(countSql, params)
+		]);
+
+		return {
+			rows: dataResult.rows,
+			total: Number(countResult.rows[0]?.total ?? 0)
+		};
 	}
 
 	static async getDoctorById(doctor_id: number): Promise<Doctor | null> {

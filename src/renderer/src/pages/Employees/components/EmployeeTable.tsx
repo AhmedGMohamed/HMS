@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CircleDollarSignIcon,
@@ -9,7 +8,11 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
-import { DataTable, type ColumnDef } from "@/components/common/DataTable"
+import {
+  DataTable,
+  type ColumnDef,
+  type DataTablePaginationSlot,
+} from "@/components/common/DataTable"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/utils"
@@ -28,14 +31,16 @@ export interface EmployeeTableProps {
   loading: boolean
   canViewPayments: boolean
   isAdmin: boolean
-  search: { value: string; onChange: (value: string) => void }
+  search: { value: string; onChange: (value: string) => void; placeholder?: string }
   toolbar: React.ReactNode
+  pagination: DataTablePaginationSlot
   sort: { columnId: string; direction: "asc" | "desc" } | null
   onSortToggle: (
     id: string,
     next: { columnId: string; direction: "asc" | "desc" }
   ) => void
   emptyTitle?: string
+  emptyDescription?: string
   emptyAction?: React.ReactNode
   onView: (employee: Employee) => void
   onEdit: (employee: Employee) => void
@@ -47,6 +52,10 @@ export interface EmployeeTableProps {
  * Staff table for the Employees (type=other) and Nurses tabs
  * (Phase 6.7). Columns are legacy parity; presentation follows the
  * UX package (badges, icon actions with tooltips, tabular money).
+ *
+ * Rows arrive already filtered, sorted and paginated by the server —
+ * `sort` / `onSortToggle` only drive the header indicator and the next
+ * query, and `pagination` is the page-level pager.
  */
 export function EmployeeTable({
   employees,
@@ -55,9 +64,11 @@ export function EmployeeTable({
   isAdmin,
   search,
   toolbar,
+  pagination,
   sort,
   onSortToggle,
   emptyTitle,
+  emptyDescription,
   emptyAction,
   onView,
   onEdit,
@@ -67,26 +78,6 @@ export function EmployeeTable({
   const { t } = useTranslation()
   const locale = useEmployeeLocale()
   const extraPaymentSummary = useExtraPaymentSummary()
-
-  const sorted = useMemo(() => {
-    if (!sort) return employees
-    const direction = sort.direction === "asc" ? 1 : -1
-    return [...employees].sort((a, b) => {
-      switch (sort.columnId) {
-        case "hireDate":
-          return (
-            (new Date(a.hireDate).getTime() - new Date(b.hireDate).getTime()) *
-            direction
-          )
-        case "basePay":
-          return ((Number(a.basePay) || 0) - (Number(b.basePay) || 0)) * direction
-        case "shiftType":
-          return (a.shiftType ?? "").localeCompare(b.shiftType ?? "") * direction
-        default:
-          return a.name.localeCompare(b.name) * direction
-      }
-    })
-  }, [employees, sort])
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -222,16 +213,18 @@ export function EmployeeTable({
 
   return (
     <DataTable<Employee>
-      data={sorted}
+      data={employees}
       columns={columns}
       loading={loading}
-      search={{ value: search.value, onChange: search.onChange }}
+      search={search}
       toolbar={toolbar}
+      pagination={pagination}
       getRowId={(employee) => employee.employeeId}
       sort={sort}
       onSortToggle={onSortToggle}
       onRowClick={onView}
       emptyTitle={emptyTitle ?? t("common.noData")}
+      emptyDescription={emptyDescription}
       emptyAction={emptyAction}
       ariaLabel={t("employees.title")}
     />

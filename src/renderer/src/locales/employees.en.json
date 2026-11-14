@@ -6,6 +6,7 @@
     "searchPlaceholder": "Search Employees...",
     "searchDoctorsPlaceholder": "Search Doctors...",
     "searchNursesPlaceholder": "Search Nurses...",
+    "searchPaymentsPlaceholder": "Search employees with pending payments...",
     "employeeList": "Employee List",
     "doctorList": "Doctor List",
     "nurseList": "Nurse List",
@@ -67,7 +68,8 @@
       "paidBy": "Paid By",
       "paidOn": "Paid On",
       "dateRange": "Date Range",
-      "totalAmount": "Total Amount"
+      "totalAmount": "Total Amount",
+      "paymentCount": "Payments"
     },
     "fields": {
       "name": "Name",
@@ -194,7 +196,11 @@
       "paymentsPermissionRequired": "Requires the Manage Payments permission",
       "amountBreakdown": "{{base}} + {{extra}} extra",
       "pendingPaymentsCount": "{{count}} pending payments",
-      "noPendingPayments": "No pending system-generated payments"
+      "noPendingPayments": "No pending system-generated payments",
+      "noMatchesStaff": "No employees match your filters",
+      "noMatchesStaffDesc": "Try a different search term or clear the filters.",
+      "noMatchingPayments": "No pending payments match your filters",
+      "loadingPayments": "Loading payments..."
     },
     "buttons": {
       "viewDetails": "View details",
@@ -205,6 +211,7 @@
       "markAllPaid": "Mark All Paid",
       "void": "Void",
       "voidAll": "Void All",
+      "retry": "Retry",
       "saving": "Saving...",
       "savingPayment": "Saving Payment..."
     }

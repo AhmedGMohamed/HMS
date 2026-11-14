@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -17,20 +17,34 @@ import {
   deleteDoctor,
   deleteEmployee,
   markPaymentPaid,
+  markPendingPaymentsPaid,
   voidPayment,
+  voidPendingPayments,
+  type PendingGroupSortKey,
 } from "@/pages/Employees/api"
-import { EmployeeFilterToolbar, type StatusFilter } from "@/pages/Employees/components/EmployeeFilterToolbar"
+import {
+  EmployeeFilterToolbar,
+  type StatusFilter,
+} from "@/pages/Employees/components/EmployeeFilterToolbar"
 import { EmployeeTable } from "@/pages/Employees/components/EmployeeTable"
 import { DoctorTable } from "@/pages/Employees/components/DoctorTable"
-import { EmployeeDetailSheet, type StaffSubject } from "@/pages/Employees/components/EmployeeDetailSheet"
-import { PaymentsTable, type DateRange, type PaymentGroup } from "@/pages/Employees/components/PaymentsTable"
-import { useEmployees } from "@/pages/Employees/hooks/useEmployees"
+import {
+  EmployeeDetailSheet,
+  type StaffSubject,
+} from "@/pages/Employees/components/EmployeeDetailSheet"
+import {
+  PaymentsTable,
+  type DateRange,
+} from "@/pages/Employees/components/PaymentsTable"
+import { useDoctorList } from "@/pages/Employees/hooks/useDoctorList"
 import { useEmployeePayments } from "@/pages/Employees/hooks/useEmployeePayments"
+import { useEmployees } from "@/pages/Employees/hooks/useEmployees"
+import { usePendingPaymentGroups } from "@/pages/Employees/hooks/usePendingPaymentGroups"
+import { usePendingPaymentStats } from "@/pages/Employees/hooks/usePendingPaymentStats"
 import { useTabSync } from "@/pages/Employees/hooks/useTabSync"
 import { EmployeeModal } from "@/pages/Employees/modals/EmployeeModal"
 import { PaymentModal } from "@/pages/Employees/modals/PaymentModal"
 import type {
-  Employee,
   EmployeePayment,
   EmployeeType,
   ShiftType,
@@ -39,24 +53,39 @@ import type {
 const TABS = ["employees", "doctors", "nurses", "payments"] as const
 type TabKey = (typeof TABS)[number]
 
-function matchesDateRange(timestamp: string, range: DateRange): boolean {
-  const time = new Date(timestamp).getTime()
-  if (range.from) {
-    const from = new Date(`${range.from}T00:00:00`).getTime()
-    if (Number.isFinite(from) && time < from) return false
-  }
-  if (range.to) {
-    const to = new Date(`${range.to}T23:59:59.999`).getTime()
-    if (Number.isFinite(to) && time > to) return false
-  }
-  return true
+type SortState = { columnId: string; direction: "asc" | "desc" } | null
+
+const PAGE_SIZES = [10, 25, 50, 100]
+const DEFAULT_PAGE_SIZE = 25
+
+/** Payments-table column ids → server sort keys. */
+const PAYMENT_SORT_MAP: Record<string, PendingGroupSortKey> = {
+  employeeName: "employee",
+  totalAmount: "totalAmount",
+  dateRange: "oldest",
+}
+
+/**
+ * The page the list should fall back to after one row is removed —
+ * used by the delete handlers so a trailing page cannot be left empty
+ * (`react-hooks/set-state-in-effect` forbids clamping from an effect).
+ */
+function lastPageAfterRemoval(total: number, pageSize: number): number {
+  const remaining = Math.max(0, total - 1)
+  return Math.max(1, Math.ceil(remaining / pageSize))
 }
 
 /**
  * /employees — merged Employees | Doctors | Nurses | Payments page
- * (Phase 6.7, `phase_6.7-employees.md`). Tab state lives in the URL
- * (`?tab=`); `/doctors` redirects here. Staff CRUD is admin-gated
- * (server `adminOnly`); payments surfaces require `manage_payments`.
+ * (Phase 6.7, `phase_6.7-employees.md`).
+ *
+ * Tab state lives in the URL (`?tab=`); `/doctors` redirects here. All
+ * four lists are server-side: every tab owns its page / page size /
+ * sort state, the staff tabs share the search + status + shift
+ * filters, and the payments queue adds its own employee-name search
+ * and issue-date range. Rows are only fetched for the active tab.
+ * Staff CRUD is admin-gated (server `adminOnly`); payments surfaces
+ * require `manage_payments`.
  */
 export default function EmployeesPage() {
   const { t } = useTranslation()
@@ -64,8 +93,6 @@ export default function EmployeesPage() {
   const { hasPermission, isAdmin } = usePermission()
   const canViewPayments = hasPermission("manage_payments")
 
-  const staff = useEmployees()
-  const payments = useEmployeePayments(canViewPayments)
   const [tab, setTab] = useTabSync(TABS, "employees")
 
   /* Per-tab filters. */
@@ -73,11 +100,76 @@ export default function EmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [shiftFilter, setShiftFilter] = useState<ShiftType | "">("")
   const [doctorTypeFilter, setDoctorTypeFilter] = useState("")
-  const [sort, setSort] = useState<{
-    columnId: string
-    direction: "asc" | "desc"
-  } | null>(null)
+  const [paymentSearch, setPaymentSearch] = useState("")
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" })
+
+  /* Per-tab pagination + sorting (server-side). */
+  const [employeePage, setEmployeePage] = useState(1)
+  const [employeePageSize, setEmployeePageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [employeeSort, setEmployeeSort] = useState<SortState>(null)
+  const [nursePage, setNursePage] = useState(1)
+  const [nursePageSize, setNursePageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [nurseSort, setNurseSort] = useState<SortState>(null)
+  const [doctorPage, setDoctorPage] = useState(1)
+  const [doctorPageSize, setDoctorPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [doctorSort, setDoctorSort] = useState<SortState>(null)
+  const [paymentPage, setPaymentPage] = useState(1)
+  const [paymentPageSize, setPaymentPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [paymentSort, setPaymentSort] = useState<SortState>(null)
+
+  const staffFilters = {
+    search,
+    isActive:
+      statusFilter === "all" ? undefined : statusFilter === "active",
+    shiftType: shiftFilter,
+  }
+
+  const employeesList = useEmployees({
+    enabled: tab === "employees",
+    page: employeePage,
+    pageSize: employeePageSize,
+    type: "other",
+    sort: employeeSort,
+    ...staffFilters,
+  })
+
+  const nursesList = useEmployees({
+    enabled: tab === "nurses",
+    page: nursePage,
+    pageSize: nursePageSize,
+    type: "nurse",
+    sort: nurseSort,
+    ...staffFilters,
+  })
+
+  const doctorsList = useDoctorList({
+    enabled: tab === "doctors",
+    page: doctorPage,
+    pageSize: doctorPageSize,
+    doctorType: doctorTypeFilter,
+    sort: doctorSort,
+    ...staffFilters,
+  })
+
+  const paymentsEnabled = tab === "payments" && canViewPayments
+  const pendingGroups = usePendingPaymentGroups({
+    enabled: paymentsEnabled,
+    page: paymentPage,
+    pageSize: paymentPageSize,
+    from: dateRange.from,
+    to: dateRange.to,
+    search: paymentSearch,
+    sort: paymentSort
+      ? PAYMENT_SORT_MAP[paymentSort.columnId]
+      : undefined,
+    dir: paymentSort?.direction,
+  })
+  const pendingStats = usePendingPaymentStats({
+    enabled: paymentsEnabled,
+    from: dateRange.from,
+    to: dateRange.to,
+    search: paymentSearch,
+  })
 
   /* Modal / sheet / confirm state. */
   const [modalOpen, setModalOpen] = useState(false)
@@ -87,101 +179,86 @@ export default function EmployeesPage() {
   const [deleting, setDeleting] = useState<StaffSubject | null>(null)
   const [sheetSubject, setSheetSubject] = useState<StaffSubject | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [markPaidTarget, setMarkPaidTarget] = useState<EmployeePayment | null>(null)
+  const [markPaidTarget, setMarkPaidTarget] =
+    useState<EmployeePayment | null>(null)
   const [voidTarget, setVoidTarget] = useState<EmployeePayment | null>(null)
   const [markAllFor, setMarkAllFor] = useState<number | null>(null)
   const [voidAllFor, setVoidAllFor] = useState<number | null>(null)
 
-  /* Legacy `shown.bs.tab` behavior: refetch when the active tab
-     changes (skipped on first mount — the hooks load on mount). */
-  const mountedRef = useRef(false)
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true
-      return
-    }
-    staff.refresh()
-    if (canViewPayments) payments.refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab])
-
-  /* ------------------------------ Filtering ------------------------------ */
-
-  const staffFilters = useCallback(
-    (employee: Employee): boolean => {
-      if (statusFilter === "active" && !employee.isActive) return false
-      if (statusFilter === "inactive" && employee.isActive) return false
-      if (shiftFilter && employee.shiftType !== shiftFilter) return false
-      return true
-    },
-    [statusFilter, shiftFilter]
+  /* The detail sheet fetches only the open employee's payments. */
+  const sheetPayments = useEmployeePayments(
+    sheetOpen ? (sheetSubject?.employeeId ?? null) : null,
+    sheetOpen && canViewPayments
   )
 
-  const tabEmployees = useMemo(
-    () =>
-      tab === "nurses"
-        ? staff.employees.filter((e) => e.employeeType === "nurse")
-        : staff.employees.filter((e) => e.employeeType === "other"),
-    [tab, staff.employees]
-  )
+  /* --------------------------- Page handlers --------------------------- */
 
-  const filteredEmployees = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return tabEmployees.filter(
-      (employee) =>
-        staffFilters(employee) &&
-        (!query || employee.name.toLowerCase().includes(query))
-    )
-  }, [tabEmployees, search, staffFilters])
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setEmployeePage(1)
+    setNursePage(1)
+    setDoctorPage(1)
+  }
 
-  const filteredDoctors = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return staff.doctors.filter(
-      (doctor) =>
-        staffFilters(doctor) &&
-        (!doctorTypeFilter || doctor.doctorType === doctorTypeFilter) &&
-        (!query || doctor.name.toLowerCase().includes(query))
-    )
-  }, [staff.doctors, search, staffFilters, doctorTypeFilter])
+  function handleStatusFilterChange(value: StatusFilter) {
+    setStatusFilter(value)
+    setEmployeePage(1)
+    setNursePage(1)
+    setDoctorPage(1)
+  }
 
-  /* Work-queue groups: pending system payments, known employees only,
-     date-range filtered (legacy unpaid-system equivalent). */
-  const workQueueGroups = useMemo(() => {
-    const knownIds = new Set([
-      ...staff.employees.map((e) => e.employeeId),
-      ...staff.doctors.map((d) => d.employeeId),
-    ])
-    const filtered = payments.pendingSystemPayments.filter(
-      (p) => knownIds.has(p.employeeId) && matchesDateRange(p.issuedTimestamp, dateRange)
-    )
-    const grouped = new Map<number, EmployeePayment[]>()
-    for (const payment of filtered) {
-      const bucket = grouped.get(payment.employeeId)
-      if (bucket) bucket.push(payment)
-      else grouped.set(payment.employeeId, [payment])
-    }
-    const groups: PaymentGroup[] = [...grouped.entries()].map(
-      ([employeeId, list]) => ({ employeeId, payments: list })
-    )
-    /* Oldest-first groups (list itself is already oldest-first). */
-    groups.sort((a, b) =>
-      issuedTimeOf(a.payments[0]) - issuedTimeOf(b.payments[0])
-    )
-    return groups
-  }, [payments.pendingSystemPayments, staff.employees, staff.doctors, dateRange])
+  function handleShiftFilterChange(value: ShiftType | "") {
+    setShiftFilter(value)
+    setEmployeePage(1)
+    setNursePage(1)
+    setDoctorPage(1)
+  }
 
-  const employeeNames = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const e of staff.employees) map.set(e.employeeId, e.name)
-    for (const d of staff.doctors) map.set(d.employeeId, d.name)
-    return map
-  }, [staff.employees, staff.doctors])
+  function handleDoctorTypeFilterChange(value: string) {
+    setDoctorTypeFilter(value)
+    setDoctorPage(1)
+  }
+
+  function handleEmployeeSortToggle(_id: string, next: SortState) {
+    setEmployeeSort(next)
+    setEmployeePage(1)
+  }
+
+  function handleNurseSortToggle(_id: string, next: SortState) {
+    setNurseSort(next)
+    setNursePage(1)
+  }
+
+  function handleDoctorSortToggle(_id: string, next: SortState) {
+    setDoctorSort(next)
+    setDoctorPage(1)
+  }
+
+  function handlePaymentSortToggle(_id: string, next: SortState) {
+    setPaymentSort(next)
+    setPaymentPage(1)
+  }
+
+  function handlePaymentSearchChange(value: string) {
+    setPaymentSearch(value)
+    setPaymentPage(1)
+  }
+
+  function handleDateRangeChange(range: DateRange) {
+    setDateRange(range)
+    setPaymentPage(1)
+  }
 
   /* ------------------------------ Mutations ------------------------------ */
 
   function refreshAll() {
-    staff.refresh()
-    if (canViewPayments) payments.refresh()
+    employeesList.refresh()
+    nursesList.refresh()
+    doctorsList.refresh()
+    if (canViewPayments) {
+      pendingGroups.refresh()
+      pendingStats.refresh()
+    }
   }
 
   function errorMessage(err: unknown, fallbackKey: string): string {
@@ -190,13 +267,42 @@ export default function EmployeesPage() {
 
   function openCreate() {
     setEditing(null)
-    setCreatingType(tab === "doctors" ? "doctor" : tab === "nurses" ? "nurse" : "other")
+    setCreatingType(
+      tab === "doctors" ? "doctor" : tab === "nurses" ? "nurse" : "other"
+    )
     setModalOpen(true)
   }
 
   function openSheet(subject: StaffSubject) {
     setSheetSubject(subject)
     setSheetOpen(true)
+  }
+
+  /** Step back one page when the deletion empties a trailing page. */
+  function clampAfterDelete(type: EmployeeType) {
+    if (type === "doctor") {
+      const lastPage = lastPageAfterRemoval(doctorsList.total, doctorPageSize)
+      if (doctorPage > lastPage) setDoctorPage(lastPage)
+      return
+    }
+    if (type === "nurse") {
+      const lastPage = lastPageAfterRemoval(nursesList.total, nursePageSize)
+      if (nursePage > lastPage) setNursePage(lastPage)
+      return
+    }
+    const lastPage = lastPageAfterRemoval(
+      employeesList.total,
+      employeePageSize
+    )
+    if (employeePage > lastPage) setEmployeePage(lastPage)
+  }
+
+  function clampAfterGroupRemoval() {
+    const lastPage = lastPageAfterRemoval(
+      pendingGroups.total,
+      paymentPageSize
+    )
+    if (paymentPage > lastPage) setPaymentPage(lastPage)
   }
 
   async function confirmDelete() {
@@ -210,6 +316,7 @@ export default function EmployeesPage() {
       toast.success(t("employees.messages.deleteSuccess"))
       setDeleting(null)
       setSheetOpen(false)
+      clampAfterDelete(deleting.employeeType)
       refreshAll()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.deleteError"))
@@ -223,7 +330,8 @@ export default function EmployeesPage() {
       await markPaymentPaid(markPaidTarget.paymentId)
       toast.success(t("employees.messages.markPaidSuccess"))
       setMarkPaidTarget(null)
-      payments.refresh()
+      pendingGroups.refresh()
+      pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.markPaidError"))
       throw err
@@ -236,7 +344,8 @@ export default function EmployeesPage() {
       await voidPayment(voidTarget.paymentId)
       toast.success(t("employees.messages.voidSuccess"))
       setVoidTarget(null)
-      payments.refresh()
+      pendingGroups.refresh()
+      pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.voidError"))
       throw err
@@ -245,49 +354,77 @@ export default function EmployeesPage() {
 
   async function confirmMarkAllPaid() {
     if (markAllFor == null) return
-    const targets = pendingForEmployee(markAllFor)
     try {
-      for (const payment of targets) {
-        await markPaymentPaid(payment.paymentId)
-      }
+      await markPendingPaymentsPaid(markAllFor)
       toast.success(t("employees.messages.markAllPaidSuccess"))
       setMarkAllFor(null)
-      payments.refresh()
+      clampAfterGroupRemoval()
+      pendingGroups.refresh()
+      pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.markAllPaidError"))
-      payments.refresh()
       throw err
     }
   }
 
   async function confirmVoidAll() {
     if (voidAllFor == null) return
-    const targets = pendingForEmployee(voidAllFor)
     try {
-      for (const payment of targets) {
-        await voidPayment(payment.paymentId)
-      }
+      await voidPendingPayments(voidAllFor)
       toast.success(t("employees.messages.voidAllSuccess"))
       setVoidAllFor(null)
-      payments.refresh()
+      clampAfterGroupRemoval()
+      pendingGroups.refresh()
+      pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.voidAllError"))
-      payments.refresh()
       throw err
     }
   }
 
-  /** Payments the bulk action applies to — mirrors the legacy
-   *  `getFilteredPaymentsForEmployee` (respects the date range). */
-  function pendingForEmployee(employeeId: number): EmployeePayment[] {
-    return payments.pendingSystemPayments.filter(
-      (p) =>
-        p.employeeId === employeeId &&
-        matchesDateRange(p.issuedTimestamp, dateRange)
-    )
+  /* -------------------------------- Render -------------------------------- */
+
+  /**
+   * Shared empty-state copy: load failures win, then "no matches"
+   * once a filter or search is active, otherwise the table default.
+   */
+  function emptyStateFor(
+    query: { loading: boolean; error: Error | null; refresh: () => void },
+    hasFilters: boolean
+  ): {
+    emptyTitle?: string
+    emptyDescription?: string
+    emptyAction?: React.ReactNode
+  } {
+    if (query.error) {
+      return {
+        emptyTitle: t("employees.messages.loadError"),
+        emptyAction: (
+          <Button onClick={query.refresh}>{t("employees.buttons.retry")}</Button>
+        ),
+      }
+    }
+    if (hasFilters && !query.loading) {
+      return {
+        emptyTitle: t("employees.messages.noMatchesStaff"),
+        emptyDescription: t("employees.messages.noMatchesStaffDesc"),
+      }
+    }
+    return {}
   }
 
-  /* -------------------------------- Render -------------------------------- */
+  const staffHasFilters = Boolean(
+    search.trim() || statusFilter !== "all" || shiftFilter
+  )
+  const employeesEmpty = emptyStateFor(employeesList, staffHasFilters)
+  const nursesEmpty = emptyStateFor(nursesList, staffHasFilters)
+  const doctorsEmpty = emptyStateFor(
+    doctorsList,
+    staffHasFilters || Boolean(doctorTypeFilter)
+  )
+  const paymentsFiltered = Boolean(
+    paymentSearch.trim() || dateRange.from || dateRange.to
+  )
 
   const createLabel =
     tab === "doctors"
@@ -299,11 +436,11 @@ export default function EmployeesPage() {
   const staffToolbar = (showDoctorType: boolean) => (
     <EmployeeFilterToolbar
       statusFilter={statusFilter}
-      onStatusFilterChange={setStatusFilter}
+      onStatusFilterChange={handleStatusFilterChange}
       shiftFilter={shiftFilter}
-      onShiftFilterChange={setShiftFilter}
+      onShiftFilterChange={handleShiftFilterChange}
       doctorTypeFilter={doctorTypeFilter}
-      onDoctorTypeFilterChange={setDoctorTypeFilter}
+      onDoctorTypeFilterChange={handleDoctorTypeFilterChange}
       showDoctorType={showDoctorType}
     />
   )
@@ -334,32 +471,48 @@ export default function EmployeesPage() {
         className="flex flex-col gap-4"
       >
         <TabsList className="w-fit max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="employees">{t("employees.tabs.employees")}</TabsTrigger>
-          <TabsTrigger value="doctors">{t("employees.tabs.doctors")}</TabsTrigger>
+          <TabsTrigger value="employees">
+            {t("employees.tabs.employees")}
+          </TabsTrigger>
+          <TabsTrigger value="doctors">
+            {t("employees.tabs.doctors")}
+          </TabsTrigger>
           <TabsTrigger value="nurses">{t("employees.tabs.nurses")}</TabsTrigger>
           {canViewPayments ? (
-            <TabsTrigger value="payments">{t("employees.tabs.payments")}</TabsTrigger>
+            <TabsTrigger value="payments">
+              {t("employees.tabs.payments")}
+            </TabsTrigger>
           ) : null}
         </TabsList>
 
         <TabsContent value="employees">
           <EmployeeTable
-            employees={filteredEmployees}
-            loading={staff.loading}
+            employees={employeesList.employees}
+            loading={employeesList.loading}
             canViewPayments={canViewPayments}
             isAdmin={isAdmin()}
-            search={{ value: search, onChange: setSearch }}
+            search={{
+              value: search,
+              onChange: handleSearchChange,
+              placeholder: t("employees.searchPlaceholder"),
+            }}
             toolbar={staffToolbar(false)}
-            sort={sort}
-            onSortToggle={(_id, next) => setSort(next)}
-            emptyAction={
-              staff.error ? (
-                <Button onClick={staff.refresh}>{t("common.refresh")}</Button>
-              ) : undefined
-            }
-            emptyTitle={
-              staff.error ? t("employees.messages.loadError") : undefined
-            }
+            pagination={{
+              page: employeePage,
+              pageSize: employeePageSize,
+              total: employeesList.total,
+              onPageChange: setEmployeePage,
+              onPageSizeChange: (size) => {
+                setEmployeePageSize(size)
+                setEmployeePage(1)
+              },
+              pageSizes: PAGE_SIZES,
+            }}
+            sort={employeeSort}
+            onSortToggle={handleEmployeeSortToggle}
+            emptyTitle={employeesEmpty.emptyTitle}
+            emptyDescription={employeesEmpty.emptyDescription}
+            emptyAction={employeesEmpty.emptyAction}
             onView={openSheet}
             onEdit={(employee) => {
               setEditing(employee)
@@ -372,22 +525,32 @@ export default function EmployeesPage() {
 
         <TabsContent value="doctors">
           <DoctorTable
-            doctors={filteredDoctors}
-            loading={staff.loading}
+            doctors={doctorsList.doctors}
+            loading={doctorsList.loading}
             canViewPayments={canViewPayments}
             isAdmin={isAdmin()}
-            search={{ value: search, onChange: setSearch }}
+            search={{
+              value: search,
+              onChange: handleSearchChange,
+              placeholder: t("employees.searchDoctorsPlaceholder"),
+            }}
             toolbar={staffToolbar(true)}
-            sort={sort}
-            onSortToggle={(_id, next) => setSort(next)}
-            emptyAction={
-              staff.error ? (
-                <Button onClick={staff.refresh}>{t("common.refresh")}</Button>
-              ) : undefined
-            }
-            emptyTitle={
-              staff.error ? t("employees.messages.loadError") : undefined
-            }
+            pagination={{
+              page: doctorPage,
+              pageSize: doctorPageSize,
+              total: doctorsList.total,
+              onPageChange: setDoctorPage,
+              onPageSizeChange: (size) => {
+                setDoctorPageSize(size)
+                setDoctorPage(1)
+              },
+              pageSizes: PAGE_SIZES,
+            }}
+            sort={doctorSort}
+            onSortToggle={handleDoctorSortToggle}
+            emptyTitle={doctorsEmpty.emptyTitle}
+            emptyDescription={doctorsEmpty.emptyDescription}
+            emptyAction={doctorsEmpty.emptyAction}
             onView={openSheet}
             onEdit={(doctor) => {
               setEditing(doctor)
@@ -400,22 +563,32 @@ export default function EmployeesPage() {
 
         <TabsContent value="nurses">
           <EmployeeTable
-            employees={filteredEmployees}
-            loading={staff.loading}
+            employees={nursesList.employees}
+            loading={nursesList.loading}
             canViewPayments={canViewPayments}
             isAdmin={isAdmin()}
-            search={{ value: search, onChange: setSearch }}
+            search={{
+              value: search,
+              onChange: handleSearchChange,
+              placeholder: t("employees.searchNursesPlaceholder"),
+            }}
             toolbar={staffToolbar(false)}
-            sort={sort}
-            onSortToggle={(_id, next) => setSort(next)}
-            emptyAction={
-              staff.error ? (
-                <Button onClick={staff.refresh}>{t("common.refresh")}</Button>
-              ) : undefined
-            }
-            emptyTitle={
-              staff.error ? t("employees.messages.loadError") : undefined
-            }
+            pagination={{
+              page: nursePage,
+              pageSize: nursePageSize,
+              total: nursesList.total,
+              onPageChange: setNursePage,
+              onPageSizeChange: (size) => {
+                setNursePageSize(size)
+                setNursePage(1)
+              },
+              pageSizes: PAGE_SIZES,
+            }}
+            sort={nurseSort}
+            onSortToggle={handleNurseSortToggle}
+            emptyTitle={nursesEmpty.emptyTitle}
+            emptyDescription={nursesEmpty.emptyDescription}
+            emptyAction={nursesEmpty.emptyAction}
             onView={openSheet}
             onEdit={(employee) => {
               setEditing(employee)
@@ -429,11 +602,43 @@ export default function EmployeesPage() {
         {canViewPayments ? (
           <TabsContent value="payments">
             <PaymentsTable
-              groups={workQueueGroups}
-              employeeNames={employeeNames}
-              loading={payments.loading}
+              groups={pendingGroups.groups}
+              loading={pendingGroups.loading}
+              pagination={{
+                page: paymentPage,
+                pageSize: paymentPageSize,
+                total: pendingGroups.total,
+                onPageChange: setPaymentPage,
+                onPageSizeChange: (size) => {
+                  setPaymentPageSize(size)
+                  setPaymentPage(1)
+                },
+                pageSizes: PAGE_SIZES,
+              }}
+              search={{
+                value: paymentSearch,
+                onChange: handlePaymentSearchChange,
+                placeholder: t("employees.searchPaymentsPlaceholder"),
+              }}
               dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+              onDateRangeChange={handleDateRangeChange}
+              sort={paymentSort}
+              onSortToggle={handlePaymentSortToggle}
+              pendingCount={pendingStats.pendingCount}
+              emptyTitle={
+                pendingGroups.error
+                  ? t("employees.messages.loadError")
+                  : paymentsFiltered && !pendingGroups.loading
+                    ? t("employees.messages.noMatchingPayments")
+                    : undefined
+              }
+              emptyDescription={
+                pendingGroups.error
+                  ? undefined
+                  : paymentsFiltered && !pendingGroups.loading
+                    ? t("employees.messages.noMatchesStaffDesc")
+                    : undefined
+              }
               onMarkPaid={setMarkPaidTarget}
               onVoid={setVoidTarget}
               onMarkAllPaid={setMarkAllFor}
@@ -459,20 +664,16 @@ export default function EmployeesPage() {
           if (!open) setPaymentFor(null)
         }}
         employee={paymentFor}
-        onSaved={payments.refresh}
+        onSaved={refreshAll}
       />
 
-      {/* Employee detail sheet */}
+      {/* Employee detail sheet — fetches this employee's payments on open */}
       <EmployeeDetailSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         subject={sheetSubject}
-        payments={
-          sheetSubject
-            ? (payments.paymentsByEmployee.get(sheetSubject.employeeId) ?? [])
-            : []
-        }
-        paidByNames={payments.paidByNames}
+        payments={sheetPayments.payments}
+        paidByNames={sheetPayments.paidByNames}
         canViewPayments={canViewPayments}
         isAdmin={isAdmin()}
         onEdit={(subject) => {
@@ -549,8 +750,4 @@ export default function EmployeesPage() {
       />
     </div>
   )
-}
-
-function issuedTimeOf(payment: EmployeePayment | undefined): number {
-  return payment ? new Date(payment.issuedTimestamp).getTime() : 0
 }

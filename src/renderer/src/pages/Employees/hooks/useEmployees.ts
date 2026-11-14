@@ -2,56 +2,85 @@
 
 import { useEffect, useState } from "react"
 
-import { listDoctors, listEmployees } from "@/pages/Employees/api"
-import type { Doctor, Employee } from "@/pages/Employees/types/employee"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+import {
+  listEmployeesPage,
+  type EmployeeListParams,
+  type EmployeeSortKey,
+} from "@/pages/Employees/api"
+import type { Employee } from "@/pages/Employees/types/employee"
+
+export interface UseEmployeesParams
+  extends Omit<EmployeeListParams, "sort"> {
+  /** Only fetch while the owning tab is visible. */
+  enabled?: boolean
+  /** DataTable sort state — `columnId` maps onto the server sort key. */
+  sort?: { columnId: string; direction: "asc" | "desc" } | null
+}
 
 export interface UseEmployeesResult {
   employees: Employee[]
-  doctors: Doctor[]
+  total: number
   loading: boolean
   error: Error | null
   refresh: () => void
 }
 
+/** `is_active` can arrive as null on legacy rows — treat it as active. */
+function normalizeEmployee(row: Employee): Employee {
+  return { ...row, isActive: row.isActive ?? true }
+}
+
 /**
- * Staff list hook (Phase 6.7) — two requests total:
+ * Paginated staff list hook — backs the Employees and Nurses tabs.
  *
- * - `GET /api/employees` → nurses + other staff (the flat list does
- *   not include Doctor-table fields, so doctors come separately).
- * - `GET /api/doctors` → the Doctors tab dataset.
- *
- * Legacy parity note: the legacy page fetched `/api/employees` once
- * and filtered by `employee_type` per tab; the flat fetch is kept so
- * the nurses/employees tabs share one request.
+ * The page owns page / pageSize / filters / sort; the hook debounces the
+ * name search and asks the server for that exact slice, so filter
+ * changes never touch the current page's rows.
  */
-export function useEmployees(): UseEmployeesResult {
+export function useEmployees(params: UseEmployeesParams): UseEmployeesResult {
+  const {
+    enabled = true,
+    page = 1,
+    pageSize = 25,
+    type = "all",
+    search = "",
+    isActive,
+    shiftType = "",
+    sort,
+    dir,
+  } = params
+
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
 
+  const debouncedSearch = useDebouncedValue(search, { delay: 300 })
+  const sortColumn = sort?.columnId as EmployeeSortKey | undefined
+  const sortDirection = sort?.direction ?? dir
+
   useEffect(() => {
+    if (!enabled) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
-    Promise.all([listEmployees(), listDoctors()])
-      .then(([employeeRows, doctorRows]) => {
+    listEmployeesPage({
+      page,
+      pageSize,
+      type,
+      search: debouncedSearch,
+      isActive,
+      shiftType,
+      sort: sortColumn,
+      dir: sortDirection,
+    })
+      .then((res) => {
         if (cancelled) return
-        setEmployees(
-          employeeRows.map((row) => ({
-            ...row,
-            /* `is_active` is a nullable column — normalize once here. */
-            isActive: row.isActive ?? true,
-          }))
-        )
-        setDoctors(
-          doctorRows.map((row) => ({
-            ...row,
-            isActive: row.isActive ?? true,
-          }))
-        )
+        setEmployees(res.data.map(normalizeEmployee))
+        setTotal(res.total)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -63,11 +92,22 @@ export function useEmployees(): UseEmployeesResult {
     return () => {
       cancelled = true
     }
-  }, [nonce])
+  }, [
+    enabled,
+    page,
+    pageSize,
+    type,
+    debouncedSearch,
+    isActive,
+    shiftType,
+    sortColumn,
+    sortDirection,
+    nonce,
+  ])
 
   return {
     employees,
-    doctors,
+    total,
     loading,
     error,
     refresh: () => setNonce((n) => n + 1),

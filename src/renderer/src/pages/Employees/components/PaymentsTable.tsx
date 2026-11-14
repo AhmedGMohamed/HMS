@@ -1,16 +1,20 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  CalendarIcon,
   CircleDollarSignIcon,
   MoreHorizontalIcon,
   XCircleIcon,
   XIcon,
+  CalendarIcon,
 } from "lucide-react"
 
-import { DataTable, type ColumnDef } from "@/components/common/DataTable"
+import {
+  DataTable,
+  type ColumnDef,
+  type DataTablePaginationSlot,
+} from "@/components/common/DataTable"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,18 +29,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { formatDate, formatDateTime } from "@/lib/utils"
-import { PaymentStatusBadge } from "@/pages/Employees/components/EmployeeDisplay"
-import {
-  useEmployeeLocale,
-  usePaymentAmount,
-} from "@/pages/Employees/hooks/useEmployeeDisplay"
+import { formatDate } from "@/lib/utils"
+import type { PendingPaymentGroup } from "@/pages/Employees/api"
+import { PaymentGroupDetails } from "@/pages/Employees/components/PaymentGroupDetails"
+import { useEmployeeLocale } from "@/pages/Employees/hooks/useEmployeeDisplay"
 import type { EmployeePayment } from "@/pages/Employees/types/employee"
-
-export interface PaymentGroup {
-  employeeId: number
-  payments: EmployeePayment[]
-}
 
 export interface DateRange {
   /** ISO date strings (`yyyy-mm-dd`) — "" = open ended. */
@@ -45,34 +42,50 @@ export interface DateRange {
 }
 
 export interface PaymentsTableProps {
-  groups: PaymentGroup[]
-  employeeNames: Map<number, string>
+  /** One row per employee — aggregates only, no embedded payments. */
+  groups: PendingPaymentGroup[]
   loading: boolean
+  pagination: DataTablePaginationSlot
+  search: { value: string; onChange: (value: string) => void; placeholder?: string }
   dateRange: DateRange
   onDateRangeChange: (range: DateRange) => void
+  sort: { columnId: string; direction: "asc" | "desc" } | null
+  onSortToggle: (
+    id: string,
+    next: { columnId: string; direction: "asc" | "desc" }
+  ) => void
+  /** Pending payments across the whole filtered queue. */
+  pendingCount: number
+  /** Override the default "no pending payments" empty copy when filters hide everything. */
+  emptyTitle?: string
+  emptyDescription?: string
   onMarkPaid: (payment: EmployeePayment) => void
   onVoid: (payment: EmployeePayment) => void
   onMarkAllPaid: (employeeId: number) => void
   onVoidAll: (employeeId: number) => void
 }
 
-function issuedTime(payment: EmployeePayment): number {
-  return new Date(payment.issuedTimestamp).getTime()
-}
-
 /**
  * Payments work queue (Phase 6.7 UX package) — pending
- * system-generated payments grouped by employee, oldest first.
- * Replaces the legacy flat "Pending Payments" table: Popover date
- * range instead of raw date inputs, tabular-nums totals, status
- * badges, and bulk actions grouped in a dropdown menu.
+ * system-generated payments grouped by employee.
+ *
+ * The server sends one aggregate row per employee (count, oldest /
+ * newest issue date, total); expanding a row mounts
+ * `PaymentGroupDetails`, which fetches only that employee's payments
+ * with the same date filter. Sorting and paging are server-side.
  */
 export function PaymentsTable({
   groups,
-  employeeNames,
   loading,
+  pagination,
+  search,
   dateRange,
   onDateRangeChange,
+  sort,
+  onSortToggle,
+  pendingCount,
+  emptyTitle,
+  emptyDescription,
   onMarkPaid,
   onVoid,
   onMarkAllPaid,
@@ -80,7 +93,6 @@ export function PaymentsTable({
 }: PaymentsTableProps) {
   const { t } = useTranslation()
   const locale = useEmployeeLocale()
-  const paymentAmount = usePaymentAmount()
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string | number>>(
     new Set()
   )
@@ -97,58 +109,47 @@ export function PaymentsTable({
     })
   }
 
-  const columns: ColumnDef<PaymentGroup>[] = [
+  const columns: ColumnDef<PendingPaymentGroup>[] = [
     {
       id: "employeeName",
       header: t("employees.table.employeeName"),
+      sortable: true,
       cell: (group) => (
-        <span className="font-medium">
-          {employeeNames.get(group.employeeId) ?? `#${group.employeeId}`}
-        </span>
+        <span className="font-medium">{group.employeeName}</span>
       ),
     },
     {
       id: "totalAmount",
       header: t("employees.table.totalAmount"),
       align: "end",
-      cell: (group) => {
-        const total = group.payments.reduce(
-          (sum, p) => sum + Number(p.paymentAmount) + Number(p.extraAmount || 0),
-          0
-        )
-        return (
-          <span className="font-medium tabular-nums">
-            {new Intl.NumberFormat(locale, {
-              style: "currency",
-              currency: "EGP",
-            }).format(total)}
-          </span>
-        )
-      },
+      sortable: true,
+      cell: (group) => (
+        <span className="font-medium tabular-nums">
+          {new Intl.NumberFormat(locale, {
+            style: "currency",
+            currency: "EGP",
+          }).format(Number(group.totalAmount))}
+        </span>
+      ),
     },
     {
-      id: "type",
-      header: t("employees.table.type"),
-      cell: (group) => {
-        const first = group.payments[0]
-        return first?.extraPaymentType && first.extraPaymentType !== "none"
-          ? t(`employees.paymentTypes.${first.extraPaymentType}`)
-          : t("employees.paymentTypes.none")
-      },
+      id: "paymentCount",
+      header: t("employees.table.paymentCount"),
+      align: "end",
+      cell: (group) => (
+        <span className="tabular-nums text-sm">{group.paymentCount}</span>
+      ),
     },
     {
       id: "dateRange",
       header: t("employees.table.dateRange"),
-      cell: (group) => {
-        const times = group.payments.map(issuedTime)
-        const min = new Date(Math.min(...times))
-        const max = new Date(Math.max(...times))
-        return (
-          <span className="tabular-nums text-sm">
-            {formatDate(min, locale)} – {formatDate(max, locale)}
-          </span>
-        )
-      },
+      sortable: true,
+      cell: (group) => (
+        <span className="tabular-nums text-sm">
+          {formatDate(new Date(group.oldestIssuedAt), locale)} –{" "}
+          {formatDate(new Date(group.newestIssuedAt), locale)}
+        </span>
+      ),
     },
     {
       id: "actions",
@@ -195,8 +196,6 @@ export function PaymentsTable({
   ]
 
   const dateFilterActive = dateRange.from !== "" || dateRange.to !== ""
-
-  const rows = useMemo(() => groups, [groups])
 
   return (
     <div className="flex flex-col gap-3">
@@ -262,78 +261,35 @@ export function PaymentsTable({
           </PopoverContent>
         </Popover>
         <p className="text-sm text-muted-foreground">
-          {t("employees.messages.pendingPaymentsCount", {
-            count: groups.reduce<number>(
-              (sum, g) => sum + g.payments.length,
-              0
-            ),
-          })}
+          {t("employees.messages.pendingPaymentsCount", { count: pendingCount })}
         </p>
       </div>
 
-      <DataTable<PaymentGroup>
-        data={rows}
+      <DataTable<PendingPaymentGroup>
+        data={groups}
         columns={columns}
         loading={loading}
+        search={search}
+        pagination={pagination}
+        sort={sort}
+        onSortToggle={onSortToggle}
         getRowId={(row) => row.employeeId}
         expandedRowIds={expandedRowIds}
         onExpandedChange={toggleExpanded}
         isRowExpandable={() => true}
         renderExpanded={(group) => (
-          <div className="flex flex-col gap-2 p-2">
-            {group.payments.map((payment) => {
-              const { total, breakdown } = paymentAmount(payment)
-              return (
-                <div
-                  key={payment.paymentId}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface-muted px-3 py-2"
-                >
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      #{payment.paymentId}
-                    </span>
-                    <span className="font-medium tabular-nums">{total}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {breakdown}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateTime(new Date(payment.issuedTimestamp), locale)}
-                    </span>
-                    <PaymentStatusBadge payment={payment} />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {!payment.isPaid && !payment.isVoid ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => onMarkPaid(payment)}
-                      >
-                        {t("employees.buttons.markPaid")}
-                      </Button>
-                    ) : null}
-                    {!payment.isVoid ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs text-destructive hover:text-destructive"
-                        onClick={() => onVoid(payment)}
-                      >
-                        {t("employees.buttons.void")}
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <PaymentGroupDetails
+            employeeId={group.employeeId}
+            from={dateRange.from}
+            to={dateRange.to}
+            onMarkPaid={onMarkPaid}
+            onVoid={onVoid}
+          />
         )}
-        emptyTitle={t("employees.messages.noPendingPayments")}
+        emptyTitle={emptyTitle ?? t("employees.messages.noPendingPayments")}
+        emptyDescription={emptyDescription}
         ariaLabel={t("employees.tabs.payments")}
       />
     </div>
   )
 }
-
