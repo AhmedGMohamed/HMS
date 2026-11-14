@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CheckIcon,
@@ -9,7 +8,11 @@ import {
   XIcon,
 } from "lucide-react"
 
-import { DataTable, type ColumnDef } from "@/components/common/DataTable"
+import {
+  DataTable,
+  type ColumnDef,
+  type DataTablePaginationSlot,
+} from "@/components/common/DataTable"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,6 +35,7 @@ export interface ServicesTableProps {
   search: { value: string; onChange: (value: string) => void }
   /** Extra filters (type / price list / drug) rendered left of search. */
   toolbar: React.ReactNode
+  pagination: DataTablePaginationSlot
   sort: { columnId: string; direction: "asc" | "desc" } | null
   onSortToggle: (
     id: string,
@@ -45,10 +49,11 @@ export interface ServicesTableProps {
 }
 
 /**
- * Services DataTable (§3 of `phase_6.6_plan.md`): name, type badge,
- * auto-renew / auto-add flags, per-list price badges (prepayment info
- * on hover), associated-drug badges, and the actions column. Sorting
- * is client-side and caller-owned (`sort` + `onSortToggle`).
+ * Services DataTable: name, type badge, auto-renew / auto-add flags,
+ * per-list price badges (prepayment info on hover), associated-drug
+ * badges, and the actions column. Rows arrive already filtered,
+ * sorted, and paginated by the server; `sort` + `onSortToggle` only
+ * drive the header indicators and the next query.
  */
 export function ServicesTable({
   services,
@@ -56,6 +61,7 @@ export function ServicesTable({
   loading,
   search,
   toolbar,
+  pagination,
   sort,
   onSortToggle,
   emptyTitle,
@@ -66,17 +72,6 @@ export function ServicesTable({
 }: ServicesTableProps) {
   const { t, i18n } = useTranslation()
   const locale = resolveLocale(i18n.language)
-
-  const sorted = useMemo(() => {
-    if (!sort) return services
-    const direction = sort.direction === "asc" ? 1 : -1
-    return [...services].sort((a, b) => {
-      if (sort.columnId === "serviceType") {
-        return a.serviceType.localeCompare(b.serviceType) * direction
-      }
-      return a.name.localeCompare(b.name) * direction
-    })
-  }, [services, sort])
 
   function priceListName(pricelistId: number): string {
     return (
@@ -232,11 +227,12 @@ export function ServicesTable({
 
   return (
     <DataTable<NormalizedService>
-      data={sorted}
+      data={services}
       columns={columns}
       loading={loading}
       search={{ value: search.value, onChange: search.onChange }}
       toolbar={toolbar}
+      pagination={pagination}
       getRowId={(service) => service.serviceId}
       sort={sort}
       onSortToggle={onSortToggle}

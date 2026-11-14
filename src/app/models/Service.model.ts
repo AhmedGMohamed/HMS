@@ -9,15 +9,81 @@ import {
 	ServiceSearchResult
 } from "../utils/types/services.js";
 
+export type ServiceWithDetails = Service & { prices: ServicePrice[] } & {
+	drugs: Array<ServiceDrug & { name: string }>;
+};
+
+export interface ServiceListOptions {
+	offset?: number;
+	limit?: number;
+	search?: string;
+	serviceType?: "once" | "hourly" | "daily";
+	pricelistId?: number;
+	drug?: string;
+	sort?: "name" | "serviceType";
+	dir?: "asc" | "desc";
+}
+
+const SERVICE_SORT_COLUMNS = {
+	name: "s.name",
+	serviceType: "s.service_type"
+} as const;
+
+/**
+ * Build the shared WHERE clause + parameter list for the list and
+ * count queries. Keeping both on the same builder prevents the total
+ * from drifting away from the rows when a filter is added.
+ */
+function buildServiceWhere(options: ServiceListOptions): {
+	where: string;
+	params: unknown[];
+} {
+	const clauses: string[] = [];
+	const params: unknown[] = [];
+
+	if (options.search) {
+		params.push(`%${options.search}%`);
+		clauses.push(`s.name ILIKE $${params.length}`);
+	}
+	if (options.serviceType) {
+		params.push(options.serviceType);
+		clauses.push(`s.service_type = $${params.length}`);
+	}
+	if (options.pricelistId != null) {
+		params.push(options.pricelistId);
+		clauses.push(
+			`EXISTS (SELECT 1 FROM ServicePrice sp WHERE sp.service_id = s.service_id AND sp.pricelist_id = $${params.length})`
+		);
+	}
+	if (options.drug) {
+		params.push(`%${options.drug}%`);
+		clauses.push(
+			`EXISTS (SELECT 1 FROM ServiceDrug sd JOIN DrugCard d ON d.drug_id = sd.drug_id WHERE sd.service_id = s.service_id AND d.name ILIKE $${params.length})`
+		);
+	}
+
+	return {
+		where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+		params
+	};
+}
+
 export class ServiceModel {
-	// Get all services with their prices
-	async getAllServices(): Promise<
-		Array<
-			Service & { prices: ServicePrice[] } & {
-				drugs: Array<ServiceDrug & { name: string }>;
-			}
-		>
-	> {
+	// Get all services with their prices (paginated / filtered / sorted)
+	async getAllServices(
+		options: ServiceListOptions = {}
+	): Promise<{ rows: ServiceWithDetails[]; total: number }> {
+		const { where, params } = buildServiceWhere(options);
+		const sortColumn = SERVICE_SORT_COLUMNS[options.sort ?? "name"];
+		const dir = options.dir === "desc" ? "DESC" : "ASC";
+
+		const dataParams = [...params];
+		let paginationSql = "";
+		if (options.limit != null && options.offset != null) {
+			dataParams.push(options.limit, options.offset);
+			paginationSql = ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+		}
+
 		const sql = `
             SELECT s.*, (
 				SELECT json_agg(t)
@@ -37,10 +103,20 @@ export class ServiceModel {
         		) d
     		) as drugs
 			FROM Service s
-            ORDER BY name;
+			${where}
+			ORDER BY ${sortColumn} ${dir}, s.service_id ${dir}${paginationSql};
         `;
-		const result = await query(sql);
-		return result.rows;
+		const countSql = `SELECT COUNT(*)::int AS total FROM Service s ${where};`;
+
+		const [dataResult, countResult] = await Promise.all([
+			query(sql, dataParams),
+			query(countSql, params)
+		]);
+
+		return {
+			rows: dataResult.rows,
+			total: Number(countResult.rows[0]?.total ?? 0)
+		};
 	}
 
 	// Get service by ID with prices

@@ -2,42 +2,80 @@
 
 import { useEffect, useState } from "react"
 
-import { listServices } from "@/pages/Services/api"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+import { listServicesPage } from "@/pages/Services/api"
 import {
   normalizeService,
   type NormalizedService,
+  type ServiceType,
 } from "@/pages/_shared/services/types"
+
+export interface UseServicesParams {
+  page: number
+  pageSize: number
+  search: string
+  serviceType: ServiceType | ""
+  pricelistId: number | ""
+  drug: string
+  sort: { columnId: string; direction: "asc" | "desc" } | null
+}
 
 export interface UseServicesResult {
   services: NormalizedService[]
+  total: number
   loading: boolean
   error: Error | null
   refresh: () => void
 }
 
 /**
- * Services list hook (§3 of `phase_6.6_plan.md`).
+ * Paginated services list hook.
  *
- * Single `GET /api/services` fetch — drops the legacy per-service
- * detail N+1 loop. `normalizeService` turns null `prices`/`drugs`
- * arrays into `[]` and coerces prices with `Number()` (the list
- * endpoint emits JSON numbers; the by-id endpoint strings them).
+ * The page owns the list view state (page / pageSize / filters / sort)
+ * and passes it in; the hook debounces the two free-text filters and
+ * fetches the current server page. `normalizeService` turns null
+ * `prices`/`drugs` arrays into `[]` and coerces prices with `Number()`.
  */
-export function useServices(): UseServicesResult {
+export function useServices(params: UseServicesParams): UseServicesResult {
   const [services, setServices] = useState<NormalizedService[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
+
+  const {
+    page,
+    pageSize,
+    search,
+    serviceType,
+    pricelistId,
+    drug,
+    sort,
+  } = params
+  const debouncedSearch = useDebouncedValue(search, { delay: 300 })
+  const debouncedDrug = useDebouncedValue(drug, { delay: 300 })
+  const sortColumn = sort?.columnId === "serviceType" ? "serviceType" : "name"
+  const direction = sort?.direction ?? "asc"
 
   useEffect(() => {
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
-    listServices()
-      .then((rows) => {
+    listServicesPage({
+      page,
+      pageSize,
+      search: debouncedSearch,
+      serviceType,
+      pricelistId,
+      drug: debouncedDrug,
+      sort: sortColumn,
+      dir: direction,
+    })
+      .then((res) => {
         if (cancelled) return
-        setServices(rows.map(normalizeService))
+        setServices(res.data.map(normalizeService))
+        setTotal(res.total)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -49,10 +87,21 @@ export function useServices(): UseServicesResult {
     return () => {
       cancelled = true
     }
-  }, [nonce])
+  }, [
+    page,
+    pageSize,
+    debouncedSearch,
+    debouncedDrug,
+    serviceType,
+    pricelistId,
+    sortColumn,
+    direction,
+    nonce,
+  ])
 
   return {
     services,
+    total,
     loading,
     error,
     refresh: () => setNonce((n) => n + 1),

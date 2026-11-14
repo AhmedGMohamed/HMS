@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -21,22 +21,19 @@ import type { ServiceType } from "@/pages/_shared/services/types"
 import { ApiError } from "@/lib/errors"
 
 /**
- * /services — Services Management root page (Stage 2 of
- * `phase_6.6_plan.md`).
+ * /services — Services Management root page.
  *
- * DataTable + toolbar filters (search, type, price list, drug — all
- * client-side), create/edit modal with the per-price-list price
- * matrix + drug picker, and a guarded delete (server 409 for
- * referenced services surfaces the server message).
+ * Server-driven DataTable: search, type, price-list, drug, sort,
+ * page, and page size all become `/api/services` query parameters.
+ * The create/edit modal keeps the per-price-list price matrix + drug
+ * picker, and deletion is guarded (server 409 for referenced
+ * services surfaces the server message).
  */
 export default function ServicesPage() {
   const { t } = useTranslation()
   useEnsureNamespace("services")
 
-  const services = useServices()
-  const lists = usePriceLists()
-
-  // Filters (all client-side)
+  // Filters (server-side) + pagination
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<ServiceType | "">("")
   const [priceListFilter, setPriceListFilter] = useState<number | "">("")
@@ -45,6 +42,23 @@ export default function ServicesPage() {
     columnId: string
     direction: "asc" | "desc"
   } | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
+  const services = useServices({
+    page,
+    pageSize,
+    search,
+    serviceType: typeFilter,
+    pricelistId: priceListFilter,
+    drug: drugFilter,
+    sort,
+  })
+  const lists = usePriceLists()
+
+  const hasFilters = Boolean(
+    search.trim() || typeFilter || priceListFilter !== "" || drugFilter.trim()
+  )
 
   // Modal / confirm state
   const [modalOpen, setModalOpen] = useState(false)
@@ -53,39 +67,42 @@ export default function ServicesPage() {
   const [deletingService, setDeletingService] =
     useState<NormalizedService | null>(null)
 
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    const drugQuery = drugFilter.trim().toLowerCase()
-    return services.services.filter((service) => {
-      if (query && !service.name.toLowerCase().includes(query)) {
-        return false
-      }
-      if (typeFilter && service.serviceType !== typeFilter) return false
-      if (
-        priceListFilter !== "" &&
-        !service.prices.some((p) => p.pricelistId === priceListFilter)
-      ) {
-        return false
-      }
-      if (
-        drugQuery &&
-        !service.drugs.some((d) => d.name.toLowerCase().includes(drugQuery))
-      ) {
-        return false
-      }
-      return true
-    })
-  }, [
-    services.services,
-    search,
-    typeFilter,
-    priceListFilter,
-    drugFilter,
-  ])
-
   function openCreate() {
     setEditingService(null)
     setModalOpen(true)
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(1)
+  }
+
+  function handleTypeFilterChange(value: ServiceType | "") {
+    setTypeFilter(value)
+    setPage(1)
+  }
+
+  function handlePriceListFilterChange(value: number | "") {
+    setPriceListFilter(value)
+    setPage(1)
+  }
+
+  function handleDrugFilterChange(value: string) {
+    setDrugFilter(value)
+    setPage(1)
+  }
+
+  function handleSortToggle(
+    _id: string,
+    next: { columnId: string; direction: "asc" | "desc" }
+  ) {
+    setSort(next)
+    setPage(1)
+  }
+
+  function handlePageSizeChange(size: number) {
+    setPageSize(size)
+    setPage(1)
   }
 
   return (
@@ -102,27 +119,44 @@ export default function ServicesPage() {
       />
 
       <ServicesTable
-        services={filtered}
+        services={services.services}
         priceLists={lists.priceLists}
         loading={services.loading}
-        search={{ value: search, onChange: setSearch }}
+        search={{ value: search, onChange: handleSearchChange }}
         toolbar={
           <ServiceFilters
             typeFilter={typeFilter}
-            onTypeFilterChange={setTypeFilter}
+            onTypeFilterChange={handleTypeFilterChange}
             priceListFilter={priceListFilter}
-            onPriceListFilterChange={setPriceListFilter}
+            onPriceListFilterChange={handlePriceListFilterChange}
             drugFilter={drugFilter}
-            onDrugFilterChange={setDrugFilter}
+            onDrugFilterChange={handleDrugFilterChange}
             priceLists={lists.priceLists}
           />
         }
+        pagination={{
+          page,
+          pageSize,
+          total: services.total,
+          onPageChange: setPage,
+          onPageSizeChange: handlePageSizeChange,
+          pageSizes: [10, 25, 50, 100],
+        }}
         sort={sort}
-        onSortToggle={(_id, next) => setSort(next)}
+        onSortToggle={handleSortToggle}
         emptyTitle={
           services.error
             ? t("services.messages.loadServicesError")
-            : undefined
+            : hasFilters && !services.loading
+              ? t("services.messages.noMatches")
+              : undefined
+        }
+        emptyDescription={
+          services.error
+            ? undefined
+            : hasFilters && !services.loading
+              ? t("services.messages.noMatchesDesc")
+              : undefined
         }
         emptyAction={
           services.error ? (

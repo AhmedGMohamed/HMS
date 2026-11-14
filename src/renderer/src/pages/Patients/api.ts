@@ -260,7 +260,9 @@ export function listPriceListServices(priceListId: number) {
 }
 
 export function listServices() {
-  return api.get<Service[]>("/services")
+  return api
+    .get<PaginatedResponse<Service>>("/services", { all: true })
+    .then((res) => res.data)
 }
 
 export function listDrugCards() {
