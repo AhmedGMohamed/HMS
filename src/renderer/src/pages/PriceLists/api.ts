@@ -1,4 +1,5 @@
 import { api } from "@/lib/api"
+import type { PaginatedResponse } from "@/types"
 import type {
   AddPricesPayload,
   BulkPricesResult,
@@ -44,7 +45,9 @@ export function setPricesForList(id: number, payload: AddPricesPayload) {
    ---------------------------------------------------------------- */
 
 export function listServices() {
-  return api.get<Service[]>("/services")
+  return api
+    .get<PaginatedResponse<Service>>("/services", { all: true })
+    .then((res) => res.data)
 }
 
 /** List-all drug shipments (no `quantityInLargerUnit`/`pricelistName`). */

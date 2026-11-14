@@ -1,16 +1,65 @@
 import { Request, Response } from "express";
-import ServiceModel from "../models/Service.model.js";
+import ServiceModel, { ServiceListOptions } from "../models/Service.model.js";
 import {
 	CreateServiceDTO,
 	ServicePrice,
 	UpdateServiceDTO
 } from "../utils/types/services.js";
+import { buildPage, parsePagination } from "../utils/pagination.js";
+
+const SERVICE_TYPES = new Set(["once", "hourly", "daily"]);
+
+function readString(value: unknown): string | undefined {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (Array.isArray(value)) {
+		return readString(value[0]);
+	}
+	return undefined;
+}
+
+function readBoolean(value: unknown): boolean {
+	const raw = readString(value);
+	return raw === "true" || raw === "1";
+}
+
+function readInt(value: unknown): number | undefined {
+	const raw = readString(value);
+	if (raw == null) return undefined;
+	const parsed = Number.parseInt(raw, 10);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 export class ServiceController {
-	async getAllServices(_req: Request, res: Response) {
+	async getAllServices(req: Request, res: Response) {
 		try {
-			const services = await ServiceModel.getAllServices();
-			res.json(services);
+			const pagination = parsePagination(req);
+			const all = readBoolean(req.query?.all);
+			const rawType = readString(req.query?.serviceType);
+			const serviceType =
+				rawType && SERVICE_TYPES.has(rawType)
+					? (rawType as ServiceListOptions["serviceType"])
+					: undefined;
+			const options: ServiceListOptions = {
+				offset: all ? undefined : pagination.offset,
+				limit: all ? undefined : pagination.limit,
+				search: readString(req.query?.search),
+				serviceType,
+				pricelistId: readInt(req.query?.pricelistId),
+				drug: readString(req.query?.drug),
+				sort: readString(req.query?.sort) === "serviceType"
+					? "serviceType"
+					: "name",
+				dir: readString(req.query?.dir) === "desc" ? "desc" : "asc"
+			};
+
+			const { rows, total } = await ServiceModel.getAllServices(options);
+			const page = all
+				? { ...pagination, page: 1, pageSize: rows.length }
+				: pagination;
+			res.json(buildPage(rows, total, page));
 		} catch (error) {
 			console.error("Error fetching services:", error);
 			res.status(500).json({ error: "Failed to fetch services" });

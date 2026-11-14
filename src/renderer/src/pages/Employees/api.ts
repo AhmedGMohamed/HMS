@@ -9,6 +9,7 @@ import type {
   EmployeePayment,
 } from "@/pages/Employees/types/employee"
 import type { Service } from "@/pages/_shared/services/types"
+import type { PaginatedResponse } from "@/types"
 
 /**
  * Employees module API (Phase 6.7).
@@ -87,7 +88,9 @@ export function voidPayment(id: number) {
 /** Service list for the doctor service-prices grid — reuses the
  *  Services module's client (do not re-implement). */
 export function listServices() {
-  return api.get<Service[]>("/services")
+  return api
+    .get<PaginatedResponse<Service>>("/services", { all: true })
+    .then((res) => res.data)
 }
 
 /** `GET /api/users/name/:id` responds with a bare JSON string. */

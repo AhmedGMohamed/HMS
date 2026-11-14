@@ -75,6 +75,8 @@
     "messages": {
       "noServices": "لا توجد خدمات",
       "noServicesDesc": "أنشئ خدمة لإضافتها إلى قوائم الأسعار والفواتير.",
+      "noMatches": "لا توجد خدمات تطابق عوامل التصفية",
+      "noMatchesDesc": "جرّب كلمة بحث مختلفة أو امسح عوامل التصفية.",
       "noDrugsAvailable": "لا توجد أدوية متاحة",
       "noDrugsSelected": "لم يتم اختيار أدوية",
       "loadInitialDataError": "فشل تحميل البيانات الأولية",

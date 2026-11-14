@@ -75,6 +75,8 @@
     "messages": {
       "noServices": "No services found",
       "noServicesDesc": "Create a service to add it to price lists and bills.",
+      "noMatches": "No services match your filters",
+      "noMatchesDesc": "Try a different search term or clear the filters.",
       "noDrugsAvailable": "No drugs available",
       "noDrugsSelected": "No drugs selected",
       "loadInitialDataError": "Failed to load initial data",
