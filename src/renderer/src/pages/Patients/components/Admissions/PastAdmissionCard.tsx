@@ -94,7 +94,7 @@ export function PastAdmissionCard({
                   className={
                     balanceIsOwed
                       ? "text-destructive text-xs"
-                      : "text-emerald-600 text-xs dark:text-emerald-400"
+                      : "text-success text-xs"
                   }
                 >
                   {balanceIsOwed
@@ -104,7 +104,7 @@ export function PastAdmissionCard({
               </>
             }
             valueClassName={
-              balanceIsOwed ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+              balanceIsOwed ? "text-destructive" : "text-success"
             }
           />
         </div>
@@ -146,7 +146,7 @@ export function PastAdmissionCard({
         ) : null}
 
         {admission.diagnosis ? (
-          <div className="rounded-md border-s-4 border-emerald-500 bg-emerald-500/5 px-3 py-2 text-sm">
+          <div className="rounded-md border-s-4 border-success bg-success/5 px-3 py-2 text-sm">
             <strong className="text-foreground me-1">
               {t("patients.messages.finalDiagnosis")}:
             </strong>

@@ -11,12 +11,24 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, User as UserIcon } from "lucide-react"
+import {
+  LogOut,
+  Monitor,
+  Moon,
+  MoonStar,
+  Settings,
+  Sun,
+  SunMoon,
+  User as UserIcon,
+} from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { getInitials } from "@/lib/utils"
+import { useTheme, type Theme } from "@/components/theme-provider"
 import { LogoutConfirmation } from "./LogoutConfirmation"
 
 /**
@@ -37,6 +49,7 @@ import { LogoutConfirmation } from "./LogoutConfirmation"
 export function UserMenuBody({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
 
@@ -65,6 +78,32 @@ export function UserMenuBody({ children }: { children: React.ReactNode }) {
             <Settings aria-hidden />
             <span>{t("userMenu.settings")}</span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="flex items-center gap-2">
+            <SunMoon aria-hidden className="size-4" />
+            <span>{t("userMenu.theme")}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={theme}
+            onValueChange={(value) => setTheme(value as Theme)}
+          >
+            <DropdownMenuRadioItem value="light">
+              <Sun aria-hidden />
+              <span>{t("userMenu.themeLight")}</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">
+              <Moon aria-hidden />
+              <span>{t("userMenu.themeDark")}</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="true-dark">
+              <MoonStar aria-hidden />
+              <span>{t("userMenu.themeTrueDark")}</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="system">
+              <Monitor aria-hidden />
+              <span>{t("userMenu.themeSystem")}</span>
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={(event) => {

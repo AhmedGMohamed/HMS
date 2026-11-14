@@ -61,8 +61,8 @@ export interface HmsWordmarkProps extends React.HTMLAttributes<HTMLSpanElement> 
 /**
  * "HealthCore+" wordmark (design.md §5.1).
  *
- *   - "Health" → `text-primary` (`#0077B6`).
- *   - "Core"   → `text-secondary` (`#00A896`).
+ *   - "Health" → `text-primary` (`#075985`).
+ *   - "Core"   → `text-secondary` (`#0F766E`).
  *   - "+"      → rendered as a true <sup> on top of "Core" in
  *                `text-secondary` so screen readers and copy-paste
  *                receive plain text "HealthCore+".

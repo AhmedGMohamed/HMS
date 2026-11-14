@@ -343,7 +343,7 @@ export function AdmissionDetailsDialog({
                     className={
                       (bill?.totalAmount ?? 0) - (bill?.paidAmount ?? 0) > 0
                         ? "text-destructive"
-                        : "text-emerald-600 dark:text-emerald-400"
+                        : "text-success"
                     }
                   >
                     {formatCurrency(
@@ -429,7 +429,7 @@ export function AdmissionDetailsDialog({
                 <SectionHeading>
                   {t("patients.messages.finalDiagnosis")}
                 </SectionHeading>
-                <div className="rounded-md border-s-4 border-emerald-500 bg-emerald-500/5 p-3 text-sm">
+                <div className="rounded-md border-s-4 border-success bg-success/5 p-3 text-sm">
                   {admission.diagnosis}
                 </div>
               </>

@@ -99,24 +99,24 @@ export interface BillPrintLabels {
 }
 
 /* ----------------------------------------------------------------
- * Theme palette — mirrors src/renderer/src/index.css `@theme` hex
- * tokens. Kept inline so the PDF is self-contained and does not
- * pull CSS at runtime.
+ * Theme palette — mirrors the light-theme `:root` tokens in
+ * src/renderer/src/index.css. Kept inline so the PDF is
+ * self-contained and does not pull CSS at runtime.
  * ---------------------------------------------------------------- */
 const COLOR = {
-  primary: "#0077B6",
-  primaryLight: "#DBEAFE",
-  primaryDark: "#005A8C",
-  secondary: "#00A896",
-  accent: "#059669",
-  success: "#10B981",
-  successLight: "#D1FAE5",
-  warning: "#F59E0B",
+  primary: "#075985",
+  primaryLight: "#DCEBF5",
+  primaryDark: "#064663",
+  secondary: "#0F766E",
+  accent: "#DCEBF5",
+  success: "#15803D",
+  successLight: "#DCFCE7",
+  warning: "#B45309",
   warningLight: "#FEF3C7",
-  danger: "#EF4444",
+  danger: "#B91C1C",
   dangerLight: "#FEE2E2",
   surface: "#FFFFFF",
-  surfaceMuted: "#F8FAFC",
+  surfaceMuted: "#F1F5F9",
   border: "#E2E8F0",
   borderStrong: "#CBD5E1",
   textPrimary: "#0F172A",

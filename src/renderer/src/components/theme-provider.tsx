@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 
-type Theme = "dark" | "light" | "system"
+export type Theme = "dark" | "light" | "system" | "true-dark"
 type ResolvedTheme = "dark" | "light"
 
 type ThemeProviderProps = {
@@ -17,7 +17,7 @@ type ThemeProviderState = {
 }
 
 const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
-const THEME_VALUES: Theme[] = ["dark", "light", "system"]
+const THEME_VALUES: Theme[] = ["dark", "light", "system", "true-dark"]
 
 const ThemeProviderContext = React.createContext<
   ThemeProviderState | undefined
@@ -110,8 +110,16 @@ export function ThemeProvider({
         ? disableTransitionsTemporarily()
         : null
 
-      root.classList.remove("light", "dark")
-      root.classList.add(resolvedTheme)
+      root.classList.remove("light", "dark", "true-dark")
+
+      // The true-dark palette is layered on top of `.dark` so that
+      // Tailwind's `dark:` variant (which keys off `.dark`) keeps
+      // working while the `.true-dark` block overrides the tokens.
+      if (resolvedTheme === "true-dark") {
+        root.classList.add("dark", "true-dark")
+      } else {
+        root.classList.add(resolvedTheme)
+      }
 
       if (restoreTransitions) {
         restoreTransitions()
@@ -159,7 +167,7 @@ export function ThemeProvider({
 
       setThemeState((currentTheme) => {
         const nextTheme =
-          currentTheme === "dark"
+          currentTheme === "dark" || currentTheme === "true-dark"
             ? "light"
             : currentTheme === "light"
               ? "dark"

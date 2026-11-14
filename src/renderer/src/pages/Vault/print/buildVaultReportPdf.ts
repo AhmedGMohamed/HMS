@@ -129,7 +129,7 @@ export async function buildVaultReportPdf(inputs: BuildVaultReportPdfInputs): Pr
 		bold: true,
 		fontSize: 8,
 		color: "#ffffff",
-		fillColor: "#0077B6",
+		fillColor: "#075985",
 	}))
 
 	const bodyRows = rows.map((row) =>
@@ -150,7 +150,7 @@ export async function buildVaultReportPdf(inputs: BuildVaultReportPdfInputs): Pr
 			body: [headerRow, ...bodyRows],
 		},
 		layout: {
-			fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#ffffff" : "#f8fafc"),
+			fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#ffffff" : "#f6f8fb"),
 			hLineColor: () => "#e2e8f0",
 			vLineColor: () => "#e2e8f0",
 			hLineWidth: () => 0.5,
