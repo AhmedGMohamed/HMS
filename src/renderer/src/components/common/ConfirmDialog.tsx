@@ -109,7 +109,7 @@ export function ConfirmDialog({
   }
 
   const confirmClass =
-    variant === "danger" ? "bg-destructive text-white hover:bg-destructive/90" : undefined
+    variant === "danger" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : undefined
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>

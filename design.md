@@ -17,7 +17,8 @@ The redesign delivers:
 - A **unified, professional healthcare design system** calibrated for the dense, data-heavy nature of clinical workflows
 - **WCAG 2.1 AA accessibility** across every interface (focus rings, contrast, keyboard nav, ARIA, reduced motion)
 - **Seamless bilingual (EN/AR) support** via CSS logical properties and `dir="rtl"` switching — no separate RTL stylesheets
-- **Token-driven theming** via Tailwind v4 CSS-first `@theme` configuration so every color, font, and shadow is a semantically-named primitive
+- **Token-driven theming** via one `:root` variable set bridged into Tailwind v4 with `@theme inline`, so every color, font, and shadow is a semantically-named primitive with a single source of truth
+- **Light and dark parity** via `.dark` and `.true-dark` variable blocks that brighten brand hues and use navy or true-black surfaces instead of inverting light values; every pair is contrast-verified in all three themes
 - **Production-ready React patterns**: Zustand stores, sonner toasts, react-hook-form + zod validation, react-i18next, Lucide icons, react-router-dom guards
 
 ---
@@ -66,44 +67,51 @@ The renderer is currently being migrated. This captures the pre-migration baseli
 
 ### 4.1 Color Palette — Healthcare Professional
 
-A palette purpose-built for hospital software: **trust** (deep ocean blue), **care** (teal), **healing** (emerald), and **warmth** (sky tinted background). Low saturation reduces eye strain during long clinical shifts; semantic coloring restricts color to meaning — never decoration.
+A palette purpose-built for hospital software: **trust** (deep ocean blue), **care** (teal), and a **neutral paper** workspace. The brand family stays blue + teal; surfaces are deliberately neutral so selection tints and status colors carry meaning. Low saturation reduces eye strain during long clinical shifts; color is reserved for semantics — never decoration.
 
-**Implementation:** Tokens are declared in Tailwind v4 `@theme` inside `src/renderer/src/index.css` (see `react_implementation_plan.md` § Phase 1). shadcn's CSS custom properties (`:root { --primary: 201 100% 36%; ... }`) are derived from the same hex values below.
+**Implementation:** Colors are declared once as plain CSS variables in `:root` inside `src/renderer/src/index.css`, then bridged into Tailwind v4's utility namespace through `@theme inline` (see §11.2). shadcn's semantic variables (`--background`, `--primary`, `--accent`, …) point at those same values, so there is no second source of truth and no HSL/oklch drift.
 
 #### 4.1.1 Primitive palette (source of truth)
 
-| Token | Hex | HSL (for shadcn) | Tier | Purpose |
-|-------|-----|------------------|------|---------|
-| `primary` | `#0077B6` | `201 100% 36%` | Brand | Primary actions, active nav, links, focus rings |
-| `primary-light` | `#DBEAFE` | `210 100% 92%` | Brand tint | Hover backgrounds, selected row tint, page subtle wash |
-| `primary-dark` | `#005A8C` | `202 100% 34%` | Brand shade | Active/pressed buttons, emphasized links |
-| `secondary` | `#00A896` | `172 100% 33%` | Brand | Secondary actions, "balance" semantics, neutral accents |
-| `secondary-light` | `#CCFBF1` | `166 100% 87%` | Brand tint | Light backgrounds for secondary zones |
-| `accent` | `#059669` | `160 84% 30%` | Brand | Inline emphasis (price highlights, KPI deltas) — distinct from `success` |
-| `success` | `#10B981` | `160 74% 45%` | Status | Successful saves, positive indicators, "completed" badges |
-| `success-light` | `#D1FAE5` | `149 80% 90%` | Status tint | Success state soft backgrounds, toast backgrounds |
-| `warning` | `#F59E0B` | `38 92% 50%` | Status | Pending items, near-expiry drugs, low stock alerts |
-| `warning-light` | `#FEF3C7` | `48 100% 88%` | Status tint | Warning state soft backgrounds |
-| `danger` | `#EF4444` | `0 84% 60%` | Status | Errors, deletions, destructive confirm button, expired drugs |
-| `danger-light` | `#FEE2E2` | `0 93% 94%` | Status tint | Error state soft backgrounds |
-| `info` | `#0EA5E9` | `199 89% 48%` | Status | Informational banners, neutral-toasts |
-| `info-light` | `#E0F2FE` | `204 100% 94%` | Status tint | Info state soft backgrounds |
+| Token | Hex | Tier | Purpose |
+|-------|-----|------|---------|
+| `primary` | `#075985` | Brand | Primary actions, active nav, links, focus rings |
+| `primary-light` | `#DCEBF5` | Brand tint | Selected rows, active nav, avatars, hover washes |
+| `primary-dark` | `#064663` | Brand shade | Pressed/active text, text on `primary-light` |
+| `secondary` | `#0F766E` | Brand | Secondary actions, wordmark "Core", chart 2 |
+| `secondary-light` | `#E7F5F3` | Brand tint | Soft secondary chips and panels |
+| `accent` | `#DCEBF5` | Interaction | Menu/select/combobox highlight, inline emphasis tint (aliases `primary-light`) |
+| `accent-foreground` | `#064663` | Interaction | Text/icons on `accent` |
+| `success` | `#15803D` | Status | Successful saves, positive indicators, completed badges |
+| `success-light` | `#DCFCE7` | Status tint | Success backgrounds and toasts |
+| `success-dark` | `#166534` | Status shade | Success text on `success-light` |
+| `warning` | `#B45309` | Status | Pending items, near-expiry drugs, low stock |
+| `warning-light` | `#FEF3C7` | Status tint | Warning backgrounds |
+| `warning-foreground` | `#7C2D12` | Status shade | Warning alert copy on `warning-light` |
+| `danger` | `#B91C1C` | Status | Errors, deletions, destructive actions, expired drugs |
+| `danger-light` | `#FEE2E2` | Status tint | Error backgrounds |
+| `info` | `#0369A1` | Status | Informational banners, neutral toasts |
+| `info-light` | `#E0F2FE` | Status tint | Info backgrounds |
+
+> `accent` is intentionally a **brand tint**, not a third hue. shadcn uses `accent` for every menu/select hover, so a saturated accent would paint the whole app green.
 
 #### 4.1.2 Surfaces & text (neutral layer)
 
 | Token | Hex | Purpose |
 |-------|-----|---------|
-| `background` | `#F0F9FF` | App background — sky-tinted for eye comfort during long shifts |
+| `background` | `#F6F8FB` | App background — neutral paper, no sky cast |
 | `surface` | `#FFFFFF` | Cards, dialogs, sheets, popovers, table backgrounds |
-| `surface-muted` | `#F8FAFC` | Striped table rows, sub-surface zebra striping |
+| `surface-muted` | `#F1F5F9` | Striped table rows, sub-surface panels |
 | `text-primary` | `#0F172A` | Headings, table data, primary content |
 | `text-secondary` | `#475569` | Descriptions, labels, helper text |
 | `text-tertiary` | `#64748B` | Captions, placeholders, metadata |
-| `border` | `#E2E8F0` | Dividers, input borders, card borders |
-| `border-strong` | `#CBD5E1` | Hover borders, focused-but-not-input borders |
-| `disabled` | `#94A3B8` | Disabled text and icons |
+| `border` | `#E2E8F0` | Dividers, table rules, card rings |
+| `border-strong` | `#CBD5E1` | Input borders, hover borders, emphasized dividers |
+| `disabled` | `#94A3B8` | Disabled text and icons (WCAG-exempt inactive state) |
 | `disabled-bg` | `#F1F5F9` | Disabled input/chip backgrounds |
 | `shadow-color` | `rgba(15, 23, 42, 0.08)` | Universal shadow tint for elevation |
+
+> The sidebar is `surface` white with a `border` edge; its hover/active tint is `primary-light`, not a separate background color.
 
 #### 4.1.3 Semantic state mapping (recommend to developers)
 
@@ -112,41 +120,196 @@ A palette purpose-built for hospital software: **trust** (deep ocean blue), **ca
 | Default | `surface` | `border` | `text-primary` | `<Button variant="outline">` |
 | Hover | `surface` | `border-strong` | `text-primary` | hover overlay utility |
 | Focused | `surface` | `primary` (ring) | `text-primary` | shadcn focus ring (default) |
+| Active / selected | `primary-light` | `primary` | `primary-dark` | `data-active`, selected rows |
 | Disabled | `disabled-bg` | `border` | `disabled` | `disabled:opacity-50` |
-| Success | `success-light` | `success` | `success` | `<Alert variant="success">` |
-| Warning | `warning-light` | `warning` | `warning` | `<Alert variant="warning">` |
-| Danger | `danger-light` | `danger` | `danger` | `<Alert variant="destructive">` (match shadcn naming) |
+| Success | `success-light` | `success` | `success-dark` | `<Alert variant="success">` |
+| Warning | `warning-light` | `warning` | `warning-foreground` | `<Alert variant="warning">` |
+| Danger | `danger-light` | `danger` | `danger` | `<Alert variant="destructive">` (matches shadcn naming) |
 | Info | `info-light` | `info` | `info` | `<Alert>` (info accent) |
+| Menu highlight | `accent` | transparent | `accent-foreground` | Dropdown/Select/Combobox focus |
 
 #### 4.1.4 Contrast verification (WCAG 2.1 AA)
 
-All foreground/background pairs below were verified to exceed the AA threshold (4.5:1 for body text, 3:1 for large text and UI components):
+All text pairs below were measured against the tokens above (4.5:1 normal text, 3:1 large text and UI boundaries):
 
 | Pair | Ratio | Result |
 |------|-------|--------|
-| `text-primary` (#0F172A) on `surface` (#FFFFFF) | 18.6 : 1 | AAA |
-| `text-primary` on `background` (#F0F9FF) | 17.2 : 1 | AAA |
-| `text-secondary` (#475569) on `surface` | 7.5 : 1 | AAA for normal, AA |
-| `text-tertiary` (#64748B) on `surface` | 4.8 : 1 | AA |
-| `primary` (#0077B6) on `surface` | 4.7 : 1 | AA text / 3:1 UI |
-| `primary` (#0077B6) on `primary-light` (#DBEAFE) | 4.6 : 1 | AA text |
-| White on `primary` (#0077B6) — primary button label | 4.7 : 1 | AA |
-| White on `danger` (#EF4444) — danger button label | 4.0 : 1 | AA large text / UI |
-| White on `success` (#10B981) — success button label | 2.5 : 1 | UI only — use for non-textual indicators; for text use `success-dark` (#047857) |
-| `disabled` (#94A3B8) on `surface` | 3.4 : 1 | UI-component AA, not body text |
+| `text-primary` (#0F172A) on `surface` (#FFFFFF) | 17.9 : 1 | AAA |
+| `text-primary` on `background` (#F6F8FB) | 16.9 : 1 | AAA |
+| `text-secondary` (#475569) on `surface` | 7.5 : 1 | AAA |
+| `text-tertiary` (#64748B) on `background` | 4.5 : 1 | AA |
+| `primary` (#075985) on `surface` | 7.6 : 1 | AAA |
+| `primary` (#075985) on `primary-light` (#DCEBF5) | 6.1 : 1 | AA |
+| White on `primary` — primary button label | 7.6 : 1 | AAA |
+| White on `primary` at the 80% default-hover mix | 4.8 : 1 | AA |
+| `secondary` (#0F766E) on `surface` | 5.5 : 1 | AA |
+| White on `secondary` — secondary button label | 5.5 : 1 | AA |
+| `accent-foreground` (#064663) on `accent` (#DCEBF5) | 8.2 : 1 | AAA |
+| `danger` (#B91C1C) on `danger-light` (#FEE2E2) | 5.3 : 1 | AA |
+| White on `danger` — destructive button label | 6.5 : 1 | AA |
+| `success` (#15803D) on `surface` | 5.0 : 1 | AA |
+| `success-dark` (#166534) on `success-light` (#DCFCE7) | 6.5 : 1 | AA |
+| `warning` (#B45309) on `surface` | 5.0 : 1 | AA |
+| `warning-foreground` (#7C2D12) on `warning-light` (#FEF3C7) | 8.4 : 1 | AAA |
+| `info` (#0369A1) on `surface` | 5.9 : 1 | AA |
+| `info` (#0369A1) on `info-light` (#E0F2FE) | 5.2 : 1 | AA |
+| `disabled` (#94A3B8) on `surface` | 2.6 : 1 | Exempt (inactive component) |
 
-> **Rule of thumb:** Use the `*-light` tokens as backgrounds only; never pair two light variants together as foreground/background since they will not meet AA contrast.
+> **Rule of thumb:** Use `*-light` tokens as backgrounds only. When text sits on a status tint, use the darker status token (`success-dark`, `warning-foreground`, `danger`, `info`) — never the base color on white unless the table above shows the pair passing.
 
 #### 4.1.5 Palette rationale
 
-- **`#0077B6` Deep Ocean Blue — Trust & clinical professionalism.** Avoids the over-used "medical blue" of `#2563EB` (Tailwind `blue-600`) which has high saturation and feels generic.
-- **`#00A896` Teal — Balance, recovery, secondary emphasis.** Sits one perceptual step warmer than the primary so secondary actions still read affordances and don't compete with the primary CTA.
-- **`#059669` Emerald — Health, growth, inline emphasis.** Reserved as an `accent` for inline highlights (price, KPI delta) — semantically different from `success` (status confirmations).
-- **`#10B981` / `#F59E0B` / `#EF4444` — Status triad.** Standard accessible status palette. Used **in combination with an icon or text label** in every component (never color alone) to support color-blind users.
-- **`#F0F9FF` Sky Tint — Calming app background.** A 5% blue tint to `surface` reduces eye strain versus pure white during long shifts without making the interface feel "colored".
-- **`#0F172A` Deep Slate — Strong body text.** Softer than pure black; gives a premium feel while preserving the 18:1 contrast on white.
+- **`#075985` Deep Ocean Blue — trust and clinical professionalism.** It replaces the saturated "medical blue" with a deeper, calmer ocean tone. The depth is functional: shadcn's default button hover is `primary` at 80%, which still lands at 4.8:1 on white.
+- **`#0F766E` Teal — care, recovery, and the wordmark's second note.** One perceptual step warmer than the primary, yet still 5.5:1 on white, so secondary buttons and "Core" in the wordmark remain readable without a special token.
+- **Neutral paper, not a sky tint.** `#F6F8FB` keeps white cards, the sidebar, and the topbar visually distinct without washing the whole screen blue. The workspace recedes; the data leads.
+- **A tint, not a third hue.** `accent` aliases `primary-light`, so every shadcn menu/select highlight reads as brand selection instead of an unrelated green.
+- **Status colors chosen as text, not fills.** Each base status token clears 4.5:1 on white, so `text-success` / `text-warning` / `text-danger` are safe wherever they already appear; the `-light` / `-dark` pairings cover tinted surfaces.
+- **`#0F172A` Deep Slate — strong body text.** Softer than pure black while preserving a 17:1 contrast on white.
 
-> **Design Principle:** Low-saturation tones reduce eye strain. High-contrast text ensures readability. Semantic coloring for status, not decoration. Every status uses a paired icon **and** color.
+> **Design Principle:** Neutral surfaces, one brand family, tint for selection. Every status is paired with an icon or label so color is never the only signal.
+
+#### 4.1.6 Dark themes
+
+Dark mode is a **parallel palette**, not an inversion. Brand hues brighten to stay legible on deep surfaces; backgrounds become navy rather than black so elevation still reads; status colors move to their 300/400 tonal step. Two dark variants share one contract: **Dark** (navy) and **True dark** (OLED black with blue accents, §4.1.7). The provider adds `.dark` to `<html>` for either variant and additionally `.true-dark` for the OLED palette, and the theme is switched from the sidebar user menu (**Theme → Light / Dark / True dark / System default**), with `color-scheme: dark` set so native controls and scrollbars follow.
+
+| Token | Light | Dark | Notes |
+|-------|-------|------|-------|
+| `primary` | `#075985` | `#7CC7EA` | Brand brightens; 9.3:1 on `surface` |
+| `primary-foreground` | `#FFFFFF` | `#052330` | Dark ink on the light-blue button |
+| `primary-dark` | `#064663` | `#A9DCF2` | Emphasized text on the tint |
+| `primary-light` | `#DCEBF5` | `#14344A` | Selection/active tint becomes deep blue |
+| `secondary` | `#0F766E` | `#4FD1C5` | 9.3:1 on `surface` |
+| `secondary-foreground` | `#FFFFFF` | `#04211F` | 9.1:1 on `secondary` |
+| `secondary-light` | `#E7F5F3` | `#123A38` | Soft teal panel |
+| `success` | `#15803D` | `#4ADE80` | 10.0:1 on `surface` |
+| `success-light` | `#DCFCE7` | `#0F2E1D` | Deep green tint |
+| `success-dark` | `#166534` | `#86EFAC` | 10.5:1 on the tint |
+| `warning` | `#B45309` | `#FBBF24` | 10.4:1 on `surface` |
+| `warning-light` | `#FEF3C7` | `#3A2A0A` | Deep amber tint |
+| `warning-foreground` | `#7C2D12` | `#FDE68A` | 11.1:1 on the tint |
+| `danger` | `#B91C1C` | `#F87171` | 6.8:1 on `background` |
+| `danger-light` | `#FEE2E2` | `#3B1215` | 5.9:1 vs `danger` |
+| `info` | `#0369A1` | `#60A5FA` | 6.9:1 on `surface` |
+| `info-light` | `#E0F2FE` | `#102A43` | 5.8:1 vs `info` |
+| `background` | `#F6F8FB` | `#0B1220` | Deep navy, never pure black |
+| `foreground` | `#0F172A` | `#E6EDF6` | 15.9:1 on `background` |
+| `surface` | `#FFFFFF` | `#111A2B` | Cards rise one step, not to black |
+| `surface-muted` | `#F1F5F9` | `#16202F` | Sub-surface panels |
+| `muted` | `#F1F5F9` | `#18222F` | Hover/disabled wash |
+| `muted-foreground` | `#475569` | `#A9B7C9` | 7.9:1 on `muted` |
+| `destructive-foreground` | `#FFFFFF` | `#2A0A0C` | 6.6:1 on `danger` |
+| `text-primary` | `#0F172A` | `#E6EDF6` | Primary content |
+| `text-secondary` | `#475569` | `#A9B7C9` | 8.5:1 on `surface` |
+| `text-tertiary` | `#64748B` | `#8494A8` | 6.1:1 on `background` |
+| `border` | `#E2E8F0` | `#243244` | Dividers and card rings |
+| `border-strong` | `#CBD5E1` | `#33445C` | Inputs and hover borders |
+| `input` | `#CBD5E1` | `#33445C` | Aliases `border-strong` |
+| `disabled` | `#94A3B8` | `#64748B` | Inactive, contrast-exempt |
+| `disabled-bg` | `#F1F5F9` | `#1A2433` | Disabled field background |
+| `chart-3` | `#7C3AED` | `#C4B5FD` | 9.4:1 on `surface` |
+| `chart-5` | `#BE123C` | `#FB7185` | 6.5:1 on `surface` |
+
+**Contrast verification (dark theme):**
+
+| Pair | Ratio | Result |
+|------|-------|--------|
+| `foreground` (#E6EDF6) on `background` (#0B1220) | 15.9 : 1 | AAA |
+| `foreground` on `surface` (#111A2B) | 14.8 : 1 | AAA |
+| `text-secondary` (#A9B7C9) on `surface` | 8.5 : 1 | AAA |
+| `text-tertiary` (#8494A8) on `background` | 6.1 : 1 | AA |
+| `primary` (#7CC7EA) on `surface` | 9.3 : 1 | AAA |
+| `primary` on `primary-light` (#14344A) | 6.9 : 1 | AA |
+| `primary-foreground` (#052330) on `primary` | 8.7 : 1 | AAA |
+| `secondary` (#4FD1C5) on `surface` | 9.3 : 1 | AAA |
+| `secondary-foreground` (#04211F) on `secondary` | 9.1 : 1 | AAA |
+| `accent-foreground` (#A9DCF2) on `accent` (#14344A) | 8.8 : 1 | AAA |
+| `danger` (#F87171) on `danger-light` (#3B1215) | 5.9 : 1 | AA |
+| `destructive-foreground` (#2A0A0C) on `danger` | 6.6 : 1 | AA |
+| `success` (#4ADE80) on `surface` | 10.0 : 1 | AAA |
+| `success-dark` (#86EFAC) on `success-light` (#0F2E1D) | 10.5 : 1 | AAA |
+| `warning` (#FBBF24) on `surface` | 10.4 : 1 | AAA |
+| `warning-foreground` (#FDE68A) on `warning-light` (#3A2A0A) | 11.1 : 1 | AAA |
+| `info` (#60A5FA) on `surface` | 6.9 : 1 | AA |
+| `info` on `info-light` (#102A43) | 5.8 : 1 | AA |
+| `muted-foreground` (#A9B7C9) on `muted` (#18222F) | 7.9 : 1 | AAA |
+| `disabled` (#64748B) on `surface` | 3.7 : 1 | Exempt (inactive component) |
+
+- **Brighten, don't invert.** `#075985` becomes `#7CC7EA`, not a muddy dark blue: the hue is preserved while luminance flips. The same rule applies to teal and the status triad.
+- **Navy, not black.** `#0B1220` background and `#111A2B` cards avoid the halation and crushed-elevation look of pure black. Three surface steps (`background` → `surface` → `surface-muted`) keep depth readable.
+- **Soft white text.** `#E6EDF6` reads calmer than `#FFFFFF` and still clears 14:1 on cards.
+- **Tints go deep, text goes light.** `primary-light`/`*-light` become desaturated deep versions of their hue; text on them uses the light `-dark`/`-foreground` companion. Never reuse the light-theme tint values.
+- **Only raw values are overridden.** Derived aliases (`card`, `popover`, `accent`, `destructive`, `input`, `ring`, `chart-1/2/4`, `sidebar-*`) are `var()` references declared once in `:root`, so they follow the active dark block automatically.
+
+#### 4.1.7 True dark theme
+
+An OLED-oriented alternative for users who want a genuinely black workspace. It is **not** a third brand: the same contract, same semantic token names, with sky blue as the primary accent and a deeper blue as the secondary. The provider sets both `dark` and `true-dark` on `<html>`, so every `dark:` utility still applies; the `.true-dark` block is emitted after `.dark` and overrides only raw values.
+
+| Token | Dark (navy) | True dark | Notes |
+|-------|-------------|-----------|-------|
+| `primary` | `#7CC7EA` | `#38BDF8` | Sky blue; 9.8:1 on black |
+| `primary-foreground` | `#052330` | `#08202E` | 7.8:1 on `primary` |
+| `primary-dark` | `#A9DCF2` | `#BAE6FD` | Emphasized text on the tint |
+| `primary-light` | `#14344A` | `#0A2432` | Blue selection/active tint |
+| `secondary` | `#4FD1C5` | `#60A5FA` | Deeper blue counterweight; 8.3:1 on black |
+| `secondary-foreground` | `#04211F` | `#06121F` | 7.4:1 on `secondary` |
+| `secondary-light` | `#123A38` | `#0A1B2E` | Blue panel tint |
+| `success` | `#4ADE80` | `#34D399` | 10.9:1 on black |
+| `success-light` | `#0F2E1D` | `#052E20` | Deep green tint |
+| `success-dark` | `#86EFAC` | `#6EE7B7` | 9.7:1 on the tint |
+| `warning` | `#FBBF24` | `#FBBF24` | 12.6:1 on black |
+| `warning-light` | `#3A2A0A` | `#3A2A0A` | Unchanged from dark |
+| `warning-foreground` | `#FDE68A` | `#FDE68A` | 11.1:1 on the tint |
+| `danger` | `#F87171` | `#F87171` | 7.6:1 on black |
+| `danger-light` | `#3B1215` | `#3B1215` | 5.9:1 vs `danger` |
+| `info` | `#60A5FA` | `#7DD3FC` | Sky-300; 12.6:1 on black |
+| `info-light` | `#102A43` | `#082F49` | 8.3:1 vs `info` |
+| `background` | `#0B1220` | `#000000` | True black |
+| `foreground` | `#E6EDF6` | `#E8F2FA` | 18.5:1 on black; blue-tinted white |
+| `surface` | `#111A2B` | `#070B0F` | Cards lift just off black |
+| `surface-muted` | `#16202F` | `#0C1218` | Sub-surface panels |
+| `muted` | `#18222F` | `#0D141B` | Hover/disabled wash |
+| `muted-foreground` | `#A9B7C9` | `#A6B8CB` | 9.1:1 on `muted` |
+| `destructive-foreground` | `#2A0A0C` | `#2A0A0C` | 6.6:1 on `danger` |
+| `text-primary` | `#E6EDF6` | `#E8F2FA` | Primary content |
+| `text-secondary` | `#A9B7C9` | `#A6B8CB` | 9.7:1 on `surface` |
+| `text-tertiary` | `#8494A8` | `#7E93A8` | 6.6:1 on black |
+| `border` | `#243244` | `#1A2732` | Blue-cast dividers |
+| `border-strong` | `#33445C` | `#2A3B4A` | Inputs and hover borders |
+| `disabled` | `#64748B` | `#5C6E7D` | Inactive, contrast-exempt |
+| `disabled-bg` | `#1A2433` | `#111A22` | Disabled field background |
+| `chart-3` | `#C4B5FD` | `#C4B5FD` | 11.4:1 on black |
+| `chart-5` | `#FB7185` | `#FB7185` | 7.8:1 on black |
+
+**Contrast verification (true dark):**
+
+| Pair | Ratio | Result |
+|------|-------|--------|
+| `foreground` (#E8F2FA) on `background` (#000000) | 18.5 : 1 | AAA |
+| `foreground` on `surface` (#070B0F) | 17.4 : 1 | AAA |
+| `text-secondary` (#A6B8CB) on `surface` | 9.7 : 1 | AAA |
+| `text-tertiary` (#7E93A8) on `background` | 6.6 : 1 | AA |
+| `primary` (#38BDF8) on `background` | 9.8 : 1 | AAA |
+| `primary` on `primary-light` (#0A2432) | 7.5 : 1 | AAA |
+| `primary-foreground` (#08202E) on `primary` | 7.8 : 1 | AAA |
+| `secondary` (#60A5FA) on `background` | 8.3 : 1 | AAA |
+| `secondary-foreground` (#06121F) on `secondary` | 7.4 : 1 | AAA |
+| `accent-foreground` (#BAE6FD) on `accent` (#0A2432) | 12.1 : 1 | AAA |
+| `danger` (#F87171) on `danger-light` (#3B1215) | 5.9 : 1 | AA |
+| `destructive-foreground` (#2A0A0C) on `danger` | 6.6 : 1 | AA |
+| `success` (#34D399) on `background` | 10.9 : 1 | AAA |
+| `success-dark` (#6EE7B7) on `success-light` (#052E20) | 9.7 : 1 | AAA |
+| `warning` (#FBBF24) on `background` | 12.6 : 1 | AAA |
+| `warning-foreground` (#FDE68A) on `warning-light` (#3A2A0A) | 11.1 : 1 | AAA |
+| `info` (#7DD3FC) on `background` | 12.6 : 1 | AAA |
+| `info` on `info-light` (#082F49) | 8.3 : 1 | AAA |
+| `muted-foreground` (#A6B8CB) on `muted` (#0D141B) | 9.1 : 1 | AAA |
+| `disabled` (#5C6E7D) on `surface` | 3.7 : 1 | Exempt (inactive component) |
+
+- **Black is the point.** `#000000` removes the lift of the navy theme for OLED displays and dark rooms. Surfaces step up only a few luminance points (`#070B0D`, `#0C1215`) so cards and sheets still separate from the canvas.
+- **Sky-blue primary, deeper blue secondary.** `#38BDF8` is the clinical instrument accent; `#60A5FA` carries secondary actions. Both stay in the blue family, so the theme reads as one deliberate monochrome rather than a mixed palette.
+- **Blue-tinted neutrals.** Text, borders, and muted surfaces carry a faint blue cast (`#E8F2FA`, `#A6B8CB`, `#1A2732`) so the theme feels intentional rather than grayscale.
+- **Status meaning is stable.** Success/warning/danger keep the same hue family as the navy theme; only the green step shifts. A red badge means the same thing in both dark variants.
+- **Layered implementation.** `.dark.true-dark` on `<html>`; `.true-dark` overrides raw tokens only, after `.dark`, so `dark:` utilities and derived aliases continue to work untouched.
 
 ### 4.2 Typography
 
@@ -217,8 +380,8 @@ shadcn's `--radius` CSS variable scales all radii. Default `0.5rem` is tuned for
 - Default control height: **40px** (`h-10`) for buttons & inputs — meets 44pt minimum tap target when paired with 4px padding.
 - Table row height: **48px** (`h-12`) — comfortable hover affordance.
 - Dialog padding: **24px** for `<DialogContent>` body; **16px** for footer.
-- Sidebar collapsed width: **48px** (`w-12`); expanded: **256px** (`w-64`).
-- TopBar height: **48px** (`h-12`), sticky.
+- Sidebar collapsed width: **64px** (`w-16`); expanded: **256px** (`w-64`).
+- TopBar height: **64px** (`h-16`), sticky.
 - Card padding: **16px** (`p-4`); compact variant `p-3` (12px) for KPI cards on the dashboard.
 
 ### 4.4 Shadows & Elevation
@@ -234,7 +397,7 @@ A four-level elevation scale. Token names map directly to Tailwind v4 `@theme` d
 | `shadow-xl` | `0 20px 25px -5px rgba(15,23,42,0.10), 0 8px 10px -6px rgba(15,23,42,0.04)` | Full-screen overlays, immersive dialogs, wizard steps |
 | `shadow-2xl` | `0 25px 50px -12px rgba(15,23,42,0.25)` | Drag preview, drag-and-drop ghosts |
 | `shadow-inner` | `inset 0 2px 4px 0 rgba(15,23,42,0.05)` | Selected/active pressed state |
-| `shadow-focus` | `0 0 0 2px #FFFFFF, 0 0 0 4px #0077B6` | Keyboard focus ring on dark surfaces (used with `ring-offset-2`) |
+| `shadow-focus` | `0 0 0 2px var(--surface), 0 0 0 4px var(--primary)` | Keyboard focus ring on any surface |
 
 **Rules**
 - Elevation is **earned** — every elevated surface must justify its shadow by communicating hierarchy (parent vs child) or interactivity (button hover, popped-over dropdown).
@@ -253,7 +416,7 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Sidebar (Sidebar.tsx)   │ Main Column                               │
 │ ─────────────────────── │ ──────────────────────────────────────────│
-│ ▸ Header                │ TopBar (TopBar.tsx) — sticky, h-12        │
+│ ▸ Header                │ TopBar (TopBar.tsx) — sticky, h-16        │
 |   LogoIcon+"HealthCore+"|
 │   Collapse button       │  Breadcrumb │ Title │ Search │ Lang │ ... │
 │ ▸ Nav items(Collapsible)|                                           │
@@ -274,17 +437,17 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 - Expanded width **256px** (`w-64`); collapsed **64px** (`w-16`, icon-only).
 - Width transitions with `transition-all duration-200 ease-in-out`.
 - Filters `NAV_CONFIG` using `usePermission()` at render time — no extra API call.
-- Active link detection via `useLocation().pathname` (exact match); active item gets `bg-primary-light text-primary border-s-2 border-primary` (uses `border-s` so it mirrors in RTL).
+- Active link detection via `useLocation().pathname` (exact match); the active item uses `data-active` with `--sidebar-accent` (#DCEBF5) and `--sidebar-accent-foreground` (#064663), weight 600, plus an inset 2px start rail in `--primary` (mirrored to the right edge in RTL). Hover uses the same tint at lower emphasis so active always reads stronger than hover.
 - Nested items ("User Management") use shadcn `<Collapsible>` so they can stay expanded when the sidebar is collapsed.
 - Tooltip on collapsed nav: shadcn `<Tooltip>` shows the label on hover/focus.
 - HMS logo icon sits at top, with "HealthCore+" next to it. "Health" is in the primary color, while "Core" and "+" in secondary color. The "+" is a superscript on top of "Core". Collapse Button sits on the right side, and replaces the HMS Logo when the sidebar is collapsed.
 - Logout uses shadcn `<AlertDialog>` for confirmation → `authStore.logout()` → navigate to `/login`.
 - Permission-locked items get a small `Lock` icon and `aria-disabled`.
 - User Profile: user profile image (letter placeholder if no image), name & role badge under. user menu on right side on clickable kebab icon
-- User menu: shadcn `<DropdownMenu>` with username, role badge, "Settings" stub, "Logout".
+- User menu: shadcn `<DropdownMenu>` with username, role badge, "Settings" stub, an inline **Theme** radio group (Light / Dark / True dark / System default), and "Logout".
 
 **TopBar (TopBar.tsx) behavior**
-- Sticky at the top (`sticky top-0 z-30`), 48px tall, `--surface` background with `shadow-sm`.
+- Sticky at the top (`sticky top-0 z-30`), 64px tall (`h-16`), `--surface` background with a 1px `--border` bottom edge.
 - Breadcrumb: auto-generated from `useLocation()` + a route-to-label map; uses shadcn `<Breadcrumb>`. Ellipsizes middle segments past depth 4.
 - Global search (`Ctrl+K` / `Cmd+K`): shadcn `<Command>` dialog (Phase 8). Initially navigates to module pages only (entity search deferred).
 - Language toggle: button → `uiStore.setLanguage()`; `RTLSync` updates `<html dir>` and `i18n.changeLanguage()`.
@@ -370,22 +533,24 @@ HMS uses the right primitive for the right job. **Do not** force everything into
 
 ### 6.5 Buttons (`<Button>`)
 
-Mapped to shadcn `<Button>` variants. Always 40px tall (`h-10`) for comfortable hit targets; icon-only buttons use `h-10 w-10` square with `aria-label`.
+Mapped to shadcn `<Button>` variants. Default size is `h-9` (36px); `size="lg"` is `h-10` (40px) for the single primary CTA in dialogs and standalone forms. Icon-only buttons are square and always carry an `aria-label`.
 
 | Variant | Background | Text | Border | Used for |
 |---------|------------|------|--------|----------|
-| **default** (primary) | `primary` (#0077B6) | white | none | Save, Submit, Continue (primary CTA) |
-| **secondary** | `surface` | `text-primary` | `border` | Cancel, Back, secondary actions |
-| **outline** | transparent | `text-primary` | `border-strong` | Filter chips, tertiary actions |
-| **ghost** | transparent (hover: `primary-light`) | `text-primary` (hover: `primary`) | none | Dropdown triggers, page-level actions |
-| **destructive** | `danger` (#EF4444) | white | none | Delete, Remove, Discard |
+| **default** (primary) | `primary` (#075985) | white | none | Save, Submit, Continue (primary CTA) |
+| **secondary** | `secondary` (#0F766E) | white | none | Secondary actions, alternative paths |
+| **outline** | `background` | `foreground` | `border` | Filter chips, tertiary actions, icon buttons |
+| **ghost** | transparent (hover: `muted`) | `foreground` | none | Dropdown triggers, page-level actions, icon buttons |
+| **destructive** | `danger`/10 (soft) | `danger` (#B91C1C) | none | Delete, Remove, Discard |
 | **link** | transparent | `primary` underline | none | Forgot password, in-text actions |
-| **icon** (square variant) | `surface` | `text-secondary` | `border` | Table action buttons |
+| **icon** | inherits `outline` / `ghost` | inherits | inherits | Table action buttons — a **size**, not a variant |
 
+- **Hover:** default → `bg-primary/80`; secondary → `color-mix(in oklch, var(--secondary), var(--foreground) 5%)`; outline/ghost → `bg-muted`. Transitions are 150ms, color only.
+- **Focus:** 3px `ring-ring/50` with a 1px offset — never removed; keyboard focus must always be visible.
 - **Loading:** while a server call is in flight, swap label for `<Loader2 className="animate-spin" />` and disable the button. **Never** rely on color alone to indicate loading.
 - **Disabled:** `disabled:opacity-50 disabled:pointer-events-none` (shadcn default). Used for "no permission" and "save with no changes".
 - **Destructive separation:** destructive buttons are visually smaller and pushed to the **right** (LTR) of CTA clusters. **Never** the default primary action.
-- **Touch target:** minimum `h-10` (40px); icon-only uses `h-10 w-10 p-0` with `aria-label`.
+- **Touch target:** minimum `h-9` on desktop; `h-10`/`size="lg"` for touch contexts and primary dialog CTAs.
 
 ### 6.6 Toasts & Confirmations (Sonner + AlertDialog)
 
@@ -424,11 +589,11 @@ These are the **highest-frequency, highest-stakes workflows** in HMS — the one
 
 Route: `/login` (public). Replaces the legacy `login.html` + `login.ts` + `login.css`.
 
-- **Layout:** Centered surface card on the existing `bg-background` (`#F0F9FF`); HMS logo + product name in the card header; language toggle in the top-right corner of the viewport.
+- **Layout:** Centered surface card on `bg-background` (#F6F8FB); HMS logo + product name in the card header; language toggle in the top-right corner of the viewport. The card carries `border-border bg-surface shadow-lg ring-1 ring-foreground/5` — elevation, not a tinted page.
 - **Form:** react-hook-form + zod. Two fields: `username` (required), `password` (required, with show/hide toggle using `<Eye>` / `<EyeOff>` Lucide icons). `<FormLabel>` shows red `*` for required; helper text below input.
 - **Submit:** `<Button>` with `<Loader2 className="animate-spin" />` while pending; on success, `authStore.login(user, token)` then `navigate('/dashboard')`. **No toast** on success — the route change itself is the confirmation.
-- **Error:** Inline `<FormMessage>` below the credential fields; never a modal. After 5 failures on the same minute, a Sonner `error` toast is shown ("Account temporarily locked. Try again in a minute.").
-- **Background:** subtle brand-aligned gradient (`bg-gradient-to-br from-primary-light via-background to-background`) — never decorative imagery.
+- **Error:** Inline `<FormMessage>` below the credential fields; never a modal. The alert uses `border-danger/30 bg-danger-light/40 text-danger`. After 5 failures on the same minute, a Sonner `error` toast is shown ("Account temporarily locked. Try again in a minute.").
+- **Background:** flat `bg-background` (#F6F8FB); no gradient or decorative imagery. The white surface card is the only focal layer. Session warnings use `border-warning/40 bg-warning-light/40 text-warning-foreground`.
 - **Session expired (existing session):** When `authStore.verify()` 401s, navigate to `/login` with a Sonner `warning` toast "Session expired, please sign in again."
 
 ### 7.2 Patient Registration & Lookup
@@ -593,23 +758,40 @@ This is required — handing clinic staff who must use the app for long shifts, 
 
 ### 11.2 Design tokens live in `index.css`
 
-Tailwind v4 replaces `tailwind.config.js` with a CSS-first `@theme` block in `src/renderer/src/index.css`. The implementation plan defines the source of truth for tokens (colors, fonts, shadows); this document is the authority on **semantics** (which tokens to use for which UI fragments).
-
-The CSS custom properties are kept in lock-step:
+Tailwind v4 replaces `tailwind.config.js` with CSS-first configuration in `src/renderer/src/index.css`. Colors have exactly **one** source of truth: plain CSS variables in `:root`. `@theme inline` only bridges those variables into Tailwind's utility namespace, so `bg-primary` and `--primary` can never drift apart.
 
 ```css
-:root {
-  --background: 210 100% 97%;   /* #F0F9FF */
-  --foreground: 222 47% 11%;    /* #0F172A */
-  --primary: 201 100% 36%;      /* #0077B6 */
-  --primary-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;     /* #EF4444 */
-  --border: 214 32% 91%;        /* #E2E8F0 */
-  --radius: 0.5rem;             /* 8px */
+@layer base {
+  :root {
+    --primary: #075985;              /* Deep ocean blue */
+    --primary-dark: #064663;
+    --primary-light: #DCEBF5;
+    --secondary: #0F766E;            /* Teal */
+    --accent: var(--primary-light);
+    --accent-foreground: var(--primary-dark);
+    --background: #F6F8FB;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --radius: 0.5rem;                /* 8px */
+  }
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
 }
 ```
 
-Developers prefer the **semantic Tailwind class names** (`bg-primary`, `text-secondary`, `border-border`) over raw HSL values. The HSL is only used by shadcn primitives internally.
+- Core shadcn aliases (`--card`, `--popover`, `--destructive`, `--input`, `--ring`, `--sidebar-*`, charts) are derived from the same variables — never re-declared with their own hex values.
+- Status tokens (`--success`, `--warning`, `--danger`, `--info`) and their `-light` / `-dark` / `-foreground` companions live in the same `:root` block.
+- Fonts, radius steps, and shadows stay in the non-inline `@theme` block (they are not theme-swapped).
+- shadcn primitives consume the semantic variables; application code prefers semantic Tailwind classes (`bg-primary`, `text-secondary`, `border-border`) over raw values. No HSL channel triplets are used — the tokens are hex CSS variables.
+- The `.dark` and `.true-dark` blocks re-declare **only raw values** (surfaces, text, brand, status). Aliases defined as `var(--x)` in `:root` — `card`, `popover`, `accent`, `destructive`, `input`, `ring`, `chart-1/2/4`, `sidebar-*` — resolve automatically, so a dark theme never duplicates a hex. Both set `color-scheme: dark`; `.true-dark` is layered after `.dark` so `dark:` utilities keep working.
 
 ### 11.3 Component-layer rules
 
@@ -647,7 +829,7 @@ The full phase-by-phase execution plan, scripts, file structure, and route map l
 
 | Implementation Phase | What ships (technical) | Design-track sign-off |
 |----------------------|------------------------|------------------------|
-| **0 — Tooling & Scaffold** | Vite + Tailwind v4 + `tsconfig` + `components.json` | Design tokens compiled into `index.css` `@theme` block; `cn()` utility canonical |
+| **0 — Tooling & Scaffold** | Vite + Tailwind v4 + `tsconfig` + `components.json` | Design tokens live in one `:root` block in `index.css`, bridged with `@theme inline`; `cn()` utility canonical |
 | **1 — Design System** | `index.css`, `lib/utils.ts`, `types/index.ts`, full shadcn primitive install | All 30+ shadcn primitives render correctly in light theme; confirms color palette in §4.1 against actual pixels |
 | **2 — State / API / Routing / i18n** | `authStore`, `uiStore`, `lib/api.ts`, `i18n.ts`, `navigation.ts`, `App.tsx` (route skeleton + guards) | Sidebar renders nav with proper permission-locked states; `dir="rtl"` swaps font cleanly; no FOUC on language change |
 | **3 — App Shell** | `AppShell.tsx`, `Sidebar.tsx`, `TopBar.tsx` | Sidebar collapse/expand polish; tooltip-on-hover-for-collapsed nav verified; breadcrumb generation correct across all routes |
@@ -685,8 +867,9 @@ These are the bar by which the new HMS frontend is judged. All metrics are measu
 | 6 | **Performance budget** | Shell + login < 150KB gzipped; per-page route < 80KB gzipped; total app < 600KB gzipped (excluding fonts) |
 | 7 | **Bilingual parity** | Every page renders correctly in both `en` (LTR) and `ar` (RTL) with no separate RTL stylesheets |
 | 8 | **Form & toast consistency** | 0 occurrences of ad-hoc `alert()`, 0 occurrences of remaining `toastr` / `sweetalert2` calls |
-| 9 | **Tailwind v4 health** | `npm run lint` passes; no `red`, `green`, `blue-600`, etc. literals in `.tsx` (only semantic tokens) |
+| 9 | **Tailwind v4 health** | `npm run lint` passes; no `red`, `green`, `blue-600`, etc. literals in `.tsx` (only semantic tokens); every color resolves through `:root` with no duplicated declarations between `:root` and `@theme` |
 | 10 | **Drop-in maintenance** | Adding a new module is a single new folder under `pages/` + a single entry in `NAV_CONFIG` + a route in `App.tsx`; no global CSS changes |
+| 11 | **Dark-mode parity** | Every token pair in §4.1.6 and §4.1.7 meets AA or better; `.dark` / `.true-dark` contain only raw-value overrides (no duplicated aliases or light hexes); charts, borders, menus, and focus rings remain distinguishable in all themes |
 
 ---
 

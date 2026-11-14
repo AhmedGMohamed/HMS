@@ -133,7 +133,7 @@ export function PrintBillConfirmDialog({
   const balanceColor =
     snapshot.balance > 0
       ? "text-destructive"
-      : "text-emerald-600 dark:text-emerald-400"
+      : "text-success"
 
   function resolveTypeLabel(kind: PrintItemRow["kind"]): string {
     if (kind === "service") return t("patients.billingPrint.typeService")
@@ -281,7 +281,7 @@ export function PrintBillConfirmDialog({
             <SummaryRow
               label={t("patients.billingPrint.paidRow")}
               value={formatCurrency(paid, language)}
-              valueClassName="text-emerald-600 dark:text-emerald-400"
+              valueClassName="text-success"
             />
             {/* Balance */}
             <SummaryRow

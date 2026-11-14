@@ -5,8 +5,8 @@
  * section headings look the same across the application.
  *
  * Matches the palette the rest of the system's PDFs use (Vault 6.9 is the
- * reference): primary `#0077B6` header bands with white text, `#0f172a`
- * body text, `#e2e8f0` hairline borders at 0.5pt and `#ffffff`/`#f8fafc`
+ * reference): primary `#075985` header bands with white text, `#0f172a`
+ * body text, `#e2e8f0` hairline borders at 0.5pt and `#ffffff`/`#f6f8fb`
  * zebra rows. Semantic accents come from the design tokens (`danger`,
  * `success`, `warning` in `index.css`).
  *
@@ -27,20 +27,20 @@ export interface PdfNode {
 }
 
 export const PDF_COLORS = {
-  primary: "#0077B6",
+  primary: "#075985",
   headerText: "#ffffff",
   text: "#0f172a",
   muted: "#475569",
   border: "#e2e8f0",
   surface: "#ffffff",
-  surfaceAlt: "#f8fafc",
+  surfaceAlt: "#f6f8fb",
   band: "#f1f5f9",
   bandStrong: "#e2e8f0",
   /**
    * Print-weight variants of the `danger` / `success` / `warning` design
-   * tokens. The UI tokens (`#EF4444` / `#10B981` / `#F59E0B`) drop to
-   * ~2:1 contrast at 8pt on white; these are the dark end of the same
-   * hues and clear 4.5:1 on paper.
+   * tokens. At 8pt on white, the light-theme UI values are already dark,
+   * but print gains from the deep end of each hue; these clear 4.5:1 on
+   * paper.
    */
   danger: "#B91C1C",
   success: "#047857",

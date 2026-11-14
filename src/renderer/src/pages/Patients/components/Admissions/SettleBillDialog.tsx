@@ -146,7 +146,7 @@ export function SettleBillDialog({
               <span className="text-muted-foreground text-xs">
                 {t("patients.billing.currentPaid")}
               </span>
-              <p className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
+              <p className="text-success font-medium tabular-nums">
                 {formatCurrency(currentPaid, language)}
               </p>
             </div>
@@ -158,7 +158,7 @@ export function SettleBillDialog({
                 className={
                   (totalAmount - currentPaid > 0
                     ? "text-destructive"
-                    : "text-emerald-600 dark:text-emerald-400") +
+                    : "text-success") +
                   " tabular-nums font-medium"
                 }
               >
@@ -215,7 +215,7 @@ export function SettleBillDialog({
                 className={
                   (newBalance > 0
                     ? "text-destructive"
-                    : "text-emerald-600 dark:text-emerald-400") +
+                    : "text-success") +
                   " tabular-nums font-medium"
                 }
               >
@@ -234,7 +234,7 @@ export function SettleBillDialog({
               <p
                 className={
                   (difference >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-success"
                     : "text-destructive") +
                   " tabular-nums font-medium"
                 }
