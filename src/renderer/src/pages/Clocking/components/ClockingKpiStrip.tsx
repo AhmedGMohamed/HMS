@@ -26,8 +26,9 @@ interface ClockingKpiStripProps {
 /**
  * Clocking KPI strip (§B2 of `phase_6.8_ux_research.md`).
  *
- * Three metrics, all derived client-side from the single clock-ins
- * payload (reverses plan A20 — see `phase_6.8_plan.md` §1.3):
+ * Three metrics, all supplied by `GET /api/clock-ins/clocked-in/stats`
+ * — a server aggregate over every open row, not a client derivation
+ * over one page of the list (the tables are paginated):
  *  - On shift now       → neutral, click resets the Active filter
  *  - Missing clock-out  → warning when > 0, click toggles the filter
  *  - Shifts over 12h    → danger, read-only (a live-decaying set is

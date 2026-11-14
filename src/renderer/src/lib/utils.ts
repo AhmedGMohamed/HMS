@@ -31,6 +31,20 @@ export function formatDateTime(date: Date, locale = "en"): string {
 }
 
 /**
+ * Local calendar day as `YYYY-MM-DD` — the wire format server date
+ * filters expect.
+ *
+ * Deliberately built from local components: `toISOString().slice(0,10)`
+ * converts to UTC first, which shifts the day for users east or west of
+ * Greenwich (and would make "from/to" disagree with the dates the user
+ * picked in a local `Calendar`).
+ */
+export function toLocalDateString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/**
  * Grouped-thousands number (e.g. 12,345). Used in tables and KPIs where
  * decimals are unnecessary.
  *
