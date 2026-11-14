@@ -25,9 +25,9 @@
  *   MISSING — keys referenced in code but absent from a locale
  *   UNUSED   — keys present in a locale but not referenced in code
  *
- * The legacy `src/app/check-i18n-keys.js` audit continues to cover the
- * vanilla HTML/TS surface (`views/js/**//*.ts`, `views/**//*.html`); this
- * script focuses on the React renderer.
+ * The React renderer is the only UI surface remaining after Phase 8;
+ * the legacy `src/app/check-i18n-keys.js` audit was retired with the
+ * vanilla views.
  */
 
 import fs from "node:fs"

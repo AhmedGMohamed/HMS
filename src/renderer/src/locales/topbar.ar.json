@@ -1,6 +1,7 @@
 {
   "topbar": {
     "search": "بحث",
+    "toggleNavigation": "تبديل القائمة",
     "toggleLanguage": "تبديل اللغة",
     "openMenu": "فتح قائمة المستخدم"
   }

@@ -132,9 +132,14 @@ export async function resolveUserNames(ids: number[]): Promise<Map<number, strin
 export function buildDoctorPayload(
   payload: Omit<CreateDoctorPayload, "basePay" | "extraPaymentType">
 ): CreateDoctorPayload {
+  const extraPaymentType =
+    payload.paymentCalculation === "fixed"
+      ? "none"
+      : payload.paymentCalculation
+
   return {
     ...payload,
     basePay: payload.dailyPay,
-    extraPaymentType: payload.paymentCalculation,
+    extraPaymentType,
   }
 }

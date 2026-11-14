@@ -80,6 +80,8 @@ describe("DrugUsageModel", () => {
 			const usageData = {
 				patient_id: insertedData.patients[0].patient_id,
 				drug_id: insertedData.drugCards[0].drug_id,
+				patient_history_id:
+					insertedData.patientHistories[0].patient_history_id,
 				shipment_id: insertedData.drugShipments[0].shipment_id,
 				quantity: 0.1, // In larger units
 				price: 100.0
@@ -102,6 +104,8 @@ describe("DrugUsageModel", () => {
 			const usageData = {
 				patient_id: insertedData.patients[0].patient_id,
 				drug_id: insertedData.drugCards[0].drug_id,
+				patient_history_id:
+					insertedData.patientHistories[0].patient_history_id,
 				shipment_id: insertedData.drugShipments[1].shipment_id, // Shipment for different drug
 				quantity: 1,
 				price: 100.0
@@ -119,6 +123,8 @@ describe("DrugUsageModel", () => {
 			const usageData = {
 				patient_id: insertedData.patients[0].patient_id,
 				drug_id: 999,
+				patient_history_id:
+					insertedData.patientHistories[0].patient_history_id,
 				shipment_id: insertedData.drugShipments[0].shipment_id,
 				quantity: 1,
 				price: 100.0
@@ -136,6 +142,8 @@ describe("DrugUsageModel", () => {
 			const usageData = {
 				patient_id: 999,
 				drug_id: insertedData.drugCards[0].drug_id,
+				patient_history_id:
+					insertedData.patientHistories[0].patient_history_id,
 				shipment_id: insertedData.drugShipments[0].shipment_id,
 				quantity: 1,
 				price: 100.0
@@ -153,6 +161,8 @@ describe("DrugUsageModel", () => {
 			const usageData = {
 				patient_id: insertedData.patients[0].patient_id,
 				drug_id: insertedData.drugCards[0].drug_id,
+				patient_history_id:
+					insertedData.patientHistories[0].patient_history_id,
 				shipment_id: insertedData.drugShipments[0].shipment_id,
 				quantity: 999999, // Very large quantity
 				price: 100.0

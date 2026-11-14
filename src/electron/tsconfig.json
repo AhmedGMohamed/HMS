@@ -26,11 +26,9 @@
 		]
 	},
 	"include": [
-		"**/*.ts",
-		"../../build/electron/views/js/bootstrap/bootstrap.bundle.min.js"
+		"**/*.ts"
 	],
 	"exclude": [
-		"../renderer",
-		"**/sweetalert2/**"
+		"../renderer"
 	]
 }

@@ -239,6 +239,26 @@
 }
 
 /* ============================================================
+   Table row entrance (design.md §10)
+   Applied with `motion-safe:` so reduced-motion users skip both
+   the animation and its staggered delay.
+   ============================================================ */
+@keyframes row-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@utility animate-row-in {
+    animation: row-in 150ms ease-out both;
+}
+
+/* ============================================================
    Reduced-motion guard (design.md §10, accessibility §8)
    Neutralizes animations/transitions for users with the OS-level
    prefers-reduced-motion preference.

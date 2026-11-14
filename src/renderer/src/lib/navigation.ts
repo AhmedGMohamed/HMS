@@ -4,10 +4,9 @@ import { isPrivilegedRole } from "@/lib/roles"
 /**
  * Sidebar navigation source of truth.
  *
- * Mirrors `src/app/controllers/Navigation.controller.ts` so the client
- * can render the same visibility-filtered tree without an extra round
- * trip to `/navigation`. Updates live alongside the server list whenever
- * a module is added or removed from routes.
+ * The React client renders the visibility-filtered tree entirely
+ * client-side; the legacy `/navigation` endpoint was removed in Phase 7.
+ * Update this list whenever a module is added or removed from routes.
  *
  * Icons are Lucide React component names — resolved at render time by
  * the Sidebar (Phase 3) via a dynamic icon-map lookup.
@@ -47,7 +46,7 @@ export const NAV_CONFIG: NavigationItem[] = [
     label: "sidebar.patients",
     icon: "Hospital",
     url: "/patients",
-    permission: "manage_patients",
+    permission: "view_patients",
   },
   {
     id: "employees",

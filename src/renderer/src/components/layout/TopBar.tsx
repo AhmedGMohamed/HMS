@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useUIStore } from "@/store/uiStore"
 import {
   SidebarTrigger,
@@ -24,6 +25,7 @@ export function TopBar() {
   const language = useUIStore((s) => s.language)
   const direction = language === "ar" ? "rtl" : "ltr"
   const { isMobile } = useSidebar()
+  const { t } = useTranslation()
 
   return (
     <header
@@ -32,7 +34,7 @@ export function TopBar() {
     >
       <SidebarTrigger
         className={isMobile ? "md:hidden" : "hidden"}
-        aria-label="Toggle navigation"
+        aria-label={t("topbar.toggleNavigation")}
       />
       <Breadcrumbs />
       <div className="ms-auto flex items-center gap-2">

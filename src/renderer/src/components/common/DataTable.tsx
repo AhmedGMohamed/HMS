@@ -244,7 +244,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label="Clear search"
+                    aria-label={t("common.clearSearch")}
                     className="absolute inset-e-1.5 top-1/2 -translate-y-1/2"
                     onClick={() => search!.onChange("")}
                   >
@@ -269,10 +269,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </CardHeader>
       ) : null}
       <CardContent className="px-4 py-0">
-        <div role="region" className="relative overflow-x-auto">
+        <div
+          role="region"
+          aria-label={ariaLabel ?? caption ?? t("common.table")}
+          className="relative overflow-x-auto"
+        >
           <Table
             aria-busy={loading || undefined}
-            aria-label={!caption ? ariaLabel : undefined}
+            aria-label={
+              !caption ? (ariaLabel ?? t("common.table")) : undefined
+            }
           >
             {caption ? (
               <caption className="sr-only">{caption}</caption>
@@ -286,7 +292,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     scope="col"
                     className="h-12 w-10 p-2 text-start font-medium text-muted-foreground"
                   >
-                    <span className="sr-only">Expand</span>
+                    <span className="sr-only">{t("common.expand")}</span>
                   </th>
                 ) : null}
                 {columns.map((column) => {
@@ -311,11 +317,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 <DataTableSkeleton
                   columns={columns}
                   density={density}
+                  showExpand={showExpand}
                 />
               ) : isEmpty ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={columns.length + (showExpand ? 1 : 0)}
                     className="h-32 p-0 align-middle"
                   >
                     <EmptyState
@@ -347,8 +354,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <Fragment key={id}>
                       <TableRow
                         data-clickable={clickable || undefined}
+                        style={{
+                          animationDelay: `${Math.min(rowIndex, 9) * 50}ms`,
+                        }}
                         className={cn(
                           "transition-colors hover:bg-primary-light/60",
+                          "motion-safe:animate-row-in",
                           clickable && "cursor-pointer",
                           // A clickable row is a control, so it must also show
                           // where the keyboard is (see `tabIndex` below).
@@ -497,15 +508,25 @@ function renderCell<T>(column: ColumnDef<T>, row: T): React.ReactNode {
 interface DataTableSkeletonProps<T> {
   columns: ColumnDef<T>[]
   density: "default" | "compact"
+  showExpand: boolean
 }
 
-function DataTableSkeleton<T>({ columns, density }: DataTableSkeletonProps<T>) {
+function DataTableSkeleton<T>({
+  columns,
+  density,
+  showExpand,
+}: DataTableSkeletonProps<T>) {
   const rowCount = 6
   const rowHeight = density === "compact" ? "h-10" : "h-12"
   return (
     <>
       {Array.from({ length: rowCount }, (_, i) => (
         <TableRow key={i} className="hover:bg-transparent">
+          {showExpand ? (
+            <TableCell className={cn("w-10 p-2 align-middle", rowHeight)}>
+              <Skeleton className="size-4" />
+            </TableCell>
+          ) : null}
           {columns.map((column) => {
             const align =
               column.align ?? (column.numeric ? "end" : "start")

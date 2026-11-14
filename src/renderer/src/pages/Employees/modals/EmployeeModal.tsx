@@ -113,7 +113,7 @@ export function EmployeeModal({
     setServiceSearch("")
     if (editing) {
       const isDoctorEdit = editing.employeeType === "doctor"
-      const base = {
+      const base: EmployeeFormValues = {
         employeeType: editing.employeeType,
         name: editing.name,
         phone: editing.phone ?? "",
