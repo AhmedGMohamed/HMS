@@ -16,7 +16,7 @@ import { LanguageToggle } from "./LanguageToggle"
  *
  * Layout:
  *   - Left: hamburger on mobile only (`md:hidden`), then `<Breadcrumbs />`.
- *   - Right cluster: `<LanguageToggle />`.
+ *   - Right cluster: search trigger and `<LanguageToggle />`.
  *
  * Per design.md §5.1 the user menu has moved out of the TopBar into
  * the sidebar footer (`<SidebarUserProfile />`). The layout is intentionally
