@@ -223,8 +223,11 @@ export function updateBill(billId: number, payload: UpdateBillPayload) {
    Lookups
    ---------------------------------------------------------------- */
 
+/** Unbounded doctor lookup — `/doctors` is paginated, patients need all. */
 export function listDoctors() {
-  return api.get<Doctor[]>(`/doctors`)
+  return api
+    .get<PaginatedResponse<Doctor>>(`/doctors`, { all: true })
+    .then((res) => res.data)
 }
 
 export function listAvailableNurses() {

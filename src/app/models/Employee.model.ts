@@ -2,17 +2,85 @@
 import { query } from "./database/connection.js";
 import { Employee, CreateEmployeeDTO } from "../utils/types/employees.js";
 
+export interface EmployeeListOptions {
+	offset?: number;
+	limit?: number;
+	type?: "all" | "doctor" | "nurse" | "other";
+	search?: string;
+	isActive?: boolean;
+	shiftType?: "morning" | "night";
+	sort?: "name" | "hireDate" | "basePay" | "shiftType";
+	dir?: "asc" | "desc";
+}
+
+const EMPLOYEE_SORT_COLUMNS = {
+	name: "name",
+	hireDate: "hire_date",
+	basePay: "base_pay",
+	shiftType: "shift_type"
+} as const;
+
+/**
+ * Shared WHERE builder for the list + count queries so the total can
+ * never drift away from the page's filters.
+ */
+function buildEmployeeWhere(options: EmployeeListOptions): {
+	where: string;
+	params: unknown[];
+} {
+	const clauses: string[] = [];
+	const params: unknown[] = [];
+
+	if (options.type && options.type !== "all") {
+		params.push(options.type);
+		clauses.push(`employee_type = $${params.length}`);
+	}
+	if (options.search) {
+		params.push(`%${options.search}%`);
+		clauses.push(`name ILIKE $${params.length}`);
+	}
+	if (options.isActive != null) {
+		params.push(options.isActive);
+		clauses.push(`is_active = $${params.length}`);
+	}
+	if (options.shiftType) {
+		params.push(options.shiftType);
+		clauses.push(`shift_type = $${params.length}`);
+	}
+
+	return {
+		where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+		params
+	};
+}
+
 export default class EmployeeModel {
-	static async getAllEmployees(type: string = "all"): Promise<Employee[]> {
-		let sql: string;
-		if (type === "all") {
-			sql = "SELECT * FROM Employee";
-			const { rows } = await query(sql);
-			return rows;
+	static async getAllEmployees(
+		options: EmployeeListOptions = {}
+	): Promise<{ rows: Employee[]; total: number }> {
+		const { where, params } = buildEmployeeWhere(options);
+		const sortColumn = EMPLOYEE_SORT_COLUMNS[options.sort ?? "name"];
+		const dir = options.dir === "desc" ? "DESC" : "ASC";
+
+		const dataParams = [...params];
+		let paginationSql = "";
+		if (options.limit != null && options.offset != null) {
+			dataParams.push(options.limit, options.offset);
+			paginationSql = ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
 		}
-		sql = "SELECT * FROM Employee WHERE employee_type = $1";
-		const { rows } = await query(sql, [type]);
-		return rows;
+
+		const sql = `SELECT * FROM Employee ${where} ORDER BY ${sortColumn} ${dir} NULLS LAST, employee_id ${dir}${paginationSql};`;
+		const countSql = `SELECT COUNT(*)::int AS total FROM Employee ${where};`;
+
+		const [dataResult, countResult] = await Promise.all([
+			query(sql, dataParams),
+			query(countSql, params)
+		]);
+
+		return {
+			rows: dataResult.rows,
+			total: Number(countResult.rows[0]?.total ?? 0)
+		};
 	}
 
 	static async getEmployeeById(

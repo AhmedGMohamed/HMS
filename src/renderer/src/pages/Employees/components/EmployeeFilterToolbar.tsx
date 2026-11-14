@@ -25,9 +25,10 @@ export interface EmployeeFilterToolbarProps {
 /**
  * Filter-chip toolbar for the staff tabs (Phase 6.7 UX package):
  * status chips + shift-type select (+ doctor-type select on the
- * Doctors tab). All client-side. Legacy always-visible date-range
- * inputs are dropped — issued-date filtering lives on the Payments
- * tab only.
+ * Doctors tab). Filters are server-side — the page turns each value
+ * into a `/api/employees` or `/api/doctors` query parameter and resets
+ * the tab's page. Legacy always-visible date-range inputs are dropped
+ * — issued-date filtering lives on the Payments tab only.
  */
 export function EmployeeFilterToolbar({
   statusFilter,

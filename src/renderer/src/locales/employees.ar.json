@@ -6,6 +6,7 @@
     "searchPlaceholder": "البحث عن الموظفين...",
     "searchDoctorsPlaceholder": "البحث عن الأطباء...",
     "searchNursesPlaceholder": "البحث عن الممرضات...",
+    "searchPaymentsPlaceholder": "البحث عن موظفين لديهم مدفوعات معلقة...",
     "employeeList": "قائمة الموظفين",
     "doctorList": "قائمة الأطباء",
     "nurseList": "قائمة الممرضات",
@@ -66,7 +67,8 @@
       "paidBy": "تم الدفع بواسطة",
       "paidOn": "تاريخ الدفع",
       "dateRange": "نطاق التاريخ",
-      "totalAmount": "المبلغ الإجمالي"
+      "totalAmount": "المبلغ الإجمالي",
+      "paymentCount": "عدد المدفوعات"
     },
     "fields": {
       "name": "الاسم",
@@ -194,7 +196,11 @@
       "paymentsPermissionRequired": "يتطلب صلاحية إدارة المدفوعات",
       "amountBreakdown": "{{base}} + {{extra}} إضافي",
       "pendingPaymentsCount": "{{count}} مدفوعات معلقة",
-      "noPendingPayments": "لا توجد مدفوعات معلقة تم إنشاؤها بواسطة النظام"
+      "noPendingPayments": "لا توجد مدفوعات معلقة تم إنشاؤها بواسطة النظام",
+      "noMatchesStaff": "لا يوجد موظفون يطابقون عوامل التصفية",
+      "noMatchesStaffDesc": "جرّب كلمة بحث مختلفة أو امسح عوامل التصفية.",
+      "noMatchingPayments": "لا توجد مدفوعات معلقة تطابق عوامل التصفية",
+      "loadingPayments": "جاري تحميل المدفوعات..."
     },
     "buttons": {
       "viewDetails": "عرض التفاصيل",
@@ -205,6 +211,7 @@
       "markAllPaid": "وضع علامة مدفوع على الكل",
       "void": "إلغاء",
       "voidAll": "إلغاء الكل",
+      "retry": "إعادة المحاولة",
       "saving": "جاري الحفظ...",
       "savingPayment": "جاري حفظ الدفعة..."
     }

@@ -56,8 +56,9 @@ export interface EmployeeDetailSheetProps {
  * Employee detail Sheet (Phase 6.7 UX package) — replaces the legacy
  * inline payment sub-rows. Right-side in LTR, left-side in RTL
  * (design.md §6.4 inline-start). Shows a profile summary plus the
- * employee's full payment history — filtered client-side from the
- * bulk payments fetch, so opening the sheet costs zero requests.
+ * employee's full payment history. The page fetches that employee's
+ * payments when the sheet opens (`useEmployeePayments`), so opening
+ * the sheet costs exactly one request.
  */
 export function EmployeeDetailSheet({
   open,

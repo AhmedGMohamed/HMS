@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CircleDollarSignIcon,
@@ -9,7 +8,11 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
-import { DataTable, type ColumnDef } from "@/components/common/DataTable"
+import {
+  DataTable,
+  type ColumnDef,
+  type DataTablePaginationSlot,
+} from "@/components/common/DataTable"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/utils"
@@ -29,14 +32,16 @@ export interface DoctorTableProps {
   loading: boolean
   canViewPayments: boolean
   isAdmin: boolean
-  search: { value: string; onChange: (value: string) => void }
+  search: { value: string; onChange: (value: string) => void; placeholder?: string }
   toolbar: React.ReactNode
+  pagination: DataTablePaginationSlot
   sort: { columnId: string; direction: "asc" | "desc" } | null
   onSortToggle: (
     id: string,
     next: { columnId: string; direction: "asc" | "desc" }
   ) => void
   emptyTitle?: string
+  emptyDescription?: string
   emptyAction?: React.ReactNode
   onView: (doctor: Doctor) => void
   onEdit: (doctor: Doctor) => void
@@ -48,6 +53,9 @@ export interface DoctorTableProps {
  * Doctors tab table (Phase 6.7): legacy columns (doctor type, hire
  * date, daily pay, per-patient pay, shift, active) with the UX
  * package applied — badges, icon-only actions, tabular money.
+ *
+ * Rows are server-filtered, sorted and paginated; `sort` /
+ * `onSortToggle` only reflect header state and trigger the next query.
  */
 export function DoctorTable({
   doctors,
@@ -56,9 +64,11 @@ export function DoctorTable({
   isAdmin,
   search,
   toolbar,
+  pagination,
   sort,
   onSortToggle,
   emptyTitle,
+  emptyDescription,
   emptyAction,
   onView,
   onEdit,
@@ -67,33 +77,6 @@ export function DoctorTable({
 }: DoctorTableProps) {
   const { t } = useTranslation()
   const locale = useEmployeeLocale()
-
-  const sorted = useMemo(() => {
-    if (!sort) return doctors
-    const direction = sort.direction === "asc" ? 1 : -1
-    return [...doctors].sort((a, b) => {
-      switch (sort.columnId) {
-        case "doctorType":
-          return a.doctorType.localeCompare(b.doctorType) * direction
-        case "hireDate":
-          return (
-            (new Date(a.hireDate).getTime() - new Date(b.hireDate).getTime()) *
-            direction
-          )
-        case "dailyPay":
-          return ((Number(a.dailyPay) || 0) - (Number(b.dailyPay) || 0)) * direction
-        case "perPatientPay":
-          return (
-            ((Number(a.perPatientPay) || 0) - (Number(b.perPatientPay) || 0)) *
-            direction
-          )
-        case "shiftType":
-          return (a.shiftType ?? "").localeCompare(b.shiftType ?? "") * direction
-        default:
-          return a.name.localeCompare(b.name) * direction
-      }
-    })
-  }, [doctors, sort])
 
   const columns: ColumnDef<Doctor>[] = [
     {
@@ -241,16 +224,18 @@ export function DoctorTable({
 
   return (
     <DataTable<Doctor>
-      data={sorted}
+      data={doctors}
       columns={columns}
       loading={loading}
-      search={{ value: search.value, onChange: search.onChange }}
+      search={search}
       toolbar={toolbar}
+      pagination={pagination}
       getRowId={(doctor) => doctor.employeeId}
       sort={sort}
       onSortToggle={onSortToggle}
       onRowClick={onView}
       emptyTitle={emptyTitle ?? t("common.noData")}
+      emptyDescription={emptyDescription}
       emptyAction={emptyAction}
       ariaLabel={t("employees.doctorList")}
     />

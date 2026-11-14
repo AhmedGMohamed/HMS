@@ -65,7 +65,8 @@ class EmployeePaymentCron {
 				"Processing daily employee payments for the past 24 hours..."
 			);
 
-			const employees = await EmployeeModel.getAllEmployees();
+			const { rows: employees } =
+				await EmployeeModel.getAllEmployees({ type: "all" });
 			const activeEmployees = employees.filter((emp) => emp.is_active);
 
 			for (const employee of activeEmployees) {

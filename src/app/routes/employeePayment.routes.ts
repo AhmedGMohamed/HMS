@@ -26,6 +26,54 @@ router.get(
 	(req, res) => EmployeePaymentController.getUnpaidSystemPayments(req, res)
 );
 
+/* Pending queue — literal segments must precede "/:id". */
+
+router.get(
+	"/pending",
+	verifyToken,
+	checkPermission("manage_payments"),
+	auditLogger,
+	(req, res) => EmployeePaymentController.getPendingPaymentGroups(req, res)
+);
+
+router.get(
+	"/pending/stats",
+	verifyToken,
+	checkPermission("manage_payments"),
+	auditLogger,
+	(req, res) => EmployeePaymentController.getPendingPaymentStats(req, res)
+);
+
+router.get(
+	"/pending/employee/:id",
+	verifyToken,
+	checkPermission("manage_payments"),
+	validateId,
+	auditLogger,
+	(req, res) =>
+		EmployeePaymentController.getPendingPaymentsForEmployee(req, res)
+);
+
+router.put(
+	"/pending/employee/:id/paid",
+	verifyToken,
+	checkPermission("manage_payments"),
+	validateId,
+	auditLogger,
+	(req, res) =>
+		EmployeePaymentController.markPendingPaymentsPaidForEmployee(req, res)
+);
+
+router.put(
+	"/pending/employee/:id/void",
+	verifyToken,
+	checkPermission("manage_payments"),
+	validateId,
+	auditLogger,
+	(req, res) =>
+		EmployeePaymentController.voidPendingPaymentsForEmployee(req, res)
+);
+
 router.get(
 	"/paid/employee/:id",
 	verifyToken,
