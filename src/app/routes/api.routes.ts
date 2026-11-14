@@ -23,7 +23,6 @@ import doctorRoutes from "./doctor.routes.js";
 import employeePaymentRoutes from "./employeePayment.routes.js";
 import employeeClockInRoutes from "./employeeClockIn.routes.js";
 import vaultRoutes from "./vault.routes.js";
-import reportRoutes from "./report.routes.js";
 import reportsRoutes from "./reports.routes.js";
 
 const router = Router();
@@ -53,12 +52,6 @@ router.use("/doctors", doctorRoutes);
 router.use("/employee-payments", employeePaymentRoutes);
 router.use("/clock-ins", employeeClockInRoutes);
 router.use("/vault", vaultRoutes);
-// Reports must be mounted before the legacy router: the two share
-// `/api/reports`, and the new paths win. Five legacy endpoints are shadowed as
-// a result (`/patients`, `/patients/formatted`, `/doctors/referred`,
-// `/doctors/attended`, `/nurses/attended`); the legacy page keeps working for
-// every other path until Phase 7 removes it.
 router.use("/reports", reportsRoutes);
-router.use("/reports", reportRoutes);
 
 export default router;
