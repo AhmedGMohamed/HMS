@@ -1,6 +1,6 @@
 # Phase 7 & 8 — Express Integration, Polish, Accessibility & Cleanup
 
-**Status:** planned  
+**Status:** complete — see `.opencode/plans/phase_7_8_implementation.md`  
 **Baseline commit:** `5f5376a`  
 **Branch:** `react-refactor`  
 **Supersedes:** Phase 7/8 sketches in `react_implementation_plan.md` (lines 1073-1131) where they conflict with the decisions below.
