@@ -36,7 +36,7 @@ export interface ServiceListParams {
 export function listServicesPage(params: ServiceListParams = {}) {
   return api.get<PaginatedResponse<Service>>("/services", {
     page: params.page ?? 1,
-    pageSize: params.pageSize ?? 25,
+    pageSize: params.pageSize ?? 10,
     search: params.search?.trim() || undefined,
     serviceType: params.serviceType || undefined,
     pricelistId: params.pricelistId === "" ? undefined : params.pricelistId,

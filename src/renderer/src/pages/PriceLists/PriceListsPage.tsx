@@ -38,7 +38,7 @@ export default function PriceListsPage() {
 
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(10)
 
   const lists = usePriceLists({ page, pageSize, search })
   const currentDefault =

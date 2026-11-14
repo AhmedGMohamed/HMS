@@ -16,7 +16,7 @@
  *   }
  *
  * Limits:
- *   - defaultPageSize: 25 (per plan §Phase 6.0 — meets the per-page budget)
+ *   - defaultPageSize: 10 (keeps a first screen dense but fully visible)
  *   - maxPageSize: 100  (hard cap; protects the database from a runaway ?pageSize=10000)
  *   - maxPage: 10000    (no one paginates that deep; sanity bound)
  */
@@ -28,7 +28,7 @@ export interface PaginationParams {
   limit: number
 }
 
-export const DEFAULT_PAGE_SIZE = 25
+export const DEFAULT_PAGE_SIZE = 10
 export const MAX_PAGE_SIZE = 100
 export const MAX_PAGE = 10000
 
@@ -60,7 +60,7 @@ function clamp(n: number, min: number, max: number): number {
  * Parse `req.query` into normalised pagination values.
  *
  * `?page=` defaults to 1; `?pageSize=` defaults to DEFAULT_PAGE_SIZE
- * (25) and is capped at MAX_PAGE_SIZE (100). Both are bounded below
+ * (10) and is capped at MAX_PAGE_SIZE (100). Both are bounded below
  * at 1.
  */
 export function parsePagination(

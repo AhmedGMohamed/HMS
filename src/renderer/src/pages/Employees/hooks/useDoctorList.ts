@@ -44,7 +44,7 @@ export function useDoctorList(
   const {
     enabled = true,
     page = 1,
-    pageSize = 25,
+    pageSize = 10,
     search = "",
     isActive,
     shiftType = "",

@@ -106,7 +106,7 @@ export interface DoctorReportTabProps {
 /** Server defaults: doctor list and patient table are both name-ascending. */
 const INITIAL_LIST_PAGING: DoctorQueryPaging = {
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   sort: { columnId: "name", direction: "asc" },
 }
 

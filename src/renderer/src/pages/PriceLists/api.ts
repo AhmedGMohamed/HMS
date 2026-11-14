@@ -29,7 +29,7 @@ export interface PriceListListParams {
 export function listPriceListsPage(params: PriceListListParams = {}) {
   return api.get<PaginatedResponse<PriceListWithStats>>("/price-lists", {
     page: params.page ?? 1,
-    pageSize: params.pageSize ?? 25,
+    pageSize: params.pageSize ?? 10,
     search: params.search?.trim() || undefined,
   })
 }

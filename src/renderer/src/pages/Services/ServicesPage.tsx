@@ -43,7 +43,7 @@ export default function ServicesPage() {
     direction: "asc" | "desc"
   } | null>(null)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(10)
 
   const services = useServices({
     page,

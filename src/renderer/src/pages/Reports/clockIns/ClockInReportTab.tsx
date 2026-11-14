@@ -88,7 +88,7 @@ export interface ClockInReportTabProps {
  */
 const INITIAL_PAGING: ClockInQueryPaging = {
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   sort: { columnId: "name", direction: "asc" },
 }
 

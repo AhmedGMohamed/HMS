@@ -76,7 +76,7 @@ const PAYMENT_TYPES: PaymentTypeFilter[] = ["all", "cash", "credit", "insurance"
 /** Default paging: name ascending, which is also the server's own default. */
 const INITIAL_PAGING: PatientQueryPaging = {
   page: 1,
-  pageSize: 25,
+  pageSize: 10,
   sort: { columnId: "name", direction: "asc" },
 }
 

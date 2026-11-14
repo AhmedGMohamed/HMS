@@ -24,7 +24,7 @@ export interface ListDataState<T> {
 export interface UseListDataOptions {
   /** Initial page index, 1-based (matches backend ?page=1). Default 1. */
   initialPage?: number
-  /** Initial page size. Default 25. */
+  /** Initial page size. Default 10. */
   initialPageSize?: number
   /** Initial search value. */
   initialSearch?: string
@@ -65,7 +65,7 @@ export interface UseListDataResult<T> extends ListDataState<T> {
 export function usePaginationState(options: UseListDataOptions = {}) {
   const {
     initialPage = 1,
-    initialPageSize = 25,
+    initialPageSize = 10,
     initialSearch = "",
     searchDebounceMs = 250,
   } = options
