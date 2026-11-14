@@ -26,10 +26,11 @@ describe("DrugCardModel", () => {
 		it("should return all drug cards", async () => {
 			const result = await drugCardModel.getAllDrugCards();
 
-			expect(Array.isArray(result)).toBeTrue();
-			expect(result.length).toBeGreaterThan(0);
-			expect(result[0].name).toBeDefined();
-			expect(result[0].unit_conversion).toBeDefined();
+			expect(Array.isArray(result.rows)).toBeTrue();
+			expect(result.rows.length).toBeGreaterThan(0);
+			expect(result.total).toBeGreaterThan(0);
+			expect(result.rows[0].name).toBeDefined();
+			expect(result.rows[0].unit_conversion).toBeDefined();
 		});
 	});
 

@@ -1,4 +1,5 @@
-import { Outlet } from "react-router-dom"
+import { Outlet, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   SidebarProvider,
   SidebarInset,
@@ -25,14 +26,32 @@ import { useUIStore } from "@/store/uiStore"
  */
 export function AppShell() {
   const language = useUIStore((s) => s.language)
+  const location = useLocation()
+  const { t } = useTranslation()
 
   return (
     <SidebarProvider defaultOpen>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t("common.skipToContent")}
+      </a>
       <SidebarShell />
       <SidebarInset>
         <TopBar />
-        <main className="flex-1 px-6 py-8 md:px-8" dir={language === "ar" ? "rtl" : "ltr"}>
-          <Outlet />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 px-6 py-8 md:px-8"
+          dir={language === "ar" ? "rtl" : "ltr"}
+        >
+          <div
+            key={location.pathname}
+            className="animate-in fade-in-0 duration-150"
+          >
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

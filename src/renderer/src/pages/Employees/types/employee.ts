@@ -18,7 +18,7 @@
 
 export type EmployeeType = "doctor" | "nurse" | "other"
 export type StaffType = Extract<EmployeeType, "nurse" | "other">
-export type ExtraPaymentType = "none" | "per_patient" | "income"
+export type ExtraPaymentType = "none" | "per_patient" | "income" | "both"
 export type PerPatientPaymentType = "fixed" | "percentage"
 export type PercentageScope = "before_deductions" | "after_deductions"
 export type ShiftType = "morning" | "night"

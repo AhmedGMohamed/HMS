@@ -5,7 +5,7 @@
  * (`C YY MM DD …`), where `C` is the century digit (`2` → 19xx, `3` → 20xx).
  *
  * Both the legacy patient report (`Report.model.calculateAgeFromNationalId`,
- * `views/js/reports/reports.ts:getBirthDateFromNationalId`) and the new
+ * legacy reports client) and the new
  * `/api/reports` patient/doctor reports need the same derivation, and the
  * old code disagreed with itself (age returned `0` for "unknown", the birth
  * date returned `"N/A"`, and neither validated the calendar). This module is

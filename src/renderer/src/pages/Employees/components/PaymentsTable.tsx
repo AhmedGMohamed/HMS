@@ -196,11 +196,7 @@ export function PaymentsTable({
 
   const dateFilterActive = dateRange.from !== "" || dateRange.to !== ""
 
-  /* Stable ids for expansion state. */
-  const rows = useMemo(
-    () => groups.map((group) => ({ ...group, key: String(group.employeeId) })),
-    [groups]
-  )
+  const rows = useMemo(() => groups, [groups])
 
   return (
     <div className="flex flex-col gap-3">
@@ -267,7 +263,10 @@ export function PaymentsTable({
         </Popover>
         <p className="text-sm text-muted-foreground">
           {t("employees.messages.pendingPaymentsCount", {
-            count: groups.reduce((sum, g) => sum + g.payments.length, 0),
+            count: groups.reduce<number>(
+              (sum, g) => sum + g.payments.length,
+              0
+            ),
           })}
         </p>
       </div>
@@ -276,7 +275,7 @@ export function PaymentsTable({
         data={rows}
         columns={columns}
         loading={loading}
-        getRowId={(row) => row.key}
+        getRowId={(row) => row.employeeId}
         expandedRowIds={expandedRowIds}
         onExpandedChange={toggleExpanded}
         isRowExpandable={() => true}

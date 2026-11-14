@@ -24,15 +24,17 @@ describe("PatientModel", () => {
 			const result = await patientModel.getAllPatients();
 
 			// Assert
-			expect(result.length).toBe(3);
-			expect(result).toContain(insertedData.patients[0]);
-			expect(result).toContain(insertedData.patients[1]);
+			expect(result.rows.length).toBe(3);
+			expect(result.total).toBe(3);
+			expect(result.rows).toContain(insertedData.patients[0]);
+			expect(result.rows).toContain(insertedData.patients[1]);
 		});
 
 		it("should return empty array when no patients exist", async () => {
 			await dbHelper.clearDatabase();
 			const result = await patientModel.getAllPatients();
-			expect(result.length).toBe(0);
+			expect(result.rows.length).toBe(0);
+			expect(result.total).toBe(0);
 		});
 	});
 
@@ -62,6 +64,7 @@ describe("PatientModel", () => {
 		it("should create a new patient with minimal data", async () => {
 			const patientData: CreatePatientDTO = {
 				name: "Test Patient",
+				national_id: "12345678901234",
 				gender: "male" as const,
 				payment_type: "cash" as const,
 				quick_check: false,
@@ -69,16 +72,18 @@ describe("PatientModel", () => {
 			};
 
 			const result = await patientModel.createPatient(patientData);
+			const patient = "patient" in result ? result.patient : result;
 
-			expect(result.name).toBe("Test Patient");
-			expect(result.gender).toBe("male");
-			expect(result.payment_type).toBe("cash");
-			expect(result.quick_check).toBe(false);
+			expect(patient.name).toBe("Test Patient");
+			expect(patient.gender).toBe("male");
+			expect(patient.payment_type).toBe("cash");
+			expect(patient.quick_check).toBe(false);
 		});
 
 		it("should create a patient with full data", async () => {
 			const patientData: CreatePatientDTO = {
 				name: "Full Data Patient",
+				national_id: "98765432109876",
 				gender: "female" as const,
 				phone: "9876543210",
 				address: "456 Test St",
@@ -95,10 +100,11 @@ describe("PatientModel", () => {
 			};
 
 			const result = await patientModel.createPatient(patientData);
+			const patient = "patient" in result ? result.patient : result;
 
-			expect(result.name).toBe("Full Data Patient");
-			expect(result.insurance_card_id).toBe("INS123");
-			expect(result.guardian_info).toEqual(patientData.guardian_info!);
+			expect(patient.name).toBe("Full Data Patient");
+			expect(patient.insurance_card_id).toBe("INS123");
+			expect(patient.guardian_info).toEqual(patientData.guardian_info!);
 		});
 	});
 

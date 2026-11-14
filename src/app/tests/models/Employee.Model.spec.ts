@@ -60,7 +60,9 @@ describe("EmployeeModel", () => {
 			is_facility_employee: true,
 			hire_date: "2023-01-01",
 			employee_type: "nurse",
-			need_clock_in: true
+			need_clock_in: true,
+			shift_start_time: new Date("2023-01-01T08:00:00"),
+			shift_end_time: new Date("2023-01-01T16:00:00")
 		};
 		const mockEmployee: Employee = { ...dto, employee_id: 2 };
 		mockPoolQuery.and.returnValue(
@@ -74,13 +76,17 @@ describe("EmployeeModel", () => {
 			undefined,
 			dto.is_facility_employee,
 			dto.hire_date,
+			true,
 			dto.employee_type,
 			undefined,
+			0.0,
 			undefined,
 			undefined,
 			undefined,
 			dto.need_clock_in,
-			undefined
+			undefined,
+			dto.shift_start_time,
+			dto.shift_end_time
 		]);
 	});
 

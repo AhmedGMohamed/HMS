@@ -315,7 +315,7 @@ export default function EmployeesPage() {
         subtitle={t("employees.subtitle")}
         eyebrow={t("sidebar.employees")}
         actions={
-          tab !== "payments" && isAdmin ? (
+          tab !== "payments" && isAdmin() ? (
             <Button onClick={openCreate}>
               <PlusIcon aria-hidden className="me-2 size-4" />
               {createLabel}

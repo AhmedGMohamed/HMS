@@ -8,8 +8,7 @@
 		"dist-electron/electron/preload.cjs",
 		"dist-electron/electron/views/**/*",
 		"dist-electron/electron/utils/**/*",
-		"src/electron/assets/**/*",
-		"src/app/assets/**/*"
+		"src/electron/assets/**/*"
 	],
 	"icon": "./build/electron/assets/desktopIcon.png",
 	"mac": {

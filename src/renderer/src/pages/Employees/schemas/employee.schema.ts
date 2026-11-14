@@ -51,7 +51,7 @@ export const employeeFormSchema = z
 
     /* Compensation — nurse/other variant. */
     basePay: optionalMoney,
-    extraPaymentType: z.enum(["none", "per_patient", "income"]),
+    extraPaymentType: z.enum(["none", "per_patient", "income", "both"]),
     extraAmount: optionalMoney,
     perPatientPaymentType: z.enum(["fixed", "percentage"]).or(z.literal("")),
     percentageScope: z
