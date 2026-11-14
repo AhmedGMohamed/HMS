@@ -43,6 +43,7 @@
       "supplies": "Medical Supplies"
     },
     "placeholders": {
+      "searchPriceLists": "Search price lists...",
       "searchServices": "Search services...",
       "searchDrugs": "Search drugs...",
       "searchSupplies": "Search supplies..."
@@ -77,6 +78,7 @@
     },
     "messages": {
       "noPriceLists": "No price lists found. Create your first price list to get started.",
+      "noMatchingPriceLists": "No price lists match your search",
       "loadError": "Failed to load price lists",
       "createSuccess": "Price list successfully created",
       "updateSuccess": "Price list successfully updated",

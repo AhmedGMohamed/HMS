@@ -13,6 +13,8 @@ interface PriceListsGridProps {
   priceLists: PriceListWithStats[]
   loading: boolean
   error: Error | null
+  /** Show the "no matches" empty state instead of the create-first one. */
+  searchActive?: boolean
   onAddPrices: (priceList: PriceListWithStats) => void
   onEdit: (priceList: PriceListWithStats) => void
   onDelete: (priceList: PriceListWithStats) => void
@@ -29,6 +31,7 @@ export function PriceListsGrid({
   priceLists,
   loading,
   error,
+  searchActive = false,
   onAddPrices,
   onEdit,
   onDelete,
@@ -62,6 +65,14 @@ export function PriceListsGrid({
   }
 
   if (priceLists.length === 0) {
+    if (searchActive) {
+      return (
+        <EmptyState
+          icon={<ListIcon aria-hidden />}
+          title={t("priceLists.messages.noMatchingPriceLists")}
+        />
+      )
+    }
     return (
       <EmptyState
         icon={<ListIcon aria-hidden />}

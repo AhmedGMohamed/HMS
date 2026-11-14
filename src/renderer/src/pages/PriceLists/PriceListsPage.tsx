@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, SearchIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
+import { DataTablePagination } from "@/components/common/DataTablePagination"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 
 import { usePriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
@@ -23,17 +25,22 @@ import type {
 import { ApiError } from "@/lib/errors"
 
 /**
- * /price-lists — Price Lists Management root page (Stage 1).
+ * /price-lists — Price Lists Management root page.
  *
- * Card grid (legacy parity) with CRUD + the default-list invariant +
- * the transactional Add Prices flow. Modal/confirm state lives at the
- * page level; the grid itself stays presentational.
+ * Server-paginated card grid (legacy parity) with CRUD + the
+ * default-list invariant + the transactional Add Prices flow. Search
+ * and pagination are server-driven; modal/confirm state lives at the
+ * page level and the grid itself stays presentational.
  */
 export default function PriceListsPage() {
   const { t } = useTranslation()
   useEnsureNamespace("priceLists")
 
-  const lists = usePriceLists()
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
+  const lists = usePriceLists({ page, pageSize, search })
   const currentDefault =
     lists.priceLists.find((pl) => pl.isDefault) ?? null
 
@@ -82,10 +89,28 @@ export default function PriceListsPage() {
         }
       />
 
+      <div className="relative max-w-sm">
+        <SearchIcon
+          aria-hidden
+          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setPage(1)
+          }}
+          placeholder={t("priceLists.placeholders.searchPriceLists")}
+          aria-label={t("priceLists.placeholders.searchPriceLists")}
+          className="ps-9"
+        />
+      </div>
+
       <PriceListsGrid
         priceLists={lists.priceLists}
         loading={lists.loading}
         error={lists.error}
+        searchActive={Boolean(search.trim())}
         onAddPrices={(pl) => {
           setAddPricesList(pl)
           setShowSkip(false)
@@ -99,6 +124,20 @@ export default function PriceListsPage() {
         onCreate={openCreate}
         onRetry={lists.refresh}
       />
+
+      {lists.total > 0 ? (
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          total={lists.total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setPage(1)
+          }}
+          pageSizes={[10, 25, 50, 100]}
+        />
+      ) : null}
 
       {/* Create / edit price list */}
       <PriceListModal
@@ -165,6 +204,11 @@ export default function PriceListsPage() {
             await deletePriceList(deletingList.pricelistId)
             toast.success(t("priceLists.messages.deleteSuccess"))
             setDeletingList(null)
+            // Deleting the last row on a trailing page would strand the
+            // user on an empty page — step back one page in that case.
+            const remaining = Math.max(0, lists.total - 1)
+            const lastPage = Math.max(1, Math.ceil(remaining / pageSize))
+            if (page > lastPage) setPage(lastPage)
             lists.refresh()
           } catch (err) {
             toast.error(

@@ -19,8 +19,26 @@ import type { Service } from "@/pages/_shared/services/types"
  * `types/priceList.ts` for nullability quirks per endpoint.
  */
 
-export function listPriceLists() {
-  return api.get<PriceListWithStats[]>("/price-lists")
+export interface PriceListListParams {
+  page?: number
+  pageSize?: number
+  search?: string
+}
+
+/** Paginated `/api/price-lists` list (shared pagination envelope). */
+export function listPriceListsPage(params: PriceListListParams = {}) {
+  return api.get<PaginatedResponse<PriceListWithStats>>("/price-lists", {
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 25,
+    search: params.search?.trim() || undefined,
+  })
+}
+
+/** Unbounded lookup variant for selects and badge name resolution. */
+export function listAllPriceLists() {
+  return api
+    .get<PaginatedResponse<PriceListWithStats>>("/price-lists", { all: true })
+    .then((res) => res.data)
 }
 
 export function createPriceList(payload: CreatePriceListPayload) {

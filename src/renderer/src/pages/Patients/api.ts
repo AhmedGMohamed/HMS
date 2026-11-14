@@ -245,7 +245,8 @@ export async function listInsuranceCompanies() {
 
 export function listPriceLists() {
   return api.get<PriceList[] | PaginatedResponse<PriceList>>(
-    "/price-lists"
+    "/price-lists",
+    { all: true }
   ).then((res) => parseLegacyList<PriceList>(res))
 }
 

@@ -34,7 +34,7 @@ import {
 
 import { ApiError } from "@/lib/errors"
 import { createCompany, updateCompany } from "@/pages/Insurance/api"
-import { listPriceLists } from "@/pages/PriceLists/api"
+import { listAllPriceLists } from "@/pages/PriceLists/api"
 import {
   companySchema,
   type CompanyValues,
@@ -103,7 +103,7 @@ export function CompanyModal({
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    listPriceLists()
+    listAllPriceLists()
       .then((rows) => {
         if (!cancelled) setPriceLists(rows)
       })
