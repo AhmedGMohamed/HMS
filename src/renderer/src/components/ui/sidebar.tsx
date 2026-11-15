@@ -29,6 +29,30 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+/**
+ * Read the `sidebar_state` cookie written by `setOpen`. This lets the
+ * collapsed/expanded preference survive a full reload, not just SPA
+ * navigation. Falls back to `defaultOpen` when the cookie is absent or
+ * malformed.
+ */
+function getStoredSidebarState(fallback: boolean): boolean {
+  if (typeof document === "undefined") {
+    return fallback
+  }
+
+  const prefix = `${SIDEBAR_COOKIE_NAME}=`
+  const entry = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(prefix))
+
+  if (!entry) {
+    return fallback
+  }
+
+  const value = entry.slice(prefix.length)
+  return value === "true" ? true : value === "false" ? false : fallback
+}
+
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
   open: boolean
@@ -68,7 +92,11 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  // When uncontrolled, hydrate from the cookie written by `setOpen` so the
+  // preference survives reloads.
+  const [_open, _setOpen] = React.useState(() =>
+    getStoredSidebarState(defaultOpen)
+  )
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
