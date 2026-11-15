@@ -5,7 +5,7 @@ import { PencilIcon, Trash2Icon, UserRoundIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatNumber, formatCurrency, resolveLocale } from "@/lib/utils"
+import { formatNumber, formatCurrency, formatDate, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 import type { MedicalSupplyShipment } from "@/pages/Supplies/types/supply"
 
@@ -50,7 +50,9 @@ export function SupplyShipmentRow({
       </span>
 
       {shipment.expiryDate ? (
-        <Badge variant="outline">{shipment.expiryDate}</Badge>
+        <Badge variant="outline">
+          {formatDate(new Date(shipment.expiryDate), language)}
+        </Badge>
       ) : (
         <span className="text-sm text-muted-foreground">—</span>
       )}

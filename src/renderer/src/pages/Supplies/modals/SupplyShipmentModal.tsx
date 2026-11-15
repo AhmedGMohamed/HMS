@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Badge } from "@/components/ui/badge"
@@ -108,6 +108,8 @@ export function SupplyShipmentModal({
   })
 
   const [submitting, setSubmitting] = useState(false)
+  /** Inline matrix-level error (payload `prices` issues have no RHF field). */
+  const [matrixError, setMatrixError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -146,7 +148,45 @@ export function SupplyShipmentModal({
     [priceLists]
   )
 
+  const errors = form.formState.errors
+
+  /**
+   * Surface the first payload issue inline and put the caret on the
+   * offending control. The schema stays the single source of truth.
+   */
+  function showFirstIssue(issue: { path: PropertyKey[]; message?: string }) {
+    const [head, index] = issue.path
+    const message = issue.message
+    if (head === "warehouseId") {
+      form.setError("warehouseId", { type: "manual", message })
+      form.setFocus("warehouseId")
+      return
+    }
+    if (head === "quantity") {
+      form.setError("quantity", { type: "manual", message })
+      form.setFocus("quantity", { shouldSelect: true })
+      return
+    }
+    if (head === "buyPrice") {
+      form.setError("buyPrice", { type: "manual", message })
+      form.setFocus("buyPrice", { shouldSelect: true })
+      return
+    }
+    if (head === "expiryDate") {
+      form.setError("expiryDate", { type: "manual", message })
+      form.setFocus("expiryDate")
+      return
+    }
+    setMatrixError(message ?? null)
+    const row = typeof index === "number" ? fields[index] : undefined
+    const target = `ssh-price-${row?.pricelistId ?? fields[0]?.pricelistId ?? 0}`
+    document.getElementById(target)?.focus()
+  }
+
   async function handleSubmit(values: ShipmentFormValues) {
+    // Only priced rows are sent: the matrix seeds every list with 0.
+    // The whole matrix is validated so an entirely empty one fails
+    // with `defaultPriceRequired` instead of an empty payload.
     const payload: CreateSupplyShipmentPayload = {
       supplyId: supply.supplyId,
       warehouseId: values.warehouseId,
@@ -155,34 +195,28 @@ export function SupplyShipmentModal({
       expiryDate: values.expiryDate ? values.expiryDate : null,
       // Forward the full price object (including prepayment fields)
       // so the backend can persist any prepayment the user enabled.
-      // The legacy controller accepts the trimmed `{ pricelistId,
-      // price }` shape today; sending the full shape is forward-
-      // compatible with the backend DTO.
-      prices: values.prices.map((p) => ({
-        pricelistId: p.pricelistId,
-        price: p.price,
-        requiresPrepayment: p.requiresPrepayment,
-        prepaymentType: p.prepaymentType,
-        prepaymentAmount: p.prepaymentAmount,
-      })),
+      prices: values.prices
+        .filter((p) => p.price > 0)
+        .map((p) => ({
+          pricelistId: p.pricelistId,
+          price: p.price,
+          requiresPrepayment: p.requiresPrepayment,
+          prepaymentType: p.prepaymentType,
+          prepaymentAmount: p.prepaymentAmount,
+        })),
     }
 
+    form.clearErrors()
+    setMatrixError(null)
     const parsed = supplyShipmentSchema.safeParse({
-      warehouseId: payload.warehouseId,
-      quantity: payload.quantity,
-      buyPrice: payload.buyPrice,
-      expiryDate: payload.expiryDate ?? null,
-      prices: values.prices.map((p) => ({
-        pricelistId: p.pricelistId,
-        price: p.price,
-        requiresPrepayment: p.requiresPrepayment,
-        prepaymentType: p.prepaymentType,
-        prepaymentAmount: p.prepaymentAmount,
-      })),
+      warehouseId: values.warehouseId,
+      quantity: values.quantity,
+      buyPrice: values.buyPrice,
+      expiryDate: payload.expiryDate,
+      prices: values.prices,
     })
     if (!parsed.success) {
-      const first = parsed.error.issues[0]
-      toast.error(t(first?.message ?? "medicalSupplies.validation.invalidPrice"))
+      showFirstIssue(parsed.error.issues[0]!)
       return
     }
 
@@ -218,13 +252,18 @@ export function SupplyShipmentModal({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="flex flex-col gap-6"
         >
-          <Field>
+          <Field invalid={!!errors.warehouseId}>
             <FieldLabel htmlFor="ssh-warehouse">
               {t("medicalSupplies.fields.warehouse")}
               <span className="text-danger">*</span>
             </FieldLabel>
             <NativeSelect
               id="ssh-warehouse"
+              aria-required
+              aria-invalid={errors.warehouseId ? true : undefined}
+              aria-describedby={
+                errors.warehouseId ? "ssh-warehouse-error" : undefined
+              }
               {...form.register("warehouseId", { valueAsNumber: true })}
             >
               {warehouses.length === 0 ? (
@@ -239,9 +278,14 @@ export function SupplyShipmentModal({
                 ))
               )}
             </NativeSelect>
+            <FieldError id="ssh-warehouse-error">
+              {errors.warehouseId?.message
+                ? t(errors.warehouseId.message)
+                : undefined}
+            </FieldError>
           </Field>
 
-          <Field>
+          <Field invalid={!!errors.quantity}>
             <FieldLabel htmlFor="ssh-quantity">
               {t("medicalSupplies.fields.quantity")}
               <span className="text-danger">*</span>
@@ -249,14 +293,25 @@ export function SupplyShipmentModal({
             <Input
               id="ssh-quantity"
               type="number"
+              inputMode="numeric"
               min={1}
               step={1}
+              aria-required
+              aria-invalid={errors.quantity ? true : undefined}
+              aria-describedby={
+                errors.quantity ? "ssh-quantity-error" : undefined
+              }
               {...form.register("quantity", { valueAsNumber: true })}
             />
+            <FieldError id="ssh-quantity-error">
+              {errors.quantity?.message
+                ? t(errors.quantity.message)
+                : undefined}
+            </FieldError>
           </Field>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field>
+            <Field invalid={!!errors.buyPrice}>
               <FieldLabel htmlFor="ssh-buyPrice">
                 {t("medicalSupplies.fields.buyPrice")}
                 <span className="text-danger">*</span>
@@ -264,12 +319,23 @@ export function SupplyShipmentModal({
               <Input
                 id="ssh-buyPrice"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min={0.01}
+                aria-required
+                aria-invalid={errors.buyPrice ? true : undefined}
+                aria-describedby={
+                  errors.buyPrice ? "ssh-buyPrice-error" : undefined
+                }
                 {...form.register("buyPrice", { valueAsNumber: true })}
               />
+              <FieldError id="ssh-buyPrice-error">
+                {errors.buyPrice?.message
+                  ? t(errors.buyPrice.message)
+                  : undefined}
+              </FieldError>
             </Field>
-            <Field>
+            <Field invalid={!!errors.expiryDate}>
               <FieldLabel htmlFor="ssh-expiry">
                 {t("medicalSupplies.fields.expiryDate")}
                 <span className="ms-1 text-xs text-muted-foreground">
@@ -280,16 +346,25 @@ export function SupplyShipmentModal({
                 id="ssh-expiry"
                 type="date"
                 min={todayIso()}
+                aria-invalid={errors.expiryDate ? true : undefined}
+                aria-describedby={
+                  errors.expiryDate ? "ssh-expiry-error" : undefined
+                }
                 {...form.register("expiryDate")}
               />
+              <FieldError id="ssh-expiry-error">
+                {errors.expiryDate?.message
+                  ? t(errors.expiryDate.message)
+                  : undefined}
+              </FieldError>
             </Field>
           </div>
 
           {/* Price list matrix */}
           <div>
-            <h6 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
+            <h3 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
               {t("medicalSupplies.sections.sellingPrices")}
-            </h6>
+            </h3>
             <div className="mt-3 flex flex-col gap-3">
               {fields.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -322,11 +397,16 @@ export function SupplyShipmentModal({
                       </div>
                       <div className="mt-2 flex flex-wrap items-end gap-3">
                         <Field className="flex-1">
-                          <FieldLabel className="text-xs">
+                          <FieldLabel
+                            htmlFor={`ssh-price-${field.pricelistId}`}
+                            className="text-xs"
+                          >
                             {t("medicalSupplies.fields.unitPrice")}
                           </FieldLabel>
                           <Input
+                            id={`ssh-price-${field.pricelistId}`}
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             min={0}
                             value={field.price}
@@ -345,6 +425,10 @@ export function SupplyShipmentModal({
               )}
             </div>
           </div>
+
+          <FieldError id="ssh-prices-error">
+            {matrixError ? t(matrixError) : undefined}
+          </FieldError>
 
           <DialogFooter>
             <Button

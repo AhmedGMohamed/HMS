@@ -40,8 +40,9 @@ interface UsageHistoryPanelProps {
  *
  * Composition: 3 summary cards on top, then a filter bar (date range,
  * patient search, status chip group), then a paginated DataTable of
- * audit rows. Filters are mirrored on `SupplyUsageFilters` so the
- * table and the summary always reflect the same scope.
+ * audit rows. Filters scope the **table**; the summary cards are a
+ * global all-time aggregate because the summary endpoint accepts no
+ * filters (see `useSupplyUsageHistory`).
  */
 export function UsageHistoryPanel({
   rows,
@@ -87,14 +88,11 @@ export function UsageHistoryPanel({
     setFilters({})
   }
 
-  // The backend now supports the `search` query parameter as a
+  // The backend supports the `search` query parameter as a
   // substring match on `Patient.name` (see `phase_6.5_backend_plan.md`
   // §5.1 + the `MedicalSupplyUsageFilters.search` field). The
   // previous client-side fallback was removed because it silently
   // dropped matches outside the first 25-row page.
-  const filtered = useMemo<MedicalSupplyUsageRow[]>(() => {
-    return rows
-  }, [rows])
 
   const columns = useMemo<ColumnDef<MedicalSupplyUsageRow>[]>(
     () => [
@@ -182,12 +180,12 @@ export function UsageHistoryPanel({
   )
 
   const sorted = useMemo(() => {
-    if (!sort) return filtered
+    if (!sort) return rows
     const col = columns.find((c) => c.id === sort.columnId)
-    if (!col?.sortKey) return filtered
+    if (!col?.sortKey) return rows
     const k = col.sortKey
     const direction = sort.direction === "asc" ? 1 : -1
-    return [...filtered].sort((a, b) => {
+    return [...rows].sort((a, b) => {
       const av = k(a)
       const bv = k(b)
       if (typeof av === "number" && typeof bv === "number") {
@@ -195,7 +193,7 @@ export function UsageHistoryPanel({
       }
       return String(av).localeCompare(String(bv)) * direction
     })
-  }, [filtered, sort, columns])
+  }, [rows, sort, columns])
 
   return (
     <div className="flex flex-col gap-6">
@@ -209,27 +207,38 @@ export function UsageHistoryPanel({
         toolbar={
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="usage-start-date"
+                className="text-xs text-muted-foreground"
+              >
                 {t("common.startDate")}
               </label>
               <Input
+                id="usage-start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="usage-end-date"
+                className="text-xs text-muted-foreground"
+              >
                 {t("common.endDate")}
               </label>
               <Input
+                id="usage-end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="usage-patient"
+                className="text-xs text-muted-foreground"
+              >
                 {t("medicalSupplies.usage.patient")}
               </label>
               <div className="relative">
@@ -238,6 +247,7 @@ export function UsageHistoryPanel({
                   className="pointer-events-none absolute top-1/2 inset-s-2.5 size-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
+                  id="usage-patient"
                   type="search"
                   value={patient}
                   onChange={(e) => setPatient(e.target.value)}
@@ -250,13 +260,18 @@ export function UsageHistoryPanel({
               <span className="text-xs text-muted-foreground">
                 {t("medicalSupplies.usage.statusFilter")}
               </span>
-              <div className="flex flex-wrap items-center gap-2">
+              <div
+                role="group"
+                aria-label={t("medicalSupplies.usage.statusFilter")}
+                className="flex flex-wrap items-center gap-2"
+              >
                 {(["all", "active", "completed"] as StatusFilter[]).map((s) => (
                   <Button
                     key={s}
                     type="button"
                     variant="outline"
                     size="sm"
+                    aria-pressed={status === s}
                     onClick={() => setStatus(s)}
                     className={cn(
                       status === s && "border-primary bg-primary-light text-primary"
