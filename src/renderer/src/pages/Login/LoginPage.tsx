@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ComponentProps } from "react"
 import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { EyeIcon, EyeOffIcon, Loader2Icon, AlertTriangleIcon } from "lucide-react"
@@ -12,6 +12,7 @@ import {
   Field,
   FieldError,
   FieldLabel,
+  useFieldControlProps,
 } from "@/components/ui/field"
 import { HmsLogo } from "@/components/icons/HmsLogo"
 import { LanguageToggle } from "@/components/layout/LanguageToggle"
@@ -19,6 +20,21 @@ import { useLogin } from "@/hooks/useLogin"
 
 interface LocationState {
   from?: string
+}
+
+/**
+ * Text control that reads the enclosing `Field`'s minted ids.
+ *
+ * The hook must run under `Field` (it reads that context), so it cannot be
+ * called in `LoginPage` itself. `invalid` is passed only while the sibling
+ * `FieldError` renders, so `aria-describedby` never points at a missing node.
+ */
+function LoginInput({
+  invalid,
+  ...props
+}: ComponentProps<typeof Input> & { invalid: boolean }) {
+  const controlProps = useFieldControlProps({ invalid, required: true })
+  return <Input {...controlProps} required {...props} />
 }
 
 /**
@@ -75,17 +91,17 @@ export default function LoginPage() {
           className="flex flex-col gap-3 mt-4"
           aria-disabled={loading || lockedUntilMs !== null}
         >
-          <Field>
+          <Field invalid={Boolean(form.formState.errors.username)}>
             <FieldLabel htmlFor="login-username">
               {t("login.username")}
               <span aria-hidden className="ms-0.5 text-danger">*</span>
             </FieldLabel>
-            <Input
+            <LoginInput
               id="login-username"
               type="text"
               autoComplete="username"
               autoFocus
-              aria-invalid={Boolean(form.formState.errors.username)}
+              invalid={Boolean(form.formState.errors.username)}
               {...form.register("username")}
             />
             <FieldError
@@ -97,17 +113,17 @@ export default function LoginPage() {
             />
           </Field>
 
-          <Field>
+          <Field invalid={Boolean(form.formState.errors.password)}>
             <FieldLabel htmlFor="login-password">
               {t("login.password")}
               <span aria-hidden className="ms-0.5 text-danger">*</span>
             </FieldLabel>
             <div className="relative">
-              <Input
+              <LoginInput
                 id="login-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                aria-invalid={Boolean(form.formState.errors.password)}
+                invalid={Boolean(form.formState.errors.password)}
                 {...form.register("password")}
                 className="pe-9"
               />
