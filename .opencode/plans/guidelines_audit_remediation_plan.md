@@ -81,6 +81,7 @@
 
 Format: `fix(<scope>): <summary>` — imperative, ≤ 72 chars, one concern per commit.
 
+- **Commit bodies:** subject + short body (≤72-char subject; 1–2 sentence or 2–4 bullet body describing what/why). Applies to all `fix`/`chore`/`docs` commits going forward, including Phase 2 slices and ledger commits.
 - Shared primitives: scope is the **component**, not the page:
   `fix(ui-field): auto-associate labels and wire aria-describedby`,
   `fix(stat-card): move focus ring to the interactive wrapper`,
@@ -989,14 +990,17 @@ A package is **done** only when all of the following hold:
 | S06 | ui-alert | `src/renderer/src/components/ui/alert.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | `live?: "assertive" \| "polite" \| "off"` (default `"assertive"`): assertive → `role="alert"` + `aria-live="assertive"` (unchanged semantics), polite → `role="status"` + `aria-live="polite"`, off → neither; caller-supplied `role`/`aria-live` still override; `live` never reaches the DOM. |
 | S07 | ui-native-select | `src/renderer/src/components/ui/native-select.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass | Closed `<select>`: `bg-transparent` → `bg-background` + `text-foreground`; `dark:bg-input/30` / hover / focus ring / disabled / aria-invalid tokens retained (matches `button.tsx` outline convention). **Manual Windows dark-mode check deferred.** |
 | S08 | stat-card | `src/renderer/src/components/common/StatCard.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | `focus-visible:*` removed from the inner `Card`; ring moved to the `Link`/`button` wrappers (layout classes kept); `aria-label` composed only for non-empty **string** values, omitted for numbers/blank, new `ariaLabel?` override wins. **Manual Tab-ring AT pass deferred.** |
-| S09 | page-header | `components/common/PageHeader.tsx` | | |
-| S10 | empty-state | `components/common/EmptyState.tsx` | | |
-| S11 | editorial-kpi-card | `components/common/EditorialKpiCard.tsx` | | |
-| S12 | data-table-pagination | `components/common/DataTablePagination.tsx` | | |
-| S13 | confirm-dialog | `components/common/ConfirmDialog.tsx` | | |
-| S14 | data-table | `components/common/DataTable.tsx` | | |
-| S15 | data-table | `components/common/DataTable.tsx` (+ locale) | | |
-| S16 | charts | `components/charts/*` | | |
+| S09 | page-header | `src/renderer/src/components/common/PageHeader.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass | Adds `text-balance` to the `<h1>`. **Visual check (Reports/Insurance, en/ar, RTL) deferred.** |
+| S10 | empty-state | `src/renderer/src/components/common/EmptyState.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | Blanket `role="region"` replaced by `live?: "status" \| "alert" \| "off"` (default `"status"` → `role="status"` + `aria-live="polite"`, named from `title`); `"alert"` → `role="alert"` + assertive; `"off"` → no role/live/label. No unnamed landmark remains. **AT spot check deferred.** |
+| S11 | editorial-kpi-card | `src/renderer/src/components/common/EditorialKpiCard.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass | Hairline rule: `transition-all` → explicit property list; height (`h-px` → `h-0.5`) now snaps instead of animating layout. **Visual check deferred.** |
+| S12-prep | ui-pagination | `src/renderer/src/components/ui/pagination.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | Plan-sanctioned separate component commit: S12's `asChild` assumption was broken (PaginationLink hardcoded `<a>`, props had no `asChild`/`disabled`). Adds optional `asChild`/`disabled`, rendering a native `<button type="button">`; default anchor path unchanged. |
+| S12 | data-table-pagination | `src/renderer/src/components/common/DataTablePagination.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green (en, page 1 + 3) | All pager actions are buttons via `asChild` (no `href="#"`, no `preventDefault`); boundary prev/next use real `disabled` instead of `aria-disabled`; `aria-current="page"` kept; previous/next text **and** aria-labels localized from `common.previous`/`common.next`; page links get `"${t("common.page")} N"` labels. Active page stays enabled + `aria-current` (see deviations). **Keyboard walk deferred.** |
+| S13 | confirm-dialog | `src/renderer/src/components/common/ConfirmDialog.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · 4/4 temp Vitest DOM checks (deleted before commit) | `onConfirm` may return `false` → keep open, no error; success → dialog closes itself; throw → logged once, no rethrow/unhandled rejection. Contract documented on the prop; no call sites changed. **Forced-reject manual check (devtools offline) deferred.** |
+| S14 | data-table | `src/renderer/src/components/common/DataTable.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | Expanded row no longer blanket `aria-hidden`: toggle has `aria-expanded` + `aria-controls`, content wrapped in `role="region"` named via new `expandedLabel?`, and `expandedAriaHidden?` (default `false`) opts decorative expansions back in. **Keyboard walk per consumer (Patients/Drugs/Supplies/Employees/Insurance) deferred.** |
+| S15a | data-table | `src/renderer/src/components/common/DataTable.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green (5/8/3/100/undefined pageSize) | `memo(DataTableInner) as typeof DataTableInner` keeps the generic named export; skeleton takes `pageSize` → `min(max(pageSize ?? 10, 5), 8)` rows; `sortKey` documented as **not** consumed by the table (call sites pass it without `onSortToggle`, so consuming = behaviour-adding → Backlog). |
+| S15b | data-table | `src/renderer/src/components/common/DataTable.tsx`, `src/renderer/src/locales/common.{en,ar}.json` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · `check-i18n` exit 0, MISSING 26 unchanged · SSR probe green | No-op `noData` ternary collapsed: filtered → `common.noResults` + `common.noResultsHint`, unfiltered → `common.noData` with no description; patients-specific default removed; `emptyTitle`/`emptyDescription` overrides still win. New flat keys added to **both** locales. **Visual loading/empty check deferred.** |
+| S16a | charts | `src/renderer/src/components/charts/chartAnimation.ts` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · live jsdom probe green | `useChartAnimation()` now ANDs the snapshot context with `(prefers-reduced-motion: reduce)` read via `useSyncExternalStore` (cached `MediaQueryList`, SSR/jsdom-safe → animated). OS toggle flips charts without reload; listener unsubscribes on unmount. **Electron OS reduce-motion check deferred.** |
+| S16b | charts | `src/renderer/src/components/charts/index.ts` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass | All 15 barrel import sites are pages, so no re-export is removable here without page edits: the barrel now documents that it pulls `recharts` into the importing chunk and that route code should import chart modules directly / lazily. No export changes. |
 | P2-01 | patients | | | |
 | P2-02 | patient-detail | | | |
 | P2-03 | drugs | | | |
@@ -1055,6 +1059,24 @@ All six slices: `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0; `npm ru
 | S07 | exit 0 | One-line class change: `bg-transparent` → `bg-background` + `text-foreground`; focus-visible ring, disabled and `aria-invalid` tokens untouched. **Deferred:** Electron/Windows dark-mode visual check. |
 | S08 | exit 0 | SSR render: `Link` wrapper carries `focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2` and `aria-label="Active patients: 24"`; inner `Card` has no `focus-visible:*` and keeps `cursor-pointer hover:shadow-md`; `value={12500}` and `value="  "` omit `aria-label`; `ariaLabel` override wins; `button` wrapper keeps `type="button"` + `block w-full rounded-lg text-left`; inert card renders a bare `div` with no `aria-label`. **Deferred:** keyboard Tab-ring walk + AT pass on Dashboard. |
 
+### Slice verification log (Phase 1, S09–S16)
+
+All slices: `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0; `npm run test:renderer` `Test Files 15 passed (15)` / `Tests 135 passed (135)` after every commit. Phase-level after S16b: `npm run lint` = `✖ 534 problems (495 errors, 39 warnings)` — **identical to baseline**; `npm run check-i18n` exit 0, MISSING 26 (unchanged), UNUSED 1155 (unchanged), used keys 1710 → 1712. Manual keyboard/AT/theme checks **deferred** (not executed in this dispatch).
+
+| Slice | Scoped eslint | Extra runtime/DOM evidence |
+| --- | --- | --- |
+| S09 | exit 0 | One class added to the `<h1>`; `text-balance` maps to `text-wrap: balance` in Tailwind v4. **Deferred:** visual check on Reports/Insurance, both locales, RTL. |
+| S10 | exit 0 | SSR render: default `<Empty role="status" aria-live="polite" aria-label="No patients">`; `live="alert"` → `role="alert" aria-live="assertive"`; `live="off"` → no role/live/label; **no `role="region"`** in any case; classes and `data-slot="empty"` preserved; title text still rendered. **Deferred:** AT spot check on an empty table. |
+| S11 | exit 0 | Class-list swap only; the active hairline no longer animates height. **Deferred:** visual check on Reports KPI strips. |
+| S12-prep | exit 0 | SSR render: default path still yields `<a href="/x" data-slot="pagination-link">`; `asChild` yields three `<button type="button">`, no anchors, exactly one `disabled` (the previous boundary), `aria-current="page"` preserved, no `href`, `data-slot` kept, localized `aria-label` overrides the hardcoded English default. |
+| S12 | exit 0 | Full-component SSR render (en i18n): 5 buttons, **no anchors, no `href`**, all `type="button"`; page 1 → Previous disabled / Next enabled; page 3 → Next disabled / Previous enabled; `aria-label="Page N"` on page links with `aria-current="page"` on the active one; only one disabled control per boundary; page-size select + "1 of 3" footer unchanged; no `aria-disabled` anywhere. **Deferred:** keyboard walk of Patients/Drugs pagination + URL-unchanged check. |
+| S13 | exit 0 | 4/4 temporary Vitest DOM checks (file deleted before commit, never staged): resolves → `onOpenChange(false)` called; async resolve → same; returns `false` → stays open with zero `[ConfirmDialog]` logs; throws → stays open, exactly one `[ConfirmDialog] onConfirm rejected` log, no unhandled rejection. **Deferred:** forced-reject manual check via devtools offline. |
+| S14 | exit 0 | SSR render: toggle `aria-expanded="true"` + `aria-controls="_R_0_-expanded-1"`; region `<div id="_R_0_-expanded-1" role="region" aria-label="Shipments for Panadol">` (id matches controls, named from `expandedLabel`); expanded row has **no** `aria-hidden`; inner button rendered; collapsed → `aria-expanded="false"` and no region node; `expandedAriaHidden` restores `aria-hidden="true"` while keeping the region. **Deferred:** keyboard/AT walk of each expandable consumer. |
+| S15a | exit 0 | SSR render row counts: pageSize 10 → 8, 5 → 5, 3 → clamped 5, 100 → clamped 8, no pagination → 8; memo-wrapped `DataTable` still renders header + rows. **Deferred:** visual loading-state check. |
+| S15b | exit 0 | SSR render: unfiltered empty → "No data available", no description; filtered empty → "No results found" + "Try adjusting your search or filters."; old patients copy ("Try a different search term.") absent; explicit `emptyTitle`/`emptyDescription` win; empty surface announced as `role="status"`. **Deferred:** visual empty-state check. |
+| S16a | exit 0 | jsdom + React client probe: animation `true` by default; flips to `false` when the mocked OS query changes to reduce **without remount**; flips back; snapshot context still forces `false`; listener count returns to 0 on unmount. **Deferred:** Electron check with OS "reduce motion" on/off. |
+| S16b | exit 0 | Grep: all 15 `@/components/charts` import sites are `pages/**` chart consumers; `ChartShell` (recharts-free) is imported directly by the chart wrapper modules and by `chartSrTable.spec.tsx`, not via the barrel. Nothing removable without page edits → documentation only. |
+
 ### Adoption notes for Phase 2 (what page packages must now pass)
 
 | Primitive | Pages must |
@@ -1066,6 +1088,13 @@ All six slices: `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0; `npm ru
 | `ui/alert` (S06) | Pass `live="polite"` for stock/below-price warnings, `live="off"` for static informational alerts. Default stays assertive. |
 | `ui/native-select` (S07) | No call-site change needed; closed control now paints `bg-background`/`text-foreground`. |
 | `common/StatCard` (S08) | No call-site change needed; pass `ariaLabel` only when the visible label + value are not a sufficient name (e.g. translated/abbreviated values). |
+| `common/PageHeader` (S09) | No call-site change; long titles now balance across lines. |
+| `common/EmptyState` (S10) | Pass `live="alert"` for load-failure surfaces and `live="off"` for decorative in-card empties; default `"status"` announces once on mount, so static placeholders should opt out. |
+| `common/EditorialKpiCard` (S11) | No call-site change. |
+| `common/DataTablePagination` / `ui/pagination` (S12) | No prop changes. Tables already pass `pagination`; pager controls are buttons now, so keyboard walks replace anchor expectations. `PaginationLink asChild` is available for future button-style pagers. |
+| `common/ConfirmDialog` (S13) | Stop `throw`-ing for expected failures: return `false` (keeps the dialog open, logs nothing) and keep your own toast. Throwing is now swallowed-and-logged. The dialog closes itself on success, so a redundant `setOpen(false)` is harmless. |
+| `common/DataTable` (S14/S15) | Expansion consumers should pass `expandedLabel={(row) => ...}` for a meaningful region name, and must drop row-summary duplication from expanded content (it is now audible). Loading skeletons auto-size from `pagination.pageSize`; empty tables use neutral copy unless `emptyTitle`/`emptyDescription` are passed. `sortKey` remains caller-owned. |
+| `components/charts` (S16) | Import chart components directly (`@/components/charts/GroupedBarChart`) or lazily; the barrel pulls `recharts` into the importing chunk. Animation now honours the OS reduced-motion setting — do not hardcode `isAnimationActive`. |
 
 ## 12. Risks and rollback considerations
 
