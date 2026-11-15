@@ -28,20 +28,28 @@ export function useVaultReport(): UseVaultReportResult {
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<unknown>(null)
 	const lastRequestRef = useRef<{ type: ReportType; range: DateRange } | null>(null)
+	const requestTokenRef = useRef(0)
 
 	const runReport = useCallback(async (nextType: ReportType, nextRange: DateRange) => {
+		const token = requestTokenRef.current + 1
+		requestTokenRef.current = token
 		setType(nextType)
 		setRange(nextRange)
 		setLoading(true)
 		setError(null)
+		// Clears the previous report immediately so its rows never render under
+		// the next report's title while the new fetch is in flight.
+		setData([])
 		try {
 			const rows = await getVaultReport(nextType, nextRange)
+			if (requestTokenRef.current !== token) return
 			setData(rows as ReportRow[])
 		} catch (err) {
+			if (requestTokenRef.current !== token) return
 			setError(err)
 			setData([])
 		} finally {
-			setLoading(false)
+			if (requestTokenRef.current === token) setLoading(false)
 		}
 	}, [])
 
@@ -59,6 +67,8 @@ export function useVaultReport(): UseVaultReportResult {
 	}, [runReport])
 
 	const close = useCallback(() => {
+		// Invalidates any in-flight request so it cannot repopulate a closed dialog.
+		requestTokenRef.current += 1
 		setType(null)
 		setRange(null)
 		setData([])
