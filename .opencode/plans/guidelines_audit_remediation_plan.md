@@ -955,6 +955,9 @@ Run after the last page package lands.
 5. **CSV/print hardening**: CSV-injection guard in `exportItemsCsv` + `csv/*` builders, UTC off-by-one in `groupPrintBillItems`/`EmployeePaymentDetailDialog`, PDF footer duplication.
 6. **`PrivateRoute` redirect** preserving query/hash (`components/common/PrivateRoute.tsx:35`); `lib/api.ts:186` silent `pageSize` clamp + `SORT_COLUMN_MAP` no-op; `useReportSession` cache semantics; `lib/billEvents` doc-vs-implementation; dead code sweeps (`anomaly.ts`, `TabPlaceholder`, `replaceDraft`/`clearGenerated`, `useWarehouses` compat re-export, `sellSchema` leftovers).
 7. **Design-system polish**: skip link, `<main>` landmarks on Login/NotFound, `CardTitle` heading adoption everywhere, safe-area handling, `overscroll-contain` on dialogs, `aria-busy` on skeletons.
+8. **PHI log left in the print path** (found during P2-02, print pipeline out of scope): `pages/Patients/print/printBill.ts:424` still `console.log`s a variable while printing. Remove and replace with nothing (no patient data in logs).
+9. **Reports column-array memoization** (declined by the appshell lane): per-keystroke parent rerenders were already eliminated by isolating the draft search, so memoizing the column arrays would require `useCallback` refactors across 6 tab files for no measured win. Revisit only with a profile.
+10. **Clocking `HistoryTable` `now` prop threading** (backlogged by the people lane): the table still derives `now` per render (no interval), so relative times do not tick on that screen while a row is open. The page-level 1s tick was removed deliberately; threads `now` only if a live-history requirement appears.
 
 ## 10. Global acceptance criteria
 
@@ -1110,6 +1113,23 @@ Phase-level after P2-02: `npm run lint` = `✖ 534 problems (495 errors, 39 warn
 | P2-02/3 settle/bill ids | exit 0 (pre-existing warnings only) | 3/3 temp DOM checks: `billId: 0` renders the no-bill note and disables Settle; draft starts from `currentPaid`; re-keying remounts with the new admission's figure. `check-i18n`: no new MISSING. |
 | P2-02/4 labels/durations | exit 0 (pre-existing unused-disable warnings) | Duration probe: 30 min → "less than an hour", 90 min → "1 hour", 5 h → "5 hours", 23.5 h → "23 hours", 24 h → "1 day", 36 h → "2 days", 72 h → "3 days", invalid → "—". `check-i18n`: MISSING 26 → 24. |
 | P2-02/5 PHI logs | exit 0 | `console.(log|debug|info)` grep over both touched files returns nothing. |
+
+### Phase 2 lane merges
+
+Six lane branches were integrated into `fix/guidelines-audit-remediation` with `--no-ff`, in dependency order, with **zero conflicts** (all lanes are folder-disjoint: own `pages/<Page>/**` + own locale namespaces). Branches/worktrees were left in place for review; nothing was pushed.
+
+| Lane | Tip SHA | Packages | Own commits | Merged as | Verification |
+| --- | --- | --- | --- | --- | --- |
+| `wt/p2-060708-small` | `faeb80f` | P2-06 Vault ×2, P2-07 PriceLists ×3, P2-08 Services ×2 | 7 | `f4ef544` | clean merge · scoped lane checks green · +3 `priceLists` keys |
+| `wt/p2-0910-people` | `8d30fb9` | P2-09 Employees ×3, P2-10 Clocking ×3 | 6 | `2546d40` | clean merge · commit 3 amended and Clocking commits rebased lane-locally (content unchanged, never pushed) · `duplicateActive` key both locales |
+| `wt/p2-05-insurance` | `d213141` | P2-05 Insurance ×5 | 5 | `7394b72` | clean merge · new `modals/FieldControls.tsx` adapter · +2 `insurance` keys |
+| `wt/p2-1112-appshell` | `b94fd9f` | P2-11 Dashboard ×4, P2-12 Reports ×3 | 7 | `461be97` | clean merge · lazy chart/dashboard split · typed-search-applies-on-Generate is a deliberate behaviour change · +2 `reports` keys |
+| `wt/p2-0304-pharmacy` | `1defa6c` | P2-03 Drugs ×4, P2-04 Supplies ×5 | 9 | `54df7fc` | clean merge · supply 5 missing keys closed in both locales (−10 MISSING) |
+| `wt/p2-1316-small` | `76af3fa` | P2-13 Login ×2, P2-14 Admin Roles ×1, P2-15 NotFound ×1, P2-16 dev demo ×1 | 5 | `c7059fb` | clean merge · spec battery 4 files / 29 tests green lane-locally · +2 `errors` keys |
+
+**Merged-tree verification (post-merge, all six):** `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0 · `npm run test:renderer` 15 files / 135 tests passed (no temp specs present) · `npm run check-i18n` exit 0 — MISSING **14** (en 6 / ar 8; down from pre-merge 24 and baseline 26, exactly the 10 supply entries pharmacy closed; all 14 remaining keys are pre-existing at `e4aa33b`, none introduced by a lane), UNUSED 1161, used keys 1723 · `npm run lint` = `✖ 534 problems (495 errors, 39 warnings)` — **byte-identical to baseline, zero delta**.
+
+**Risk note (wizard schema drift):** the composed namespaced `wizardFormSchema` lives in `CreatePatientWizardDialog.tsx` and mirrors rules from `schemas/patient.schema.ts`; that schema file was out of the P2-01 lane's allowed scope, so a future edit to `patient.schema.ts` (gender enum, insurance trio, admission requirements) can silently diverge from the dialog's copy. Reviewers must update both together, or lift the composed schema into `patient.schema.ts` in a follow-up.
 
 ## 12. Risks and rollback considerations
 
