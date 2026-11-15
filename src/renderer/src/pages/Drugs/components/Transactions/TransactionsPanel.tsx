@@ -182,30 +182,42 @@ export function TransactionsPanel() {
         toolbar={
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="tx-start-date"
+                className="text-xs text-muted-foreground"
+              >
                 {t("pharmacy.transactions.startDate")}
               </label>
               <Input
+                id="tx-start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="tx-end-date"
+                className="text-xs text-muted-foreground"
+              >
                 {t("pharmacy.transactions.endDate")}
               </label>
               <Input
+                id="tx-end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="tx-type"
+                className="text-xs text-muted-foreground"
+              >
                 {t("pharmacy.transactions.type")}
               </label>
               <NativeSelect
+                id="tx-type"
                 value={type}
                 onChange={(e) => setType(e.target.value as "" | TransactionType)}
               >
@@ -224,22 +236,32 @@ export function TransactionsPanel() {
               </NativeSelect>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="tx-drug"
+                className="text-xs text-muted-foreground"
+              >
                 {t("pharmacy.transactions.drug")}
               </label>
               <Input
+                id="tx-drug"
                 type="number"
+                inputMode="numeric"
                 value={drugId}
                 onChange={(e) => setDrugId(e.target.value)}
                 placeholder="ID"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
+              <label
+                htmlFor="tx-warehouse"
+                className="text-xs text-muted-foreground"
+              >
                 {t("pharmacy.transactions.warehouse")}
               </label>
               <Input
+                id="tx-warehouse"
                 type="number"
+                inputMode="numeric"
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
                 placeholder="ID"

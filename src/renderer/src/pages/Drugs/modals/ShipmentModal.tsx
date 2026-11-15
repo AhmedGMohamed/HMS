@@ -104,6 +104,8 @@ export function ShipmentModal({
   })
 
   const [submitting, setSubmitting] = useState(false)
+  /** Inline matrix-level error (payload `prices` issues have no RHF field). */
+  const [matrixError, setMatrixError] = useState<string | null>(null)
 
   // Seed price rows from price lists (or existing shipment prices) on open.
   useEffect(() => {
@@ -139,32 +141,85 @@ export function ShipmentModal({
   const quantityLarger = form.watch("quantityLarger")
   const quantitySmaller = form.watch("quantitySmaller")
   const resolvedQuantity = quantityLarger * ratio + quantitySmaller
+  const errors = form.formState.errors
 
   const defaultPricelistId = useMemo(
     () => priceLists.find((pl) => pl.isDefault)?.pricelistId ?? priceLists[0]?.pricelistId,
     [priceLists]
   )
 
+  /**
+   * Surface the first payload issue inline and put the caret on the
+   * offending control. The schema stays the single source of truth
+   * (the form shape differs only by the dual-unit split).
+   */
+  function showFirstIssue(issue: { path: PropertyKey[]; message?: string }) {
+    const [head, index, leaf] = issue.path
+    const message = issue.message
+    if (head === "warehouseId") {
+      form.setError("warehouseId", { type: "manual", message })
+      form.setFocus("warehouseId")
+      return
+    }
+    if (head === "quantity") {
+      form.setError("quantityLarger", { type: "manual", message })
+      form.setFocus("quantityLarger", { shouldSelect: true })
+      return
+    }
+    if (head === "buyPrice") {
+      form.setError("buyPrice", { type: "manual", message })
+      form.setFocus("buyPrice", { shouldSelect: true })
+      return
+    }
+    if (head === "expiryDate") {
+      form.setError("expiryDate", { type: "manual", message })
+      form.setFocus("expiryDate")
+      return
+    }
+    // Price matrix: focus the row the issue points at (if any) and show
+    // the message under the matrix.
+    setMatrixError(message ?? null)
+    const row = typeof index === "number" ? fields[index] : undefined
+    const suffix = leaf === "prepaymentAmount" ? "prepayAmount" : "price"
+    const target =
+      row != null
+        ? `sh-${suffix}-${row.pricelistId}`
+        : `sh-price-${fields[0]?.pricelistId ?? "0"}`
+    document.getElementById(target)?.focus()
+  }
+
   async function handleSubmit(values: ShipmentFormValues) {
+    // Only priced rows are sent: the server rejects any `price <= 0`.
+    // The matrix itself is still validated as a whole so a fully empty
+    // matrix fails with `defaultPriceRequired`.
     const payload: CreateShipmentPayload = {
       drugId: drug.drugId,
       warehouseId: values.warehouseId,
       quantity: resolvedQuantity,
       buyPrice: values.buyPrice,
       expiryDate: values.expiryDate,
-      prices: values.prices.map((p) => ({
-        pricelistId: p.pricelistId,
-        price: p.price,
-        requiresPrepayment: p.requiresPrepayment,
-        prepaymentType: p.requiresPrepayment ? p.prepaymentType : null,
-        prepaymentAmount: p.requiresPrepayment ? p.prepaymentAmount : null,
-      })),
+      prices: values.prices
+        .filter((p) => p.price > 0)
+        .map((p) => ({
+          pricelistId: p.pricelistId,
+          price: p.price,
+          requiresPrepayment: p.requiresPrepayment,
+          prepaymentType: p.requiresPrepayment ? p.prepaymentType : null,
+          prepaymentAmount: p.requiresPrepayment ? p.prepaymentAmount : null,
+        })),
     }
 
-    const parsed = shipmentSchema.safeParse(payload)
+    form.clearErrors()
+    setMatrixError(null)
+    const parsed = shipmentSchema.safeParse({
+      warehouseId: values.warehouseId,
+      quantity: resolvedQuantity,
+      buyPrice: values.buyPrice,
+      expiryDate: values.expiryDate,
+      prices: values.prices,
+    })
     if (!parsed.success) {
-      const first = parsed.error.issues[0]
-      toast.error(t(first?.message ?? "pharmacy.validation.invalidPrice"))
+      showFirstIssue(parsed.error.issues[0]!)
       return
     }
 
@@ -198,13 +253,18 @@ export function ShipmentModal({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="flex flex-col gap-6"
         >
-          <Field>
+          <Field invalid={!!errors.warehouseId}>
             <FieldLabel htmlFor="sh-warehouse">
               {t("pharmacy.fields.warehouse")}
               <span className="text-danger">*</span>
             </FieldLabel>
             <NativeSelect
               id="sh-warehouse"
+              aria-required
+              aria-invalid={errors.warehouseId ? true : undefined}
+              aria-describedby={
+                errors.warehouseId ? "sh-warehouse-error" : undefined
+              }
               {...form.register("warehouseId", { valueAsNumber: true })}
             >
               {warehouses.length === 0 ? (
@@ -219,19 +279,34 @@ export function ShipmentModal({
                 ))
               )}
             </NativeSelect>
+            <FieldError id="sh-warehouse-error">
+              {errors.warehouseId?.message
+                ? t(errors.warehouseId.message)
+                : undefined}
+            </FieldError>
           </Field>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field>
+            <Field invalid={!!errors.quantityLarger}>
               <FieldLabel htmlFor="sh-qtyLarger">
                 {drug.unitConversion?.larger ?? t("pharmacy.fields.quantity")}
               </FieldLabel>
               <Input
                 id="sh-qtyLarger"
                 type="number"
+                inputMode="numeric"
                 min={0}
+                aria-invalid={errors.quantityLarger ? true : undefined}
+                aria-describedby={
+                  errors.quantityLarger ? "sh-qtyLarger-error" : undefined
+                }
                 {...form.register("quantityLarger", { valueAsNumber: true })}
               />
+              <FieldError id="sh-qtyLarger-error">
+                {errors.quantityLarger?.message
+                  ? t(errors.quantityLarger.message)
+                  : undefined}
+              </FieldError>
             </Field>
             <Field>
               <FieldLabel htmlFor="sh-qtySmaller">
@@ -240,6 +315,7 @@ export function ShipmentModal({
               <Input
                 id="sh-qtySmaller"
                 type="number"
+                inputMode="numeric"
                 min={0}
                 {...form.register("quantitySmaller", { valueAsNumber: true })}
               />
@@ -254,7 +330,7 @@ export function ShipmentModal({
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field>
+            <Field invalid={!!errors.buyPrice}>
               <FieldLabel htmlFor="sh-buyPrice">
                 {t("pharmacy.fields.buyPrice")}
                 <span className="text-danger">*</span>
@@ -262,12 +338,23 @@ export function ShipmentModal({
               <Input
                 id="sh-buyPrice"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min={0.01}
+                aria-required
+                aria-invalid={errors.buyPrice ? true : undefined}
+                aria-describedby={
+                  errors.buyPrice ? "sh-buyPrice-error" : undefined
+                }
                 {...form.register("buyPrice", { valueAsNumber: true })}
               />
+              <FieldError id="sh-buyPrice-error">
+                {errors.buyPrice?.message
+                  ? t(errors.buyPrice.message)
+                  : undefined}
+              </FieldError>
             </Field>
-            <Field>
+            <Field invalid={!!errors.expiryDate}>
               <FieldLabel htmlFor="sh-expiry">
                 {t("pharmacy.fields.expiryDate")}
                 <span className="text-danger">*</span>
@@ -275,16 +362,26 @@ export function ShipmentModal({
               <Input
                 id="sh-expiry"
                 type="date"
+                aria-required
+                aria-invalid={errors.expiryDate ? true : undefined}
+                aria-describedby={
+                  errors.expiryDate ? "sh-expiry-error" : undefined
+                }
                 {...form.register("expiryDate")}
               />
+              <FieldError id="sh-expiry-error">
+                {errors.expiryDate?.message
+                  ? t(errors.expiryDate.message)
+                  : undefined}
+              </FieldError>
             </Field>
           </div>
 
           {/* Price list matrix */}
           <div>
-            <h6 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
+            <h3 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
               {t("pharmacy.sections.sellingPrices")}
-            </h6>
+            </h3>
             <div className="mt-3 flex flex-col gap-3">
               {fields.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -318,11 +415,16 @@ export function ShipmentModal({
                       </div>
                       <div className="mt-2 flex flex-wrap items-end gap-3">
                         <Field className="flex-1">
-                          <FieldLabel className="text-xs">
+                          <FieldLabel
+                            htmlFor={`sh-price-${field.pricelistId}`}
+                            className="text-xs"
+                          >
                             {t("pharmacy.fields.totalPrice")}
                           </FieldLabel>
                           <Input
+                            id={`sh-price-${field.pricelistId}`}
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             min={0}
                             value={field.price}
@@ -350,10 +452,14 @@ export function ShipmentModal({
                       {requiresPrepayment ? (
                         <div className="mt-2 flex flex-wrap items-end gap-3">
                           <Field>
-                            <FieldLabel className="text-xs">
+                            <FieldLabel
+                              htmlFor={`sh-prepayType-${field.pricelistId}`}
+                              className="text-xs"
+                            >
                               {t("pharmacy.fields.prepayment")}
                             </FieldLabel>
                             <NativeSelect
+                              id={`sh-prepayType-${field.pricelistId}`}
                               value={field.prepaymentType ?? "fixed"}
                               onChange={(e) =>
                                 update(index, {
@@ -372,11 +478,16 @@ export function ShipmentModal({
                             </NativeSelect>
                           </Field>
                           <Field>
-                            <FieldLabel className="text-xs">
+                            <FieldLabel
+                              htmlFor={`sh-prepayAmount-${field.pricelistId}`}
+                              className="text-xs"
+                            >
                               {t("pharmacy.fields.prepayment")}
                             </FieldLabel>
                             <Input
+                              id={`sh-prepayAmount-${field.pricelistId}`}
                               type="number"
+                              inputMode="decimal"
                               step="0.01"
                               min={0}
                               value={field.prepaymentAmount ?? 0}
@@ -397,13 +508,9 @@ export function ShipmentModal({
             </div>
           </div>
 
-          <FieldError
-            errors={
-              form.formState.errors.prices
-                ? [{ message: t("pharmacy.validation.defaultPriceRequired") }]
-                : undefined
-            }
-          />
+          <FieldError id="sh-prices-error">
+            {matrixError ? t(matrixError) : undefined}
+          </FieldError>
 
           <DialogFooter>
             <Button
