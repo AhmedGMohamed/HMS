@@ -1,11 +1,25 @@
 "use client"
 
-import { useMemo } from "react"
+import { createContext, useContext, useId, useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+
+/**
+ * Stable, per-`Field` ids shared by the label, description, error region
+ * and the control. Minted once per `Field` from `useId()`; consumers read
+ * them through `useFieldControlProps()` or by rendering `FieldLabel` /
+ * `FieldDescription` / `FieldError` inside the `Field`.
+ */
+interface FieldContextValue {
+  controlId: string
+  descriptionId: string
+  errorId: string
+}
+
+const FieldContext = createContext<FieldContextValue | null>(null)
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -72,16 +86,29 @@ const fieldVariants = cva(
 function Field({
   className,
   orientation = "vertical",
+  invalid,
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: React.ComponentProps<"div"> &
+  VariantProps<typeof fieldVariants> & { invalid?: boolean }) {
+  const controlId = useId()
+  const descriptionId = `${controlId}-description`
+  const errorId = `${controlId}-error`
+  const contextValue = useMemo(
+    () => ({ controlId, descriptionId, errorId }),
+    [controlId, descriptionId, errorId]
+  )
+
   return (
-    <div
-      role="group"
-      data-slot="field"
-      data-orientation={orientation}
-      className={cn(fieldVariants({ orientation }), className)}
-      {...props}
-    />
+    <FieldContext.Provider value={contextValue}>
+      <div
+        role="group"
+        data-slot="field"
+        data-orientation={orientation}
+        data-invalid={invalid ? true : undefined}
+        className={cn(fieldVariants({ orientation }), className)}
+        {...props}
+      />
+    </FieldContext.Provider>
   )
 }
 
@@ -100,11 +127,15 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
 
 function FieldLabel({
   className,
+  htmlFor,
   ...props
 }: React.ComponentProps<typeof Label>) {
+  const field = useContext(FieldContext)
+
   return (
     <Label
       data-slot="field-label"
+      htmlFor={htmlFor ?? field?.controlId}
       className={cn(
         "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border *:data-[slot=field]:p-3 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
@@ -128,9 +159,16 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
+function FieldDescription({
+  className,
+  id,
+  ...props
+}: React.ComponentProps<"p">) {
+  const field = useContext(FieldContext)
+
   return (
     <p
+      id={id ?? field?.descriptionId}
       data-slot="field-description"
       className={cn(
         "text-left text-sm leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
@@ -177,10 +215,13 @@ function FieldError({
   className,
   children,
   errors,
+  id,
   ...props
 }: React.ComponentProps<"div"> & {
   errors?: Array<{ message?: string } | undefined>
 }) {
+  const field = useContext(FieldContext)
+
   const content = useMemo(() => {
     if (children) {
       return children
@@ -214,7 +255,8 @@ function FieldError({
 
   return (
     <div
-      role="alert"
+      id={id ?? field?.errorId}
+      aria-live="polite"
       data-slot="field-error"
       className={cn("text-sm font-normal text-destructive", className)}
       {...props}
@@ -222,6 +264,39 @@ function FieldError({
       {content}
     </div>
   )
+}
+
+/**
+ * Props to spread onto the control that a `Field` labels.
+ *
+ * The ids are minted by the enclosing `Field`; `aria-describedby` only
+ * references regions that will actually render: the description when
+ * `hasDescription` is set, and the error region only while `invalid`
+ * (`FieldError` renders `null` when there are no errors, so an
+ * unconditional reference would dangle).
+ *
+ * Callers opt in per control:
+ * `<Input {...useFieldControlProps({ invalid: !!error, required })} />`
+ */
+function useFieldControlProps(options?: {
+  invalid?: boolean
+  hasDescription?: boolean
+  required?: boolean
+}) {
+  const field = useContext(FieldContext)
+  const describedBy = [
+    options?.hasDescription ? field?.descriptionId : null,
+    options?.invalid ? field?.errorId : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+
+  return {
+    id: field?.controlId,
+    "aria-invalid": options?.invalid ? true : undefined,
+    "aria-describedby": describedBy || undefined,
+    "aria-required": options?.required ? true : undefined,
+  } as const
 }
 
 export {
@@ -235,4 +310,8 @@ export {
   FieldSet,
   FieldContent,
   FieldTitle,
+  // Same-module export is the documented API: the hook reads the ids the
+  // sibling `Field` mints, so splitting it out would only re-export context.
+  // eslint-disable-next-line react-refresh/only-export-components
+  useFieldControlProps,
 }
