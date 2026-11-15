@@ -180,7 +180,9 @@
       "dayPatients": "Patients: {{count}}",
       "dayHours": "Hours: {{count}}",
       "dayTotal": "Day total",
-      "noAssignments": "No daily assignments in this period."
+      "noAssignments": "No daily assignments in this period.",
+      "showingDays": "Showing {{shown}} of {{total}} days",
+      "showMoreDays": "Show more days"
     },
     "employeePayments": {
       "title": "Employee Payment Details",

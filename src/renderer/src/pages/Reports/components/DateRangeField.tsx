@@ -10,8 +10,14 @@
  * Values are local `YYYY-MM-DD` strings; the popover works with `Date`
  * objects and converts at the boundary so no component has to think about
  * time zones.
+ *
+ * The trigger names itself from the field title plus the visible range (a
+ * dates-only accessible name does not say what the button controls), and
+ * `aria-describedby` points at the inline error only while one renders.
+ * Choosing a preset closes the popover instead of leaving it open.
  */
 
+import { useId, useState } from "react"
 import { CalendarIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -63,17 +69,27 @@ export function DateRangeField({
   const from = toDate(value.from)
   const to = toDate(value.to)
 
+  const [open, setOpen] = useState(false)
+
   const applyPreset = (preset: DateRangePreset) => {
     onChange(serialize(rangeForPreset(preset)))
+    setOpen(false)
   }
 
-  const controlId = "reports-date-range"
+  /* `useId()` keeps two fields (tab + dialog) from sharing a control id;
+     the colons it emits are legal in ids but stripped so the value is also
+     a valid CSS selector fragment. */
+  const controlId = `reports-date-range${useId().replace(/:/g, "")}`
+  const errorId = `${controlId}-error`
+  const labelText = t("reports.filters.dateRange")
+  const fromLabel = formatDate(from, language)
+  const toLabel = formatDate(to, language)
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={controlId}>{t("reports.filters.dateRange")}</Label>
+      <Label htmlFor={controlId}>{labelText}</Label>
 
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             id={controlId}
@@ -81,8 +97,11 @@ export function DateRangeField({
             variant="outline"
             className="justify-start gap-2 font-normal"
             disabled={disabled}
+            /* Name = field title + the visible dates (label-in-name), so AT
+               announces what the button is for, not just two dates. */
+            aria-label={`${labelText}: ${fromLabel} – ${toLabel}`}
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${controlId}-error` : undefined}
+            aria-describedby={error ? errorId : undefined}
           >
             <CalendarIcon aria-hidden className="size-4 text-muted-foreground" />
             {/*
@@ -92,9 +111,9 @@ export function DateRangeField({
               wrapping span keeps the start→end reading order per locale.
             */}
             <span className="flex items-center gap-1">
-              <span dir="ltr">{formatDate(from, language)}</span>
+              <span dir="ltr">{fromLabel}</span>
               <span aria-hidden>–</span>
-              <span dir="ltr">{formatDate(to, language)}</span>
+              <span dir="ltr">{toLabel}</span>
             </span>
           </Button>
         </PopoverTrigger>
@@ -126,7 +145,10 @@ export function DateRangeField({
               variant="ghost"
               size="sm"
               className="ms-auto"
-              onClick={() => onChange(serialize(currentMonthRange()))}
+              onClick={() => {
+                onChange(serialize(currentMonthRange()))
+                setOpen(false)
+              }}
             >
               {t("reports.filters.quick.reset")}
             </Button>
@@ -135,7 +157,7 @@ export function DateRangeField({
       </Popover>
 
       {error ? (
-        <p id={`${controlId}-error`} className="text-xs text-danger" role="alert">
+        <p id={errorId} className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}

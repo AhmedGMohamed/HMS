@@ -182,7 +182,9 @@
       "dayPatients": "المرضى: {{count}}",
       "dayHours": "الساعات: {{count}}",
       "dayTotal": "إجمالي اليوم",
-      "noAssignments": "لا توجد تعيينات يومية في هذه الفترة."
+      "noAssignments": "لا توجد تعيينات يومية في هذه الفترة.",
+      "showingDays": "عرض {{shown}} من {{total}} يومًا",
+      "showMoreDays": "عرض المزيد من الأيام"
     },
     "employeePayments": {
       "title": "تفاصيل مدفوعات الموظفين",
