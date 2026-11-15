@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useCallback, useState } from "react"
+import { Fragment, useCallback, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { SearchIcon, XIcon, ChevronDownIcon } from "lucide-react"
 
@@ -102,6 +102,18 @@ export interface DataTableProps<T> {
   /** Whether the expand toggle is disabled for a given row. */
   isRowExpandable?: (row: T) => boolean
   /**
+   * Accessible name for a row's expanded-content region. Falls back to the
+   * table's `caption`/`aria-label`; pass this when the expansion has its own
+   * subject (e.g. "Shipments for Panadol").
+   */
+  expandedLabel?: (row: T) => string
+  /**
+   * Opt back into `aria-hidden` on the expanded row — only for purely
+   * decorative expansion content with no text or interactive elements.
+   * Default `false`: expanded content is exposed to assistive tech.
+   */
+  expandedAriaHidden?: boolean
+  /**
    * Optional band rendered between the table and the pagination footer.
    *
    * Used by the report tabs for a totals row: the API returns whole-set
@@ -158,10 +170,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onExpandedChange,
     renderExpanded,
     isRowExpandable,
+    expandedLabel,
+    expandedAriaHidden = false,
     footer,
   } = props
 
   const { t } = useTranslation()
+
+  /* Stable per-table prefix for the expanded-content region ids referenced by
+     each row's `aria-controls`. */
+  const expandedRegionBaseId = useId()
 
   const debouncedSearch = useDebouncedValue(search?.value ?? "", {
     delay: search?.debounceMs ?? 200,
@@ -350,6 +368,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   const rowExpandable = expandable
                     ? (isRowExpandable?.(row) ?? true)
                     : false
+                  const expandedRegionId = `${expandedRegionBaseId}-expanded-${id}`
                   return (
                     <Fragment key={id}>
                       <TableRow
@@ -404,6 +423,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                   : t("common.expand")
                               }
                               aria-expanded={isExpanded}
+                              aria-controls={expandedRegionId}
                               disabled={!rowExpandable}
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -446,13 +466,27 @@ export function DataTable<T>(props: DataTableProps<T>) {
                       {expandable && isExpanded && renderExpanded ? (
                         <TableRow
                           className="hover:bg-transparent"
-                          aria-hidden
+                          aria-hidden={expandedAriaHidden || undefined}
                         >
                           <TableCell
                             colSpan={columns.length + 1}
                             className="p-0"
                           >
-                            {renderExpanded(row)}
+                            {/* Expanded content is interactive, so it must not
+                                be hidden from AT. `aria-controls` on the toggle
+                                points here; the region is named per row. */}
+                            <div
+                              id={expandedRegionId}
+                              role="region"
+                              aria-label={
+                                expandedLabel?.(row) ??
+                                caption ??
+                                ariaLabel ??
+                                t("common.table")
+                              }
+                            >
+                              {renderExpanded(row)}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ) : null}
