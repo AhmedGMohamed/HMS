@@ -13,9 +13,12 @@ import { z } from "zod"
 export const shipmentPriceSchema = z
   .object({
     pricelistId: z.number().int().positive(),
+    // A price-list row may legitimately be left at 0 (the matrix seeds
+    // every list with 0 and the modal only submits priced rows); the
+    // shipment-level refine below requires at least one usable price.
     price: z
       .number({ message: "pharmacy.validation.invalidPrice" })
-      .positive("pharmacy.validation.invalidPrice"),
+      .nonnegative("pharmacy.validation.invalidPrice"),
     requiresPrepayment: z.boolean(),
     prepaymentType: z.enum(["fixed", "percentage"]).nullable(),
     prepaymentAmount: z.number().nullable(),
@@ -62,12 +65,12 @@ export const shipmentSchema = z
     prices: z.array(shipmentPriceSchema).min(1),
   })
   .superRefine((v, ctx) => {
-    // Default price list is expected to have a valid price; enforce the
-    // first configured price exists (parity with legacy validation).
-    const defaultPrice = v.prices.find(
-      (p) => p.requiresPrepayment === false || p.price > 0
-    )
-    if (!defaultPrice || defaultPrice.price <= 0) {
+    // Resolve the default from the rows actually priced, not from the
+    // first array element: the matrix seeds every price list with 0, so
+    // "first row with requiresPrepayment === false" was always the 0
+    // row and blocked creation even when another list had a price.
+    const hasPricedRow = v.prices.some((p) => p.price > 0)
+    if (!hasPricedRow) {
       ctx.addIssue({
         code: "custom",
         path: ["prices"],

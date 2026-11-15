@@ -7,7 +7,13 @@ import { PencilIcon, Trash2Icon, AlertTriangleIcon } from "lucide-react"
 import { DataTable, type ColumnDef } from "@/components/common/DataTable"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatIntervalHuman, formatNumber, cn } from "@/lib/utils"
+import {
+  cn,
+  formatDate,
+  formatIntervalHuman,
+  formatNumber,
+} from "@/lib/utils"
+import { useUIStore } from "@/store/uiStore"
 
 import type {
   EnrichedMedicalSupply,
@@ -67,7 +73,10 @@ export function SuppliesTable({
   onDeleteShipment,
 }: SuppliesTableProps) {
   const { t } = useTranslation()
+  const language = useUIStore((s) => s.language)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [sort, setSort] = useState<{
     columnId: string
     direction: SortDir
@@ -150,18 +159,15 @@ export function SuppliesTable({
         id: "expiry",
         header: t("medicalSupplies.table.nearestExpiry"),
         sortable: true,
-        sortKey: (s) => {
-          if (s.nearestExpiryDate) return new Date(s.nearestExpiryDate).getTime()
-          if (s.daysUntilExpiry != null) {
-            return Date.now() + s.daysUntilExpiry * 86_400_000
-          }
-          return Number.MAX_SAFE_INTEGER
-        },
+        sortKey: (s) =>
+          s.nearestExpiryDate
+            ? new Date(s.nearestExpiryDate).getTime()
+            : Number.MAX_SAFE_INTEGER,
         cell: (s) => {
           if (!s.nearestExpiryDate) {
             return <span className="text-muted-foreground">—</span>
           }
-          const dateLabel = new Date(s.nearestExpiryDate).toLocaleDateString()
+          const dateLabel = formatDate(new Date(s.nearestExpiryDate), language)
           if (s.daysUntilExpiry == null) {
             return <span className="tabular-nums">{dateLabel}</span>
           }
@@ -235,7 +241,7 @@ export function SuppliesTable({
         ),
       },
     ],
-    [t, onEditSupply, onDeleteSupply]
+    [t, language, onEditSupply, onDeleteSupply]
   )
 
   const sorted = useMemo(() => {
@@ -254,16 +260,38 @@ export function SuppliesTable({
     })
   }, [supplies, sort, columns])
 
+  // Client-side pagination (§6.2, default 10 rows). Clamp so a filter
+  // that shrinks the list never leaves the table on a dead page.
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const safePage = Math.min(Math.max(page, 1), pageCount)
+  const pageRows = useMemo(
+    () => sorted.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [sorted, safePage, pageSize]
+  )
+
   return (
     <DataTable<EnrichedMedicalSupply>
-      data={sorted}
+      data={pageRows}
       columns={columns}
       loading={loading}
       getRowId={(s) => s.supplyId}
       search={{
         value: search,
-        onChange: onSearchChange,
+        onChange: (v) => {
+          setPage(1)
+          onSearchChange(v)
+        },
         placeholder: t("medicalSupplies.searchPlaceholder"),
+      }}
+      pagination={{
+        page: safePage,
+        pageSize,
+        total: sorted.length,
+        onPageChange: setPage,
+        onPageSizeChange: (size) => {
+          setPage(1)
+          setPageSize(size)
+        },
       }}
       toolbar={
         <div className="flex flex-wrap items-center gap-2">
@@ -273,7 +301,10 @@ export function SuppliesTable({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onFilterChange(chip.value)}
+              onClick={() => {
+                setPage(1)
+                onFilterChange(chip.value)
+              }}
               className={cn(
                 filter === chip.value &&
                   "border-primary bg-primary-light text-primary"

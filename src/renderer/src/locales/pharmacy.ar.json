@@ -229,6 +229,7 @@
       "deleteError": "فشل حذف الدواء",
       "saleSuccess": "تمت معالجة البيع بنجاح",
       "saleError": "فشلت معالجة البيع",
+      "patientSelectionIncomplete": "يجب اختيار المريض وتحديد التنويم النشط",
       "priceBelowBuyPrice": "هذا السعر أقل من سعر الشراء. هل أنت متأكد من رغبتك في بيع هذا الدواء؟",
       "shipmentCreateSuccess": "تم إنشاء الشحنة بنجاح",
       "shipmentUpdateSuccess": "تم تحديث الشحنة بنجاح",

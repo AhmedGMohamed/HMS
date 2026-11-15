@@ -17,9 +17,12 @@ import { z } from "zod"
 export const supplyShipmentPriceSchema = z
   .object({
     pricelistId: z.number().int().positive(),
+    // A matrix row may be left at 0 (every list is seeded at 0 and the
+    // modal submits only priced rows); the shipment-level refine below
+    // requires at least one usable price.
     price: z
       .number({ message: "medicalSupplies.validation.invalidPrice" })
-      .positive("medicalSupplies.validation.invalidPrice"),
+      .nonnegative("medicalSupplies.validation.invalidPrice"),
     requiresPrepayment: z.boolean(),
     prepaymentType: z.enum(["fixed", "percentage"]).nullable(),
     prepaymentAmount: z.number().nullable(),
@@ -60,10 +63,12 @@ export const supplyShipmentSchema = z
     prices: z.array(supplyShipmentPriceSchema).min(1),
   })
   .superRefine((v, ctx) => {
-    const defaultPrice = v.prices.find(
-      (p) => p.requiresPrepayment === false || p.price > 0
-    )
-    if (!defaultPrice || defaultPrice.price <= 0) {
+    // Resolve the price from the rows actually priced, not from the
+    // first element: the seeded 0 row used to match
+    // `requiresPrepayment === false` and block creation even when
+    // another list carried a price.
+    const hasPricedRow = v.prices.some((p) => p.price > 0)
+    if (!hasPricedRow) {
       ctx.addIssue({
         code: "custom",
         path: ["prices"],
