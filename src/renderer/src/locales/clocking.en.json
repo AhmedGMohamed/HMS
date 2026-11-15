@@ -34,6 +34,7 @@
       "historyCaption": "Completed clock-in records with corrections and pay deductions"
     },
     "status": {
+      "duplicateActive": "Duplicate active clock-in",
       "extendedShift": "Extended shift",
       "fatigueRisk": "Fatigue risk",
       "missingClockOut": "Missing clock-out",
