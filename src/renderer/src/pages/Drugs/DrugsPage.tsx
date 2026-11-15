@@ -248,7 +248,9 @@ export default function DrugsPage() {
                 payload.patientId == null ||
                 payload.patientHistoryId == null
               ) {
-                throw new Error("Patient and admission are required")
+                throw new Error(
+                  t("pharmacy.messages.patientSelectionIncomplete")
+                )
               }
               await addDrugToPatient(payload.patientId, {
                 drugId: sellShipment.drugId,
