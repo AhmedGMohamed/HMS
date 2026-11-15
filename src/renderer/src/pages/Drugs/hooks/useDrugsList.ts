@@ -18,7 +18,14 @@ import type {
 export type KpiFilter = "all" | "low-stock" | "near-expiry"
 
 export interface UseDrugsListResult {
+  /** Filtered view — what the table renders. */
   drugs: EnrichedDrugCard[]
+  /**
+   * Unfiltered dataset (search + KPI chips not applied). The KPI strip
+   * must read this — deriving "Total Drugs" / "Expiring Soon" from the
+   * filtered view makes the cards collapse to 0 whenever a filter is on.
+   */
+  allDrugs: EnrichedDrugCard[]
   loading: boolean
   error: Error | null
   search: string
@@ -263,6 +270,7 @@ export function useDrugsList(): UseDrugsListResult {
 
   return {
     drugs: filtered,
+    allDrugs: enriched,
     loading,
     error,
     search,
