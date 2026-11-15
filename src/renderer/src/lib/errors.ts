@@ -31,3 +31,30 @@ export class ApiError extends Error {
     this.code = code
   }
 }
+
+/**
+ * Transport failure — the request never produced an HTTP response
+ * (offline, DNS failure, connection reset, server down).
+ *
+ * Extends `ApiError` so existing `instanceof ApiError` branches keep
+ * handling it, with two discriminators:
+ *   - `statusCode === 0` (no HTTP status exists; never 401/403/404/5xx)
+ *   - `code === "NETWORK_ERROR"`
+ * Branch on `isNetworkError(error)` when the UI needs a localized
+ * "check your connection" message instead of the raw `message`.
+ */
+export class NetworkError extends ApiError {
+  /** The underlying `fetch` rejection, kept for debugging. */
+  readonly cause?: unknown
+
+  constructor(endpoint: string, cause?: unknown) {
+    super(0, "Network request failed", endpoint, "NETWORK_ERROR")
+    this.name = "NetworkError"
+    this.cause = cause
+  }
+}
+
+/** Narrows an unknown caught value to a transport failure. */
+export function isNetworkError(error: unknown): error is NetworkError {
+  return error instanceof NetworkError
+}
