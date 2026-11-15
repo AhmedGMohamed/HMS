@@ -5,7 +5,7 @@
  * and this hook performs the fetch (the 17 report endpoints are never
  * preloaded — legacy parity). Data clears when the dialog closes.
  */
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { getVaultReport } from "@/pages/Vault/api"
 import type { DateRange, ReportRow, ReportType } from "@/pages/Vault/types/vault"
 
@@ -16,6 +16,8 @@ export interface UseVaultReportResult {
 	loading: boolean
 	error: unknown
 	open: (type: ReportType, range: DateRange) => void
+	/** Re-runs the last requested report (error state retry). */
+	retry: () => void
 	close: () => void
 }
 
@@ -25,8 +27,9 @@ export function useVaultReport(): UseVaultReportResult {
 	const [data, setData] = useState<ReportRow[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<unknown>(null)
+	const lastRequestRef = useRef<{ type: ReportType; range: DateRange } | null>(null)
 
-	const open = useCallback(async (nextType: ReportType, nextRange: DateRange) => {
+	const runReport = useCallback(async (nextType: ReportType, nextRange: DateRange) => {
 		setType(nextType)
 		setRange(nextRange)
 		setLoading(true)
@@ -42,6 +45,19 @@ export function useVaultReport(): UseVaultReportResult {
 		}
 	}, [])
 
+	const open = useCallback(
+		(nextType: ReportType, nextRange: DateRange) => {
+			lastRequestRef.current = { type: nextType, range: nextRange }
+			void runReport(nextType, nextRange)
+		},
+		[runReport]
+	)
+
+	const retry = useCallback(() => {
+		const last = lastRequestRef.current
+		if (last) void runReport(last.type, last.range)
+	}, [runReport])
+
 	const close = useCallback(() => {
 		setType(null)
 		setRange(null)
@@ -50,5 +66,5 @@ export function useVaultReport(): UseVaultReportResult {
 		setLoading(false)
 	}, [])
 
-	return { type, range, data, loading, error, open, close }
+	return { type, range, data, loading, error, open, retry, close }
 }
