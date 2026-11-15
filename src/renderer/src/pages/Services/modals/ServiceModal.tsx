@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type FieldErrors } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -55,9 +55,9 @@ interface ServiceModalProps {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h6 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
+    <h3 className="border-s-4 border-primary ps-3 text-sm font-semibold tracking-wide text-foreground uppercase">
       {children}
-    </h6>
+    </h3>
   )
 }
 
@@ -194,7 +194,6 @@ export function ServiceModal({
   )
 
   async function onSubmit(values: ServiceFormValues) {
-    if (values.serviceType === "") return
     setSubmitting(true)
     try {
       const prices: ServicePricePayload[] = values.priceRows
@@ -212,7 +211,8 @@ export function ServiceModal({
         }))
       const payload: CreateServicePayload = {
         name: values.name.trim(),
-        serviceType: values.serviceType,
+        // The schema rejects "", so the value is a ServiceType at submit.
+        serviceType: values.serviceType as CreateServicePayload["serviceType"],
         autoRenew: serviceType === "once" ? false : values.autoRenew,
         autoAddOnAdmission: values.autoAddOnAdmission,
         prices,
@@ -238,6 +238,11 @@ export function ServiceModal({
     }
   }
 
+  function onInvalid(errors: FieldErrors<ServiceFormValues>) {
+    // Put the user on the offending control instead of leaving Save silent.
+    if (errors.serviceType) form.setFocus("serviceType")
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -253,7 +258,7 @@ export function ServiceModal({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmit, onInvalid)}
           className="flex flex-col gap-6"
         >
           <Field>
@@ -399,6 +404,7 @@ export function ServiceModal({
                         <Input
                           id={`svc-row-${index}-price`}
                           type="number"
+                          inputMode="decimal"
                           min={0}
                           step={0.01}
                           className="tabular-nums"
@@ -483,6 +489,7 @@ export function ServiceModal({
                             <Input
                               id={`svc-row-${index}-prepAmount`}
                               type="number"
+                              inputMode="decimal"
                               min={0}
                               step={0.01}
                               className="tabular-nums"

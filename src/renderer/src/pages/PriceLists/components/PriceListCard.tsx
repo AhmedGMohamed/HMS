@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { formatNumber } from "@/lib/utils"
+import { formatNumber, resolveLocale } from "@/lib/utils"
 import type { PriceListWithStats } from "@/pages/PriceLists/types/priceList"
 
 interface PriceListCardProps {
@@ -34,7 +34,8 @@ export function PriceListCard({
   onEdit,
   onDelete,
 }: PriceListCardProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
 
   const counts = [
     {
@@ -75,7 +76,7 @@ export function PriceListCard({
               {label}
             </span>
             <span className="font-medium tabular-nums">
-              {formatNumber(value)}
+              {formatNumber(value, 0, locale)}
             </span>
           </div>
         ))}
