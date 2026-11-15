@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -90,6 +90,8 @@ export function DispenseSupplyModal({
   const [patients, setPatients] = useState<ActivePatient[]>([])
   const [loadingPatients, setLoadingPatients] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  /** Synchronous lock — state alone updates after React re-renders. */
+  const submittingRef = useRef(false)
 
   const quantity = watch("quantity")
   const priceListId = watch("priceListId")
@@ -128,35 +130,20 @@ export function DispenseSupplyModal({
   const belowBuyPrice = totalPrice > 0 && buyPrice > totalPrice
 
   async function doSubmit(values: DispenseFormValues) {
+    // Double-click guard: the confirm button is disabled while
+    // `submitting`, but a same-tick double submit (Enter twice) can
+    // still reach here; the ref is the synchronous lock.
+    if (submittingRef.current) return
+
+    // Cheap local validation first — no network. The previous order
+    // ran the active-patients prefetch before any check, and left
+    // `submitting` false during it, so a double click could issue two
+    // dispenses (duplicate BillDetail rows).
     if (values.patientId == null || !Number.isFinite(values.patientId)) {
       toast.error(t("medicalSupplies.dispense.patientRequired"))
       return
     }
-
-    // The admitted-patient list was fetched on modal open; if the
-    // modal has been sitting open for a while, the patient we picked
-    // could have been discharged in the interim. Re-fetch the list
-    // immediately before submit so the `patientHistoryId` we send
-    // to the server is fresh — the patient-side dispense endpoint
-    // requires a current admission and rejects otherwise.
-    let activePatient: ActivePatient | null = null
-    try {
-      const fresh = await getActivePatients()
-      setPatients(fresh)
-      activePatient = fresh.find((p) => p.patientId === values.patientId) ?? null
-    } catch {
-      // Network failure: fall through to the local snapshot and let
-      // the server-side 400 (if any) drive the user-facing message.
-      activePatient =
-        patients.find((p) => p.patientId === values.patientId) ?? null
-    }
-
-    const patientHistoryId = activePatient?.activePatientHistoryId ?? null
-    if (!patientHistoryId) {
-      toast.error(t("medicalSupplies.dispense.patientAdmissionRequired"))
-      return
-    }
-    if (!Number.isFinite(values.quantity) || values.quantity <= 0) {
+    if (!Number.isInteger(values.quantity) || values.quantity <= 0) {
       toast.error(t("medicalSupplies.dispense.quantityMin"))
       return
     }
@@ -169,20 +156,49 @@ export function DispenseSupplyModal({
       return
     }
 
-    const parsed = dispenseSupplySchema.safeParse({
-      patientId: values.patientId,
-      patientHistoryId,
-      quantity: values.quantity,
-      price: values.price,
-    })
-    if (!parsed.success) {
-      const first = parsed.error.issues[0]
-      toast.error(t(first?.message ?? "medicalSupplies.validation.invalidPrice"))
-      return
-    }
-
+    // Lock the flow before the prefetch: confirm stays disabled until
+    // the dispense settles. It is re-enabled only on failure, so a
+    // successful close does not flash an enabled button.
+    submittingRef.current = true
     setSubmitting(true)
+    let succeeded = false
     try {
+      // The admitted-patient list was fetched on modal open; if the
+      // modal has been sitting open for a while, the patient we picked
+      // could have been discharged in the interim. Re-fetch the list
+      // immediately before submit so the `patientHistoryId` we send
+      // to the server is fresh — the patient-side dispense endpoint
+      // requires a current admission and rejects otherwise.
+      let activePatient: ActivePatient | null = null
+      try {
+        const fresh = await getActivePatients()
+        setPatients(fresh)
+        activePatient = fresh.find((p) => p.patientId === values.patientId) ?? null
+      } catch {
+        // Network failure: fall through to the local snapshot and let
+        // the server-side 400 (if any) drive the user-facing message.
+        activePatient =
+          patients.find((p) => p.patientId === values.patientId) ?? null
+      }
+
+      const patientHistoryId = activePatient?.activePatientHistoryId ?? null
+      if (!patientHistoryId) {
+        toast.error(t("medicalSupplies.dispense.patientAdmissionRequired"))
+        return
+      }
+
+      const parsed = dispenseSupplySchema.safeParse({
+        patientId: values.patientId,
+        patientHistoryId,
+        quantity: values.quantity,
+        price: values.price,
+      })
+      if (!parsed.success) {
+        const first = parsed.error.issues[0]
+        toast.error(t(first?.message ?? "medicalSupplies.validation.invalidPrice"))
+        return
+      }
+
       await onSubmit({
         shipmentId: shipment.shipmentId,
         quantity: values.quantity,
@@ -190,6 +206,7 @@ export function DispenseSupplyModal({
         patientId: values.patientId,
         patientHistoryId,
       })
+      succeeded = true
       onOpenChange(false)
     } catch (err) {
       toast.error(
@@ -200,7 +217,10 @@ export function DispenseSupplyModal({
             : t("medicalSupplies.dispense.error")
       )
     } finally {
-      setSubmitting(false)
+      if (!succeeded) {
+        submittingRef.current = false
+        setSubmitting(false)
+      }
     }
   }
 

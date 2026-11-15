@@ -31,8 +31,16 @@ export interface ConfirmDialogProps {
   /** `danger` (destructive red) is the default for destructive actions;
    *  `warning` (default variant) covers reversible confirmations. */
   variant?: ConfirmDialogVariant
-  /** Trigger handler — may return a Promise. Loading state is auto-tracked. */
-  onConfirm: () => void | Promise<void>
+  /**
+   * Runs the confirmed action.
+   *
+   * - Resolves (or returns `void`/`true`) → the dialog closes itself.
+   * - Returns `false` → the dialog stays open, no error is logged. Use
+   *   this for expected validation failures the caller already surfaced.
+   * - Throws → reserved for unexpected defects: logged once here and
+   *   swallowed (no unhandled rejection); the dialog stays open.
+   */
+  onConfirm: () => void | boolean | Promise<void | boolean>
   /** Force the spinner even when the onConfirm returned synchronously. */
   loading?: boolean
   /** Render the `AlertTriangleIcon` in the dialog media slot. */
@@ -52,9 +60,11 @@ export interface ConfirmDialogProps {
  *   used for reversible actions.
  *
  * `onConfirm` may be async; while the returned promise is in flight the
- * dialog stays open and shows a spinner. Internal failure does not
- * close the dialog; callers must explicitly call `onOpenChange(false)`
- * on the success path.
+ * dialog stays open and shows a spinner. On success the dialog closes
+ * itself (calls `onOpenChange(false)`); on a thrown error it stays open and
+ * the error is logged once here (no rethrow). Returning `false` is the
+ * "keep open, no error" escape hatch for expected validation failures —
+ * callers must not throw for those.
  */
 export function ConfirmDialog({
   open,
@@ -96,15 +106,20 @@ export function ConfirmDialog({
   const handleConfirm = async () => {
     setBusy(true)
     try {
-      await onConfirm()
+      const result = await onConfirm()
+      if (result === false) {
+        // Expected, already-surfaced failure: stay open, no error.
+        setBusy(false)
+        return
+      }
+      handleOpenChange(false)
     } catch (error) {
-      // Phase 6 introduces a centralised toast helper; for now we log
-      // so the dialog stays open and the parent can react. Errors that
-      // escape here are a developer signal — a properly-implemented
-      // onConfirm should not throw on the user-blocking path.
+      // Unexpected defect. Log once and swallow: rethrowing would surface as
+      // an unhandled rejection now that this handler is fire-and-forget.
+      // Callers keep their own toasts; the dialog stays open so the user can
+      // retry or cancel.
       console.error("[ConfirmDialog] onConfirm rejected:", error)
       setBusy(false)
-      throw error
     }
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Trash2Icon, Undo2Icon } from "lucide-react"
 import { toast } from "sonner"
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/native-select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmptyState } from "@/components/common/EmptyState"
+import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { cn, formatCurrency, formatNumber, resolveLocale } from "@/lib/utils"
 
 import {
@@ -180,6 +181,39 @@ function diffCard(
   return { ok: true, entry }
 }
 
+/**
+ * True when a row holds unsaved work. Unlike `diffCard` (submission shape:
+ * blank means "skip"), clearing a saved price still counts — closing would
+ * lose what the user typed.
+ */
+function isCardDirty(card: PriceCardState | undefined): boolean {
+  if (!card) return false
+  const initial = card.initial
+  if (card.markedForRemoval) return initial != null
+
+  const rawPrice = card.price.trim()
+  const priceChanged =
+    initial == null
+      ? rawPrice !== ""
+      : rawPrice === "" ||
+        !Number.isFinite(Number(rawPrice)) ||
+        Number(rawPrice) !== initial.price
+
+  const requiresChanged =
+    card.requiresPrepayment !== (initial?.requiresPrepayment ?? false)
+  const typeChanged =
+    (card.requiresPrepayment ? card.prepaymentType : null) !==
+    (initial?.prepaymentType ?? null)
+  const amountRaw = card.requiresPrepayment
+    ? card.prepaymentAmount.trim()
+    : ""
+  const amountChanged =
+    (amountRaw === "" ? null : Number(amountRaw)) !==
+    (initial?.prepaymentAmount ?? null)
+
+  return priceChanged || requiresChanged || typeChanged || amountChanged
+}
+
 interface AddPricesModalProps {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -203,7 +237,8 @@ export function AddPricesModal({
   showSkip = false,
   onSaved,
 }: AddPricesModalProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
 
   const [services, setServices] = useState<NormalizedService[]>([])
   const [drugRows, setDrugRows] = useState<DrugShipmentPricingRow[]>([])
@@ -216,6 +251,7 @@ export function AddPricesModal({
   const [loadingData, setLoadingData] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
 
   useEffect(() => {
     if (!open || !priceList) return
@@ -227,6 +263,7 @@ export function AddPricesModal({
     setSearchServices("")
     setSearchDrugs("")
     setSearchSupplies("")
+    setDiscardConfirmOpen(false)
     Promise.all([
       listServices(),
       listAllDrugShipments(),
@@ -256,19 +293,19 @@ export function AddPricesModal({
     }
   }, [open, priceList])
 
-  function updateCard(key: CardKey, patch: Partial<PriceCardState>) {
+  const updateCard = useCallback((key: CardKey, patch: Partial<PriceCardState>) => {
     setCards((prev) => {
       const current = prev[key]
       if (!current) return prev
       return { ...prev, [key]: { ...current, ...patch } }
     })
-  }
+  }, [])
 
-  function markForRemoval(key: CardKey) {
+  const markForRemoval = useCallback((key: CardKey) => {
     updateCard(key, { markedForRemoval: true, price: "", prepaymentAmount: "" })
-  }
+  }, [updateCard])
 
-  function undoRemoval(key: CardKey) {
+  const undoRemoval = useCallback((key: CardKey) => {
     setCards((prev) => {
       const current = prev[key]
       if (!current?.initial) return prev
@@ -285,7 +322,7 @@ export function AddPricesModal({
         },
       }
     })
-  }
+  }, [])
 
   const filteredServices = useMemo(() => {
     const q = searchServices.trim().toLowerCase()
@@ -428,228 +465,322 @@ export function AddPricesModal({
 
   const disabled = saving || loadingData
 
+  /** Gates Cancel/Skip/ESC/overlay: unsaved edits need an explicit discard. */
+  const requestClose = useCallback(
+    (next: boolean) => {
+      if (!next && Object.values(cards).some(isCardDirty)) {
+        setDiscardConfirmOpen(true)
+        return
+      }
+      onOpenChange(next)
+    },
+    [cards, onOpenChange, setDiscardConfirmOpen]
+  )
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {t("priceLists.modals.addPrices")}
-            {priceList ? ` — ${priceList.name}` : ""}
-          </DialogTitle>
-          <DialogDescription>
-            {t("priceLists.help.addPricesInfo")}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={requestClose}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {t("priceLists.modals.addPrices")}
+              {priceList ? ` — ${priceList.name}` : ""}
+            </DialogTitle>
+            <DialogDescription>
+              {t("priceLists.help.addPricesInfo")}
+            </DialogDescription>
+          </DialogHeader>
 
-        {loadingData ? (
-          <div className="flex justify-center py-12" role="status">
-            <Spinner className="size-8" />
-          </div>
-        ) : loadError ? (
-          <EmptyState
-            title={t("priceLists.messages.loadError")}
-            description={t("priceLists.messages.pricesSaveError")}
-          />
-        ) : (
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as TabKey)}
-            className="flex flex-col gap-4"
-          >
-            <TabsList className="w-full">
-              <TabsTrigger value="services" className="w-full justify-center gap-2">
-                {t("priceLists.tabs.services")}
-                <Badge variant="secondary">{formatNumber(filteredServices.length)}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="drugs" className="w-full justify-center gap-2">
-                {t("priceLists.tabs.drugs")}
-                <Badge variant="secondary">{formatNumber(filteredDrugs.length)}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="supplies" className="w-full justify-center gap-2">
-                {t("priceLists.tabs.supplies")}
-                <Badge variant="secondary">{formatNumber(filteredSupplies.length)}</Badge>
-              </TabsTrigger>
-            </TabsList>
+          {loadingData ? (
+            <div className="flex justify-center py-12" role="status">
+              <Spinner className="size-8" />
+            </div>
+          ) : loadError ? (
+            <EmptyState
+              title={t("priceLists.messages.loadError")}
+              description={t("priceLists.messages.pricesSaveError")}
+            />
+          ) : (
+            <Tabs
+              value={tab}
+              onValueChange={(v) => setTab(v as TabKey)}
+              className="flex flex-col gap-4"
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="services" className="w-full justify-center gap-2">
+                  {t("priceLists.tabs.services")}
+                  <Badge variant="secondary">{formatNumber(filteredServices.length, 0, locale)}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="drugs" className="w-full justify-center gap-2">
+                  {t("priceLists.tabs.drugs")}
+                  <Badge variant="secondary">{formatNumber(filteredDrugs.length, 0, locale)}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="supplies" className="w-full justify-center gap-2">
+                  {t("priceLists.tabs.supplies")}
+                  <Badge variant="secondary">{formatNumber(filteredSupplies.length, 0, locale)}</Badge>
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Services */}
-            <TabsContent value="services" className="flex flex-col gap-3">
-              <Input
-                type="search"
-                value={searchServices}
-                onChange={(e) => setSearchServices(e.target.value)}
-                placeholder={t("priceLists.placeholders.searchServices")}
-                aria-label={t("priceLists.placeholders.searchServices")}
-              />
-              {filteredServices.length === 0 ? (
-                <EmptyState title={t("priceLists.messages.noServices")} />
-              ) : (
-                <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
-                  {filteredServices.map((s) => {
-                    const key = serviceKey(s.serviceId)
-                    const card = cards[key]
-                    const marked = card?.markedForRemoval === true
-                    const priced =
-                      card?.initial != null ||
-                      (card?.price.trim() ?? "") !== ""
-                    return (
-                      <PriceCardShell
-                        key={key}
-                        marked={marked}
-                        priced={priced}
-                        title={s.name}
-                        badge={
-                          <Badge variant="secondary">
-                            {t(`priceLists.serviceTypes.${s.serviceType}`)}
-                          </Badge>
-                        }
-                        onRemove={priced && card?.initial != null && !marked ? () => markForRemoval(key) : undefined}
-                        onUndo={marked ? () => undoRemoval(key) : undefined}
-                      >
-                        <PriceInputs
-                          idPrefix={key}
-                          card={card}
-                          withPrepayment
-                          onChange={(patch) => updateCard(key, patch)}
+              {/* Services */}
+              <TabsContent value="services" className="flex flex-col gap-3">
+                <Input
+                  type="search"
+                  value={searchServices}
+                  onChange={(e) => setSearchServices(e.target.value)}
+                  placeholder={t("priceLists.placeholders.searchServices")}
+                  aria-label={t("priceLists.placeholders.searchServices")}
+                />
+                {filteredServices.length === 0 ? (
+                  <EmptyState title={t("priceLists.messages.noServices")} />
+                ) : (
+                  <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
+                    {filteredServices.map((s) => {
+                      const key = serviceKey(s.serviceId)
+                      return (
+                        <ServicePriceRow
+                          key={key}
+                          cardKey={key}
+                          service={s}
+                          card={cards[key]}
+                          onUpdate={updateCard}
+                          onRemove={markForRemoval}
+                          onUndo={undoRemoval}
                         />
-                      </PriceCardShell>
-                    )
-                  })}
-                </div>
-              )}
-            </TabsContent>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
 
-            {/* Drug shipments */}
-            <TabsContent value="drugs" className="flex flex-col gap-3">
-              <Input
-                type="search"
-                value={searchDrugs}
-                onChange={(e) => setSearchDrugs(e.target.value)}
-                placeholder={t("priceLists.placeholders.searchDrugs")}
-                aria-label={t("priceLists.placeholders.searchDrugs")}
-              />
-              {filteredDrugs.length === 0 ? (
-                <EmptyState title={t("priceLists.messages.noDrugs")} />
-              ) : (
-                <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
-                  {filteredDrugs.map((d) => {
-                    const key = drugKey(d.shipmentId)
-                    const card = cards[key]
-                    const marked = card?.markedForRemoval === true
-                    const priced =
-                      card?.initial != null ||
-                      (card?.price.trim() ?? "") !== ""
-                    return (
-                      <PriceCardShell
-                        key={key}
-                        marked={marked}
-                        priced={priced}
-                        title={d.drugName}
-                        badge={
-                          <span className="text-xs text-muted-foreground">
-                             {d.warehouseName} · {t("priceLists.fields.quantity")} {formatNumber(d.quantity)}
-                           </span>
-                         }
-                         buyPrice={d.buyPrice}
-                         onRemove={priced && card?.initial != null && !marked ? () => markForRemoval(key) : undefined}
-                        onUndo={marked ? () => undoRemoval(key) : undefined}
-                      >
-                        <PriceInputs
-                          idPrefix={key}
-                          card={card}
+              {/* Drug shipments */}
+              <TabsContent value="drugs" className="flex flex-col gap-3">
+                <Input
+                  type="search"
+                  value={searchDrugs}
+                  onChange={(e) => setSearchDrugs(e.target.value)}
+                  placeholder={t("priceLists.placeholders.searchDrugs")}
+                  aria-label={t("priceLists.placeholders.searchDrugs")}
+                />
+                {filteredDrugs.length === 0 ? (
+                  <EmptyState title={t("priceLists.messages.noDrugs")} />
+                ) : (
+                  <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
+                    {filteredDrugs.map((d) => {
+                      const key = drugKey(d.shipmentId)
+                      return (
+                        <ShipmentPriceRow
+                          key={key}
+                          cardKey={key}
+                          title={d.drugName}
+                          warehouseName={d.warehouseName}
+                          quantity={d.quantity}
+                          buyPrice={d.buyPrice}
                           withPrepayment
-                          onChange={(patch) => updateCard(key, patch)}
+                          card={cards[key]}
+                          onUpdate={updateCard}
+                          onRemove={markForRemoval}
+                          onUndo={undoRemoval}
                         />
-                      </PriceCardShell>
-                    )
-                  })}
-                </div>
-              )}
-            </TabsContent>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
 
-            {/* Medical supplies */}
-            <TabsContent value="supplies" className="flex flex-col gap-3">
-              <Input
-                type="search"
-                value={searchSupplies}
-                onChange={(e) => setSearchSupplies(e.target.value)}
-                placeholder={t("priceLists.placeholders.searchSupplies")}
-                aria-label={t("priceLists.placeholders.searchSupplies")}
-              />
-              {filteredSupplies.length === 0 ? (
-                <EmptyState title={t("priceLists.messages.noSupplies")} />
-              ) : (
-                <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
-                  {filteredSupplies.map((sup) => {
-                    const key = supplyKey(sup.shipmentId)
-                    const card = cards[key]
-                    const marked = card?.markedForRemoval === true
-                    const priced =
-                      card?.initial != null ||
-                      (card?.price.trim() ?? "") !== ""
-                    return (
-                      <PriceCardShell
-                        key={key}
-                        marked={marked}
-                        priced={priced}
-                        title={sup.supplyName}
-                        badge={
-                          <span className="text-xs text-muted-foreground">
-                             {sup.warehouseName} · {t("priceLists.fields.quantity")} {formatNumber(sup.quantity)}
-                           </span>
-                         }
-                         buyPrice={sup.buyPrice}
-                         onRemove={priced && card?.initial != null && !marked ? () => markForRemoval(key) : undefined}
-                        onUndo={marked ? () => undoRemoval(key) : undefined}
-                      >
-                        <PriceInputs
-                          idPrefix={key}
-                          card={card}
+              {/* Medical supplies */}
+              <TabsContent value="supplies" className="flex flex-col gap-3">
+                <Input
+                  type="search"
+                  value={searchSupplies}
+                  onChange={(e) => setSearchSupplies(e.target.value)}
+                  placeholder={t("priceLists.placeholders.searchSupplies")}
+                  aria-label={t("priceLists.placeholders.searchSupplies")}
+                />
+                {filteredSupplies.length === 0 ? (
+                  <EmptyState title={t("priceLists.messages.noSupplies")} />
+                ) : (
+                  <div className="grid max-h-[45vh] grid-cols-1 gap-3 overflow-y-auto pe-1 md:grid-cols-2">
+                    {filteredSupplies.map((sup) => {
+                      const key = supplyKey(sup.shipmentId)
+                      return (
+                        <ShipmentPriceRow
+                          key={key}
+                          cardKey={key}
+                          title={sup.supplyName}
+                          warehouseName={sup.warehouseName}
+                          quantity={sup.quantity}
+                          buyPrice={sup.buyPrice}
                           withPrepayment={false}
-                          onChange={(patch) => updateCard(key, patch)}
+                          card={cards[key]}
+                          onUpdate={updateCard}
+                          onRemove={markForRemoval}
+                          onUndo={undoRemoval}
                         />
-                      </PriceCardShell>
-                    )
-                  })}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={saving}
-          >
-            {t("common.cancel")}
-          </Button>
-          {showSkip ? (
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => requestClose(false)}
               disabled={saving}
             >
-              {t("priceLists.buttons.skipForNow")}
+              {t("common.cancel")}
             </Button>
-          ) : null}
-          <Button onClick={handleSave} disabled={disabled}>
-            {saving ? (
-              <>
-                <Spinner aria-hidden className="me-1.5" />
-                {t("priceLists.buttons.saving")}
-              </>
-            ) : (
-              t("priceLists.buttons.savePrices")
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {showSkip ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => requestClose(false)}
+                disabled={saving}
+              >
+                {t("priceLists.buttons.skipForNow")}
+              </Button>
+            ) : null}
+            <Button onClick={handleSave} disabled={disabled}>
+              {saving ? (
+                <>
+                  <Spinner aria-hidden className="me-1.5" />
+                  {t("priceLists.buttons.saving")}
+                </>
+              ) : (
+                t("priceLists.buttons.savePrices")
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={discardConfirmOpen}
+        onOpenChange={setDiscardConfirmOpen}
+        variant="warning"
+        title={t("priceLists.messages.discardChangesTitle")}
+        description={t("priceLists.messages.discardChangesText")}
+        confirmLabel={t("priceLists.messages.discardChangesConfirm")}
+        onConfirm={() => {
+          setDiscardConfirmOpen(false)
+          onOpenChange(false)
+        }}
+      />
+    </>
   )
 }
+
+/* ----------------------------------------------------------------
+   Row components (memoized: one keystroke re-renders one row)
+   ---------------------------------------------------------------- */
+
+type RowUpdate = (key: CardKey, patch: Partial<PriceCardState>) => void
+
+const ServicePriceRow = memo(function ServicePriceRow({
+  cardKey,
+  service,
+  card,
+  onUpdate,
+  onRemove,
+  onUndo,
+}: {
+  cardKey: CardKey
+  service: NormalizedService
+  card?: PriceCardState
+  onUpdate: RowUpdate
+  onRemove: (key: CardKey) => void
+  onUndo: (key: CardKey) => void
+}) {
+  const { t } = useTranslation()
+  const marked = card?.markedForRemoval === true
+  const priced = card?.initial != null || (card?.price.trim() ?? "") !== ""
+
+  return (
+    <PriceCardShell
+      marked={marked}
+      priced={priced}
+      title={service.name}
+      badge={
+        <Badge variant="secondary">
+          {t(`priceLists.serviceTypes.${service.serviceType}`)}
+        </Badge>
+      }
+      onRemove={
+        priced && card?.initial != null && !marked
+          ? () => onRemove(cardKey)
+          : undefined
+      }
+      onUndo={marked ? () => onUndo(cardKey) : undefined}
+    >
+      <PriceInputs
+        idPrefix={cardKey}
+        card={card}
+        withPrepayment
+        onChange={(patch) => onUpdate(cardKey, patch)}
+      />
+    </PriceCardShell>
+  )
+})
+
+const ShipmentPriceRow = memo(function ShipmentPriceRow({
+  cardKey,
+  title,
+  warehouseName,
+  quantity,
+  buyPrice,
+  withPrepayment,
+  card,
+  onUpdate,
+  onRemove,
+  onUndo,
+}: {
+  cardKey: CardKey
+  title: string
+  warehouseName: string
+  quantity: number | string
+  buyPrice: number | string
+  withPrepayment: boolean
+  card?: PriceCardState
+  onUpdate: RowUpdate
+  onRemove: (key: CardKey) => void
+  onUndo: (key: CardKey) => void
+}) {
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
+  const marked = card?.markedForRemoval === true
+  const priced = card?.initial != null || (card?.price.trim() ?? "") !== ""
+
+  return (
+    <PriceCardShell
+      marked={marked}
+      priced={priced}
+      title={title}
+      badge={
+        <span className="text-xs text-muted-foreground">
+          {warehouseName} · {t("priceLists.fields.quantity")}{" "}
+          {formatNumber(quantity, 0, locale)}
+        </span>
+      }
+      buyPrice={buyPrice}
+      onRemove={
+        priced && card?.initial != null && !marked
+          ? () => onRemove(cardKey)
+          : undefined
+      }
+      onUndo={marked ? () => onUndo(cardKey) : undefined}
+    >
+      <PriceInputs
+        idPrefix={cardKey}
+        card={card}
+        withPrepayment={withPrepayment}
+        onChange={(patch) => onUpdate(cardKey, patch)}
+      />
+    </PriceCardShell>
+  )
+})
 
 /* ----------------------------------------------------------------
    Card shell & inputs

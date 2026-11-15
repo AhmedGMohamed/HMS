@@ -28,68 +28,81 @@ export const servicePriceRowSchema = z.object({
   prepaymentAmount: z.string(),
 })
 
-export const serviceFormSchema = z.object({
-  name: z.string().min(3, "services.validation.serviceNameLength"),
-  serviceType: z
-    .enum(["once", "hourly", "daily"], {
-      error: "services.validation.serviceTypeRequired",
-    })
-    .or(z.literal("")),
-  autoRenew: z.boolean(),
-  autoAddOnAdmission: z.boolean(),
-  priceRows: z.array(
-    servicePriceRowSchema.superRefine((row, ctx) => {
-      if (!row.isDefaultList && !row.included) return
+export const serviceFormSchema = z
+  .object({
+    name: z.string().min(3, "services.validation.serviceNameLength"),
+    serviceType: z
+      .enum(["once", "hourly", "daily"], {
+        error: "services.validation.serviceTypeRequired",
+      })
+      .or(z.literal("")),
+    autoRenew: z.boolean(),
+    autoAddOnAdmission: z.boolean(),
+    priceRows: z.array(
+      servicePriceRowSchema.superRefine((row, ctx) => {
+        if (!row.isDefaultList && !row.included) return
 
-      const price = row.price.trim()
-      const parsedPrice = Number(price)
-      if (price === "" || !Number.isFinite(parsedPrice) || parsedPrice < 0) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["price"],
-          message: "services.validation.priceRequired",
-        })
-      }
+        const price = row.price.trim()
+        const parsedPrice = Number(price)
+        if (price === "" || !Number.isFinite(parsedPrice) || parsedPrice < 0) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["price"],
+            message: "services.validation.priceRequired",
+          })
+        }
 
-      if (!row.requiresPrepayment) return
+        if (!row.requiresPrepayment) return
 
-      if (
-        row.prepaymentType !== "fixed" &&
-        row.prepaymentType !== "percentage"
-      ) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["prepaymentType"],
-          message: "services.validation.prepaymentAmountRequired",
-        })
-      }
-      const amount = row.prepaymentAmount.trim()
-      const parsedAmount = Number(amount)
-      if (
-        amount === "" ||
-        !Number.isFinite(parsedAmount) ||
-        parsedAmount < 0
-      ) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["prepaymentAmount"],
-          message: "services.validation.prepaymentAmountRequired",
-        })
-        return
-      }
-      if (
-        row.prepaymentType === "percentage" &&
-        (parsedAmount < 0 || parsedAmount > 100)
-      ) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["prepaymentAmount"],
-          message: "services.validation.prepaymentPercentageRange",
-        })
-      }
-    })
-  ),
-})
+        if (
+          row.prepaymentType !== "fixed" &&
+          row.prepaymentType !== "percentage"
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["prepaymentType"],
+            message: "services.validation.prepaymentAmountRequired",
+          })
+        }
+        const amount = row.prepaymentAmount.trim()
+        const parsedAmount = Number(amount)
+        if (
+          amount === "" ||
+          !Number.isFinite(parsedAmount) ||
+          parsedAmount < 0
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["prepaymentAmount"],
+            message: "services.validation.prepaymentAmountRequired",
+          })
+          return
+        }
+        if (
+          row.prepaymentType === "percentage" &&
+          (parsedAmount < 0 || parsedAmount > 100)
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["prepaymentAmount"],
+            message: "services.validation.prepaymentPercentageRange",
+          })
+        }
+      })
+    ),
+  })
+  .superRefine((values, ctx) => {
+    // "" is a valid *input* state (nothing picked yet) but not a valid submit;
+    // rejecting it here keeps the field error reachable instead of relying on
+    // an onSubmit early return.
+    if (values.serviceType === "") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["serviceType"],
+        message: "services.validation.serviceTypeRequired",
+      })
+    }
+  })
 
 export type ServicePriceRowValues = z.infer<typeof servicePriceRowSchema>
 

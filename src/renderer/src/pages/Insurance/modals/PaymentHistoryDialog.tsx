@@ -28,6 +28,7 @@ import {
   resolveLocale,
 } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
+import { ApiError } from "@/lib/errors"
 import { listCompanyPayments } from "@/pages/Insurance/api"
 import type { InsurancePayment } from "@/pages/Insurance/types/insurance"
 
@@ -97,7 +98,12 @@ export function PaymentHistoryDialog({
           <DialogDescription>{companyName}</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[65vh] space-y-4 overflow-y-auto pe-1">
+        <div
+          role="region"
+          aria-label={t("insurance.modals.paymentHistory")}
+          tabIndex={0}
+          className="max-h-[65vh] space-y-4 overflow-y-auto pe-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }, (_, index) => (
@@ -113,7 +119,9 @@ export function PaymentHistoryDialog({
           ) : error ? (
             <Alert variant="destructive">
               <AlertDescription>
-                {t("insurance.messages.loadPaymentHistoryError")}
+                {error instanceof ApiError
+                  ? error.message
+                  : t("insurance.messages.loadPaymentHistoryError")}
               </AlertDescription>
             </Alert>
           ) : payments.length === 0 ? (

@@ -13,6 +13,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
@@ -88,16 +89,16 @@ export function WarehousesPanel({
           <Table aria-label={t("pharmacy.sections.existingWarehouses")}>
             <TableHeader className="sticky top-0 bg-surface-muted">
               <TableRow className="hover:bg-transparent">
-                <TableCell className="p-2 h-12 font-medium text-muted-foreground">
+                <TableHead scope="col" className="p-2 h-12 text-start">
                   {t("pharmacy.table.warehouseName")}
-                </TableCell>
-                <TableCell className="p-2 h-12 font-medium text-muted-foreground">
+                </TableHead>
+                <TableHead scope="col" className="p-2 h-12 text-start">
                   {t("pharmacy.table.location")}
-                </TableCell>
-                <TableCell className="p-2 h-12 font-medium text-muted-foreground text-end">
+                </TableHead>
+                <TableHead scope="col" className="p-2 h-12 text-end">
                   {t("pharmacy.table.totalShipments")}
-                </TableCell>
-                <TableCell className="p-2 h-12 text-end" />
+                </TableHead>
+                <TableHead scope="col" className="p-2 h-12 text-end" />
               </TableRow>
             </TableHeader>
             <TableBody>

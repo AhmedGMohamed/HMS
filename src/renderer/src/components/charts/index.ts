@@ -1,3 +1,20 @@
+/**
+ * Charts barrel — compatibility surface for the route imports that exist today.
+ *
+ * Importing ANY symbol from this barrel pulls every chart wrapper (and with
+ * them `recharts`) into the importing chunk. Route code should import the
+ * specific chart module directly:
+ *
+ *   import { GroupedBarChart } from "@/components/charts/GroupedBarChart"
+ *
+ * or lazy-load it (`lazy(() => import("./GroupedBarChart"))`) so routes that
+ * never draw a chart do not pay for the chart bundle. Recharts-free helpers
+ * (`ChartSrTable`, `ChartEmpty`, formatters, palette) should also be imported
+ * from their own modules.
+ *
+ * Re-exports below are kept so existing pages compile; converting those pages
+ * to direct/lazy imports is page-package work, not a Phase 1 change.
+ */
 export { RevenueLineChart } from "./RevenueLineChart"
 export type {
   RevenueLineChartProps,

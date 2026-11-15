@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontalIcon } from "lucide-react"
+import { formatDate, formatNumber, resolveLocale } from "@/lib/utils"
 
 interface DemoPatientRow {
   id: number
@@ -107,7 +108,9 @@ const STATUS_LABEL: Record<DemoPatientRow["status"], string> = {
  * when Phase 6 lands.
  */
 export default function ComponentsDemoPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
+  const [search, setSearch] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [warningOpen, setWarningOpen] = useState(false)
   const [chartLoading, setChartLoading] = useState(false)
@@ -144,9 +147,21 @@ export default function ComponentsDemoPage() {
     return copy
   }, [sort])
 
+  // `DataTable` is caller-driven: it renders whatever `data` it gets, so the
+  // demo filters its own rows to make the search field honest.
+  const visiblePatients = useMemo<DemoPatientRow[]>(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return sortedPatients
+    return sortedPatients.filter((row) =>
+      [row.name, row.nationalId, STATUS_LABEL[row.status]].some((value) =>
+        value.toLowerCase().includes(query)
+      )
+    )
+  }, [search, sortedPatients])
+
   const chartData = useMemo<RevenueLineChartPoint[]>(
-    () => generateRevenueSeries(),
-    []
+    () => generateRevenueSeries(i18n.language),
+    [i18n.language]
   )
 
   const donutData = useMemo<PatientServicesDonutSlice[]>(
@@ -187,7 +202,7 @@ export default function ComponentsDemoPage() {
         id: "totalBilled",
         header: t("patients.table.totalBilled"),
         numeric: true,
-        cell: (r) => formatNumber(r.totalBilled),
+        cell: (r) => formatNumber(r.totalBilled, 0, locale),
       },
       {
         id: "actions",
@@ -216,7 +231,7 @@ export default function ComponentsDemoPage() {
         ),
       },
     ],
-    [t]
+    [t, locale]
   )
 
   const handleDangerConfirm = async () => {
@@ -288,18 +303,18 @@ export default function ComponentsDemoPage() {
       >
         <DataTable<DemoPatientRow>
           ariaLabel="Demo patients"
-          data={sortedPatients}
+          data={visiblePatients}
           columns={columns}
           getRowId={(r) => r.id}
           search={{
-            value: "",
-            onChange: () => {},
+            value: search,
+            onChange: setSearch,
             placeholder: t("patients.searchPlaceholder") ?? "Search patients…",
           }}
           pagination={{
             page: 1,
             pageSize: 10,
-            total: sortedPatients.length,
+            total: visiblePatients.length,
             onPageChange: () => {},
             onPageSizeChange: () => {},
           }}
@@ -437,17 +452,13 @@ function Section({
   )
 }
 
-function formatNumber(n: number): string {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-}
-
-function generateRevenueSeries(): RevenueLineChartPoint[] {
+function generateRevenueSeries(language: string): RevenueLineChartPoint[] {
   const out: RevenueLineChartPoint[] = []
   const today = new Date()
   for (let i = 13; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
-    const label = `${d.getMonth() + 1}/${d.getDate()}`
+    const label = formatDate(d, language)
     const wave = Math.sin(i / 3) * 4_000 + 11_000
     const noise = (i % 4) * 600
     const revenue = Math.round(wave + noise)

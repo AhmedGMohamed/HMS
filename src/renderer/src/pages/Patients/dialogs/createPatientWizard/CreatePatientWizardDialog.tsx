@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FormProvider, useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { toast } from "sonner"
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from "lucide-react"
 
@@ -17,12 +19,18 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 import { Stepper, type StepperStep } from "@/pages/Patients/components/Stepper"
-import type {
-  WizardAdmissionValues,
-  WizardBasicValues,
-  WizardGuardianValues,
-  WizardMedicalValues,
-  WizardPaymentValues,
+import {
+  VALIDATION_KEYS,
+  wizardAdmissionSchema,
+  wizardBasicSchema,
+  wizardGuardianSchema,
+  wizardMedicalSchema,
+  wizardPaymentSchema,
+  type WizardAdmissionValues,
+  type WizardBasicValues,
+  type WizardGuardianValues,
+  type WizardMedicalValues,
+  type WizardPaymentValues,
 } from "@/pages/Patients/schemas/patient.schema"
 import { StepperStepIds } from "./StepperStepIds"
 import { createPatient } from "@/pages/Patients/api"
@@ -72,6 +80,92 @@ export type WizardFormShape = {
   medical: WizardMedicalValues
 }
 
+/**
+ * Form-level schemas. The per-step schemas in `patient.schema.ts` are the
+ * source of truth for field rules; these only adapt them to the wizard's
+ * namespaced form shape (`basic.*`, `payment.*`, …) so a single RHF resolver
+ * can validate, and so each step's `Next` gate uses the exact same rules.
+ */
+const wizardBasicFormSchema = wizardBasicSchema
+  .extend({
+    /* The form keeps `""` as the "not chosen yet" value (the select has an
+       empty option); the real enum is enforced below rather than by
+       `wizardBasicSchema` itself. */
+    gender: z.union([
+      z.literal("male"),
+      z.literal("female"),
+      z.literal("other"),
+      z.literal(""),
+    ]),
+  })
+  .superRefine((value, ctx) => {
+    if (value.gender === "") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["gender"],
+        message: VALIDATION_KEYS.gender,
+      })
+    }
+  })
+
+const wizardAdmissionFormSchema = wizardAdmissionSchema.superRefine(
+  (value, ctx) => {
+    /* Admission is only required when the user opts into admitting on save;
+       `PatientWizardBasicStep` clears these values when the toggle goes off. */
+    if (!value.admitOnSave) return
+    if (!value.diagnosis || value.diagnosis.trim() === "") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["diagnosis"],
+        message: VALIDATION_KEYS.diagnosis,
+      })
+    }
+    if (value.attendingDoctorIds.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["attendingDoctorIds"],
+        message: VALIDATION_KEYS.attendingDoctor,
+      })
+    }
+  }
+)
+
+const wizardFormSchema = z.object({
+  basic: wizardBasicFormSchema,
+  guardian: wizardGuardianSchema,
+  payment: wizardPaymentSchema,
+  admission: wizardAdmissionFormSchema,
+  medical: wizardMedicalSchema,
+})
+
+/** RHF path root for each internal step id (used by `trigger`). */
+const STEP_FIELD = {
+  [StepperStepIds.Basic]: "basic",
+  [StepperStepIds.Guardian]: "guardian",
+  [StepperStepIds.Payment]: "payment",
+  [StepperStepIds.Admission]: "admission",
+  [StepperStepIds.Medical]: "medical",
+} as const
+
+/** Same rules as the resolver, scoped to one step — drives `Next`'s disabled state. */
+function isStepValid(step: number, values: WizardFormShape): boolean {
+  switch (step) {
+    case StepperStepIds.Basic:
+      return wizardBasicFormSchema.safeParse(values.basic).success
+    case StepperStepIds.Guardian:
+      return wizardGuardianSchema.safeParse(values.guardian).success
+    case StepperStepIds.Payment:
+      return wizardPaymentSchema.safeParse(values.payment).success
+    case StepperStepIds.Admission:
+      return wizardAdmissionFormSchema.safeParse(values.admission).success
+    case StepperStepIds.Medical:
+      /* Optional step: referring doctor may stay empty. */
+      return wizardMedicalSchema.safeParse(values.medical).success
+    default:
+      return false
+  }
+}
+
 interface CreatePatientWizardDialogProps {
   onCreated?: () => void
 }
@@ -85,6 +179,7 @@ export function CreatePatientWizardDialog({
   const [submitting, setSubmitting] = useState(false)
 
   const form = useForm<WizardFormShape>({
+    resolver: zodResolver(wizardFormSchema),
     defaultValues: {
       basic: { name: "", gender: "", address: "" },
       guardian: {
@@ -194,28 +289,16 @@ export function CreatePatientWizardDialog({
     }
   }
 
-  async function validateInternal(target: number): Promise<boolean> {
-    switch (target) {
-      case StepperStepIds.Basic:
-        return form.trigger("basic", { shouldFocus: true })
-      case StepperStepIds.Guardian:
-        return form.trigger("guardian", { shouldFocus: true })
-      case StepperStepIds.Payment:
-        return form.trigger("payment", { shouldFocus: true })
-      case StepperStepIds.Admission:
-        if (!form.getValues("admission.admitOnSave")) return true
-        return form.trigger("admission", { shouldFocus: true })
-      case StepperStepIds.Medical:
-        /* Medical step is optional — referring-doctor select CAN
-           be empty. No validation gate enforces values. */
-        return true
-      default:
-        return false
-    }
+  async function validateStep(target: number): Promise<boolean> {
+    const field = STEP_FIELD[target as keyof typeof STEP_FIELD]
+    if (!field) return false
+    /* `trigger` with the resolver runs the real step rules and focuses the
+       first invalid control (design.md §6.3). */
+    return form.trigger(field, { shouldFocus: true })
   }
 
   async function goForward() {
-    if (!(await validateInternal(step))) return
+    if (!(await validateStep(step))) return
     const next = nextStep(step)
     if (next != null) setStep(next)
   }
@@ -245,7 +328,7 @@ export function CreatePatientWizardDialog({
       ...(admitOnSave ? [StepperStepIds.Admission] : []),
       StepperStepIds.Medical,
     ]) {
-      const ok = await validateInternal(target)
+      const ok = await validateStep(target)
       if (!ok) {
         setStep(target)
         return
@@ -316,10 +399,16 @@ export function CreatePatientWizardDialog({
 
   /** Save button is only the LAST visible step. When the internal
       step is "Medical", render as Save Patient (the only path that
-      actually creates the patient). Every step renders its
-      respective Submit/Reject with `type="button"` + onClick so a
-      stray form-submit never fires handleSubmit behind our back. */
+      actually creates the patient). `Next` is disabled until the current
+      step passes the same schemas the resolver uses; `handleSubmit` still
+      hard-guards on the Medical step so a stray submit can never POST from
+      an earlier step. */
   const isOnLastStep = step === StepperStepIds.Medical
+
+  /* Subscribing to the form values is what makes the `Next` gate live; the
+     rules are the step schemas above, not a second copy. */
+  const watchedValues = form.watch()
+  const canGoForward = isStepValid(step, watchedValues)
 
   return (
     <Dialog
@@ -337,15 +426,16 @@ export function CreatePatientWizardDialog({
 
         <FormProvider {...form}>
           {/*
-           * IMPORTANT: The <form> onSubmit is intentionally non-functional
-           * — we never auto-submit. All submits go through the Save
-           * Patient button's onClick handler, which guards against
-           * accidental calls (see `if (step !== Medical) return`). The
-           * form's only job is to scope RHF's onSubmit behaviour if the
-           * browser ever falls back to its defaults.
+           * Enter submits on the last step: the Save button is the form's
+           * submit control and `onSubmit` delegates to `handleSubmit`, which
+           * refuses to run anywhere except the Medical step. Earlier steps
+           * keep `type="button"` controls, so implicit submission cannot POST.
            */}
           <form
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleSubmit()
+            }}
             className="flex flex-col gap-6"
           >
             {step === StepperStepIds.Basic ? (
@@ -376,13 +466,7 @@ export function CreatePatientWizardDialog({
               </Button>
 
               {isOnLastStep ? (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    void handleSubmit()
-                  }}
-                  disabled={submitting}
-                >
+                <Button type="submit" disabled={submitting}>
                   {submitting ? (
                     <Spinner aria-hidden className="me-2 size-4" />
                   ) : (
@@ -396,7 +480,7 @@ export function CreatePatientWizardDialog({
                   onClick={() => {
                     void goForward()
                   }}
-                  disabled={submitting}
+                  disabled={submitting || !canGoForward}
                 >
                   {t("common.next")}
                   <ArrowRightIcon aria-hidden className="ms-2 size-4" />

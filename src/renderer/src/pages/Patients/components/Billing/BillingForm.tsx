@@ -198,17 +198,13 @@ export function BillingForm({
 
   async function onSave() {
     if (!canManage || billId == null || billId <= 0) return
-    await saver.save()
-    if (saver.error == null) {
+    const outcome = await saver.save()
+    if (outcome.ok) {
       toast.success(t("patients.messages.billingUpdated"))
       billRes.refresh()
-    } else {
-      const msg =
-        saver.error instanceof ApiError
-          ? saver.error.message
-          : t("patients.messages.billingUpdateError")
-      toast.error(msg)
     }
+    /* Failure must not toast success. The error is rendered inline from
+       `saver.error` below; no error toast here (single failure surface). */
   }
 
   const [paymentAmount, setPaymentAmount] = useState(0)
@@ -302,6 +298,16 @@ export function BillingForm({
         />
 
         <div className="border-input-hair w-full border-t" aria-hidden />
+
+        {/* Save failure surface — inline, persistent until the next save, so a
+            failed PUT can never read as success. */}
+        {saver.error ? (
+          <p role="alert" className="text-sm text-danger">
+            {saver.error instanceof ApiError
+              ? saver.error.message
+              : t("patients.messages.billingUpdateError")}
+          </p>
+        ) : null}
 
         {/* Payment + Save */}
         <BillingPaymentSection

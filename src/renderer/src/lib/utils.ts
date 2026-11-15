@@ -8,14 +8,18 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Localised currency formatter.
  *
- * Default uses Arabic locale (per plan §Phase 1) — the app is bilingual
- * (EN/AR) but pricing is consistently quoted in Arabic-locale EGP for
- * the Egyptian deployment. Pass `locale` to override per-page.
+ * Formatting defaults to `en-US` + `EGP` so existing output is unchanged.
+ * Pass `locale` (e.g. `resolveLocale(language)`) to render digits/grouping
+ * per-language, and the trailing `currency` to quote a non-EGP amount.
  */
-export function formatCurrency(amount: number, locale = "en-US"): string {
+export function formatCurrency(
+  amount: number,
+  locale = "en-US",
+  currency = "EGP"
+): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "EGP",
+    currency,
   }).format(amount)
 }
 
@@ -52,13 +56,21 @@ export function toLocalDateString(date: Date): string {
  * returned by the `pg` driver as `"12345"`); non-numeric input is
  * coerced to `0` so a stray string never crashes a render path. NaN
  * and Infinity are also coerced to `0`.
+ *
+ * Grouping follows `locale` (default `en-US`, i.e. Latin digits with
+ * comma separators) — pass `resolveLocale(language)` to localise.
  */
-export function formatNumber(n: number | string, decimals = 0): string {
+export function formatNumber(
+  n: number | string,
+  decimals = 0,
+  locale = "en-US"
+): string {
   const value = Number(n)
-  if (!Number.isFinite(value)) {
-    return (0).toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  }
-  return value.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  const safe = Number.isFinite(value) ? value : 0
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(safe)
 }
 
 /**

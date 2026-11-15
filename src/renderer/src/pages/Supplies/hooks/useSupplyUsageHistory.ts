@@ -29,9 +29,12 @@ export interface UseSupplyUsageHistoryResult {
 /**
  * Supply usage history + summary (Tab 3 of `/supplies`).
  *
- * Mirrors `useDrugTransactions`. The filters object is the SSOT for
- * both `listSupplyUsageHistory` and `getSupplyUsageSummary`, so the
- * summary cards always reflect the currently-filtered list.
+ * `filters` scopes the **history list only**. The summary cards come
+ * from `GET /api/pharmacy/medical-supply-usages/summary`, which is a
+ * global all-time aggregate and accepts no filter parameters (the
+ * server controller ignores its request), so the cards intentionally
+ * do not follow the list filter. The previous docblock claimed the
+ * filters were the SSOT for both; that promise was never implemented.
  */
 export function useSupplyUsageHistory(): UseSupplyUsageHistoryResult {
   const [rows, setRows] = useState<MedicalSupplyUsageRow[]>([])

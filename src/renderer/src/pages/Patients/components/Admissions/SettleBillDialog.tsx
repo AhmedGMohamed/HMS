@@ -56,6 +56,13 @@ interface SettleBillDialogProps {
  * On submit calls T6's `updateBill({ paidAmount })` then
  * invokes the refresh callback.
  */
+
+/** One parse point for the typed amount: empty/invalid reads as 0. */
+function parseAmountInput(raw: string): number {
+  if (raw.trim() === "") return 0
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 export function SettleBillDialog({
   open,
   onOpenChange,
@@ -67,7 +74,10 @@ export function SettleBillDialog({
 }: SettleBillDialogProps) {
   const { t } = useTranslation()
   const language = useUIStore((s) => s.language) as "en" | "ar"
-  const [newPaid, setNewPaid] = useState(() => currentPaid)
+  /* String draft: a number-controlled input cannot represent "1." while the
+     user types, so "1.5" collapsed to "15". Parsed once below. */
+  const [newPaidInput, setNewPaidInput] = useState(() => String(currentPaid))
+  const newPaid = parseAmountInput(newPaidInput)
   const [submitting, setSubmitting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(false)
@@ -75,8 +85,11 @@ export function SettleBillDialog({
   const newBalance = totalAmount - newPaid
   const difference = newPaid - currentPaid
   const exceedsTotal = newPaid > totalAmount
+  /* `0` is the "no bill yet" sentinel produced by `admissionsShape`. */
+  const hasBill = billId > 0
 
   function handleSettle() {
+    if (!hasBill) return
     if (newPaid < 0) {
       toast.error(t("patients.validation.invalidAmount"))
       return
@@ -174,75 +187,82 @@ export function SettleBillDialog({
 
           <Separator />
 
-          {/* Input */}
-          <div>
-            <label
-              htmlFor="settle-new-paid"
-              className="block text-sm font-medium"
-            >
-              {t("patients.billing.newPaidAmount")}
-            </label>
-            <InputGroup className="mt-1">
-              <InputGroupAddon align="inline-start">
-                <InputGroupText>EGP</InputGroupText>
-              </InputGroupAddon>
-              <InputGroupInput
-                id="settle-new-paid"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={newPaid === 0 ? "" : String(newPaid)}
-                onChange={(e) => {
-                  const raw = e.target.value
-                  setNewPaid(raw === "" ? 0 : Number(raw))
-                }}
-                disabled={submitting}
-              />
-            </InputGroup>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {t("patients.help.settleBillAmountInfo")}
-            </p>
-          </div>
+          {hasBill ? (
+            <>
+              {/* Input */}
+              <div>
+                <label
+                  htmlFor="settle-new-paid"
+                  className="block text-sm font-medium"
+                >
+                  {t("patients.billing.newPaidAmount")}
+                </label>
+                <InputGroup className="mt-1">
+                  <InputGroupAddon align="inline-start">
+                    <InputGroupText>EGP</InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="settle-new-paid"
+                    type="text"
+                    inputMode="decimal"
+                    value={newPaidInput}
+                    onChange={(e) => setNewPaidInput(e.currentTarget.value)}
+                    onBlur={() => setNewPaidInput(String(newPaid))}
+                    disabled={submitting}
+                  />
+                </InputGroup>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {t("patients.help.settleBillAmountInfo")}
+                </p>
+              </div>
 
-          {/* Preview */}
-          <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">
-                {t("patients.billing.newBalance")}
-              </span>
-              <p
-                className={
-                  (newBalance > 0
-                    ? "text-destructive"
-                    : "text-success") +
-                  " tabular-nums font-medium"
-                }
-              >
-                {formatCurrency(Math.abs(newBalance), language)}{" "}
-                <span className="text-muted-foreground text-xs">
-                  {newBalance > 0
-                    ? t("patients.messages.due")
-                    : t("patients.messages.credit")}
-                </span>
-              </p>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">
-                {t("patients.billing.difference")}
-              </span>
-              <p
-                className={
-                  (difference >= 0
-                    ? "text-success"
-                    : "text-destructive") +
-                  " tabular-nums font-medium"
-                }
-              >
-                {formatCurrency(Math.abs(difference), language)}
-              </p>
-            </div>
-          </div>
+              {/* Preview */}
+              <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("patients.billing.newBalance")}
+                  </span>
+                  <p
+                    className={
+                      (newBalance > 0
+                        ? "text-destructive"
+                        : "text-success") +
+                      " tabular-nums font-medium"
+                    }
+                  >
+                    {formatCurrency(Math.abs(newBalance), language)}{" "}
+                    <span className="text-muted-foreground text-xs">
+                      {newBalance > 0
+                        ? t("patients.messages.due")
+                        : t("patients.messages.credit")}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("patients.billing.difference")}
+                  </span>
+                  <p
+                    className={
+                      (difference >= 0
+                        ? "text-success"
+                        : "text-destructive") +
+                      " tabular-nums font-medium"
+                    }
+                  >
+                    {formatCurrency(Math.abs(difference), language)}
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p
+              className="rounded-md border border-dashed bg-muted/30 p-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              {t("patients.messages.noBillYet")}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="flex flex-row justify-end gap-2">
@@ -258,7 +278,7 @@ export function SettleBillDialog({
             type="button"
             variant="default"
             onClick={handleSettle}
-            disabled={submitting || newPaid < 0}
+            disabled={submitting || newPaid < 0 || !hasBill}
           >
             {submitting ? (
               <Spinner aria-hidden className="me-1.5 size-3" />

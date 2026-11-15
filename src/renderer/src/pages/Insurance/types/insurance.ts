@@ -285,10 +285,12 @@ export interface BillFinancials {
 
 /**
  * One patient group inside the company report (ported
- * `groupItemsByPatient`). `patientPaid` / `patientTotal` are the
- * **maximum** across the group's bills — legacy parity.
+ * `groupItemsByPatient`). Groups are keyed by `patientId`; `patientName`
+ * carries the display label. `patientPaid` / `patientTotal` are summed
+ * across the group's bills (each bill counted once).
  */
 export interface PatientItemGroup {
+  patientName: string
   items: ReportItem[]
   totalCost: number
   patientPaid: number

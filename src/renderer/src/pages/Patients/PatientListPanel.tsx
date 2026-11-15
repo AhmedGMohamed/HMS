@@ -2,12 +2,14 @@
 
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import {
   DataTable,
   type ColumnDef,
 } from "@/components/common/DataTable"
+import { resolveLocale } from "@/lib/utils"
+import { useUIStore } from "@/store/uiStore"
 import type { UseListDataResult } from "@/hooks/useListData"
 import type { Patient } from "@/pages/Patients/types/patient"
 import {
@@ -41,6 +43,7 @@ export function PatientListPanel({
 }: PatientListPanelProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const language = useUIStore((s) => s.language) ?? "en"
 
   const sort: SortState = useMemo(
     () =>
@@ -79,6 +82,18 @@ export function PatientListPanel({
         header: t("patients.table.name"),
         sortable: true,
         width: "min-w-48 w-72",
+        /* Real link semantics: ctrl/middle-click and "open in new tab" work.
+           The row click below stays as a mouse affordance only, so the table
+           is no longer the sole way in. */
+        cell: (row) => (
+          <Link
+            to={`/patients/${row.patientId}`}
+            className="font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-hidden"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {row.name}
+          </Link>
+        ),
       },
       {
         id: "nationalId",
@@ -110,7 +125,9 @@ export function PatientListPanel({
         sortable: true,
         cell: (row) =>
           row.registrationDate
-            ? new Date(row.registrationDate).toLocaleDateString()
+            ? new Date(row.registrationDate).toLocaleDateString(
+                resolveLocale(language)
+              )
             : "—",
       },
       {
@@ -122,7 +139,7 @@ export function PatientListPanel({
             : t("patients.status.notAdmitted"),
       },
     ],
-    [t]
+    [t, language]
   )
 
   return (

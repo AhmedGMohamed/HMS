@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useForm, type FieldErrors } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
@@ -22,7 +23,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangleIcon } from "lucide-react"
 
 import { getActivePatients } from "@/pages/Drugs/api"
-import { resolveQuantity } from "@/pages/Drugs/schemas/sell.schema"
+import {
+  resolveQuantity,
+  sellSchema,
+  type SellValues,
+} from "@/pages/Drugs/schemas/sell.schema"
 import { cn, formatNumber, formatCurrency, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 import type {
@@ -72,20 +77,16 @@ export function SellDrugModal({
   const ratio = shipment.unitConversion?.ratio ?? 1
   const available = shipment.quantity
 
-  const { register, handleSubmit, watch, setValue } = useForm<{
-    transactionType: TransactionType
-    patientId: number | null
-    quantityLarger: number
-    quantitySmaller: number
-    priceListId: number | null
-    totalPrice: number
-  }>({
+  const { register, handleSubmit, watch, setValue, setError, setFocus,
+    formState: { errors } } = useForm<SellValues>({
     mode: "onBlur",
+    resolver: zodResolver(sellSchema),
     defaultValues: {
       transactionType: "outside",
       patientId: null,
       quantityLarger: 0,
       quantitySmaller: 0,
+      ratio,
       priceListId: priceLists[0]?.pricelistId ?? null,
       totalPrice: 0,
     },
@@ -94,12 +95,17 @@ export function SellDrugModal({
   const [patients, setPatients] = useState<ActivePatient[]>([])
   const [loadingPatients, setLoadingPatients] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  /**
+   * True once the cashier edits the total by hand. The auto-total effect
+   * then stops writing `totalPrice` — it used to clobber the manual
+   * override on every unrelated re-render.
+   */
+  const totalOverridden = useRef(false)
 
   const transactionType = watch("transactionType")
   const quantityLarger = watch("quantityLarger")
   const quantitySmaller = watch("quantitySmaller")
   const priceListId = watch("priceListId")
-  const totalPrice = watch("totalPrice")
   const selectedPatientId = watch("patientId")
 
   // The patient picker is fed by `/api/patients/active`, which the
@@ -140,53 +146,58 @@ export function SellDrugModal({
     return sp ? Number(sp.price) : 0
   }, [shipment.prices, priceListId])
 
-  // Auto-calc total when qty changes (unless the cashier typed an override).
+  // Auto-calc total from quantity × selected price unless the cashier
+  // typed an override (sticky for this dialog instance — a manual total
+  // must survive quantity/price-list re-renders).
   useEffect(() => {
-    const auto = selectedPrice * resolvedQty
-    setValue("totalPrice", auto)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPrice, resolvedQty])
+    if (totalOverridden.current) return
+    setValue("totalPrice", selectedPrice * resolvedQty)
+  }, [selectedPrice, resolvedQty, setValue])
 
   const belowBuyPrice =
     selectedPrice > 0 && Number(shipment.buyPrice) > selectedPrice
 
-  async function doSubmit(values: {
-    transactionType: TransactionType
-    patientId: number | null
-    priceListId: number | null
-  }) {
-    const patientId = Number.isFinite(values.patientId) ? values.patientId : null
-    if (values.transactionType !== "outside" && patientId == null) {
-      toast.error(t("pharmacy.validation.patientRequired"))
-      return
-    }
-    // For patient/check, the backend requires a current admission.
-    // The picker only lists admitted patients, so a missing
-    // `activePatientHistoryId` here means the list went stale between
-    // fetch and submit (e.g. the patient was just discharged).
+  const fieldMessage = (message?: string) => (message ? t(message) : undefined)
+
+  /** Focus the first field flagged by the resolver, in visual order. */
+  function focusFirstError(fieldErrors: FieldErrors<SellValues>) {
+    const order: (keyof SellValues)[] = [
+      "patientId",
+      "quantityLarger",
+      "quantitySmaller",
+      "priceListId",
+      "totalPrice",
+    ]
+    const first = order.find((name) => fieldErrors[name])
+    if (first) setFocus(first, { shouldSelect: true })
+  }
+
+  async function doSubmit(values: SellValues) {
+    // The resolver already covered patient/quantity/price-list/price.
+    // Two rules depend on live data and are surfaced inline here.
     const patientHistoryId =
       values.transactionType !== "outside" && selectedPatient
         ? selectedPatient.activePatientHistoryId
         : null
     if (values.transactionType !== "outside" && !patientHistoryId) {
-      toast.error(t("pharmacy.validation.patientAdmissionRequired"))
+      setError("patientId", {
+        type: "manual",
+        message: "pharmacy.validation.patientAdmissionRequired",
+      })
+      setFocus("patientId")
       return
     }
-    const priceListId = values.priceListId
-    if (priceListId == null || !Number.isFinite(priceListId) || priceListId <= 0) {
-      toast.error(t("pharmacy.validation.priceListRequired"))
-      return
-    }
-    if (resolvedQty <= 0) {
-      toast.error(t("pharmacy.validation.quantityMin"))
-      return
-    }
+    const resolvedQty = resolveQuantity(
+      values.quantityLarger,
+      values.quantitySmaller,
+      ratio
+    )
     if (resolvedQty > available) {
-      toast.error(t("pharmacy.validation.insufficientQuantity"))
-      return
-    }
-    if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
-      toast.error(t("pharmacy.validation.invalidPrice"))
+      setError("quantityLarger", {
+        type: "manual",
+        message: "pharmacy.validation.insufficientQuantity",
+      })
+      setFocus("quantityLarger", { shouldSelect: true })
       return
     }
     setSubmitting(true)
@@ -195,9 +206,9 @@ export function SellDrugModal({
         shipmentId: shipment.shipmentId,
         transactionType: values.transactionType,
         quantity: resolvedQty,
-        price: totalPrice,
+        price: values.totalPrice,
         patientId:
-          values.transactionType === "outside" ? null : patientId,
+          values.transactionType === "outside" ? null : values.patientId ?? null,
         patientHistoryId:
           values.transactionType === "outside" ? null : patientHistoryId,
       })
@@ -221,8 +232,9 @@ export function SellDrugModal({
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit(doSubmit)}
+          onSubmit={handleSubmit(doSubmit, focusFirstError)}
           className="flex flex-col gap-6"
+          noValidate
         >
           {/* 1. Transaction type — radio cards so the selected option
               is unmistakable (the bare shadcn radio is easy to miss
@@ -270,7 +282,7 @@ export function SellDrugModal({
               bill, so a patient without an admission cannot be sold
               to from here. */}
           {transactionType !== "outside" ? (
-            <Field>
+            <Field invalid={!!errors.patientId}>
               <FieldLabel htmlFor="sell-patient">
                 {t("pharmacy.fields.selectPatient")}
               </FieldLabel>
@@ -286,7 +298,13 @@ export function SellDrugModal({
               ) : (
                 <NativeSelect
                   id="sell-patient"
-                  {...register("patientId", { valueAsNumber: true })}
+                  aria-invalid={errors.patientId ? true : undefined}
+                  aria-describedby={
+                    errors.patientId ? "sell-patient-error" : undefined
+                  }
+                  {...register("patientId", {
+                    setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
+                  })}
                 >
                   <NativeSelectOption value="">
                     {t("common.select")}
@@ -300,6 +318,9 @@ export function SellDrugModal({
                   ))}
                 </NativeSelect>
               )}
+              <FieldError id="sell-patient-error">
+                {fieldMessage(errors.patientId?.message)}
+              </FieldError>
               {selectedPatient?.quickCheck ? (
                 <p className="text-xs text-muted-foreground">
                   {t("pharmacy.help.quickCheckAdmission")}
@@ -310,27 +331,47 @@ export function SellDrugModal({
 
           {/* 3. Quantity */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field>
+            <Field invalid={!!errors.quantityLarger}>
               <FieldLabel htmlFor="sell-qtyLarger">
                 {shipment.unitConversion?.larger ?? t("pharmacy.fields.quantity")}
               </FieldLabel>
               <Input
                 id="sell-qtyLarger"
                 type="number"
+                inputMode="numeric"
                 min={0}
-                {...register("quantityLarger", { valueAsNumber: true })}
+                aria-invalid={errors.quantityLarger ? true : undefined}
+                aria-describedby={
+                  errors.quantityLarger ? "sell-qtyLarger-error" : undefined
+                }
+                {...register("quantityLarger", {
+                  setValueAs: (v) => (v === "" || v == null ? 0 : Number(v)),
+                })}
               />
+              <FieldError id="sell-qtyLarger-error">
+                {fieldMessage(errors.quantityLarger?.message)}
+              </FieldError>
             </Field>
-            <Field>
+            <Field invalid={!!errors.quantitySmaller}>
               <FieldLabel htmlFor="sell-qtySmaller">
                 {shipment.unitConversion?.smaller ?? t("pharmacy.fields.quantity")}
               </FieldLabel>
               <Input
                 id="sell-qtySmaller"
                 type="number"
+                inputMode="numeric"
                 min={0}
-                {...register("quantitySmaller", { valueAsNumber: true })}
+                aria-invalid={errors.quantitySmaller ? true : undefined}
+                aria-describedby={
+                  errors.quantitySmaller ? "sell-qtySmaller-error" : undefined
+                }
+                {...register("quantitySmaller", {
+                  setValueAs: (v) => (v === "" || v == null ? 0 : Number(v)),
+                })}
               />
+              <FieldError id="sell-qtySmaller-error">
+                {fieldMessage(errors.quantitySmaller?.message)}
+              </FieldError>
             </Field>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -339,21 +380,22 @@ export function SellDrugModal({
               {formatNumber(available)}
             </span>{" "}
             {shipment.unitConversion?.smaller ?? ""}
-            {resolvedQty > available ? (
-              <span className="ms-2 font-medium text-danger">
-                {t("pharmacy.validation.insufficientQuantity")}
-              </span>
-            ) : null}
           </p>
 
           {/* 4. Price list + total */}
-          <Field>
+          <Field invalid={!!errors.priceListId}>
             <FieldLabel htmlFor="sell-pricelist">
               {t("pharmacy.fields.priceList")}
             </FieldLabel>
             <NativeSelect
               id="sell-pricelist"
-              {...register("priceListId", { valueAsNumber: true })}
+              aria-invalid={errors.priceListId ? true : undefined}
+              aria-describedby={
+                errors.priceListId ? "sell-pricelist-error" : undefined
+              }
+              {...register("priceListId", {
+                setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
+              })}
             >
               {priceLists.map((pl) => (
                 <NativeSelectOption key={pl.pricelistId} value={pl.pricelistId}>
@@ -361,19 +403,35 @@ export function SellDrugModal({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+            <FieldError id="sell-pricelist-error">
+              {fieldMessage(errors.priceListId?.message)}
+            </FieldError>
           </Field>
 
-          <Field>
+          <Field invalid={!!errors.totalPrice}>
             <FieldLabel htmlFor="sell-total">
               {t("pharmacy.fields.totalPrice")}
             </FieldLabel>
             <Input
               id="sell-total"
               type="number"
+              inputMode="decimal"
               min={0}
               step="0.01"
-              {...register("totalPrice", { valueAsNumber: true })}
+              aria-invalid={errors.totalPrice ? true : undefined}
+              aria-describedby={
+                errors.totalPrice ? "sell-total-error" : undefined
+              }
+              {...register("totalPrice", {
+                setValueAs: (v) => (v === "" || v == null ? 0 : Number(v)),
+                onChange: () => {
+                  totalOverridden.current = true
+                },
+              })}
             />
+            <FieldError id="sell-total-error">
+              {fieldMessage(errors.totalPrice?.message)}
+            </FieldError>
             <p className="text-xs text-muted-foreground">
               {t("pharmacy.fields.available")} {formatNumber(resolvedQty)} ×{" "}
               {formatCurrency(selectedPrice, resolveLocale(language))}
@@ -382,7 +440,7 @@ export function SellDrugModal({
 
           {/* 5. Below-buy-price safeguard */}
           {belowBuyPrice ? (
-            <Alert variant="destructive">
+            <Alert variant="destructive" live="polite">
               <AlertTriangleIcon aria-hidden className="size-4" />
               <AlertTitle>{t("pharmacy.messages.warning")}</AlertTitle>
               <AlertDescription>

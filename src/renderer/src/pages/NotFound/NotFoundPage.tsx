@@ -15,8 +15,8 @@ export default function NotFoundPage() {
       />
       <EmptyState
         icon={<Home className="size-6" aria-hidden />}
-        title="404"
-        description="Check the URL or use the back-to-dashboard shortcut below."
+        title={t("errors.notFoundCode")}
+        description={t("errors.notFoundHint")}
         action={
           <Button asChild>
             <Link to="/dashboard">{t("errors.backToDashboard")}</Link>
