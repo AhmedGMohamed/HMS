@@ -50,6 +50,7 @@
       "printReport": "طباعة التقرير",
       "generatePatientReport": "إنشاء تقرير المريض",
       "printPatientReport": "طباعة تقرير المريض",
+      "showMorePatients": "عرض المزيد من المرضى",
       "viewDetails": "عرض التفاصيل"
     },
     "modals": {
@@ -101,7 +102,8 @@
       "loadDetailsError": "فشل تحميل تفاصيل التأمين",
       "loadPatientsError": "فشل تحميل المرضى",
       "loadPaymentHistoryError": "فشل تحميل سجل الدفعات",
-      "noPriceListsAvailable": "لا توجد قوائم أسعار متاحة"
+      "noPriceListsAvailable": "لا توجد قوائم أسعار متاحة",
+      "showingPatients": "عرض {{shown}} من {{total}} من المرضى"
     },
     "statistics": {
       "totalRevenue": "إجمالي الإيرادات",

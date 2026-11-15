@@ -380,6 +380,7 @@ export default function InsurancePage() {
       </div>
 
       <PatientsGrid
+        key={selectedId}
         patients={detail.patients}
         loading={detail.loading}
         canManageReports={canManageReports}

@@ -50,6 +50,7 @@
       "printReport": "Print Report",
       "generatePatientReport": "Generate Patient Report",
       "printPatientReport": "Print Patient Report",
+      "showMorePatients": "Show More Patients",
       "viewDetails": "View Details"
     },
     "modals": {
@@ -101,7 +102,8 @@
       "loadDetailsError": "Failed to load insurance details",
       "loadPatientsError": "Failed to load patients",
       "loadPaymentHistoryError": "Failed to load payment history",
-      "noPriceListsAvailable": "No price lists available"
+      "noPriceListsAvailable": "No price lists available",
+      "showingPatients": "Showing {{shown}} of {{total}} patients"
     },
     "statistics": {
       "totalRevenue": "Total Revenue",
