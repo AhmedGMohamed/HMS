@@ -196,6 +196,7 @@
       "quantityMin": "يرجى إدخال كمية صحيحة",
       "buyPriceRequired": "يرجى إدخال سعر شراء صحيح",
       "defaultPriceRequired": "يجب أن يكون لقائمة الأسعار الافتراضية سعر صحيح",
+      "existingPriceRequired": "لا يمكن مسح سعر موجود — أدخل سعراً لقائمة الأسعار هذه.",
       "invalidPrice": "سعر غير صحيح",
       "warehouseNameLength": "يجب أن يكون اسم المستودع 3 أحرف على الأقل",
       "locationLength": "يجب أن يكون الموقع 5 أحرف على الأقل"
