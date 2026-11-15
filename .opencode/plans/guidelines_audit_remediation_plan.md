@@ -1154,6 +1154,8 @@ Six lane branches were integrated into `fix/guidelines-audit-remediation` with `
 
 **Risk note (wizard schema drift):** the composed namespaced `wizardFormSchema` lives in `CreatePatientWizardDialog.tsx` and mirrors rules from `schemas/patient.schema.ts`; that schema file was out of the P2-01 lane's allowed scope, so a future edit to `patient.schema.ts` (gender enum, insurance trio, admission requirements) can silently diverge from the dialog's copy. Reviewers must update both together, or lift the composed schema into `patient.schema.ts` in a follow-up.
 
+**Price-lists disposition (final, 2026-11-16):** the user reviewed the removal-vs-reject options for a priced shipment row and kept the landed inline rejection (`c3866ce` drugs / `53b7c60` supplies, branch tip `5fef7cc`); removal and fallback-to-default pricing were **not** pursued. Known limitation, recorded precisely: sales resolve the **exact** `pricelist_id` only — the server dispense join is `pl.pricelist_id = $2` (`src/app/models/Patient.model.ts` dispense paths) and the client sell/dispense paths resolve the exact `pricelistId` to `0` when absent (`src/renderer/src/pages/Drugs/modals/SellDrugModal.tsx`: `sp ? Number(sp.price) : 0`); there is **no fallback** to default-pricelist pricing. Consequently, if a price row for a list is removed through another path (e.g. the bulk price-lists endpoint), sales against that list price at 0.
+
 ## 12. Risks and rollback considerations
 
 | Risk | Mitigation |
