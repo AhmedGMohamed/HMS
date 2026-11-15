@@ -133,7 +133,7 @@ export function ReportDetailsModal({
   }
 
   const hasData = Boolean(report && report.items.length > 0)
-  const patientNames = Object.keys(groups)
+  const patientKeys = Object.keys(groups)
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -180,12 +180,13 @@ export function ReportDetailsModal({
                 <h3 className="text-sm font-medium text-foreground">
                   {t("insurance.report.patientName")}{" "}
                   <span className="text-muted-foreground">
-                    ({patientNames.length} · {report.items.length})
+                    ({patientKeys.length} · {report.items.length})
                   </span>
                 </h3>
 
-                {patientNames.map((patientName, index) => {
-                  const group = groups[patientName]
+                {patientKeys.map((patientKey, index) => {
+                  const group = groups[patientKey]
+                  const patientName = group.patientName
                   const sample = group.items[0]
                   const meta = {
                     discount: sample?.discount ?? 0,
@@ -202,10 +203,20 @@ export function ReportDetailsModal({
                     money,
                     patientPaid: group.patientPaid,
                   })
+                  /* `new Date("")` is Invalid Date and `Intl.format`
+                     throws on it — guard so a row without an admission
+                     timestamp cannot blank the whole report. */
+                  const admissionTime = sample?.admissionTime
+                    ? new Date(sample.admissionTime)
+                    : null
+                  const admissionLabel =
+                    admissionTime && !Number.isNaN(admissionTime.getTime())
+                      ? formatDate(admissionTime, language)
+                      : null
 
                   return (
                     <section
-                      key={patientName}
+                      key={patientKey}
                       className="space-y-2 rounded-lg border border-border p-3"
                     >
                       <div className="flex flex-wrap items-center gap-2">
@@ -224,13 +235,12 @@ export function ReportDetailsModal({
                             {sample.insuranceFormId}
                           </Badge>
                         ) : null}
-                        <Badge variant="secondary">
-                          {t("insurance.patient.admission")}:{" "}
-                          {formatDate(
-                            new Date(sample?.admissionTime ?? ""),
-                            language
-                          )}
-                        </Badge>
+                        {admissionLabel ? (
+                          <Badge variant="secondary">
+                            {t("insurance.patient.admission")}:{" "}
+                            {admissionLabel}
+                          </Badge>
+                        ) : null}
                         {sample?.dischargeTime ? (
                           <Badge className="border-success/30 bg-success-light text-success-dark">
                             {t("insurance.report.dischargeDate")}:{" "}
