@@ -27,7 +27,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Navigate, useNavigate, useParams } from "react-router-dom"
+import { Link, Navigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
   ArrowLeftIcon,
@@ -85,7 +85,6 @@ export default function InsurancePage() {
 
   const companies = useInsuranceCompanies()
 
-  const navigate = useNavigate()
   const { companyId } = useParams<{ companyId: string }>()
 
   /** `null` → list view. A malformed segment is treated as "not selected". */
@@ -146,17 +145,6 @@ export default function InsurancePage() {
     companies.refresh()
     if (selectedId != null) detail.refresh()
   }, [companies, detail, selectedId])
-
-  const handleSelectCompany = useCallback(
-    (id: number) => {
-      navigate(`/insurance/${id}`)
-    },
-    [navigate]
-  )
-
-  const handleBackToList = useCallback(() => {
-    navigate("/insurance")
-  }, [navigate])
 
   const handleCompanyReportSubmit = useCallback(
     async (payload: ReportPayload) => {
@@ -302,7 +290,6 @@ export default function InsurancePage() {
           <InsuranceCardsGrid
             companies={companies.data}
             loading={companies.loading && companies.data.length === 0}
-            onSelect={handleSelectCompany}
           />
         )}
 
@@ -338,9 +325,14 @@ export default function InsurancePage() {
         title={companyName || t("insurance.title")}
         subtitle={t("insurance.companyDetails")}
         actions={
-          <Button type="button" variant="outline" onClick={handleBackToList}>
-            <ArrowLeftIcon aria-hidden className="me-1.5 size-4 rtl:rotate-180" />
-            {t("insurance.buttons.backToList")}
+          <Button variant="outline" asChild>
+            <Link to="/insurance">
+              <ArrowLeftIcon
+                aria-hidden
+                className="me-1.5 size-4 rtl:rotate-180"
+              />
+              {t("insurance.buttons.backToList")}
+            </Link>
           </Button>
         }
       />
@@ -391,7 +383,6 @@ export default function InsurancePage() {
         patients={detail.patients}
         loading={detail.loading}
         canManageReports={canManageReports}
-        onBack={handleBackToList}
         onGenerateReport={(patient) => setPatientReportTarget(patient)}
       />
 
