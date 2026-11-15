@@ -147,7 +147,12 @@ export function ReportDetailsModal({
           {period ? <DialogDescription>{period}</DialogDescription> : null}
         </DialogHeader>
 
-        <div className="max-h-[68vh] space-y-5 overflow-y-auto pe-1">
+        <div
+          role="region"
+          aria-label={t("insurance.modals.insuranceReport")}
+          tabIndex={0}
+          className="max-h-[68vh] space-y-5 overflow-y-auto pe-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
           {loading ? (
             <div className="space-y-3">
               <Skeleton className="h-16 w-full" />
