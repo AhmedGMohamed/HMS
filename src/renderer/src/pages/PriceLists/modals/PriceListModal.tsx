@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
@@ -36,6 +36,9 @@ interface PriceListModalProps {
   priceList?: PriceList | null
   /** The list currently flagged default (drives the invariant UI). */
   currentDefault?: PriceList | null
+  /** False while the full-list lookup has not resolved: treat the default as
+   *  possibly held by some other list so a save never steals it silently. */
+  defaultKnown?: boolean
   /** Called after a successful create (not edit) — the page uses it to
    *  offer the "Add Prices Now?" flow. */
   onSaved?: (created: PriceList) => void
@@ -43,13 +46,14 @@ interface PriceListModalProps {
 
 function toDefaults(
   priceList?: PriceList | null,
-  currentDefault?: PriceList | null
+  currentDefault?: PriceList | null,
+  defaultKnown = true
 ): PriceListValues {
   return {
     name: priceList?.name ?? "",
     isDefault: priceList
       ? priceList.isDefault
-      : (currentDefault == null && priceList == null),
+      : defaultKnown && currentDefault == null,
   }
 }
 
@@ -66,6 +70,7 @@ export function PriceListModal({
   onOpenChange,
   priceList,
   currentDefault,
+  defaultKnown = true,
   onSaved,
 }: PriceListModalProps) {
   const { t } = useTranslation()
@@ -80,9 +85,15 @@ export function PriceListModal({
   const [submitting, setSubmitting] = useState(false)
   const [confirmDefaultOpen, setConfirmDefaultOpen] = useState(false)
 
+  const wasOpenRef = useRef(false)
   useEffect(() => {
-    if (open) form.reset(toDefaults(priceList, currentDefault))
-  }, [open, priceList, currentDefault, form])
+    // Reset only on the closed → open transition: the full-list default lookup
+    // can resolve while the dialog is open and must not wipe the user's input.
+    if (open && !wasOpenRef.current) {
+      form.reset(toDefaults(priceList, currentDefault, defaultKnown))
+    }
+    wasOpenRef.current = open
+  }, [open, priceList, currentDefault, defaultKnown, form])
 
   const isDefault = form.watch("isDefault")
   /** Editing the current default: the checkbox cannot be unchecked. */
@@ -94,7 +105,7 @@ export function PriceListModal({
       form.setValue("isDefault", false)
       return
     }
-    const steals = currentDefault != null && !defaultLocked
+    const steals = !defaultLocked && (currentDefault != null || !defaultKnown)
     if (steals) {
       setConfirmDefaultOpen(true)
       return
