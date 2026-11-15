@@ -1,5 +1,6 @@
 "use client"
 
+import { lazy, Suspense } from "react"
 import { useTranslation } from "react-i18next"
 import {
   UsersIcon,
@@ -13,10 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/common/EmptyState"
-import {
-  RevenueLineChart,
-  PatientServicesDonut,
-} from "@/components/charts"
+import { StatTileSkeleton } from "@/components/charts/StatTileSkeleton"
 import { formatCurrency, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 import { useDashboardStats } from "./useDashboardStats"
@@ -24,6 +22,21 @@ import { KpiStrip } from "./KpiStrip"
 import { RecentActivityTable } from "./RecentActivityTable"
 import type { DashboardResourceError } from "./useDashboardStats"
 import type { DashboardChartPoint } from "@/types"
+
+/* Recharts must stay out of the dashboard route chunk. The
+   `@/components/charts` barrel re-exports every wrapper (and with them
+   `recharts`), so each chart is imported from its own module, lazily, and
+   swapped in behind a same-size skeleton. */
+const RevenueLineChart = lazy(() =>
+  import("@/components/charts/RevenueLineChart").then((module) => ({
+    default: module.RevenueLineChart,
+  }))
+)
+const PatientServicesDonut = lazy(() =>
+  import("@/components/charts/PatientServicesDonut").then((module) => ({
+    default: module.PatientServicesDonut,
+  }))
+)
 
 /**
  * Admin-only dashboard (Phase 6.1).
@@ -126,11 +139,13 @@ export function AdminDashboard() {
               <CardTitle>{t("dashboard.charts.revenueOverTime")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RevenueLineChart
-                data={lineData}
-                loading={loading && lineData.length === 0}
-                srSummary={t("dashboard.charts.revenueOverTime")}
-              />
+              <Suspense fallback={<StatTileSkeleton aspect="video" />}>
+                <RevenueLineChart
+                  data={lineData}
+                  loading={loading && lineData.length === 0}
+                  srSummary={t("dashboard.charts.revenueOverTime")}
+                />
+              </Suspense>
             </CardContent>
           </Card>
           <Card>
@@ -138,12 +153,14 @@ export function AdminDashboard() {
               <CardTitle>{t("dashboard.charts.distribution")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <PatientServicesDonut
-                data={donutData}
-                metric="revenue"
-                loading={loading && donutData.length === 0}
-                srSummary={t("dashboard.charts.distribution")}
-              />
+              <Suspense fallback={<StatTileSkeleton aspect="square" />}>
+                <PatientServicesDonut
+                  data={donutData}
+                  metric="revenue"
+                  loading={loading && donutData.length === 0}
+                  srSummary={t("dashboard.charts.distribution")}
+                />
+              </Suspense>
             </CardContent>
           </Card>
         </div>
