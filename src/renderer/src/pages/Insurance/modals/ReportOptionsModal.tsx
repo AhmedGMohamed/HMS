@@ -17,13 +17,13 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Field,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
+import { FieldInput } from "@/pages/Insurance/modals/FieldControls"
 
 import {
   reportSchema,
@@ -112,14 +112,23 @@ export function ReportOptionsModal({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(async (values) => {
-            await onSubmit({
-              startDate: values.startDate,
-              endDate: values.endDate,
-              includeDrugs: values.includeDrugs,
-              includeClearedItems: values.includeClearedItems,
-            })
-          })}
+          noValidate
+          onSubmit={form.handleSubmit(
+            async (values) => {
+              await onSubmit({
+                startDate: values.startDate,
+                endDate: values.endDate,
+                includeDrugs: values.includeDrugs,
+                includeClearedItems: values.includeClearedItems,
+              })
+            },
+            (fieldErrors) => {
+              /* Validation failed — focus the first invalid field
+                 (design.md §6.3). */
+              const firstKey = Object.keys(fieldErrors)[0]
+              if (firstKey) form.setFocus(firstKey as keyof ReportValues)
+            }
+          )}
           className="flex flex-col gap-5"
         >
           {patientName ? (
@@ -133,14 +142,17 @@ export function ReportOptionsModal({
           ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="report-start-date">
+            <Field invalid={Boolean(errors.startDate)}>
+              <FieldLabel>
                 {t("common.startDate")}
-                <span className="text-danger">*</span>
+                <span aria-hidden className="text-danger">
+                  *
+                </span>
               </FieldLabel>
-              <Input
-                id="report-start-date"
+              <FieldInput
                 type="date"
+                required
+                invalid={Boolean(errors.startDate)}
                 {...form.register("startDate")}
               />
               <FieldError
@@ -152,14 +164,17 @@ export function ReportOptionsModal({
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="report-end-date">
+            <Field invalid={Boolean(errors.endDate)}>
+              <FieldLabel>
                 {t("common.endDate")}
-                <span className="text-danger">*</span>
+                <span aria-hidden className="text-danger">
+                  *
+                </span>
               </FieldLabel>
-              <Input
-                id="report-end-date"
+              <FieldInput
                 type="date"
+                required
+                invalid={Boolean(errors.endDate)}
                 {...form.register("endDate")}
               />
               <FieldError

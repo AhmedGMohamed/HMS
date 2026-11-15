@@ -15,15 +15,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
+import { FieldInput, FieldTextarea } from "@/pages/Insurance/modals/FieldControls"
 import {
   Select,
   SelectContent,
@@ -95,6 +94,7 @@ export function CompanyModal({
 
   const [submitting, setSubmitting] = useState(false)
   const [priceLists, setPriceLists] = useState<PriceListWithStats[]>([])
+  const errors = form.formState.errors
 
   useEffect(() => {
     if (open) form.reset(toDefaults(company))
@@ -160,38 +160,46 @@ export function CompanyModal({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit, (fieldErrors) => {
+            /* Validation failed — focus the first invalid field
+               (design.md §6.3). */
+            const firstKey = Object.keys(fieldErrors)[0]
+            if (firstKey) form.setFocus(firstKey as keyof CompanyValues)
+          })}
           className="flex flex-col gap-5"
         >
-          <Field>
-            <FieldLabel htmlFor="company-name">
+          <Field invalid={Boolean(errors.name)}>
+            <FieldLabel>
               {t("insurance.fields.companyName")}
-              <span className="text-danger">*</span>
+              <span aria-hidden className="text-danger">
+                *
+              </span>
             </FieldLabel>
-            <Input
-              id="company-name"
+            <FieldInput
               maxLength={255}
               autoComplete="organization"
+              required
+              invalid={Boolean(errors.name)}
               {...form.register("name")}
             />
             <FieldError
               errors={
-                form.formState.errors.name
-                  ? [{ message: t(form.formState.errors.name.message ?? "") }]
+                errors.name
+                  ? [{ message: t(errors.name.message ?? "") }]
                   : undefined
               }
             />
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="company-contact">
-              {t("insurance.fields.contactInfo")}
-            </FieldLabel>
-            <Textarea
-              id="company-contact"
+          <Field invalid={Boolean(errors.contactInfo)}>
+            <FieldLabel>{t("insurance.fields.contactInfo")}</FieldLabel>
+            <FieldTextarea
               rows={3}
               maxLength={1000}
               placeholder={t("insurance.fields.contactInfoPlaceholder")}
+              hasDescription
+              invalid={Boolean(errors.contactInfo)}
               {...form.register("contactInfo")}
             />
             <FieldDescription>
@@ -199,14 +207,8 @@ export function CompanyModal({
             </FieldDescription>
             <FieldError
               errors={
-                form.formState.errors.contactInfo
-                  ? [
-                      {
-                        message: t(
-                          form.formState.errors.contactInfo.message ?? ""
-                        ),
-                      },
-                    ]
+                errors.contactInfo
+                  ? [{ message: t(errors.contactInfo.message ?? "") }]
                   : undefined
               }
             />

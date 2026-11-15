@@ -176,7 +176,7 @@ export function companyReportDocContent({
   groups,
   financials,
 }: CompanyReportContentInputs): PdfNode[] {
-  const patientNames = Object.keys(groups)
+  const patientKeys = Object.keys(groups)
   const period = `${formatEnGbDate(report.reportPeriod.startDate)} - ${formatEnGbDate(report.reportPeriod.endDate)}`
 
   const content: PdfNode[] = [
@@ -190,7 +190,7 @@ export function companyReportDocContent({
     summaryTable(report, financials),
   ]
 
-  if (patientNames.length === 0) {
+  if (patientKeys.length === 0) {
     content.push({
       text: "No data available for the selected period.",
       alignment: "center",
@@ -201,8 +201,8 @@ export function companyReportDocContent({
     return content
   }
 
-  patientNames.forEach((patientName, index) => {
-    const group = groups[patientName]
+  patientKeys.forEach((patientKey, index) => {
+    const group = groups[patientKey]
     const sample = group.items[0]
 
     if (index > 0) {
@@ -219,7 +219,7 @@ export function companyReportDocContent({
         : "Currently admitted"
     )
 
-    content.push(sectionHeading(`${index + 1}. ${patientName}`))
+    content.push(sectionHeading(`${index + 1}. ${group.patientName}`))
     content.push(sectionMeta(metaParts.join("     •     ")))
 
     const body: PdfNode[][] = [
