@@ -136,10 +136,11 @@ export function EditorialKpiCard({
         </span>
       )}
 
-      {/* Hairline rule (subtly thicker on hover / active) */}
+      {/* Hairline rule — explicit transition list keeps layout properties
+          (height) out of the animation; the thicker active line snaps. */}
       <div
         className={cn(
-          "mt-1 h-px transition-all duration-150",
+          "mt-1 h-px transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150",
           TONE_RULE[tone],
           active && "h-0.5"
         )}
