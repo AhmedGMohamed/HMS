@@ -673,6 +673,7 @@ export default function EmployeesPage() {
         onOpenChange={setSheetOpen}
         subject={sheetSubject}
         payments={sheetPayments.payments}
+        paymentsLoading={sheetPayments.loading}
         paidByNames={sheetPayments.paidByNames}
         canViewPayments={canViewPayments}
         isAdmin={isAdmin()}

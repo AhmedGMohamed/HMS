@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Sheet,
   SheetContent,
@@ -43,6 +44,8 @@ export interface EmployeeDetailSheetProps {
   subject: StaffSubject | null
   /** All payments for this employee (pre-filtered by the caller). */
   payments: EmployeePayment[]
+  /** True while the open employee's payments are being fetched/switched. */
+  paymentsLoading?: boolean
   paidByNames: Map<number, string>
   canViewPayments: boolean
   isAdmin: boolean
@@ -65,6 +68,7 @@ export function EmployeeDetailSheet({
   onOpenChange,
   subject,
   payments,
+  paymentsLoading = false,
   paidByNames,
   canViewPayments,
   isAdmin,
@@ -253,7 +257,12 @@ export function EmployeeDetailSheet({
                         {payments.length}
                       </Badge>
                     </h3>
-                    {payments.length === 0 ? (
+                    {paymentsLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                        <Spinner aria-hidden className="size-4" />
+                        {t("employees.messages.loadingPayments")}
+                      </div>
+                    ) : payments.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">
                         {t("common.noData")}
                       </p>

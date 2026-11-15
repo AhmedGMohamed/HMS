@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
@@ -90,6 +90,7 @@ export function EmployeeModal({
     new Map()
   )
   const [saving, setSaving] = useState(false)
+  const priceRequestTokenRef = useRef(0)
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
@@ -108,6 +109,9 @@ export function EmployeeModal({
 
   /* Open/close: pre-fill or reset, and load services for doctors. */
   useEffect(() => {
+    // Invalidate any in-flight price load from the previous open/employee:
+    // its result must never reset the form for a different employee.
+    priceRequestTokenRef.current += 1
     if (!open) return
     setError(null)
     setServiceSearch("")
@@ -159,12 +163,15 @@ export function EmployeeModal({
   }, [open, editing, initialType])
 
   async function loadServicePrices(doctorId: number) {
+    const token = priceRequestTokenRef.current + 1
+    priceRequestTokenRef.current = token
     setServicesLoading(true)
     try {
       const [services, prices] = await Promise.all([
         listServices(),
         listDoctorServicePrices(doctorId),
       ])
+      if (priceRequestTokenRef.current !== token) return
       const baseline = new Map<number, number>()
       for (const price of prices) {
         baseline.set(price.serviceId, Number(price.price))
@@ -183,10 +190,11 @@ export function EmployeeModal({
         })),
       }))
     } catch {
+      if (priceRequestTokenRef.current !== token) return
       /* Grid stays empty — save still works (prices omitted). */
       setBaselinePrices(new Map())
     } finally {
-      setServicesLoading(false)
+      if (priceRequestTokenRef.current === token) setServicesLoading(false)
     }
   }
 
