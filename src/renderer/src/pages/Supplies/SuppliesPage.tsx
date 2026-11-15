@@ -330,6 +330,8 @@ export default function SuppliesPage() {
                 ? err.message
                 : t("medicalSupplies.messages.deleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
@@ -355,6 +357,8 @@ export default function SuppliesPage() {
                 ? err.message
                 : t("medicalSupplies.messages.shipmentDeleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
