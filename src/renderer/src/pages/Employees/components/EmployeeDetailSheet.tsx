@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Sheet,
   SheetContent,
@@ -33,6 +34,7 @@ import type {
   Doctor,
   Employee,
   EmployeePayment,
+  PerPatientPaymentType,
 } from "@/pages/Employees/types/employee"
 
 export type StaffSubject = Employee | Doctor
@@ -43,6 +45,8 @@ export interface EmployeeDetailSheetProps {
   subject: StaffSubject | null
   /** All payments for this employee (pre-filtered by the caller). */
   payments: EmployeePayment[]
+  /** True while the open employee's payments are being fetched/switched. */
+  paymentsLoading?: boolean
   paidByNames: Map<number, string>
   canViewPayments: boolean
   isAdmin: boolean
@@ -65,6 +69,7 @@ export function EmployeeDetailSheet({
   onOpenChange,
   subject,
   payments,
+  paymentsLoading = false,
   paidByNames,
   canViewPayments,
   isAdmin,
@@ -170,7 +175,11 @@ export function EmployeeDetailSheet({
                         hidden={!canViewPayments}
                         value={
                           (subject as Doctor).perPatientPay != null
-                            ? formatCurrencySafe((subject as Doctor).perPatientPay, locale)
+                            ? formatPerPatientPay(
+                                (subject as Doctor).perPatientPay,
+                                (subject as Doctor).perPatientPaymentType,
+                                locale
+                              )
                             : undefined
                         }
                       />
@@ -253,7 +262,12 @@ export function EmployeeDetailSheet({
                         {payments.length}
                       </Badge>
                     </h3>
-                    {payments.length === 0 ? (
+                    {paymentsLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                        <Spinner aria-hidden className="size-4" />
+                        {t("employees.messages.loadingPayments")}
+                      </div>
+                    ) : payments.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">
                         {t("common.noData")}
                       </p>
@@ -359,6 +373,27 @@ function formatCurrencySafe(
     style: "currency",
     currency: "EGP",
   }).format(Number(value))
+}
+
+/**
+ * Per-patient pay is either money (fixed) or a share of the patient's
+ * total (percentage) — the stored type decides the unit, never the
+ * amount alone.
+ */
+function formatPerPatientPay(
+  value: number | null | undefined,
+  type: PerPatientPaymentType | null | undefined,
+  locale: string
+): string {
+  if (value == null || !Number.isFinite(Number(value))) return "—"
+  const amount = Number(value)
+  if (type === "percentage") {
+    return new Intl.NumberFormat(locale, {
+      style: "percent",
+      maximumFractionDigits: 2,
+    }).format(amount / 100)
+  }
+  return formatCurrencySafe(amount, locale)
 }
 
 function Detail({

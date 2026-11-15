@@ -20,7 +20,7 @@ interface ActiveClockInsTableProps {
   /** The current server page — filtering/sorting/paging live in SQL. */
   rows: ClockIn[]
   loading?: boolean
-  /** Shared 1s tick. */
+  /** Reference instant for anomaly thresholds and the duration sort key. */
   now: Date
   employeeMap: Map<number, EligibleEmployee>
   duplicateIds: ReadonlySet<number>
@@ -105,7 +105,6 @@ export function ActiveClockInsTable({
             <LiveDuration
               clockIn={row.clockIn}
               clockOut={row.clockOut}
-              now={now}
               live
             />
             {anomalies.map((anomaly) => (

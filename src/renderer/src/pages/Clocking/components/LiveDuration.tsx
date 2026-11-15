@@ -7,14 +7,13 @@ import {
   computeDurationParts,
   type DurationParts,
 } from "@/pages/Clocking/components/duration"
+import { useNowTick } from "@/pages/Clocking/hooks/useNowTick"
 
 interface LiveDurationProps {
   /** ISO clock-in timestamp. */
   clockIn: string
   /** ISO clock-out — `null` renders the live (ticking) variant. */
   clockOut: string | null
-  /** Shared tick from `useNowTick` — one interval for the whole page. */
-  now: Date
   /** Show the pulsing "on shift" dot (active rows only). */
   live?: boolean
   className?: string
@@ -23,7 +22,8 @@ interface LiveDurationProps {
 /**
  * Duration cell (§B5 of `phase_6.8_ux_research.md`).
  *
- * Completed rows render a static span; open rows prepend a pulsing
+ * Completed rows render a static span; open rows own their 1s tick
+ * (shared module interval, never on the page) and prepend a pulsing
  * dot (`bg-success-dark` ≈5:1 — `bg-success` alone fails the 3:1
  * UI-object bar). The dot is decorative (`aria-hidden`); there is
  * deliberately NO `aria-live` here — a ticking live region is an SR
@@ -34,11 +34,12 @@ interface LiveDurationProps {
 export function LiveDuration({
   clockIn,
   clockOut,
-  now,
   live = false,
   className,
 }: LiveDurationProps) {
   const { t } = useTranslation()
+  // Completed rows are static: no subscription, no per-second work.
+  const now = useNowTick(clockOut == null)
   const parts: DurationParts = computeDurationParts(clockIn, clockOut, now)
 
   const formatted =
@@ -47,10 +48,7 @@ export function LiveDuration({
       : t("clocking.duration.minutes", { minutes: parts.minutes })
 
   return (
-    <span
-      className={cn("inline-flex items-center gap-1.5 tabular-nums", className)}
-      aria-label={formatted}
-    >
+    <span className={cn("inline-flex items-center gap-1.5 tabular-nums", className)}>
       {live ? (
         <span
           aria-hidden
