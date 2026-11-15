@@ -36,7 +36,8 @@ function formatDay(date: Date, locale: string): string {
  * Popover + `Calendar mode="range"` copied from the Patients
  * `PatientFilters` precedent (design.md §6.4 — Popover hosts the
  * Calendar). Applied to `clockIn` dates by the parent, inclusive on
- * both ends. The in-trigger X clears (PatientFilters pattern).
+ * both ends. Clear is a sibling button, never a nested control inside
+ * the trigger button.
  */
 export function HistoryFilters({ range, onChange }: HistoryFiltersProps) {
   const { t } = useTranslation()
@@ -46,44 +47,43 @@ export function HistoryFilters({ range, onChange }: HistoryFiltersProps) {
   const hasRange = Boolean(range.from || range.to)
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <div className="flex items-center gap-1">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2"
+          >
+            <CalendarIcon aria-hidden className="size-4" />
+            {range.from && range.to
+              ? `${formatDay(range.from, dayPickerLocale)} – ${formatDay(range.to, dayPickerLocale)}`
+              : `${t("clocking.filters.fromDate")} – ${t("clocking.filters.toDate")}`}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-auto p-0">
+          <Calendar
+            mode="range"
+            selected={
+              range.from ? { from: range.from, to: range.to } : undefined
+            }
+            onSelect={(next) => onChange({ from: next?.from, to: next?.to })}
+            numberOfMonths={2}
+          />
+        </PopoverContent>
+      </Popover>
+      {hasRange ? (
         <Button
           type="button"
-          variant="outline"
-          size="sm"
-          className="justify-start gap-2"
-          aria-label={t("clocking.filters.fromDate")}
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("clocking.filters.clearRange")}
+          onClick={() => onChange({})}
         >
-          <CalendarIcon aria-hidden className="size-4" />
-          {range.from && range.to
-            ? `${formatDay(range.from, dayPickerLocale)} – ${formatDay(range.to, dayPickerLocale)}`
-            : `${t("clocking.filters.fromDate")} – ${t("clocking.filters.toDate")}`}
-          {hasRange ? (
-            <span
-              role="button"
-              aria-label={t("clocking.filters.clearRange")}
-              onClick={(e) => {
-                e.stopPropagation()
-                onChange({})
-              }}
-              className="ms-1 rounded-sm p-0.5 hover:bg-muted"
-            >
-              <XIcon aria-hidden className="size-3.5" />
-            </span>
-          ) : null}
+          <XIcon aria-hidden className="size-3.5" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-0">
-        <Calendar
-          mode="range"
-          selected={
-            range.from ? { from: range.from, to: range.to } : undefined
-          }
-          onSelect={(next) => onChange({ from: next?.from, to: next?.to })}
-          numberOfMonths={2}
-        />
-      </PopoverContent>
-    </Popover>
+      ) : null}
+    </div>
   )
 }
