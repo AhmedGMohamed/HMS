@@ -138,6 +138,7 @@ export default function DrugsPage() {
             onSearchChange={drugsList.setSearch}
             filter={drugsList.filter}
             onFilterChange={drugsList.setFilter}
+            onVisibleRowsChange={drugsList.setVisibleDrugIds}
             onEditDrug={(drug) => {
               setEditingDrug(drug)
               setDrugModalOpen(true)

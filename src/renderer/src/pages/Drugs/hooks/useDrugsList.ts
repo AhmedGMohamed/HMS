@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   getLowStockDrugs,
   getNearExpiryDrugs,
@@ -32,6 +32,12 @@ export interface UseDrugsListResult {
   setSearch: (v: string) => void
   filter: KpiFilter
   setFilter: (f: KpiFilter) => void
+  /**
+   * Report the drug ids actually on screen. The shipment fan-out is
+   * driven by this window, not by the whole list: opening the page
+   * costs one request per visible row instead of one per drug.
+   */
+  setVisibleDrugIds: (ids: number[]) => void
   refresh: () => void
 }
 
@@ -74,12 +80,15 @@ interface DrugAggregate {
 /**
  * Aggregated drug list (§3.5.1).
  *
- * Loads the base `listDrugCards()` and cross-joins the flat
- * `low-stock` / `near-expiry` monitor lists to derive per-drug flags.
+ * Loads the base `listDrugCards()` (one bounded request — the full list
+ * backs the client-side search/chip filters and the KPI counts) and
+ * cross-joins the flat `low-stock` / `near-expiry` monitor lists to
+ * derive per-drug flags.
  *
- * For every drug we additionally fan-out a bounded-concurrency
- * `listDrugShipments(drugId)` to compute two pieces of truth the
- * monitor endpoints cannot provide:
+ * The per-drug `listDrugShipments(drugId)` fan-out only targets the
+ * rows the table currently renders (`setVisibleDrugIds`, reported by
+ * `DrugsTable` after pagination/sorting). Those fetches fill in two
+ * pieces of truth the monitor endpoints cannot provide:
  *   1. The real `nearestExpiryDate` (the `/monitor/near-expiry`
  *      SQL filters by the per-drug alert window; a drug whose
  *      earliest in-stock shipment is beyond that window has no row
@@ -89,12 +98,12 @@ interface DrugAggregate {
  *   2. The total in-stock `quantity` (the `/monitor/low-stock`
  *      endpoint only returns drugs at or below their threshold).
  *
- * Concurrency is capped at 4 to avoid hammering the API. Each effect
- * run gets a monotonically-increasing `runId`; the worker only
- * commits its result to state if its runId is still the current one
- * — newer runs supersede the older one. This avoids the
- * setState-in-cleanup race the previous `cancelled` flag had when
- * the fan-out was cancelled mid-flight by a re-render.
+ * Concurrency is capped at 4. Each hook instance owns its `runId`
+ * counter (`useRef`) — a module-level counter was shared by every
+ * instance, so StrictMode's double mount (or any second hook instance)
+ * invalidated the other's in-flight run. The worker only commits its
+ * result when its runId is still current; newer runs supersede older
+ * ones.
  */
 export function useDrugsList(): UseDrugsListResult {
   const [drugs, setDrugs] = useState<DrugCard[]>([])
@@ -103,11 +112,27 @@ export function useDrugsList(): UseDrugsListResult {
   const [aggregates, setAggregates] = useState<Map<number, DrugAggregate>>(
     new Map()
   )
+  const [visibleDrugIds, setVisibleDrugIdsState] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<KpiFilter>("all")
+
+  const runIdRef = useRef(0)
+
+  /**
+   * Window setter with identity-stable semantics: `DrugsTable`
+   * reports its visible rows after every render, so only an actual
+   * change of ids is allowed to trigger a new fan-out.
+   */
+  const setVisibleDrugIds = useCallback((ids: number[]) => {
+    setVisibleDrugIdsState((prev) =>
+      prev.length === ids.length && prev.every((id, i) => id === ids[i])
+        ? prev
+        : ids
+    )
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -137,18 +162,24 @@ export function useDrugsList(): UseDrugsListResult {
     }
   }, [nonce])
 
-  // Per-drug fan-out for nearest-expiry + total stock. Bounded
-  // concurrency and a runId-based commit guard so an in-flight run
-  // does not race with a newer one (the previous `cancelled` flag
-  // was getting tripped by a re-render that happened to re-set
-  // `nearExpiry` mid-flight, dropping every per-drug result).
+  // The window is keyed by a string so a re-render that re-reports the
+  // same page does not retrigger the fan-out.
+  const visibleKey = visibleDrugIds.join(",")
+  const visibleIds = useMemo(
+    () => (visibleKey ? visibleKey.split(",").map(Number) : []),
+    [visibleKey]
+  )
+
+  // Shipment fan-out for the visible page only. Bounded concurrency and
+  // a per-instance runId commit guard so an in-flight run does not race
+  // with a newer one. Results merge into the map, so paging back to a
+  // previously visited window re-uses/corrects its entries in place.
   useEffect(() => {
-    if (drugs.length === 0) return
-    const drugIds = drugs.map((d) => d.drugId)
+    if (visibleIds.length === 0) return
     const myRunId = ++runIdRef.current
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    mapWithConcurrency(drugIds, 4, (drugId) =>
+    mapWithConcurrency(visibleIds, 4, (drugId) =>
       listDrugShipments(drugId)
         .then((rows: DrugShipment[]) => {
           const inStock = rows.filter(
@@ -197,9 +228,9 @@ export function useDrugsList(): UseDrugsListResult {
           setLoading(false)
         }
       })
-    // Re-fires on every drug list / near-expiry / low-stock change
-    // and on refresh; the runId guard above makes that safe.
-  }, [drugs, nearExpiry, lowStock, nonce])
+    // `visibleIds` is derived from `visibleKey`, so it only changes
+    // identity when the visible page (or its ids) actually changes.
+  }, [visibleIds, nonce])
 
   const lowStockById = useMemo(() => {
     const map = new Map<number, DrugStock>()
@@ -277,14 +308,7 @@ export function useDrugsList(): UseDrugsListResult {
     setSearch,
     filter,
     setFilter,
+    setVisibleDrugIds,
     refresh: () => setNonce((n) => n + 1),
   }
 }
-
-/**
- * Module-scoped run counter. Each fan-out effect run increments this
- * synchronously and captures the value; only the latest value's result
- * is allowed to commit state. Survives StrictMode double-invocation
- * because the increment happens before any async work.
- */
-const runIdRef = { current: 0 }
