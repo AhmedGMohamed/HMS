@@ -320,7 +320,7 @@ export default function EmployeesPage() {
       refreshAll()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.deleteError"))
-      throw err
+      return false
     }
   }
 
@@ -334,7 +334,7 @@ export default function EmployeesPage() {
       pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.markPaidError"))
-      throw err
+      return false
     }
   }
 
@@ -348,7 +348,7 @@ export default function EmployeesPage() {
       pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.voidError"))
-      throw err
+      return false
     }
   }
 
@@ -363,7 +363,7 @@ export default function EmployeesPage() {
       pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.markAllPaidError"))
-      throw err
+      return false
     }
   }
 
@@ -378,7 +378,7 @@ export default function EmployeesPage() {
       pendingStats.refresh()
     } catch (err) {
       toast.error(errorMessage(err, "employees.messages.voidAllError"))
-      throw err
+      return false
     }
   }
 

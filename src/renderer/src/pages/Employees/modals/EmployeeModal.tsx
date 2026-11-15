@@ -112,6 +112,10 @@ export function EmployeeModal({
     // Invalidate any in-flight price load from the previous open/employee:
     // its result must never reset the form for a different employee.
     priceRequestTokenRef.current += 1
+    // A stale request's finally is ignored, so clear the spinner here:
+    // otherwise reopening (e.g. Create Doctor) after closing mid-load would
+    // show a perpetual spinner.
+    setServicesLoading(false)
     if (!open) return
     setError(null)
     setServiceSearch("")
