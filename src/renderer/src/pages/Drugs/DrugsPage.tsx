@@ -296,6 +296,8 @@ export default function DrugsPage() {
                 ? err.message
                 : t("pharmacy.messages.deleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
@@ -327,6 +329,8 @@ export default function DrugsPage() {
                 ? err.message
                 : t("pharmacy.messages.shipmentDeleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
