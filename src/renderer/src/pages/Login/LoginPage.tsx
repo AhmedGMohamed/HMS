@@ -164,21 +164,20 @@ export default function LoginPage() {
           ) : null}
 
           {lockedUntilMs !== null && lockedSecondsRemaining > 0 ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-light/40 px-3 py-2 text-sm text-warning-foreground"
-            >
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-light/40 px-3 py-2 text-sm text-warning-foreground">
               <AlertTriangleIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
-              <span className="leading-snug">
-                {t("login.lockedOutTitle")} —{" "}
-                <span
-                  className="tabular-nums font-semibold"
-                  aria-live="polite"
-                >
-                  {lockedSecondsRemaining}s
-                </span>
-              </span>
+              <div className="min-w-0 leading-snug">
+                {/* The live region holds only the static state change: the
+                    countdown below ticks every second and must stay out of
+                    any polite/status region or it re-announces 60 times. */}
+                <p role="status">{t("login.lockedOutTitle")}</p>
+                <p>
+                  {t("login.lockedOutText")}{" "}
+                  <span className="tabular-nums font-semibold">
+                    {lockedSecondsRemaining}s
+                  </span>
+                </p>
+              </div>
             </div>
           ) : null}
 
