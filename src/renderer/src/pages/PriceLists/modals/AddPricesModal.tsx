@@ -237,7 +237,8 @@ export function AddPricesModal({
   showSkip = false,
   onSaved,
 }: AddPricesModalProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
 
   const [services, setServices] = useState<NormalizedService[]>([])
   const [drugRows, setDrugRows] = useState<DrugShipmentPricingRow[]>([])
@@ -473,7 +474,7 @@ export function AddPricesModal({
       }
       onOpenChange(next)
     },
-    [cards, onOpenChange]
+    [cards, onOpenChange, setDiscardConfirmOpen]
   )
 
   return (
@@ -508,15 +509,15 @@ export function AddPricesModal({
               <TabsList className="w-full">
                 <TabsTrigger value="services" className="w-full justify-center gap-2">
                   {t("priceLists.tabs.services")}
-                  <Badge variant="secondary">{formatNumber(filteredServices.length)}</Badge>
+                  <Badge variant="secondary">{formatNumber(filteredServices.length, 0, locale)}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="drugs" className="w-full justify-center gap-2">
                   {t("priceLists.tabs.drugs")}
-                  <Badge variant="secondary">{formatNumber(filteredDrugs.length)}</Badge>
+                  <Badge variant="secondary">{formatNumber(filteredDrugs.length, 0, locale)}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="supplies" className="w-full justify-center gap-2">
                   {t("priceLists.tabs.supplies")}
-                  <Badge variant="secondary">{formatNumber(filteredSupplies.length)}</Badge>
+                  <Badge variant="secondary">{formatNumber(filteredSupplies.length, 0, locale)}</Badge>
                 </TabsTrigger>
               </TabsList>
 
@@ -747,7 +748,8 @@ const ShipmentPriceRow = memo(function ShipmentPriceRow({
   onRemove: (key: CardKey) => void
   onUndo: (key: CardKey) => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
   const marked = card?.markedForRemoval === true
   const priced = card?.initial != null || (card?.price.trim() ?? "") !== ""
 
@@ -759,7 +761,7 @@ const ShipmentPriceRow = memo(function ShipmentPriceRow({
       badge={
         <span className="text-xs text-muted-foreground">
           {warehouseName} · {t("priceLists.fields.quantity")}{" "}
-          {formatNumber(quantity)}
+          {formatNumber(quantity, 0, locale)}
         </span>
       }
       buyPrice={buyPrice}
