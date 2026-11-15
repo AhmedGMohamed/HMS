@@ -142,6 +142,13 @@ export function PatientReportTab({
   /** Detail/print always describe the generated period, never the draft. */
   const range = generated?.range ?? draft.range
 
+  /* The start/end error belongs on the range control itself; the shell keeps
+     the errors that are not attached to a specific filter (doctor/nurse). */
+  const rangeInvalid = draft.range.from > draft.range.to
+  const rangeError = rangeInvalid
+    ? t("reports.validation.endBeforeStart")
+    : null
+
   /* ---------------------------------------------------------------- */
   /* Exports (always the generated filters)                            */
   /* ---------------------------------------------------------------- */
@@ -277,7 +284,7 @@ export function PatientReportTab({
         onGenerate={onGenerate}
         generating={query.loading && payload === undefined}
         stale={isStale}
-        validationError={validationError}
+        validationError={rangeInvalid ? null : validationError}
         onExportPdf={handleExportPdf}
         onExportCsv={handleExportCsv}
         exportDisabled={exportDisabled}
@@ -300,6 +307,7 @@ export function PatientReportTab({
             <DateRangeField
               value={draft.range}
               onChange={(next) => onDraftChange({ range: next })}
+              error={rangeError}
             />
 
             <SelectField
