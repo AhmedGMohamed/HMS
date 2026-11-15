@@ -983,12 +983,12 @@ A package is **done** only when all of the following hold:
 | P0 | baseline | — | `npm run lint` **exit 1** (pre-existing red) · `tsc -p src/renderer` exit 0 · `test:renderer` 15 files / 135 tests pass · `check-i18n` exit 0 | Baseline is **not green**: 534 lint problems (495 errors, 39 warnings) pre-existing. Bar for later commits = no new lint failure. See "Phase 0 baseline record". |
 | S01 | node-formatters | `src/renderer/src/lib/utils.ts` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · runtime probe: defaults unchanged | `formatCurrency(amount, locale, currency = "EGP")`; `formatNumber(n, decimals, locale)` via `Intl.NumberFormat`, non-finite → `0` kept. No call sites changed, no default switched to `resolveLocale`. |
 | S02 | api-client | `src/renderer/src/lib/api.ts`, `src/renderer/src/lib/errors.ts` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · runtime probe: offline → `NetworkError` (0 / `NETWORK_ERROR`), 404 + 204 unchanged | `fetch` rejection wrapped as `NetworkError extends ApiError`; `isNetworkError` exported; HTTP branches / 401 side-effect / 204 path untouched; 0 `pages/**` files in the phase diff. |
-| S03 | ui-field | `components/ui/field.tsx` | | |
-| S04 | ui-card | `components/ui/card.tsx` | | |
-| S05 | ui-button | `components/ui/button.tsx` | | |
-| S06 | ui-alert | `components/ui/alert.tsx` | | |
-| S07 | ui-native-select | `components/ui/native-select.tsx` | | |
-| S08 | stat-card | `components/common/StatCard.tsx` | | |
+| S03 | ui-field | `src/renderer/src/components/ui/field.tsx` | scoped eslint exit 0 (1 documented disable) · tsc exit 0 · test:renderer 15/135 pass · SSR DOM probe green | `FieldContext` mints `useId()` → `controlId` / `${id}-description` / `${id}-error`; `Field` provides it, keeps `role="group"`, reflects `invalid` → `data-invalid`; `FieldLabel`/`FieldDescription`/`FieldError` auto-wire ids (explicit props win); `FieldError` now `aria-live="polite"` with `role="alert"` **removed** per spec; `useFieldControlProps` gates `aria-describedby` (no dangling error id when valid). One `eslint-disable-next-line react-refresh/only-export-components` for the hook export (same rule already fires pre-existing in `button.tsx`/`badge.tsx`). |
+| S04 | ui-card | `src/renderer/src/components/ui/card.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | `CardTitle` gains `as?: "div" \| "h2" \| "h3" \| "h4"` (default `"div"`); classes and `data-slot="card-title"` unchanged; no inference; no page adoption. |
+| S05 | ui-button | `src/renderer/src/components/ui/button.tsx` | scoped eslint **not** exit 0 — pre-existing `react-refresh/only-export-components` 69:18, identical via `git show HEAD:file \| eslint --stdin` · tsc exit 0 · test:renderer 15/135 pass | `transition-all` → `transition-[color,background-color,border-color,box-shadow,opacity,transform]`; timing/easing untouched; no API change. Bar met: 1 error before, 1 after. |
+| S06 | ui-alert | `src/renderer/src/components/ui/alert.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | `live?: "assertive" \| "polite" \| "off"` (default `"assertive"`): assertive → `role="alert"` + `aria-live="assertive"` (unchanged semantics), polite → `role="status"` + `aria-live="polite"`, off → neither; caller-supplied `role`/`aria-live` still override; `live` never reaches the DOM. |
+| S07 | ui-native-select | `src/renderer/src/components/ui/native-select.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass | Closed `<select>`: `bg-transparent` → `bg-background` + `text-foreground`; `dark:bg-input/30` / hover / focus ring / disabled / aria-invalid tokens retained (matches `button.tsx` outline convention). **Manual Windows dark-mode check deferred.** |
+| S08 | stat-card | `src/renderer/src/components/common/StatCard.tsx` | scoped eslint exit 0 · tsc exit 0 · test:renderer 15/135 pass · SSR probe green | `focus-visible:*` removed from the inner `Card`; ring moved to the `Link`/`button` wrappers (layout classes kept); `aria-label` composed only for non-empty **string** values, omitted for numbers/blank, new `ariaLabel?` override wins. **Manual Tab-ring AT pass deferred.** |
 | S09 | page-header | `components/common/PageHeader.tsx` | | |
 | S10 | empty-state | `components/common/EmptyState.tsx` | | |
 | S11 | editorial-kpi-card | `components/common/EditorialKpiCard.tsx` | | |
@@ -1041,6 +1041,31 @@ Branch `fix/guidelines-audit-remediation`, created from `react-refactor` @ `de6e
 | --- | --- | --- | --- | --- |
 | S01 | exit 0 (no output) | exit 0 | 15 passed / 135 passed, 3.51 s | Runtime probe of the real module: `formatNumber(1234.5)="1,235"`, `formatNumber(1234567)="1,234,567"`, `formatNumber(-1234.567,2)="-1,234.57"`, `formatNumber("12345")="12,345"`, `formatNumber(NaN)="0"`, `formatNumber(Infinity)="0"`, `formatNumber(1234,0,"ar-EG")="١٬٢٣٤"`; `formatCurrency(1234.5)="EGP 1,234.50"` (default unchanged), `formatCurrency(1234.5,"ar-EG")="‏١٬٢٣٤٫٥٠ ج.م.‏"`, `formatCurrency(12.5,"en-US","USD")="$12.50"` |
 | S02 | exit 0 (no output) | exit 0 | 15 passed / 135 passed, 3.23 s | Runtime probe with a rejecting `fetch` stub: `api.get("/drugs")` rejects with `name=NetworkError`, `code=NETWORK_ERROR`, `statusCode=0`, `endpoint=/api/drugs`, `cause` preserved. HTTP branches unchanged: 404 → `ApiError` `statusCode=404` `code=NOT_FOUND` `message="Not found"`; 204 → resolves `undefined`. `isNetworkError` returns true for `NetworkError`, false for `ApiError` / `Error` / `null`. `git diff --name-only react-refactor..HEAD` → 0 files under `src/renderer/src/pages/**`. |
+
+### Slice verification log (Phase 1, S03–S08)
+
+All six slices: `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0; `npm run test:renderer` `Test Files 15 passed (15)` / `Tests 135 passed (135)`; full `npm run lint` after S08 = `✖ 534 problems (495 errors, 39 warnings)` — identical to baseline, **no new failures**. Manual keyboard/AT and Windows-theme spot checks are **deferred** (not executed in this dispatch).
+
+| Slice | Scoped eslint | Extra runtime/DOM evidence |
+| --- | --- | --- |
+| S03 | exit 0 after adding one targeted `eslint-disable-next-line react-refresh/only-export-components` on the hook export | SSR render: `<label for="_R_0_">` matches `<input id="_R_0_" aria-invalid="true" aria-describedby="_R_0_-description _R_0_-error" aria-required="true">`; description `id="_R_0_-description"`; error `id="_R_0_-error" aria-live="polite"` and **no** `role="alert"`; valid state omits `aria-invalid`/`aria-required` and describedby carries only the description id (no dangling `-error`); explicit `htmlFor`/`id` win; `Field` gets `data-invalid="true"` only when `invalid`. |
+| S04 | exit 0 | SSR render: default → `<div data-slot="card-title" class="font-heading text-base leading-normal font-medium group-data-[size=sm]/card:text-sm">`; `as="h2"/"h3"/"h4"` → matching `<h2>/<h3>/<h4>` with identical classes; `data-slot` unchanged; `as` never reaches the DOM. Tailwind preflight zeroes heading margins, so no layout shift. |
+| S05 | **exit 1, pre-existing only** (`69:18 react-refresh/only-export-components`); `git show HEAD:button.tsx \| npx eslint --stdin` reports the same single error, and it appears in the Phase 0 baseline | Diff is one line: `transition-all` → explicit property list. No API change. |
+| S06 | exit 0 | SSR render: default → `role="alert" aria-live="assertive"`; `live="polite"` → `role="status" aria-live="polite"`; `live="off"` → neither, classes/`data-slot` kept; caller `role`/`aria-live` override still wins; no `live` attribute leaks to the DOM. |
+| S07 | exit 0 | One-line class change: `bg-transparent` → `bg-background` + `text-foreground`; focus-visible ring, disabled and `aria-invalid` tokens untouched. **Deferred:** Electron/Windows dark-mode visual check. |
+| S08 | exit 0 | SSR render: `Link` wrapper carries `focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2` and `aria-label="Active patients: 24"`; inner `Card` has no `focus-visible:*` and keeps `cursor-pointer hover:shadow-md`; `value={12500}` and `value="  "` omit `aria-label`; `ariaLabel` override wins; `button` wrapper keeps `type="button"` + `block w-full rounded-lg text-left`; inert card renders a bare `div` with no `aria-label`. **Deferred:** keyboard Tab-ring walk + AT pass on Dashboard. |
+
+### Adoption notes for Phase 2 (what page packages must now pass)
+
+| Primitive | Pages must |
+| --- | --- |
+| `lib/utils` (S01) | Pass `resolveLocale(language)` to `formatNumber`/`formatCurrency` to localise digits; third `formatCurrency` arg is the currency (default `"EGP"`). Defaults stay `en-US`/Latin digits, so **not** passing a locale keeps old output. |
+| `lib/errors` (S02) | Branch on `isNetworkError(error)` (or `statusCode === 0`) for offline copy; `err.message` is the English `"Network request failed"` until the page localises it. |
+| `ui/field` (S03) | Wrap each field in `<Field invalid={...}>`, spread `useFieldControlProps({ invalid, hasDescription, required })` onto the control (call it in a component rendered **inside** `Field`), and render `FieldError` inside the same `Field`. Explicit `id`/`htmlFor` still win. |
+| `ui/card` (S04) | Pass `as="h2"` / `"h3"` on `CardTitle` where the card is a real heading; never skip levels. |
+| `ui/alert` (S06) | Pass `live="polite"` for stock/below-price warnings, `live="off"` for static informational alerts. Default stays assertive. |
+| `ui/native-select` (S07) | No call-site change needed; closed control now paints `bg-background`/`text-foreground`. |
+| `common/StatCard` (S08) | No call-site change needed; pass `ariaLabel` only when the visible label + value are not a sufficient name (e.g. translated/abbreviated values). |
 
 ## 12. Risks and rollback considerations
 
