@@ -57,24 +57,23 @@ export function useDashboardStats(): UseDashboardStatsResult {
         const statsPath = isAdmin
           ? "/dashboard/admin-statistics"
           : "/dashboard/user-statistics"
-        const statsRes = await api.get<DashboardStatistics>(statsPath)
+
+        /* The three resources are independent, so they are fanned out
+           together: a slow chart query must not delay the KPI row (or
+           vice versa). Non-admin users never request charts/logs. */
+        const [statsRes, chartRes, logsRes] = await Promise.all([
+          api.get<DashboardStatistics>(statsPath),
+          isAdmin
+            ? api.get<DashboardChartPoint[]>("/dashboard/chart-data")
+            : Promise.resolve<DashboardChartPoint[]>([]),
+          isAdmin
+            ? api.get<AuditLogRecord[]>("/logs/page/1")
+            : Promise.resolve<AuditLogRecord[]>([]),
+        ])
         if (cancelled) return
         setStats(statsRes ?? null)
-
-        if (isAdmin) {
-          const [chartRes, logsRes] = await Promise.all([
-            api.get<DashboardChartPoint[]>("/dashboard/chart-data"),
-            api.get<AuditLogRecord[]>("/logs/page/1"),
-          ])
-          if (cancelled) return
-          setChartData(chartRes ?? [])
-          setLogs(logsRes ?? [])
-        } else {
-          // Locked decision: users don't see charts/audit. Releases
-          // the Admin-only fetches without touching React state.
-          setChartData([])
-          setLogs([])
-        }
+        setChartData(chartRes ?? [])
+        setLogs(logsRes ?? [])
       } catch (err) {
         if (cancelled) return
         if (err instanceof ApiError) {
