@@ -357,11 +357,14 @@ function DataTableInner<T>(props: DataTableProps<T>) {
                       title={
                         emptyTitle ??
                         (search?.value
-                          ? t("common.noData")
+                          ? t("common.noResults")
                           : t("common.noData"))
                       }
                       description={
-                        emptyDescription ?? t("patients.emptyTableSearchDesc")
+                        emptyDescription ??
+                        (search?.value
+                          ? t("common.noResultsHint")
+                          : undefined)
                       }
                       action={emptyAction}
                     />
