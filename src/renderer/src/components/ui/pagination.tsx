@@ -35,6 +35,17 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean
+  /**
+   * Render a native `<button type="button">` instead of an `<a>`.
+   *
+   * Pager actions change component state, they do not navigate — an
+   * `<a href="#">` + `preventDefault` is mouse-shaped and stays tabbable
+   * when `aria-disabled`. Opt in here so callers get a real button
+   * (keyboard `Enter`/`Space`, real `disabled`) with the same styling.
+   */
+  asChild?: boolean
+  /** Native disabled state; only applied when `asChild` renders a button. */
+  disabled?: boolean
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
   React.ComponentProps<"a">
 
@@ -42,8 +53,16 @@ function PaginationLink({
   className,
   isActive,
   size = "icon",
+  asChild = false,
+  disabled,
   ...props
 }: PaginationLinkProps) {
+  /* Element type is chosen at runtime: `<a>` keeps the shadcn default for
+     real links, `asChild` swaps in a button. `ElementType` is deliberate —
+     the shared props below are the `<a>` contract plus the optional button
+     attributes above. */
+  const Comp = (asChild ? "button" : "a") as React.ElementType
+
   return (
     <Button
       asChild
@@ -51,7 +70,8 @@ function PaginationLink({
       size={size}
       className={cn(className)}
     >
-      <a
+      <Comp
+        {...(asChild ? { type: "button", disabled } : {})}
         aria-current={isActive ? "page" : undefined}
         data-slot="pagination-link"
         data-active={isActive}
