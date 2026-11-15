@@ -228,6 +228,8 @@ export default function PriceListsPage() {
                 ? err.message
                 : t("priceLists.messages.deleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
