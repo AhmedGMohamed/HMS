@@ -163,45 +163,48 @@ export function PatientFilters({ value, onChange }: PatientFiltersProps) {
         <NativeSelectOption value="inactive">{t("common.inactive")}</NativeSelectOption>
       </NativeSelect>
 
-      <Popover>
-        <PopoverTrigger asChild>
+      <div className="flex items-center gap-1">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-start gap-2"
+            >
+              <CalendarIcon aria-hidden className="size-4" />
+              {range.from && range.to
+                ? `${new Date(`${range.from}`).toLocaleDateString(
+                    language === "ar" ? "ar-EG" : "en-GB"
+                  )} – ${new Date(`${range.to}`).toLocaleDateString(
+                    language === "ar" ? "ar-EG" : "en-GB"
+                  )}`
+                : t("patients.filters.registrationDate")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-auto p-0">
+            <Calendar
+              mode="range"
+              selected={range}
+              onSelect={onRangeSelect}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+        {/* Sibling control, not a nested `role="button"` span inside the
+            trigger: nested interactive elements are unreachable by keyboard
+            and invalid inside a <button>. */}
+        {value.registeredFrom || value.registeredTo ? (
           <Button
-            variant="outline"
-            size="sm"
-            className="justify-start gap-2"
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("patients.filters.clearDateRange")}
+            onClick={() => applyRange(undefined)}
           >
-            <CalendarIcon aria-hidden className="size-4" />
-            {range.from && range.to
-              ? `${new Date(`${range.from}`).toLocaleDateString(
-                  language === "ar" ? "ar-EG" : "en-GB"
-                )} – ${new Date(`${range.to}`).toLocaleDateString(
-                  language === "ar" ? "ar-EG" : "en-GB"
-                )}`
-              : t("patients.filters.registrationDate")}
-            {(value.registeredFrom || value.registeredTo) && (
-              <span
-                role="button"
-                aria-label={t("patients.filters.clearDateRange")}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  applyRange(undefined)
-                }}
-                className="ml-1 rounded-sm p-0.5 hover:bg-muted"
-              >
-                <XIcon aria-hidden className="size-3.5" />
-              </span>
-            )}
+            <XIcon aria-hidden className="size-3.5" />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-auto p-0">
-          <Calendar
-            mode="range"
-            selected={range}
-            onSelect={onRangeSelect}
-            numberOfMonths={2}
-          />
-        </PopoverContent>
-      </Popover>
+        ) : null}
+      </div>
     </div>
   )
 }
