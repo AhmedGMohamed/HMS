@@ -15,9 +15,12 @@ export interface PharmacyKpi {
  *
  * `totalInventoryValue` is Σ(stock × buy price) across all warehouses —
  * authoritatively provided by the Warehouses endpoint (`GET /warehouse`
- * returns `total_stock_value` per warehouse). The three counts derive
- * from the aggregated drug list (low-stock / near-expiry monitor lists
- * are cross-joined by `useDrugsList`).
+ * returns `total_stock_value` per warehouse).
+ *
+ * The three counts derive from the **unfiltered** aggregated drug list:
+ * the page passes `useDrugsList().allDrugs`, never the filtered view, so
+ * "Total Drugs" stays the dataset size and "Expiring Soon" does not fall
+ * to 0 while a KPI chip filter is active.
  */
 export function usePharmacyKpi(
   drugs: EnrichedDrugCard[],
