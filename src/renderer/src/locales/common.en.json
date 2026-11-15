@@ -15,6 +15,8 @@
     "loading": "Loading...",
     "saving": "Saving...",
     "noData": "No data available",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filters.",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
