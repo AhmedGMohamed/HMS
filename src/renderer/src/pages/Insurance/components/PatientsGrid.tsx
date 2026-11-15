@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import { ArrowLeftIcon, UsersIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +16,6 @@ export interface PatientsGridProps {
   patients: InsurancePatient[]
   loading: boolean
   canManageReports: boolean
-  onBack: () => void
   onGenerateReport: (patient: InsurancePatient) => void
 }
 
@@ -23,7 +23,7 @@ export interface PatientsGridProps {
  * Patients section of the detail view (Phase 6.10 plan §3).
  *
  * Header carries the live count (legacy `#patientCount`) plus the
- * Back-to-List action that returns to the card grid. Empty/loading
+ * Back-to-List link that returns to the card grid. Empty/loading
  * states are explicit — the legacy page rendered a "No data" block with
  * the wrong i18n key (`loadPatientsError`).
  */
@@ -31,7 +31,6 @@ export function PatientsGrid({
   patients,
   loading,
   canManageReports,
-  onBack,
   onGenerateReport,
 }: PatientsGridProps) {
   const { t } = useTranslation()
@@ -46,9 +45,11 @@ export function PatientsGrid({
             {patients.length}
           </Badge>
         </CardTitle>
-        <Button type="button" variant="outline" size="sm" onClick={onBack}>
-          <ArrowLeftIcon aria-hidden className="me-1.5 size-4 rtl:rotate-180" />
-          {t("insurance.buttons.backToList")}
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/insurance">
+            <ArrowLeftIcon aria-hidden className="me-1.5 size-4 rtl:rotate-180" />
+            {t("insurance.buttons.backToList")}
+          </Link>
         </Button>
       </CardHeader>
 
