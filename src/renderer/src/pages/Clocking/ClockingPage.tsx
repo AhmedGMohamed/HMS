@@ -230,7 +230,9 @@ export function ClockingPage() {
   function handleClockOut(row: ClockIn) {
     // Future-dated clock-in: quick clock-out now would create a
     // non-positive duration — block client-side (plan §3.7).
-    if (new Date(row.clockIn).getTime() > now.getTime()) {
+    // Use the click instant, not a cached tick (background tabs throttle timers).
+    const clickNow = new Date()
+    if (new Date(row.clockIn).getTime() > clickNow.getTime()) {
       toast.error(t("clocking.validation.clockOutAfterClockIn"))
       return
     }
@@ -241,7 +243,9 @@ export function ClockingPage() {
     if (!clockOutTarget) return
     setConfirmBusy(true)
     try {
-      await quickClockOut(clockOutTarget.clockId, toWallNow())
+      // The confirm click is the payroll instant: never the last 1s tick.
+      const clockOutAt = new Date()
+      await quickClockOut(clockOutTarget.clockId, toWallNow(clockOutAt))
       toast.success(t("clocking.messages.clockOutSuccess"))
       setClockOutTarget(null)
       // The row leaves the Active list — step back off a trailing page.
@@ -288,11 +292,11 @@ export function ClockingPage() {
   }
 
   /** Local wall clock as `"YYYY-MM-DDTHH:mm"` (minute precision). */
-  function toWallNow(): string {
+  function toWallNow(at: Date): string {
     const pad = (n: number) => String(n).padStart(2, "0")
     return (
-      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
-      `T${pad(now.getHours())}:${pad(now.getMinutes())}`
+      `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` +
+      `T${pad(at.getHours())}:${pad(at.getMinutes())}`
     )
   }
 
