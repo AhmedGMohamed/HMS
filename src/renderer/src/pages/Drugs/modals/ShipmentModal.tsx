@@ -148,6 +148,20 @@ export function ShipmentModal({
     [priceLists]
   )
 
+  /* Price lists that already carry a price on the shipment being edited.
+     Clearing one of these is rejected: the server only upserts rows present
+     in the payload, so filtering a zeroed row out would silently keep the
+     old price while the dialog reports success. */
+  const previouslyPricedIds = useMemo(
+    () =>
+      new Set(
+        (shipment?.prices ?? [])
+          .filter((p) => Number(p.price) > 0)
+          .map((p) => p.pricelistId)
+      ),
+    [shipment]
+  )
+
   /**
    * Surface the first payload issue inline and put the caret on the
    * offending control. The schema stays the single source of truth
@@ -189,9 +203,10 @@ export function ShipmentModal({
   }
 
   async function handleSubmit(values: ShipmentFormValues) {
-    // Only priced rows are sent: the server rejects any `price <= 0`.
-    // The matrix itself is still validated as a whole so a fully empty
-    // matrix fails with `defaultPriceRequired`.
+    // Only priced rows are sent — the payload contract is "rows with a
+    // price". Unpriced rows are filtered below, but a row that had a price
+    // and was zeroed is rejected first (see the check after validation):
+    // the server upserts only the rows it receives.
     const payload: CreateShipmentPayload = {
       drugId: drug.drugId,
       warehouseId: values.warehouseId,
@@ -220,6 +235,20 @@ export function ShipmentModal({
     })
     if (!parsed.success) {
       showFirstIssue(parsed.error.issues[0]!)
+      return
+    }
+
+    /* Reject clearing a price this shipment already had. Filtering it out of
+       the payload would leave the server-side price untouched while the
+       dialog reported success. Rows that were never priced stay filterable. */
+    const zeroedExistingPrice = values.prices.find(
+      (p) => p.price <= 0 && previouslyPricedIds.has(p.pricelistId)
+    )
+    if (zeroedExistingPrice) {
+      setMatrixError("pharmacy.validation.existingPriceRequired")
+      document
+        .getElementById(`sh-price-${zeroedExistingPrice.pricelistId}`)
+        ?.focus()
       return
     }
 

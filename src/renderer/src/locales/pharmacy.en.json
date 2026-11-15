@@ -184,6 +184,7 @@
       "expiryDateRequired": "Please select an expiry date",
       "expiryDateFuture": "Expiry date must be in the future",
       "defaultPriceRequired": "Default price list must have a valid price",
+      "existingPriceRequired": "An existing price cannot be cleared — enter a price for this price list.",
       "prepaymentAmountRequired": "Please enter valid prepayment amounts for all enabled prepayments",
       "prepaymentPercentageMax": "Percentage prepayment cannot exceed 100%",
       "warehouseNameLength": "Warehouse name must be at least 3 characters long",
