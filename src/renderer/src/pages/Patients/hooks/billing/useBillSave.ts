@@ -34,10 +34,21 @@ export interface BillAdjustInput extends BillSaveInput {
 export interface UseBillSaveResult {
   saving: boolean
   error: Error | null
-  /** Fire one PUT to `/api/bills/:billId` with the snake-cased payload. */
-  save: () => Promise<void>
+  /**
+   * Fire one PUT to `/api/bills/:billId` with the snake-cased payload.
+   *
+   * Resolves with the outcome so the caller never reads `error` from a
+   * stale render closure: `ok` is true only when the request succeeded.
+   * `error` is also kept in state for inline rendering.
+   */
+  save: () => Promise<BillSaveOutcome>
   /** Drop current error without firing a request. */
   clearError: () => void
+}
+
+export interface BillSaveOutcome {
+  ok: boolean
+  error: Error | null
 }
 
 /**
@@ -79,8 +90,12 @@ export function useBillSave(
     ]
   )
 
-  const save = useCallback(async () => {
-    if (billId == null || billId <= 0 || saving) return
+  const save = useCallback(async (): Promise<BillSaveOutcome> => {
+    if (billId == null || billId <= 0 || saving) {
+      /* No-op: no bill to save (or a save is already in flight). The caller
+         must not toast success for this — `ok` stays false with no error. */
+      return { ok: false, error: null }
+    }
     setSaving(true)
     setError(null)
     try {
@@ -106,14 +121,16 @@ export function useBillSave(
           `/api/bills/${billId}`
         )
       }
+      return { ok: true, error: null }
     } catch (err) {
-      setError(
+      const normalized =
         err instanceof ApiError
           ? err
           : err instanceof Error
             ? err
             : new Error(String(err))
-      )
+      setError(normalized)
+      return { ok: false, error: normalized }
     } finally {
       setSaving(false)
     }
