@@ -454,6 +454,7 @@
       "staffAssignmentUpdateError": "Failed to update staff assignment",
       "billSettled": "Bill settled successfully",
       "settleBillError": "Failed to settle bill",
+    "noBillYet": "No bill has been generated for this admission yet.",
       "paidExceedsTotal": "The paid amount exceeds the total amount. Do you want to continue?",
       "loadBillError": "Failed to load bill data",
       "outOfStock": "Out of stock",

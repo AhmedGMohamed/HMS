@@ -91,6 +91,13 @@ export function AdmissionsPanel({ patientId }: AdmissionsPanelProps) {
     setSettleOpen(true)
   }
 
+  /* Clear the selected row when the dialog closes: reopening for a different
+     admission must never reuse the previous row's figures. */
+  function onSettleOpenChange(next: boolean) {
+    setSettleOpen(next)
+    if (!next) setSettleRow(null)
+  }
+
   function onSettledRefresh() {
     listRes.refresh()
   }
@@ -173,8 +180,11 @@ export function AdmissionsPanel({ patientId }: AdmissionsPanelProps) {
 
       {settleRow ? (
         <SettleBillDialog
+          /* Keyed by admission: opening A → close → B remounts the dialog so
+             its amount draft starts from B's figures, never A's. */
+          key={settleRow.patientHistoryId}
           open={settleOpen}
-          onOpenChange={setSettleOpen}
+          onOpenChange={onSettleOpenChange}
           billId={settleRow.billId ?? 0}
           totalAmount={settleRow.totalAmount ?? 0}
           currentPaid={settleRow.paidAmount ?? 0}

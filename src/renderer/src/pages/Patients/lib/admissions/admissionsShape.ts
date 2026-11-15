@@ -134,7 +134,10 @@ export function coercePatientHistory(
   return {
     patientHistoryId: raw.patientHistoryId,
     patientId: ctx.patientId,
-    billId: raw.billId ?? raw.patientHistoryId,
+    /* No fabrication: an absent bill id becomes the `0` sentinel ("no bill
+       yet"). Falling back to `patientHistoryId` used to bind another
+       admission's bill. Every bill hook treats `<= 0` as "do not fetch". */
+    billId: raw.billId ?? 0,
     admissionTime: raw.admissionTime,
     dischargeTime: raw.dischargeTime,
     leaveReason: toLeaveReason(raw.leaveReason),
@@ -168,7 +171,9 @@ export function coerceBill(raw: AdmissionDetails): Bill {
   void _disc
 
   return {
-    billId: raw.billId ?? raw.patientHistoryId,
+    /* Same sentinel as `coercePatientHistory`: absent bill id → 0, never a
+       foreign admission id. */
+    billId: raw.billId ?? 0,
     billDetails: [],
     patientHistoryId: raw.patientHistoryId,
     totalAmount: parseDec(raw.totalAmount),
