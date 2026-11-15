@@ -81,13 +81,17 @@ export function DataTablePagination({
       <Pagination className="mx-0 justify-end">
         <PaginationContent>
           <PaginationItem>
+            {/* Pager actions are buttons, not links: no `href="#"` +
+                preventDefault, and boundary states use real `disabled`
+                instead of `aria-disabled` on a still-tabbable anchor. */}
             <PaginationPrevious
-              href="#"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                e.preventDefault()
+              asChild
+              text={t("common.previous")}
+              aria-label={t("common.previous")}
+              disabled={safePage <= 1}
+              onClick={() => {
                 if (safePage > 1) onPageChange(safePage - 1)
               }}
-              aria-disabled={safePage <= 1}
             />
           </PaginationItem>
           {items.map((item, index) => {
@@ -102,12 +106,10 @@ export function DataTablePagination({
             return (
               <PaginationItem key={pageNumber}>
                 <PaginationLink
-                  href="#"
+                  asChild
                   isActive={pageNumber === safePage}
-                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                    e.preventDefault()
-                    onPageChange(pageNumber)
-                  }}
+                  aria-label={`${t("common.page")} ${pageNumber}`}
+                  onClick={() => onPageChange(pageNumber)}
                 >
                   {pageNumber}
                 </PaginationLink>
@@ -116,12 +118,13 @@ export function DataTablePagination({
           })}
           <PaginationItem>
             <PaginationNext
-              href="#"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                e.preventDefault()
+              asChild
+              text={t("common.next")}
+              aria-label={t("common.next")}
+              disabled={safePage >= pageCount}
+              onClick={() => {
                 if (safePage < pageCount) onPageChange(safePage + 1)
               }}
-              aria-disabled={safePage >= pageCount}
             />
           </PaginationItem>
         </PaginationContent>
