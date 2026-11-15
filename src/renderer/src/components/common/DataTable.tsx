@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useCallback, useId, useState } from "react"
+import { Fragment, memo, useCallback, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { SearchIcon, XIcon, ChevronDownIcon } from "lucide-react"
 
@@ -37,7 +37,16 @@ export interface ColumnDef<T> {
   cell?: (row: T) => React.ReactNode
   /** When true and `onSortToggle` is wired, renders a sortable header. */
   sortable?: boolean
-  /** Optional pre-formatted sort comparator key. */
+  /**
+   * Optional pre-formatted sort key.
+   *
+   * NOT consumed by `DataTable` — it sorts nothing here. Callers that need
+   * it (Drugs, Supplies, Clocking, Vault, …) read `column.sortKey` in their
+   * own comparator before passing `data` in. Consuming it internally would
+   * silently re-sort caller-owned data (some call sites pass `sortKey`
+   * without an `onSortToggle`), so that behaviour change is deferred to the
+   * Backlog instead.
+   */
   sortKey?: (row: T) => string | number
   align?: "start" | "center" | "end"
   /** Tabular numerals; the column will be end-aligned if `align` is unset. */
@@ -146,7 +155,7 @@ const ALIGN_CLASS: Record<
  * Built on shadcn `<Table>` + `<Skeleton>` + `<EmptyState>` (Phase 4
  * update via shadcn `<Empty>` primitives) + `<Pagination>`.
  */
-export function DataTable<T>(props: DataTableProps<T>) {
+function DataTableInner<T>(props: DataTableProps<T>) {
   const {
     data,
     columns,
@@ -336,6 +345,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   columns={columns}
                   density={density}
                   showExpand={showExpand}
+                  pageSize={pagination?.pageSize}
                 />
               ) : isEmpty ? (
                 <TableRow className="hover:bg-transparent">
@@ -512,6 +522,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
   )
 }
 
+/**
+ * `memo` + the `typeof` cast keeps the generic signature intact for every
+ * call site. Note this removes component-level self-rerender amplification
+ * only: columns/data arrays rebuilt per page render still defeat it, so it is
+ * not a performance guarantee (page-level identity fixes stay in Backlog).
+ */
+export const DataTable = memo(DataTableInner) as typeof DataTableInner
+
 function renderCell<T>(column: ColumnDef<T>, row: T): React.ReactNode {
   if (column.cell) return column.cell(row)
   if (column.accessor) {
@@ -543,14 +561,17 @@ interface DataTableSkeletonProps<T> {
   columns: ColumnDef<T>[]
   density: "default" | "compact"
   showExpand: boolean
+  /** Current page size; skeleton rows clamp to 5–8 per design.md §6.2. */
+  pageSize?: number
 }
 
 function DataTableSkeleton<T>({
   columns,
   density,
   showExpand,
+  pageSize,
 }: DataTableSkeletonProps<T>) {
-  const rowCount = 6
+  const rowCount = Math.min(Math.max(pageSize ?? 10, 5), 8)
   const rowHeight = density === "compact" ? "h-10" : "h-12"
   return (
     <>
