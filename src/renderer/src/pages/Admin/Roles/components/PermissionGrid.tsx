@@ -91,13 +91,17 @@ export function PermissionGrid({
         <div className="grid gap-3 sm:grid-cols-2">
           {ordered.map((permission) => {
             const id = `perm-${permission.permissionId}`
+            const labelId = `${id}-label`
+            const descriptionId = `${id}-description`
             const checked = selected.has(permission.permissionId)
             const label = permissionLabel(permission.featureName, t)
             return (
               <div
                 key={permission.permissionId}
-                // The whole tile is the hit area, so it must look tappable and
-                // take focus where the user expects it (on the checkbox).
+                // Pointer hit area only — the tile is deliberately NOT a
+                // `role="button"`: keyboard users tab to the Radix checkbox
+                // and Space toggles it. The visible label below names that
+                // checkbox via `aria-labelledby`.
                 onClick={(event) => {
                   if (disabled) return
                   // Radix mirrors the checkbox into a hidden `input` that sits
@@ -123,7 +127,10 @@ export function PermissionGrid({
                   id={id}
                   checked={checked}
                   disabled={disabled}
-                  aria-label={label}
+                  aria-labelledby={labelId}
+                  aria-describedby={
+                    permission.description ? descriptionId : undefined
+                  }
                   onCheckedChange={(next) =>
                     toggle(permission.permissionId, next === true)
                   }
@@ -131,8 +138,10 @@ export function PermissionGrid({
                 />
                 <div className="space-y-0.5">
                   {/* Was a `<label htmlFor>` pointing at a Radix button, which
-                      never forwarded the click. The tile handles it now. */}
+                      never forwarded the click. The tile handles it now; the
+                      checkbox takes its accessible name from this span. */}
                   <span
+                    id={labelId}
                     className={cn(
                       "block text-sm leading-tight text-foreground",
                       checked && "font-medium"
@@ -141,7 +150,10 @@ export function PermissionGrid({
                     {label}
                   </span>
                   {permission.description ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      id={descriptionId}
+                      className="text-xs text-muted-foreground"
+                    >
                       {permission.description}
                     </p>
                   ) : null}
