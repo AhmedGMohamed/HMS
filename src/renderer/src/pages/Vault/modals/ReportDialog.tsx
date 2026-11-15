@@ -135,7 +135,7 @@ export function ReportDialog({ open, reportType, range, data, loading, error, la
 						{t("vault.report.dateRange")}: {formatDate(range.from, language)} – {formatDate(range.to, language)}
 					</span>
 					<span>
-						{t("vault.report.totalRecords")}: {formatNumber(data?.length ?? 0, 0)}
+						{t("vault.report.totalRecords")}: {formatNumber(data?.length ?? 0, 0, locale)}
 					</span>
 				</div>
 
@@ -145,7 +145,7 @@ export function ReportDialog({ open, reportType, range, data, loading, error, la
 							<div key={chip.titleKey} className="rounded-lg border bg-surface-muted/40 px-3 py-1.5 text-sm">
 								<span className="text-muted-foreground">{t(chip.titleKey)}: </span>
 								<span className="font-semibold tabular-nums">
-									{chip.kind === "count" ? formatNumber(chip.value, 0) : formatCurrency(chip.value, locale)}
+									{chip.kind === "count" ? formatNumber(chip.value, 0, locale) : formatCurrency(chip.value, locale)}
 								</span>
 							</div>
 						))}
