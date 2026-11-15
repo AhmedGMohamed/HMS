@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   HistoryIcon,
@@ -70,8 +70,15 @@ export default function SuppliesPage() {
 
   const [tab, setTab] = useState<Tab>("inventory")
 
-  const suppliesList = useSuppliesList()
   const warehouses = useSharedWarehouses()
+  // The supply aggregate needs every warehouse's shipment rows; the
+  // ids are the hook's fetch scope. Memoised so the hook does not refetch
+  // on unrelated page re-renders.
+  const warehouseIds = useMemo(
+    () => warehouses.warehouses.map((w) => w.warehouseId),
+    [warehouses.warehouses]
+  )
+  const suppliesList = useSuppliesList(warehouseIds)
   const usageHistory = useSupplyUsageHistory()
 
   /**
