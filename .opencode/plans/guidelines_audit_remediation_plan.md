@@ -959,6 +959,29 @@ Run after the last page package lands.
 9. **Reports column-array memoization** (declined by the appshell lane): per-keystroke parent rerenders were already eliminated by isolating the draft search, so memoizing the column arrays would require `useCallback` refactors across 6 tab files for no measured win. Revisit only with a profile.
 10. **Clocking `HistoryTable` `now` prop threading** (backlogged by the people lane): the table still derives `now` per render (no interval), so relative times do not tick on that screen while a row is open. The page-level 1s tick was removed deliberately; threads `now` only if a live-history requirement appears.
 
+**Accepted advisory backlog from the Phase-3 review (one line each, no action taken):**
+
+11. `isNetworkError` localization gap: ~60 surfaces still render the English `"Network request failed"` message.
+12. `DataTable`: `aria-controls` IDREF dangles while collapsed; `expandedAriaHidden`/`expandedLabel` are effectively dead for current consumers.
+13. `FieldLabel` renders a dangling `for` on group-style `Field`s (no single control to point at).
+14. `EmployeeDetailSheet.formatPerPatientPay` duplicates `hooks/useEmployeeDisplay`; import instead of re-implementing.
+15. Supplies per-warehouse `catch → []` understates stock; `runIdRef` is not re-checked in `.catch`.
+16. `SettleBillDialog`: an emptied draft maps to `paidAmount 0`; single-validation gap (no explicit "amount required" state).
+17. Three unguarded `formatDate(new Date(x))` calls (`ShipmentRow`, `SupplyShipmentRow`, `WarehouseInventoryDialog`).
+18. `DailyAssignmentAccordion`: `visibleCount` not reset on data change; `defaultOpen` prop is dead.
+19. `SearchField` syncs only through `committedRef` — external value changes can be missed.
+20. `SellDrugModal` live over-quantity warning was removed; validation is submit-only now.
+21. `ShipmentModal` `matrixError` is not cleared on subsequent edits.
+22. Drugs detail fan-out reuses the list `loading` flag, so the skeleton blanks the detail pane.
+23. Disabled + `aria-disabled` redundancy on several buttons; `noBillYet` `role="status"` re-announces on each dialog open.
+24. `PatientListPanel` rows expose a double tab stop (row + name link).
+25. `AddSupplyDialog` shows a literal `"Quantity (—)"` label when no unit is known.
+26. `admissionFormat.calculateLengthOfStay` floors ≤59 min to "less than an hour" (under-reports).
+27. `AddPricesModal` sibling `ConfirmDialog` focus-trap seam — manual check still pending.
+28. Six commit subjects exceed the 72-char convention (record-only, no rewrite).
+29. `patients.en.json` `noBillYet` indentation is inconsistent with its neighbours.
+30. No committed tests for the new contracts: `ConfirmDialog` `false`/throw, wizard resolver gate, bill-id sentinel, S02 `NetworkError` mapping.
+
 ## 10. Global acceptance criteria
 
 A package is **done** only when all of the following hold:
@@ -1020,7 +1043,7 @@ A package is **done** only when all of the following hold:
 | P2-14 | admin-roles | | | |
 | P2-15 | not-found | | | |
 | P2-16 | dev-demo | | | |
-| P3 | verification | — | lint / tsc / test:renderer / check-i18n / build:renderer | reviewers |
+| P3 | verification + review fixes | 6 page/modal files, 4 locale files, this plan | 6 fix commits: scoped eslint exit 0, tsc exit 0, test:renderer 15/135 each · full lint `534 problems (495E/39W)` unchanged · rev-count 84 | Reviewer verdict: **approved with 2 blocking findings**, both fixed in this batch. **B1** — all 6 delete handlers in Services / Drugs (×2) / Supplies (×2) / PriceLists now `return false` after catch+toast, so `ConfirmDialog` (S13 contract) stays open on failure. **B2** — shipment EDIT rejects zeroing a row that previously had a price (inline matrix error + focus), instead of filtering it out and letting the server keep the old price; false "server rejects price <= 0" comments corrected; 2 new locale keys (`pharmacy`/`medicalSupplies` `validation.existingPriceRequired`). Test-verifier: **PASS**, incl. build chunk proof — entry chunk 0 `recharts` hits. |
 
 ### Phase 0 baseline record (2026-11-15)
 
