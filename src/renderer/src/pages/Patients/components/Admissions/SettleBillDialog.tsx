@@ -56,6 +56,13 @@ interface SettleBillDialogProps {
  * On submit calls T6's `updateBill({ paidAmount })` then
  * invokes the refresh callback.
  */
+
+/** One parse point for the typed amount: empty/invalid reads as 0. */
+function parseAmountInput(raw: string): number {
+  if (raw.trim() === "") return 0
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 export function SettleBillDialog({
   open,
   onOpenChange,
@@ -67,7 +74,10 @@ export function SettleBillDialog({
 }: SettleBillDialogProps) {
   const { t } = useTranslation()
   const language = useUIStore((s) => s.language) as "en" | "ar"
-  const [newPaid, setNewPaid] = useState(() => currentPaid)
+  /* String draft: a number-controlled input cannot represent "1." while the
+     user types, so "1.5" collapsed to "15". Parsed once below. */
+  const [newPaidInput, setNewPaidInput] = useState(() => String(currentPaid))
+  const newPaid = parseAmountInput(newPaidInput)
   const [submitting, setSubmitting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(false)
@@ -188,15 +198,11 @@ export function SettleBillDialog({
               </InputGroupAddon>
               <InputGroupInput
                 id="settle-new-paid"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={newPaid === 0 ? "" : String(newPaid)}
-                onChange={(e) => {
-                  const raw = e.target.value
-                  setNewPaid(raw === "" ? 0 : Number(raw))
-                }}
+                value={newPaidInput}
+                onChange={(e) => setNewPaidInput(e.currentTarget.value)}
+                onBlur={() => setNewPaidInput(String(newPaid))}
                 disabled={submitting}
               />
             </InputGroup>
