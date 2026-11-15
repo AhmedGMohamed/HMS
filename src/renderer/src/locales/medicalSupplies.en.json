@@ -31,6 +31,9 @@
       "loadingPatients": "Loading patients...",
       "noAdmittedPatients": "No admitted patients available — admit or quick-check the patient first."
     },
+    "labels": {
+      "quickCheck": "Quick check"
+    },
     "daysRemaining": "{{days}} days",
     "tabs": {
       "inventory": "Supplies Inventory",
@@ -173,8 +176,12 @@
       "statusActive": "Active",
       "statusCompleted": "Completed",
       "totalUnits": "Total Units Dispensed",
+      "totalUnitsHint": "Across all time and patients",
       "activeTreatments": "Active Inpatient Usages",
+      "activeTreatmentsHint": "Ongoing continuous treatments",
+      "activeTreatmentsCalm": "No active ongoing treatments",
       "patientsServed": "Patients Served",
+      "patientsServedHint": "Distinct patient count",
       "dateRange": "Date Range",
       "statusFilter": "Status",
       "statusAll": "All",

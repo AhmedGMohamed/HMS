@@ -60,7 +60,7 @@ export default function DrugsPage() {
     (sum, w) => sum + Number(w.totalStockValue ?? 0),
     0
   )
-  const kpi = usePharmacyKpi(drugsList.drugs, totalInventoryValue)
+  const kpi = usePharmacyKpi(drugsList.allDrugs, totalInventoryValue)
 
   const [priceLists, setPriceLists] = useState<PriceList[]>([])
 
@@ -138,6 +138,7 @@ export default function DrugsPage() {
             onSearchChange={drugsList.setSearch}
             filter={drugsList.filter}
             onFilterChange={drugsList.setFilter}
+            onVisibleRowsChange={drugsList.setVisibleDrugIds}
             onEditDrug={(drug) => {
               setEditingDrug(drug)
               setDrugModalOpen(true)
@@ -209,6 +210,10 @@ export default function DrugsPage() {
               toast.success(t("pharmacy.messages.shipmentCreateSuccess"))
             }
             drugsList.refresh()
+            // Shipments are the stock source behind `total_stock_value`;
+            // refresh the warehouse aggregate so the "Total Inventory
+            // Value" KPI reflects the mutation without a reload.
+            warehouses.refresh()
           }}
         />
       ) : null}
@@ -243,7 +248,9 @@ export default function DrugsPage() {
                 payload.patientId == null ||
                 payload.patientHistoryId == null
               ) {
-                throw new Error("Patient and admission are required")
+                throw new Error(
+                  t("pharmacy.messages.patientSelectionIncomplete")
+                )
               }
               await addDrugToPatient(payload.patientId, {
                 drugId: sellShipment.drugId,
@@ -255,6 +262,9 @@ export default function DrugsPage() {
             }
             toast.success(t("pharmacy.messages.saleSuccess"))
             drugsList.refresh()
+            // A sale decrements shipment stock, which feeds the
+            // warehouse aggregate used by the value KPI.
+            warehouses.refresh()
           }}
         />
       ) : null}
@@ -310,6 +320,7 @@ export default function DrugsPage() {
             toast.success(t("pharmacy.messages.shipmentDeleteSuccess"))
             setDeletingShipment(null)
             drugsList.refresh()
+            warehouses.refresh()
           } catch (err) {
             toast.error(
               err instanceof ApiError

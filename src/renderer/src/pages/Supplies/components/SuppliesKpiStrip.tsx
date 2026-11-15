@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   BoxesIcon,
@@ -48,7 +49,16 @@ export function SuppliesKpiStrip({
 
   const isLowStock = kpi.lowStockCount > 0
   const isNearExpiry = kpi.nearExpiryCount > 0
-  const turnoverPct = (kpi.turnoverRate * 100).toFixed(1)
+  // Locale-aware percent (Latin vs Arabic digits, percent sign spacing).
+  const percentFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(resolveLocale(language), {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }),
+    [language]
+  )
+  const turnoverPct = percentFormatter.format(kpi.turnoverRate)
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -98,7 +108,7 @@ export function SuppliesKpiStrip({
       />
       <EditorialKpiCard
         label={t("medicalSupplies.kpi.turnoverRate")}
-        value={`${turnoverPct}%`}
+        value={turnoverPct}
         hint={t("medicalSupplies.kpi.turnoverRateHint")}
         tone="primary"
         loading={loading}
@@ -109,7 +119,6 @@ export function SuppliesKpiStrip({
         value={formatCurrency(kpi.totalInventoryValue, resolveLocale(language))}
         hint={t("medicalSupplies.kpi.totalValueHint")}
         tone="primary"
-        active={filter === "all"}
         loading={loading}
         onClick={() => onFilterChange("all")}
         icon={<WalletIcon aria-hidden className="size-4" />}
