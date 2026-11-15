@@ -34,6 +34,7 @@ import type {
   Doctor,
   Employee,
   EmployeePayment,
+  PerPatientPaymentType,
 } from "@/pages/Employees/types/employee"
 
 export type StaffSubject = Employee | Doctor
@@ -174,7 +175,11 @@ export function EmployeeDetailSheet({
                         hidden={!canViewPayments}
                         value={
                           (subject as Doctor).perPatientPay != null
-                            ? formatCurrencySafe((subject as Doctor).perPatientPay, locale)
+                            ? formatPerPatientPay(
+                                (subject as Doctor).perPatientPay,
+                                (subject as Doctor).perPatientPaymentType,
+                                locale
+                              )
                             : undefined
                         }
                       />
@@ -368,6 +373,27 @@ function formatCurrencySafe(
     style: "currency",
     currency: "EGP",
   }).format(Number(value))
+}
+
+/**
+ * Per-patient pay is either money (fixed) or a share of the patient's
+ * total (percentage) — the stored type decides the unit, never the
+ * amount alone.
+ */
+function formatPerPatientPay(
+  value: number | null | undefined,
+  type: PerPatientPaymentType | null | undefined,
+  locale: string
+): string {
+  if (value == null || !Number.isFinite(Number(value))) return "—"
+  const amount = Number(value)
+  if (type === "percentage") {
+    return new Intl.NumberFormat(locale, {
+      style: "percent",
+      maximumFractionDigits: 2,
+    }).format(amount / 100)
+  }
+  return formatCurrencySafe(amount, locale)
 }
 
 function Detail({
