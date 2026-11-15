@@ -3,6 +3,8 @@
 import { useTranslation } from "react-i18next"
 
 import { DataTable, type ColumnDef } from "@/components/common/DataTable"
+import { formatDateTime } from "@/lib/utils"
+import { useUIStore } from "@/store/uiStore"
 import type { AuditLogRecord } from "@/types"
 
 export interface RecentActivityTableProps {
@@ -12,16 +14,15 @@ export interface RecentActivityTableProps {
   density?: "default" | "compact"
 }
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "short",
-  timeStyle: "short",
-})
-
 /**
  * Compact audit log feed used by the Admin Dashboard.
  *
  * Renders at most 10 rows (no pagination/search — see Phase 6.1 spec).
  * `density="compact"` matches the dashboard's stacking density.
+ *
+ * Timestamps use the shared `formatDateTime(date, language)` helper so the
+ * digits/format follow the active UI language (AR ↔ EN) instead of a
+ * hardcoded `en-US` formatter.
  */
 export function RecentActivityTable({
   logs,
@@ -29,6 +30,7 @@ export function RecentActivityTable({
   density = "compact",
 }: RecentActivityTableProps) {
   const { t } = useTranslation()
+  const language = useUIStore((s) => s.language) ?? "en"
 
   const columns: ColumnDef<AuditLogRecord>[] = [
     {
@@ -44,19 +46,32 @@ export function RecentActivityTable({
     {
       id: "details",
       header: t("dashboard.table.details"),
-      cell: (row) => row.details?.description ?? row.details?.url ?? "—",
+      cell: (row) => {
+        const text = row.details?.description ?? row.details?.url ?? "—"
+        return (
+          <span className="block max-w-[28rem] truncate" title={text}>
+            {text}
+          </span>
+        )
+      },
     },
     {
       id: "timestamp",
       header: t("common.time"),
       numeric: true,
-      cell: (row) => DATE_FORMATTER.format(new Date(row.timestamp)),
+      cell: (row) => {
+        /* A malformed/absent timestamp must not throw inside Intl. */
+        const date = new Date(row.timestamp)
+        return Number.isNaN(date.getTime())
+          ? "—"
+          : formatDateTime(date, language)
+      },
     },
   ]
 
   return (
     <DataTable<AuditLogRecord>
-      ariaLabel="Recent activity"
+      ariaLabel={t("dashboard.recentActivity")}
       data={logs}
       columns={columns}
       loading={loading}
