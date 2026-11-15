@@ -18,13 +18,13 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Field,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
+import { FieldInput } from "@/pages/Insurance/modals/FieldControls"
 
 import { ApiError } from "@/lib/errors"
 import { createPayment } from "@/pages/Insurance/api"
@@ -129,24 +129,33 @@ export function PaymentModal({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit, (fieldErrors) => {
+            /* Validation failed — focus the first invalid field
+               (design.md §6.3). */
+            const firstKey = Object.keys(fieldErrors)[0]
+            if (firstKey) form.setFocus(firstKey as keyof PaymentFormValues)
+          })}
           className="flex flex-col gap-5"
         >
-          <Field>
-            <FieldLabel htmlFor="payment-amount">
+          <Field invalid={Boolean(errors.paymentAmount)}>
+            <FieldLabel>
               {t("insurance.fields.paymentAmount")}
-              <span className="text-danger">*</span>
+              <span aria-hidden className="text-danger">
+                *
+              </span>
             </FieldLabel>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
                 {t("common.currency")}
               </span>
-              <Input
-                id="payment-amount"
+              <FieldInput
                 type="number"
                 min={0.01}
                 step="0.01"
                 inputMode="decimal"
+                required
+                invalid={Boolean(errors.paymentAmount)}
                 {...form.register("paymentAmount")}
               />
             </div>
@@ -160,14 +169,17 @@ export function PaymentModal({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="payment-from">
+            <Field invalid={Boolean(errors.paymentFrom)}>
+              <FieldLabel>
                 {t("insurance.fields.paymentPeriodFrom")}
-                <span className="text-danger">*</span>
+                <span aria-hidden className="text-danger">
+                  *
+                </span>
               </FieldLabel>
-              <Input
-                id="payment-from"
+              <FieldInput
                 type="date"
+                required
+                invalid={Boolean(errors.paymentFrom)}
                 {...form.register("paymentFrom")}
               />
               <FieldError
@@ -179,14 +191,17 @@ export function PaymentModal({
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="payment-to">
+            <Field invalid={Boolean(errors.paymentTo)}>
+              <FieldLabel>
                 {t("insurance.fields.paymentPeriodTo")}
-                <span className="text-danger">*</span>
+                <span aria-hidden className="text-danger">
+                  *
+                </span>
               </FieldLabel>
-              <Input
-                id="payment-to"
+              <FieldInput
                 type="date"
+                required
+                invalid={Boolean(errors.paymentTo)}
                 {...form.register("paymentTo")}
               />
               <FieldError

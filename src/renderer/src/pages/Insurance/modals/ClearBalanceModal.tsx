@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Field,
@@ -25,6 +24,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
+import { FieldInput } from "@/pages/Insurance/modals/FieldControls"
 
 import { ApiError } from "@/lib/errors"
 import { clearBalance } from "@/pages/Insurance/api"
@@ -106,18 +106,28 @@ export function ClearBalanceModal({
         </DialogHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit, (fieldErrors) => {
+            /* Validation failed — focus the first invalid field
+               (design.md §6.3). */
+            const firstKey = Object.keys(fieldErrors)[0]
+            if (firstKey) form.setFocus(firstKey as keyof ClearBalanceValues)
+          })}
           className="flex flex-col gap-5"
         >
-          <Field>
-            <FieldLabel htmlFor="clear-date">
+          <Field invalid={Boolean(errors.clearDate)}>
+            <FieldLabel>
               {t("insurance.fields.clearDate")}
-              <span className="text-danger">*</span>
+              <span aria-hidden className="text-danger">
+                *
+              </span>
             </FieldLabel>
-            <Input
-              id="clear-date"
+            <FieldInput
               type="date"
               max={todayInputValue()}
+              required
+              hasDescription
+              invalid={Boolean(errors.clearDate)}
               {...form.register("clearDate")}
             />
             <FieldDescription>
