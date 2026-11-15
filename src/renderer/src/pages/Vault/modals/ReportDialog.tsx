@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { DownloadIcon, PrinterIcon } from "lucide-react"
+import { DownloadIcon, PrinterIcon, RotateCcwIcon } from "lucide-react"
 import {
 	Dialog,
 	DialogContent,
@@ -41,8 +41,11 @@ export interface ReportDialogProps {
 	range: DateRange | null
 	data: ReportRow[] | null
 	loading: boolean
+	/** Fetch failure for the open report; renders an error + retry, not "no data". */
+	error: unknown
 	language: string
 	onClose: () => void
+	onRetry: () => void
 }
 
 const REPORT_PAGE_SIZES = [10, 25, 50, 100]
@@ -61,7 +64,7 @@ function compareValues(a: unknown, b: unknown, kind: string): number {
 	return String(a ?? "").localeCompare(String(b ?? ""))
 }
 
-export function ReportDialog({ open, reportType, range, data, loading, language, onClose }: ReportDialogProps) {
+export function ReportDialog({ open, reportType, range, data, loading, error, language, onClose, onRetry }: ReportDialogProps) {
 	const { t } = useTranslation()
 	const locale = resolveLocale(language)
 	const [sortState, setSortState] = useState<{ columnId: string; direction: "asc" | "desc" } | null>(null)
@@ -132,7 +135,7 @@ export function ReportDialog({ open, reportType, range, data, loading, language,
 						{t("vault.report.dateRange")}: {formatDate(range.from, language)} – {formatDate(range.to, language)}
 					</span>
 					<span>
-						{t("vault.report.totalRecords")}: {formatNumber(data?.length ?? 0, 0)}
+						{t("vault.report.totalRecords")}: {formatNumber(data?.length ?? 0, 0, locale)}
 					</span>
 				</div>
 
@@ -142,14 +145,25 @@ export function ReportDialog({ open, reportType, range, data, loading, language,
 							<div key={chip.titleKey} className="rounded-lg border bg-surface-muted/40 px-3 py-1.5 text-sm">
 								<span className="text-muted-foreground">{t(chip.titleKey)}: </span>
 								<span className="font-semibold tabular-nums">
-									{chip.kind === "count" ? formatNumber(chip.value, 0) : formatCurrency(chip.value, locale)}
+									{chip.kind === "count" ? formatNumber(chip.value, 0, locale) : formatCurrency(chip.value, locale)}
 								</span>
 							</div>
 						))}
 					</div>
 				) : null}
 
-				{!hasData && !loading ? (
+				{error ? (
+					<EmptyState
+						live="alert"
+						title={t("vault.messages.loadError")}
+						action={
+							<Button variant="outline" size="sm" onClick={onRetry}>
+								<RotateCcwIcon aria-hidden className="size-4" />
+								{t("vault.messages.retry")}
+							</Button>
+						}
+					/>
+				) : !hasData && !loading ? (
 					<EmptyState
 						title={t("vault.report.noDataFound")}
 						description={t("vault.report.noRecordsForDateRange")}

@@ -2,7 +2,7 @@
 
 import type { ReportType } from "@/pages/Vault/types/vault"
 import { reportButtonTitleKey, type VaultMetricSpec } from "@/pages/Vault/report/reportConfig"
-import { formatCurrency, formatNumber } from "@/lib/utils"
+import { formatCurrency, formatNumber, resolveLocale } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { FileTextIcon } from "lucide-react"
@@ -32,10 +32,11 @@ const TONE_CLASSES: Record<VaultMetricSpec["tone"], string> = {
  */
 export function MetricRow({ metric, value, language, signTone = false, onOpenReport }: MetricRowProps) {
 	const { t } = useTranslation()
+	const locale = resolveLocale(language)
 	const formatted =
 		metric.kind === "count"
-			? formatNumber(value, 0)
-			: formatCurrency(value, language === "ar" ? "ar-EG" : "en-US")
+			? formatNumber(value, 0, locale)
+			: formatCurrency(value, locale)
 	const toneClass =
 		signTone && value < 0 ? TONE_CLASSES.danger : signTone && value > 0 ? TONE_CLASSES.success : TONE_CLASSES[metric.tone]
 
