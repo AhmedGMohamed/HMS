@@ -39,7 +39,7 @@ export function PastAdmissionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full rounded-lg border border-border bg-card text-start shadow-xs transition-all hover:border-primary/40 hover:shadow-md focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      className="group block w-full rounded-lg border border-border bg-card text-start shadow-xs transition-[color,background-color,border-color,box-shadow] hover:border-primary/40 hover:shadow-md focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       aria-label={`${t("patients.modals.admissionDetails")} #${admission.patientHistoryId}`}
     >
       <div className="border-b border-border bg-muted/30 px-4 py-2">

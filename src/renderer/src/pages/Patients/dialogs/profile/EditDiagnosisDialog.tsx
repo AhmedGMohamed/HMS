@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
@@ -115,9 +114,6 @@ export function EditDiagnosisDialog({
             onChange={(e) => setValue(e.target.value)}
             aria-invalid={Boolean(diagnosisError)}
           />
-          <FieldDescription>
-            {t("patients.help.admitOnRegisterHint")}
-          </FieldDescription>
           {diagnosisError ? (
             <FieldError errors={[{ message: diagnosisError }]} />
           ) : null}

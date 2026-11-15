@@ -115,12 +115,12 @@ export function AddDrugQuantityDialog({
           <Field>
             <FieldLabel htmlFor="add-drug-larger">
               {largerUnit
-                ? `${largerUnit} (×${ratio} ${smallerUnit})`
-                : t("patients.table.quantity")}
-              :{" "}
-              {t("patients.messages.quantityLabel", {
-                unit: largerUnit || "—",
-              })}
+                ? t("patients.messages.quantityWithConversion", {
+                    unit: largerUnit,
+                    ratio,
+                    smaller: smallerUnit,
+                  })
+                : t("patients.messages.quantityLabel", { unit: "—" })}
             </FieldLabel>
             <Input
               id="add-drug-larger"

@@ -87,11 +87,10 @@ export function formatCurrency(value: number, language?: "en" | "ar", currency =
 }
 
 /**
- * Computes the legacy "Length of stay" string. Mirrors the algorithm
- * in legacy `calculateLengthOfStay`:
- *  - 1 day exactly → `"1 day"`
- *  - < 1 day       → `"N hours"`
- *  - otherwise     → `"N days"`
+ * Computes the legacy "Length of stay" string:
+ *  - < 1 hour      → "less than an hour"
+ *  - < 24 hours    → `"N hours"` / `"1 hour"`
+ *  - >= 1 day      → `"N days"` / `"1 day"` (unchanged ceiling, as before)
  *
  * `t` is used for the unit words; pass `useTranslation().t` from the
  * caller.
@@ -105,13 +104,20 @@ export function calculateLengthOfStay(
   const d = new Date(dischargeTime).getTime()
   if (Number.isNaN(a) || Number.isNaN(d)) return "—"
   const diff = Math.abs(d - a)
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-  if (days === 1) return `1 ${t("patients.messages.day")}`
-  if (days < 1) {
-    const hours = Math.ceil(diff / (1000 * 60 * 60))
-    if (hours <= 1) return `1 ${t("patients.messages.hours")}`
+  const hourMs = 1000 * 60 * 60
+  const dayMs = hourMs * 24
+
+  /* `Math.ceil(days)` used to make every sub-24h stay read "1 day"; hour
+     precision below one day is the point of this branch. */
+  if (diff < dayMs) {
+    const hours = Math.floor(diff / hourMs)
+    if (hours < 1) return t("patients.messages.lessThanAnHour")
+    if (hours === 1) return `1 ${t("patients.messages.hour")}`
     return `${hours} ${t("patients.messages.hours")}`
   }
+
+  const days = Math.ceil(diff / dayMs)
+  if (days === 1) return `1 ${t("patients.messages.day")}`
   return `${days} ${t("patients.messages.days")}`
 }
 
