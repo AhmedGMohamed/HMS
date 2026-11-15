@@ -80,8 +80,14 @@ export function BillingPaymentSection({
     <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field>
-          <FieldLabel>{t("patients.billing.paidAmount")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.paidAmount} emphasis />
+          <FieldLabel htmlFor="billing-paid-amount">
+            {t("patients.billing.paidAmount")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-paid-amount"
+            value={snapshot.paidAmount}
+            emphasis
+          />
         </Field>
 
         <Field>
@@ -111,13 +117,23 @@ export function BillingPaymentSection({
         </Field>
 
         <Field>
-          <FieldLabel>{t("patients.billing.remainingFacility")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.remainingFacility} />
+          <FieldLabel htmlFor="billing-remaining-facility">
+            {t("patients.billing.remainingFacility")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-remaining-facility"
+            value={snapshot.remainingFacility}
+          />
         </Field>
 
         <Field>
-          <FieldLabel>{t("patients.billing.remainingPatient")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.remainingPatient} />
+          <FieldLabel htmlFor="billing-remaining-patient">
+            {t("patients.billing.remainingPatient")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-remaining-patient"
+            value={snapshot.remainingPatient}
+          />
         </Field>
       </div>
 

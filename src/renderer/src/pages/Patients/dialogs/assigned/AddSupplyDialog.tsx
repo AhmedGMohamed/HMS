@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/common/EmptyState"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 import {
@@ -382,14 +383,20 @@ function QuantityDialog({
             unit: "—",
           })}
         </p>
-        <Input
-          type="number"
-          min={1}
-          max={max}
-          step={1}
-          value={qty}
-          onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-        />
+        <Field>
+          <FieldLabel htmlFor="add-supply-quantity">
+            {t("patients.messages.quantityLabel", { unit: "—" })}
+          </FieldLabel>
+          <Input
+            id="add-supply-quantity"
+            type="number"
+            min={1}
+            max={max}
+            step={1}
+            value={qty}
+            onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
+          />
+        </Field>
         <DialogFooter>
           <Button
             type="button"
