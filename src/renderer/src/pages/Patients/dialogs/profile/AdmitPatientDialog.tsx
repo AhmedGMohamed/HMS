@@ -197,7 +197,6 @@ export function AdmitPatientDialog({
           : form.pricelistId,
     }
 
-    console.log(payload)
     const result = await admit(payload)
     if (result) {
       onOpenChange(false)
@@ -326,7 +325,6 @@ export function AdmitPatientDialog({
                   const selected = form.attendingNurseIds.includes(
                     n.employeeId
                   )
-                  console.log(n)
                   return (
                     <button
                       key={n.employeeId}

@@ -303,7 +303,6 @@ export function coerceStaffRow<
 ): AssignedStaff {
   if (role === "doctor") {
     const r = row as unknown as AdmissionDoctorRow
-    console.log(r)
     return {
       doctorId: r.doctorId,
       employeeId: r.doctorId,
