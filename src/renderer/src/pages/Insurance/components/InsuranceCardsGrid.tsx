@@ -7,7 +7,6 @@ import type { InsuranceCompanySummary } from "@/pages/Insurance/types/insurance"
 export interface InsuranceCardsGridProps {
   companies: InsuranceCompanySummary[]
   loading: boolean
-  onSelect: (companyId: number) => void
 }
 
 /**
@@ -15,11 +14,14 @@ export interface InsuranceCardsGridProps {
  *
  * Skeletons mirror the real card silhouette (icon block, name, meta row,
  * footer stat) so the layout does not jump when data lands.
+ *
+ * Each card links to the detail route (`/insurance/:companyId`) rather
+ * than reporting a click through a callback — real anchors preserve
+ * ctrl-click / new-tab semantics.
  */
 export function InsuranceCardsGrid({
   companies,
   loading,
-  onSelect,
 }: InsuranceCardsGridProps) {
   if (loading) {
     return (
@@ -55,7 +57,7 @@ export function InsuranceCardsGrid({
         <InsuranceCard
           key={company.insuranceId}
           company={company}
-          onSelect={() => onSelect(company.insuranceId)}
+          to={`/insurance/${company.insuranceId}`}
         />
       ))}
     </div>
