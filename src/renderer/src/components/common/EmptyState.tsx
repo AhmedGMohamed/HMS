@@ -17,6 +17,12 @@ export interface EmptyStateProps {
   icon?: ReactNode
   /** Optional action affordance (CTA button, link, etc.). */
   action?: ReactNode
+  /**
+   * Announcement semantics. `"status"` (default) announces empty/no-result
+   * surfaces politely; `"alert"` is for error surfaces; `"off"` drops the
+   * live region for purely decorative in-card empties.
+   */
+  live?: "status" | "alert" | "off"
   className?: string
 }
 
@@ -34,11 +40,22 @@ export function EmptyState({
   description,
   icon,
   action,
+  live = "status",
   className,
 }: EmptyStateProps) {
+  /* A persistent empty surface is not a landmark: `role="region"` without a
+     name was the defect. `status`/`alert` announce once on mount; `off`
+     keeps decorative in-card empties silent. */
+  const liveRole =
+    live === "off" ? undefined : live === "alert" ? "alert" : "status"
+  const livePoliteness =
+    live === "off" ? undefined : live === "alert" ? "assertive" : "polite"
+
   return (
     <Empty
-      role="region"
+      role={liveRole}
+      aria-live={livePoliteness}
+      aria-label={live === "off" ? undefined : title}
       className={cn(
         "border-dashed border-border bg-surface-muted/40",
         className
