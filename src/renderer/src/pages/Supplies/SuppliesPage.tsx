@@ -78,12 +78,17 @@ export default function SuppliesPage() {
    * `totalInventoryValue` is sourced from the supply fan-out, NOT
    * from the `/api/warehouse` aggregate (which sums drug stock
    * value — the wrong number for this page).
+   *
+   * Counts/value come from the **unfiltered** list; the filtered view
+   * is passed separately because only turnover is selection-scoped
+   * (see `useSuppliesKpi`'s docblock).
    */
-  const kpi = useSuppliesKpi(
-    suppliesList.supplies,
-    suppliesList.totalInventoryValue,
-    usageHistory.summary
-  )
+  const kpi = useSuppliesKpi({
+    supplies: suppliesList.allSupplies,
+    filteredSupplies: suppliesList.supplies,
+    totalInventoryValue: suppliesList.totalInventoryValue,
+    summary: usageHistory.summary,
+  })
 
   const [priceLists, setPriceLists] = useState<PriceList[]>([])
 

@@ -17,7 +17,15 @@ import type {
 export type KpiFilter = "all" | "low-stock" | "near-expiry"
 
 export interface UseSuppliesListResult {
+  /** Filtered view — what the table renders. */
   supplies: EnrichedMedicalSupply[]
+  /**
+   * Unfiltered dataset (search + KPI chips not applied). Stock/count
+   * KPIs must read this: deriving them from the filtered view makes
+   * "Total Supplies" collapse and the turnover denominator follow the
+   * filter unintentionally.
+   */
+  allSupplies: EnrichedMedicalSupply[]
   /**
    * Σ(quantity × buyPrice) across every in-stock shipment. The
    * backend's `/api/warehouse` aggregate is drug-only, so this is
@@ -270,6 +278,7 @@ export function useSuppliesList(): UseSuppliesListResult {
 
   return {
     supplies: filtered,
+    allSupplies: enriched,
     totalInventoryValue,
     loading,
     error,
