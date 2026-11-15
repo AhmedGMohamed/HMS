@@ -436,11 +436,12 @@ The shell is the React component `<AppShell>` at `src/renderer/src/components/la
 **Sidebar (Sidebar.tsx) behavior** (see implementation plan § Phase 3)
 - Expanded width **256px** (`w-64`); collapsed **64px** (`w-16`, icon-only).
 - Width transitions with `transition-all duration-200 ease-in-out`.
+- Collapse state is hydrated from the `sidebar_state` cookie on mount and rewritten on every toggle, so the preference survives both SPA navigation and a full reload.
 - Filters `NAV_CONFIG` using `usePermission()` at render time — no extra API call.
 - Active link detection via `useLocation().pathname` (exact match); the active item uses `data-active` with `--sidebar-accent` (#DCEBF5) and `--sidebar-accent-foreground` (#064663), weight 600, plus an inset 2px start rail in `--primary` (mirrored to the right edge in RTL). Hover uses the same tint at lower emphasis so active always reads stronger than hover.
 - Nested items ("User Management") use shadcn `<Collapsible>` so they can stay expanded when the sidebar is collapsed.
 - Tooltip on collapsed nav: shadcn `<Tooltip>` shows the label on hover/focus.
-- HMS logo icon sits at top, with "HealthCore+" next to it. "Health" is in the primary color, while "Core" and "+" in secondary color. The "+" is a superscript on top of "Core". Collapse Button sits on the right side, and replaces the HMS Logo when the sidebar is collapsed.
+- HMS logo icon sits at top, with "HealthCore+" next to it. "Health" is in the primary color, while "Core" and "+" in secondary color. The "+" is a superscript on top of "Core". The collapse control sits on the inline-end when expanded. When collapsed, only the logo is shown at rest; hovering anywhere in the sidebar (or keyboard-focusing the control) swaps it for the expand control in the same centered slot. Only one of the two controls is mounted at a time, so rail clicks and route changes cannot leave both visible.
 - Logout uses shadcn `<AlertDialog>` for confirmation → `authStore.logout()` → navigate to `/login`.
 - Permission-locked items get a small `Lock` icon and `aria-disabled`.
 - User Profile: user profile image (letter placeholder if no image), name & role badge under. user menu on right side on clickable kebab icon
@@ -689,7 +690,7 @@ HMS is an Electron desktop app, so the **primary target is desktop and tablet**.
 ### Implementation guidance
 
 - Tailwind's `md:` / `lg:` / `xl:` prefixes would be confusing in a desktop-first app; we use Tailwind's default breakpoints **plus** the Tailwind v4 `@theme` to redefine if needed. Layout switching is handled by the Breakpoint consumer (`useMediaQuery`) or CSS-only via `min-width` containers.
-- The sidebar uses **explicit `w-16` / `w-64` classes** (not responsive prefixes) — collapse state is user-controlled and persisted in `uiStore` (`hms-ui` localStorage key), not viewport-driven. This keeps the user's preference stable across resizes.
+- The sidebar uses **explicit `w-16` / `w-64` classes** (not responsive prefixes) — collapse state is user-controlled and persisted by `SidebarProvider` in the `sidebar_state` cookie (hydrated on mount, written on every toggle), not viewport-driven. This keeps the user's preference stable across resizes and reloads.
 
 ---
 
