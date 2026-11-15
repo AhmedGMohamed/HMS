@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getCompany,
   getCompanyStatistics,
@@ -32,8 +32,11 @@ export interface UseInsuranceDetailResult {
  * card never showed contact info and always printed "N/A" for the last
  * cleared date (plan §5 #3). Fetching the full row fixes it.
  *
- * `refresh` busts the effect after a mutation (payment recorded, balance
- * cleared, company edited).
+ * Switching companies clears `company` / `statistics` / `patients`
+ * before the new requests start, so the previous company's row can never
+ * render under the new URL. Every run also carries a token: responses
+ * from a superseded run are dropped even if they resolve late. A
+ * `refresh` of the *same* company keeps the current data on screen.
  */
 export function useInsuranceDetail(
   companyId: number | null
@@ -47,8 +50,15 @@ export function useInsuranceDetail(
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
 
+  /** Company whose data is (or was last) on screen. */
+  const shownIdRef = useRef<number | null>(null)
+  /** Monotonic request token: only the latest run may commit state. */
+  const requestIdRef = useRef(0)
+
   useEffect(() => {
     if (companyId == null) {
+      requestIdRef.current += 1
+      shownIdRef.current = null
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCompany(null)
       setStatistics(null)
@@ -58,7 +68,16 @@ export function useInsuranceDetail(
       return
     }
 
-    let cancelled = false
+    if (shownIdRef.current !== companyId) {
+      shownIdRef.current = companyId
+      setCompany(null)
+      setStatistics(null)
+      setPatients([])
+    }
+
+    const requestId = ++requestIdRef.current
+    const isCurrent = () => requestIdRef.current === requestId
+
     setLoading(true)
     setError(null)
 
@@ -68,22 +87,18 @@ export function useInsuranceDetail(
       listCompanyPatients(companyId),
     ])
       .then(([companyRow, stats, patientRows]) => {
-        if (cancelled) return
+        if (!isCurrent()) return
         setCompany(companyRow)
         setStatistics(stats)
         setPatients(patientRows)
       })
       .catch((err: unknown) => {
-        if (cancelled) return
+        if (!isCurrent()) return
         setError(err instanceof Error ? err : new Error(String(err)))
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (isCurrent()) setLoading(false)
       })
-
-    return () => {
-      cancelled = true
-    }
   }, [companyId, nonce])
 
   const refresh = useCallback(() => setNonce((n) => n + 1), [])

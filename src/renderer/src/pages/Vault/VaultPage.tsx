@@ -53,7 +53,7 @@ export default function VaultPage() {
 	const errorToastedRef = useRef(false)
 
 	const { summary, loading, error, refresh } = useVaultSummary(range)
-	const { type: reportType, range: reportRange, data, loading: reportLoading, open: openReport, close: closeReport } = useVaultReport()
+	const { type: reportType, range: reportRange, data, loading: reportLoading, error: reportError, open: openReport, retry: retryReport, close: closeReport } = useVaultReport()
 
 	// Persistent toast once per load failure (plan A14); retry via the EmptyState action.
 	useEffect(() => {
@@ -139,8 +139,10 @@ export default function VaultPage() {
 				range={reportRange}
 				data={data}
 				loading={reportLoading}
+				error={reportError}
 				language={language}
 				onClose={() => closeReport()}
+				onRetry={retryReport}
 			/>
 
 			<ManualPaymentModal

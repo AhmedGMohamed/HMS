@@ -28,6 +28,13 @@ export interface StatCardProps {
   href?: string
   /** When set, the card becomes a button-like surface (no navigation). */
   onClick?: () => void
+  /**
+   * Optional accessible name for the interactive wrapper. When omitted, an
+   * `aria-label` is composed from `label` + `value` only if `value` is a
+   * non-empty plain string; otherwise the wrapper is named by its visible
+   * content.
+   */
+  ariaLabel?: string
   /** Optional accent ring; default is neutral. */
   emphasis?: "default" | "warning" | "success"
   /**
@@ -59,6 +66,7 @@ export function StatCard({
   loading = false,
   href,
   onClick,
+  ariaLabel,
   emphasis = "default",
   footer,
   className,
@@ -70,12 +78,20 @@ export function StatCard({
         ? "ring-1 ring-success/40"
         : "ring-1 ring-foreground/10"
 
+  /* The card chrome is not focusable — the wrapper (`<Link>` / `<button>`)
+     is. Name the wrapper only when `value` is plain text; a number/ReactNode
+     value is already exposed through the visible label + value. */
+  const wrapperAriaLabel =
+    ariaLabel ??
+    (typeof value === "string" && value.trim() !== ""
+      ? `${label}: ${value}`
+      : undefined)
+
   const body = (
     <Card
       className={cn(
         "flex h-full flex-col gap-3 transition-shadow",
-        (href || onClick) &&
-          "cursor-pointer hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:outline-hidden",
+        (href || onClick) && "cursor-pointer hover:shadow-md",
         ringClass,
         className
       )}
@@ -135,8 +151,8 @@ export function StatCard({
     return (
       <Link
         to={href}
-        className="block rounded-lg focus-visible:outline-hidden"
-        aria-label={typeof label === "string" ? `${label}: ${value}` : undefined}
+        className="block rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
+        aria-label={wrapperAriaLabel}
       >
         {body}
       </Link>
@@ -147,8 +163,8 @@ export function StatCard({
       <button
         type="button"
         onClick={onClick}
-        className="block w-full rounded-lg text-left focus-visible:outline-hidden"
-        aria-label={typeof label === "string" ? `${label}: ${value}` : undefined}
+        className="block w-full rounded-lg text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
+        aria-label={wrapperAriaLabel}
       >
         {body}
       </button>

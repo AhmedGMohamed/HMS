@@ -22,12 +22,23 @@ const alertVariants = cva(
 function Alert({
   className,
   variant,
+  live = "assertive",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+}: React.ComponentProps<"div"> &
+  VariantProps<typeof alertVariants> & {
+    /**
+     * Announcement urgency. `"assertive"` (default) keeps the existing
+     * `role="alert"`; `"polite"` is for non-blocking status surfaces
+     * (stock warnings, below-price hints) that must not interrupt; `"off"`
+     * drops the live region for static informational content.
+     */
+    live?: "assertive" | "polite" | "off"
+  }) {
   return (
     <div
       data-slot="alert"
-      role="alert"
+      role={live === "off" ? undefined : live === "polite" ? "status" : "alert"}
+      aria-live={live === "off" ? undefined : live}
       className={cn(alertVariants({ variant }), className)}
       {...props}
     />

@@ -31,6 +31,9 @@
       "loadingPatients": "جاري تحميل المرضى...",
       "noAdmittedPatients": "لا يوجد مرضى مقيمون — قم بتنويم أو فحص سريع للمريض أولاً."
     },
+    "labels": {
+      "quickCheck": "فحص سريع"
+    },
     "daysRemaining": "{{days}} يوم",
     "tabs": {
       "inventory": "مخزون المستلزمات",
@@ -173,8 +176,12 @@
       "statusActive": "نشط",
       "statusCompleted": "مكتمل",
       "totalUnits": "إجمالي الوحدات المصروفة",
+      "totalUnitsHint": "عبر كل الفترات والمرضى",
       "activeTreatments": "العلاجات النشطة للمرضى",
+      "activeTreatmentsHint": "علاجات مستمرة جارية",
+      "activeTreatmentsCalm": "لا توجد علاجات مستمرة نشطة",
       "patientsServed": "المرضى المستفيدون",
+      "patientsServedHint": "عدد المرضى الفريد",
       "dateRange": "النطاق الزمني",
       "statusFilter": "الحالة",
       "statusAll": "الكل",
@@ -189,6 +196,7 @@
       "quantityMin": "يرجى إدخال كمية صحيحة",
       "buyPriceRequired": "يرجى إدخال سعر شراء صحيح",
       "defaultPriceRequired": "يجب أن يكون لقائمة الأسعار الافتراضية سعر صحيح",
+      "existingPriceRequired": "لا يمكن مسح سعر موجود — أدخل سعراً لقائمة الأسعار هذه.",
       "invalidPrice": "سعر غير صحيح",
       "warehouseNameLength": "يجب أن يكون اسم المستودع 3 أحرف على الأقل",
       "locationLength": "يجب أن يكون الموقع 5 أحرف على الأقل"

@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CheckIcon,
@@ -20,7 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { formatCurrency, formatNumber, resolveLocale } from "@/lib/utils"
+import { formatCurrency, resolveLocale } from "@/lib/utils"
 import type { PriceListWithStats } from "@/pages/PriceLists/types/priceList"
 import type {
   NormalizedService,
@@ -73,11 +74,13 @@ export function ServicesTable({
   const { t, i18n } = useTranslation()
   const locale = resolveLocale(i18n.language)
 
+  const priceListNames = useMemo(
+    () => new Map(priceLists.map((pl) => [pl.pricelistId, pl.name])),
+    [priceLists]
+  )
+
   function priceListName(pricelistId: number): string {
-    return (
-      priceLists.find((pl) => pl.pricelistId === pricelistId)?.name ??
-      `#${pricelistId}`
-    )
+    return priceListNames.get(pricelistId) ?? `#${pricelistId}`
   }
 
   function prepaymentText(price: ServicePrice): string | null {
@@ -92,7 +95,10 @@ export function ServicesTable({
     if (!Number.isFinite(amount)) return null
     const amountLabel =
       price.prepaymentType === "percentage"
-        ? `${formatNumber(amount)}%`
+        ? new Intl.NumberFormat(locale, {
+            style: "percent",
+            maximumFractionDigits: 2,
+          }).format(amount / 100)
         : formatCurrency(amount, locale)
     return `${t(`services.prepaymentTypes.${price.prepaymentType}`)} — ${amountLabel}`
   }
@@ -119,22 +125,34 @@ export function ServicesTable({
     {
       id: "autoRenew",
       header: t("services.table.autoRenew"),
-      cell: (service) =>
-        service.autoRenew ? (
-          <CheckIcon aria-hidden className="size-4 text-primary" />
-        ) : (
-          <XIcon aria-hidden className="size-4 text-muted-foreground" />
-        ),
+      cell: (service) => (
+        <span className="inline-flex items-center">
+          {service.autoRenew ? (
+            <CheckIcon aria-hidden className="size-4 text-primary" />
+          ) : (
+            <XIcon aria-hidden className="size-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {service.autoRenew ? t("common.yes") : t("common.no")}
+          </span>
+        </span>
+      ),
     },
     {
       id: "autoAdd",
       header: t("services.table.autoAdd"),
-      cell: (service) =>
-        service.autoAddOnAdmission ? (
-          <CheckIcon aria-hidden className="size-4 text-primary" />
-        ) : (
-          <XIcon aria-hidden className="size-4 text-muted-foreground" />
-        ),
+      cell: (service) => (
+        <span className="inline-flex items-center">
+          {service.autoAddOnAdmission ? (
+            <CheckIcon aria-hidden className="size-4 text-primary" />
+          ) : (
+            <XIcon aria-hidden className="size-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {service.autoAddOnAdmission ? t("common.yes") : t("common.no")}
+          </span>
+        </span>
+      ),
     },
     {
       id: "priceLists",

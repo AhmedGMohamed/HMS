@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/authStore"
-import { ApiError } from "./errors"
+import { ApiError, NetworkError } from "./errors"
 import { toCamel, toSnake } from "./caseKeys"
 
 const BASE = "/api"
@@ -47,6 +47,11 @@ async function request<T>(
     method,
     body,
     ...(init as Omit<typeof init, "params" | "json" | "headers" | "method">),
+  }).catch((cause: unknown) => {
+    /* `fetch` rejects only when no HTTP response is produced (offline,
+       DNS, connection reset). Normalise it into the same error taxonomy
+       consumers already branch on, with `statusCode === 0`. */
+    throw new NetworkError(url, cause)
   })
 
   if (res.status === 401) {

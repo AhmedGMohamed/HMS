@@ -119,7 +119,6 @@ export function HistoryTable({
         <LiveDuration
           clockIn={row.clockIn}
           clockOut={row.clockOut}
-          now={now}
           className="text-muted-foreground"
         />
       ),

@@ -1,13 +1,19 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PencilIcon, Trash2Icon, AlertTriangleIcon } from "lucide-react"
 
 import { DataTable, type ColumnDef } from "@/components/common/DataTable"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { cn, formatIntervalHuman, formatNumber } from "@/lib/utils"
+import {
+  cn,
+  formatDate,
+  formatIntervalHuman,
+  formatNumber,
+} from "@/lib/utils"
+import { useUIStore } from "@/store/uiStore"
 
 import type { EnrichedDrugCard, DrugShipment } from "@/pages/Drugs/types/drug"
 import type { KpiFilter } from "@/pages/Drugs/hooks/useDrugsList"
@@ -20,6 +26,11 @@ interface DrugsTableProps {
   onSearchChange: (v: string) => void
   filter: KpiFilter
   onFilterChange: (f: KpiFilter) => void
+  /**
+   * Reports the ids on the current page (after sort + pagination) so
+   * the hook only fans out shipment fetches for visible rows.
+   */
+  onVisibleRowsChange: (ids: number[]) => void
   onEditDrug: (drug: EnrichedDrugCard) => void
   onDeleteDrug: (drug: EnrichedDrugCard) => void
   onAddShipment: (drug: EnrichedDrugCard) => void
@@ -54,6 +65,7 @@ export function DrugsTable({
   onSearchChange,
   filter,
   onFilterChange,
+  onVisibleRowsChange,
   onEditDrug,
   onDeleteDrug,
   onAddShipment,
@@ -62,7 +74,10 @@ export function DrugsTable({
   onDeleteShipment,
 }: DrugsTableProps) {
   const { t } = useTranslation()
+  const language = useUIStore((s) => s.language)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [sort, setSort] = useState<{
     columnId: string
     direction: SortDir
@@ -145,18 +160,15 @@ export function DrugsTable({
         id: "expiry",
         header: t("pharmacy.table.nearestExpiry"),
         sortable: true,
-        sortKey: (d) => {
-          if (d.nearestExpiryDate) return new Date(d.nearestExpiryDate).getTime()
-          if (d.daysUntilExpiry != null) {
-            return Date.now() + d.daysUntilExpiry * 86_400_000
-          }
-          return Number.MAX_SAFE_INTEGER
-        },
+        sortKey: (d) =>
+          d.nearestExpiryDate
+            ? new Date(d.nearestExpiryDate).getTime()
+            : Number.MAX_SAFE_INTEGER,
         cell: (d) => {
           if (!d.nearestExpiryDate) {
             return <span className="text-muted-foreground">—</span>
           }
-          const dateLabel = new Date(d.nearestExpiryDate).toLocaleDateString()
+          const dateLabel = formatDate(new Date(d.nearestExpiryDate), language)
           if (d.daysUntilExpiry == null) {
             return <span className="tabular-nums">{dateLabel}</span>
           }
@@ -230,7 +242,7 @@ export function DrugsTable({
         ),
       },
     ],
-    [t, onEditDrug, onDeleteDrug]
+    [t, language, onEditDrug, onDeleteDrug]
   )
 
   const sorted = useMemo(() => {
@@ -249,16 +261,44 @@ export function DrugsTable({
     })
   }, [drugs, sort, columns])
 
+  // Client-side pagination (§6.2, default 10 rows). Clamp so a filter
+  // that shrinks the list never leaves the table on a dead page.
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const safePage = Math.min(Math.max(page, 1), pageCount)
+  const pageRows = useMemo(
+    () => sorted.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [sorted, safePage, pageSize]
+  )
+
+  // Tell the hook which rows are on screen; its shipment fan-out is
+  // scoped to this window instead of the whole list.
+  useEffect(() => {
+    onVisibleRowsChange(pageRows.map((d) => d.drugId))
+  }, [pageRows, onVisibleRowsChange])
+
   return (
     <DataTable<EnrichedDrugCard>
-      data={sorted}
+      data={pageRows}
       columns={columns}
       loading={loading}
       getRowId={(d) => d.drugId}
       search={{
         value: search,
-        onChange: onSearchChange,
+        onChange: (v) => {
+          setPage(1)
+          onSearchChange(v)
+        },
         placeholder: t("pharmacy.searchPlaceholder"),
+      }}
+      pagination={{
+        page: safePage,
+        pageSize,
+        total: sorted.length,
+        onPageChange: setPage,
+        onPageSizeChange: (size) => {
+          setPage(1)
+          setPageSize(size)
+        },
       }}
       toolbar={
         <div className="flex flex-wrap items-center gap-2">
@@ -268,7 +308,10 @@ export function DrugsTable({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onFilterChange(chip.value)}
+              onClick={() => {
+                setPage(1)
+                onFilterChange(chip.value)
+              }}
               className={cn(
                 filter === chip.value &&
                   "border-primary bg-primary-light text-primary"

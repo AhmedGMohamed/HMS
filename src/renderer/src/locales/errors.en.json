@@ -7,6 +7,8 @@
     "notFound": "The requested resource was not found.",
     "notFoundTitle": "Page not found",
     "notFoundDescription": "We couldn't find the page you were looking for.",
+    "notFoundCode": "404",
+    "notFoundHint": "Check the URL, or use the button below to return to the dashboard.",
     "backToDashboard": "Back to dashboard",
     "serverError": "Server error. Please contact support.",
     "fieldRequired": "This field is required",

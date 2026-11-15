@@ -93,6 +93,7 @@
       "over12hHintCalm": "لا توجد ورديات تتجاوز حد 12 ساعة"
     },
     "status": {
+      "duplicateActive": "حضور مكرر نشط",
       "extendedShift": "وردية ممتدة",
       "fatigueRisk": "خطر الإرهاق",
       "missingClockOut": "بدون تسجيل انصراف",

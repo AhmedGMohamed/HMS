@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { DataTablePagination } from "@/components/common/DataTablePagination"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 
-import { usePriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
+import { usePriceLists, useAllPriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
 import { PriceListsGrid } from "@/pages/PriceLists/components/PriceListsGrid"
 import { PriceListModal } from "@/pages/PriceLists/modals/PriceListModal"
 import { AddPricesModal } from "@/pages/PriceLists/modals/AddPricesModal"
@@ -41,8 +41,14 @@ export default function PriceListsPage() {
   const [pageSize, setPageSize] = useState(10)
 
   const lists = usePriceLists({ page, pageSize, search })
-  const currentDefault =
-    lists.priceLists.find((pl) => pl.isDefault) ?? null
+  // The current default may live on another page/slice, so resolve it from
+  // the full list (`?all=true`) and fall back to the loaded page only while
+  // the full lookup is unavailable.
+  const allLists = useAllPriceLists()
+  const defaultKnown = !allLists.loading && allLists.error == null
+  const currentDefault = defaultKnown
+    ? (allLists.priceLists.find((pl) => pl.isDefault) ?? null)
+    : (lists.priceLists.find((pl) => pl.isDefault) ?? null)
 
   // Create / edit list modal
   const [listModalOpen, setListModalOpen] = useState(false)
@@ -142,9 +148,14 @@ export default function PriceListsPage() {
       {/* Create / edit price list */}
       <PriceListModal
         open={listModalOpen}
-        onOpenChange={setListModalOpen}
+        onOpenChange={(next) => {
+          setListModalOpen(next)
+          // An edit may have moved the default; keep the full-list lookup fresh.
+          if (!next) allLists.refresh()
+        }}
         priceList={editingList}
         currentDefault={currentDefault}
+        defaultKnown={defaultKnown}
         onSaved={(created) => {
           lists.refresh()
           setPendingNewList(created)
@@ -210,12 +221,15 @@ export default function PriceListsPage() {
             const lastPage = Math.max(1, Math.ceil(remaining / pageSize))
             if (page > lastPage) setPage(lastPage)
             lists.refresh()
+            allLists.refresh()
           } catch (err) {
             toast.error(
               err instanceof ApiError
                 ? err.message
                 : t("priceLists.messages.deleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />

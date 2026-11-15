@@ -33,9 +33,18 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * Card title. Inert (`<div>`) by default; pass `as="h2" | "h3" | "h4"` when
+ * the card is a real page/section heading so documents keep a heading
+ * outline. Level choice stays with the caller — no inference.
+ */
+function CardTitle({
+  className,
+  as: Comp = "div",
+  ...props
+}: React.ComponentProps<"div"> & { as?: "div" | "h2" | "h3" | "h4" }) {
   return (
-    <div
+    <Comp
       data-slot="card-title"
       className={cn(
         "font-heading text-base leading-normal font-medium group-data-[size=sm]/card:text-sm",

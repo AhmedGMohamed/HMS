@@ -196,7 +196,13 @@ export function AdmissionDetailsDialog({
     return `(${stringArr.join(" / ")})`
   }
 
+  /* A bill exists only when the admission produced one; `0` is the sentinel
+     from `admissionsShape` (never a foreign admission id). */
+  const settleBillId = admission?.billId ?? row?.billId ?? 0
+  const hasBill = settleBillId > 0
+
   function onSettleClick() {
+    if (!hasBill) return
     if (!canManage || !onSettle || !row) {
       toast.error(t("patients.messages.settleBillError"), {
         id: "settle-permission-error",
@@ -563,6 +569,12 @@ export function AdmissionDetailsDialog({
         ) : null}
 
         <DialogFooter className="flex flex-row flex-wrap justify-end gap-2">
+          {!hasBill ? (
+            <p className="me-auto text-xs text-muted-foreground" role="status">
+              {t("patients.messages.noBillYet")}
+            </p>
+          ) : null}
+
           <Button variant="outline" onClick={onPrintClick}>
             <PrinterIcon aria-hidden className="me-1.5 size-4" />
             {t("patients.buttons.printBill")}
@@ -573,6 +585,8 @@ export function AdmissionDetailsDialog({
               type="button"
               variant="default"
               onClick={onSettleClick}
+              disabled={!hasBill}
+              aria-disabled={!hasBill}
             >
               <BanknoteIcon aria-hidden className="me-1.5 size-4" />
               {t("patients.buttons.settleBill")}

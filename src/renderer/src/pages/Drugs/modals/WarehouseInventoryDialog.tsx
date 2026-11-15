@@ -13,7 +13,7 @@ import { StatCard } from "@/components/common/StatCard"
 import { EmptyState } from "@/components/common/EmptyState"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
-import { formatNumber, formatCurrency, resolveLocale } from "@/lib/utils"
+import { formatNumber, formatCurrency, formatDate, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 
 import type { DrugShipment, WarehouseWithStats } from "@/pages/Drugs/types/drug"
@@ -135,7 +135,9 @@ export function WarehouseInventoryDialog({
                   </td>
                   <td className="py-2 text-end">
                     {s.expiryDate ? (
-                      <Badge variant="outline">{s.expiryDate}</Badge>
+                      <Badge variant="outline">
+                        {formatDate(new Date(s.expiryDate), language)}
+                      </Badge>
                     ) : (
                       "—"
                     )}

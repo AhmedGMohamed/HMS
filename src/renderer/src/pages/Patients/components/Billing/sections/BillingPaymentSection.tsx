@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CalculatorIcon, CheckCircleIcon } from "lucide-react"
 
@@ -38,6 +39,13 @@ export interface BillingPaymentSectionProps {
  * Payment buttons. Saves are explicit (legacy parity) — no
  * autosave.
  */
+
+/** One parse point for the typed amount: empty/invalid reads as 0. */
+function parseAmountInput(raw: string): number {
+  if (raw.trim() === "") return 0
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 export function BillingPaymentSection({
   paymentAmount,
   onPaymentAmountChange,
@@ -50,6 +58,21 @@ export function BillingPaymentSection({
 }: BillingPaymentSectionProps) {
   const { t } = useTranslation()
 
+  /* The amount is held as a string while typing: a controlled number
+     round-trip turns "1." into 1 and destroys decimal entry ("1.5" → "15").
+     The draft is re-synced only when the parent changes the amount from
+     outside this input (e.g. reset to 0 after a confirmed payment). */
+  const [paymentInput, setPaymentInput] = useState<string>(() =>
+    paymentAmount > 0 ? String(paymentAmount) : ""
+  )
+
+  useEffect(() => {
+    if (parseAmountInput(paymentInput) !== paymentAmount) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPaymentInput(paymentAmount > 0 ? String(paymentAmount) : "")
+    }
+  }, [paymentAmount, paymentInput])
+
   const canConfirm = canManage && paymentAmount > 0 && !savingPayment
   const canSave = canManage && !saving
 
@@ -57,8 +80,14 @@ export function BillingPaymentSection({
     <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field>
-          <FieldLabel>{t("patients.billing.paidAmount")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.paidAmount} emphasis />
+          <FieldLabel htmlFor="billing-paid-amount">
+            {t("patients.billing.paidAmount")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-paid-amount"
+            value={snapshot.paidAmount}
+            emphasis
+          />
         </Field>
 
         <Field>
@@ -71,28 +100,40 @@ export function BillingPaymentSection({
             </InputGroupAddon>
             <InputGroupInput
               id="billing-payment-amount"
-              type="number"
+              type="text"
               inputMode="decimal"
-              min="0"
-              step="0.01"
-              value={paymentAmount === 0 ? "" : paymentAmount}
+              value={paymentInput}
               onChange={(e) => {
-                const raw = e.target.value
-                onPaymentAmountChange(raw === "" ? 0 : Number(raw))
+                const raw = e.currentTarget.value
+                setPaymentInput(raw)
+                onPaymentAmountChange(parseAmountInput(raw))
               }}
+              onBlur={() =>
+                setPaymentInput(paymentAmount > 0 ? String(paymentAmount) : "")
+              }
               disabled={!canManage}
             />
           </InputGroup>
         </Field>
 
         <Field>
-          <FieldLabel>{t("patients.billing.remainingFacility")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.remainingFacility} />
+          <FieldLabel htmlFor="billing-remaining-facility">
+            {t("patients.billing.remainingFacility")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-remaining-facility"
+            value={snapshot.remainingFacility}
+          />
         </Field>
 
         <Field>
-          <FieldLabel>{t("patients.billing.remainingPatient")}</FieldLabel>
-          <ReadOnlyCurrency value={snapshot.remainingPatient} />
+          <FieldLabel htmlFor="billing-remaining-patient">
+            {t("patients.billing.remainingPatient")}
+          </FieldLabel>
+          <ReadOnlyCurrency
+            id="billing-remaining-patient"
+            value={snapshot.remainingPatient}
+          />
         </Field>
       </div>
 

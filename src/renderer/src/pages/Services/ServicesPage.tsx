@@ -203,6 +203,8 @@ export default function ServicesPage() {
                 ? err.message
                 : t("services.messages.deleteError")
             )
+            /* Keep the dialog open: the delete failed. */
+            return false
           }
         }}
       />
