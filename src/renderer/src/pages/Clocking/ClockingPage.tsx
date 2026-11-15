@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -33,7 +33,6 @@ import { useActiveClockIns } from "@/pages/Clocking/hooks/useActiveClockIns"
 import { useClockIns } from "@/pages/Clocking/hooks/useClockIns"
 import { useClockingEmployees } from "@/pages/Clocking/hooks/useClockingEmployees"
 import { useClockingStats } from "@/pages/Clocking/hooks/useClockingStats"
-import { useNowTick } from "@/pages/Clocking/hooks/useNowTick"
 import type {
   ClockIn,
   ClockingTab,
@@ -73,9 +72,9 @@ function lastPageAfterRemoval(total: number, pageSize: number): number {
  * paging are query parameters, so the tables only ever hold one page.
  * The KPI strip, tab badge, duplicate badges, and the new-clock-in
  * picker guard read the separate `/clocked-in/stats` aggregate — the
- * figures stay correct even though the page subset is small. One
- * shared 1s tick feeds every live duration (legacy per-row interval
- * leak fixed).
+ * figures stay correct even though the page subset is small. Live
+ * durations own a shared module-level tick, so this page shell does
+ * not re-render every second (legacy per-row interval leak fixed).
  */
 export function ClockingPage() {
   const { t } = useTranslation()
@@ -88,8 +87,14 @@ export function ClockingPage() {
     loading: employeesLoading,
     error: employeesError,
   } = useClockingEmployees()
-  const now = useNowTick(1000)
-  /** Ticking local day — rolls the missing-clock-out filters at midnight. */
+  /**
+   * Per-render clock snapshot. No interval lives on the page: live
+   * duration text ticks inside `LiveDuration`, and this value is only
+   * consulted when the page actually renders (anomaly thresholds,
+   * duration sort keys). It also rolls the local day on the next
+   * render instead of forcing one every second.
+   */
+  const now = new Date()
   const today = toLocalDateString(now)
 
   // ── Filter / UI state ────────────────────────────────────────
@@ -151,11 +156,17 @@ export function ClockingPage() {
   )
 
   // ── Filter handlers (each resets its tab's page) ─────────────
-  function handleMissingOnlyToggle() {
+  const handleMissingOnlyToggle = useCallback(() => {
     setMissingOnly((value) => !value)
     setTab("active")
     setActivePage(1)
-  }
+  }, [])
+
+  const handleResetMissingFilter = useCallback(() => {
+    setMissingOnly(false)
+    setActivePage(1)
+    setTab("active")
+  }, [])
 
   function handleActiveSortToggle(
     _id: string,
@@ -287,6 +298,34 @@ export function ClockingPage() {
 
   const loadFailed = Boolean(history.error || active.error)
 
+  /**
+   * Memoized page section: KPI cards keep their subtree while unrelated
+   * page state (modals, confirms) changes; only the stats values, the
+   * filter flag, and the stable handlers invalidate it.
+   */
+  const kpiStrip = useMemo(
+    () => (
+      <ClockingKpiStrip
+        activeCount={stats.activeCount}
+        missingCount={stats.missingCount}
+        over12hCount={stats.over12hCount}
+        missingFilterActive={missingOnly}
+        loading={stats.loading}
+        onResetFilter={handleResetMissingFilter}
+        onToggleMissingOnly={handleMissingOnlyToggle}
+      />
+    ),
+    [
+      stats.activeCount,
+      stats.missingCount,
+      stats.over12hCount,
+      stats.loading,
+      missingOnly,
+      handleResetMissingFilter,
+      handleMissingOnlyToggle,
+    ]
+  )
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -304,19 +343,7 @@ export function ClockingPage() {
         }
       />
 
-      <ClockingKpiStrip
-        activeCount={stats.activeCount}
-        missingCount={stats.missingCount}
-        over12hCount={stats.over12hCount}
-        missingFilterActive={missingOnly}
-        loading={stats.loading}
-        onResetFilter={() => {
-          setMissingOnly(false)
-          setActivePage(1)
-          setTab("active")
-        }}
-        onToggleMissingOnly={handleMissingOnlyToggle}
-      />
+      {kpiStrip}
 
       <ClockingTabs
         tab={tab}
