@@ -196,6 +196,7 @@
       "quantityMin": "Please enter a valid quantity",
       "buyPriceRequired": "Please enter a valid buy price",
       "defaultPriceRequired": "Default price list must have a valid price",
+      "existingPriceRequired": "An existing price cannot be cleared — enter a price for this price list.",
       "invalidPrice": "Invalid price",
       "warehouseNameLength": "Warehouse name must be at least 3 characters long",
       "locationLength": "Location must be at least 5 characters long"

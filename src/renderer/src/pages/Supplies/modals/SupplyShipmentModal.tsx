@@ -148,6 +148,20 @@ export function SupplyShipmentModal({
     [priceLists]
   )
 
+  /* Price lists that already carry a price on the shipment being edited.
+     Clearing one of these is rejected: the server upserts only rows present
+     in the payload, so filtering a zeroed row out would silently keep the
+     old price while the dialog reported success. */
+  const previouslyPricedIds = useMemo(
+    () =>
+      new Set(
+        (shipment?.prices ?? [])
+          .filter((p) => Number(p.price) > 0)
+          .map((p) => p.pricelistId)
+      ),
+    [shipment]
+  )
+
   const errors = form.formState.errors
 
   /**
@@ -186,7 +200,9 @@ export function SupplyShipmentModal({
   async function handleSubmit(values: ShipmentFormValues) {
     // Only priced rows are sent: the matrix seeds every list with 0.
     // The whole matrix is validated so an entirely empty one fails
-    // with `defaultPriceRequired` instead of an empty payload.
+    // with `defaultPriceRequired` instead of an empty payload. A row that
+    // already had a price and was zeroed is rejected before filtering
+    // (see the check after validation).
     const payload: CreateSupplyShipmentPayload = {
       supplyId: supply.supplyId,
       warehouseId: values.warehouseId,
@@ -217,6 +233,20 @@ export function SupplyShipmentModal({
     })
     if (!parsed.success) {
       showFirstIssue(parsed.error.issues[0]!)
+      return
+    }
+
+    /* Reject clearing a price this shipment already had. Filtering it out of
+       the payload would leave the server-side price untouched while the
+       dialog reported success. Rows that were never priced stay filterable. */
+    const zeroedExistingPrice = values.prices.find(
+      (p) => p.price <= 0 && previouslyPricedIds.has(p.pricelistId)
+    )
+    if (zeroedExistingPrice) {
+      setMatrixError("medicalSupplies.validation.existingPriceRequired")
+      document
+        .getElementById(`ssh-price-${zeroedExistingPrice.pricelistId}`)
+        ?.focus()
       return
     }
 
