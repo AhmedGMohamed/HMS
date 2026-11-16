@@ -1,7 +1,7 @@
 {
 	"name": "HealthCore-HMS",
 	"private": true,
-	"version": "0.5.1",
+	"version": "0.5.2",
 	"type": "module",
 	"main": "./build/electron/main.js",
 	"author": "Ahmed G. Mohamed",
