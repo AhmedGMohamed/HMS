@@ -1,0 +1,108 @@
+{
+  "priceLists": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة قوائم الأسعار",
+    "title": "إدارة قوائم الأسعار",
+    "buttons": {
+      "createPriceList": "إضافة قائمة أسعار جديدة",
+      "createFirst": "إنشاء أول قائمة أسعار",
+      "makeDefault": "نعم، اجعلها افتراضية",
+      "saving": "جاري الحفظ...",
+      "addPrices": "إضافة أسعار",
+      "skipForNow": "تخطي في الوقت الحالي",
+      "savePrices": "حفظ الأسعار",
+      "retry": "إعادة المحاولة"
+    },
+    "actions": {
+      "removePrice": "إزالة السعر",
+      "undoRemove": "التراجع عن الإزالة"
+    },
+    "modals": {
+      "createPriceList": "إضافة قائمة أسعار جديدة",
+      "editPriceList": "تعديل قائمة الأسعار",
+      "addPrices": "إضافة أسعار إلى قائمة الأسعار"
+    },
+    "fields": {
+      "priceListName": "اسم قائمة الأسعار",
+      "setAsDefault": "تعيين كقائمة افتراضية",
+      "price": "السعر",
+      "buyPrice": "سعر الشراء",
+      "requirePrepayment": "يتطلب دفع مقدم",
+      "prepaymentType": "نوع الدفع المقدم",
+      "prepaymentAmount": "مبلغ الدفع المقدم",
+      "warehouse": "المستودع",
+      "quantity": "الكمية",
+      "expiry": "تاريخ الانتهاء"
+    },
+    "prepaymentTypes": {
+      "fixed": "مبلغ ثابت",
+      "percentage": "نسبة مئوية"
+    },
+    "tabs": {
+      "services": "الخدمات",
+      "drugs": "شحنات الأدوية",
+      "supplies": "المستلزمات الطبية"
+    },
+    "placeholders": {
+      "searchPriceLists": "البحث عن قوائم الأسعار...",
+      "searchServices": "البحث عن خدمات...",
+      "searchDrugs": "البحث عن أدوية...",
+      "searchSupplies": "البحث عن مستلزمات..."
+    },
+    "serviceTypes": {
+      "once": "مرة واحدة",
+      "hourly": "كل ساعة",
+      "daily": "يومياً"
+    },
+    "status": {
+      "default": "افتراضي",
+      "hasPrice": "تم تحديد السعر",
+      "priceWillBeRemoved": "سيتم إزالة السعر"
+    },
+    "stats": {
+      "services": "الخدمات",
+      "drugs": "الأدوية",
+      "supplies": "المستلزمات الطبية"
+    },
+    "help": {
+      "defaultNote": "ملاحظة: تعيين هذه القائمة كافتراضية سيزيل الحالة الافتراضية من أي قائمة أسعار أخرى",
+      "addPricesInfo": "أضف أسعار الخدمات وشحنات الأدوية والمستلزمات الطبية لقائمة الأسعار هذه. اترك فارغًا لتخطي العناصر؛ استخدم زر الحذف لتحديد سعر موجود لإزالته"
+    },
+    "validation": {
+      "nameLength": "يجب أن يكون اسم قائمة الأسعار 3 أحرف على الأقل",
+      "priceMin": "يجب أن يكون سعر الخدمة أكبر من أو يساوي 0",
+      "shipmentPriceMin": "يجب أن يكون سعر الشحنة أكبر من 0",
+      "invalidPrice": "يجب أن يكون السعر رقمًا صحيحًا",
+      "prepaymentRequired": "نوع الدفع المقدم ومبلغه مطلوبان عند تفعيل الدفع المقدم",
+      "prepaymentPercentage": "يجب أن تكون نسبة الدفع المقدم بين 0 و 100",
+      "prepaymentFixed": "يجب أن يكون مبلغ الدفع المقدم أكبر من أو يساوي 0"
+    },
+    "messages": {
+      "discardChangesTitle": "تجاهل تغييرات الأسعار غير المحفوظة؟",
+      "discardChangesText": "لم تُحفظ تعديلات الأسعار. سيؤدي الإغلاق الآن إلى تجاهلها.",
+      "discardChangesConfirm": "تجاهل التغييرات",
+      "noPriceLists": "لم يتم العثور على قوائم أسعار. قم بإنشاء أول قائمة أسعار للبدء.",
+      "noMatchingPriceLists": "لا توجد قوائم أسعار تطابق بحثك",
+      "loadError": "فشل تحميل قوائم الأسعار",
+      "createSuccess": "تم إنشاء قائمة الأسعار بنجاح",
+      "updateSuccess": "تم تحديث قائمة الأسعار بنجاح",
+      "saveError": "فشل حفظ قائمة الأسعار",
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "لا يمكن التراجع عن هذا الإجراء!",
+      "deleteWithAssociationsWarning": "قائمة الأسعار هذه مرتبطة بـ {{services}} خدمة و {{drugs}} دواء و {{supplies}} شحنة مستلزمات طبية. حذفها سيزيل هذه الارتباطات. لا يمكن التراجع عن هذا الإجراء!",
+      "deleteSuccess": "تم حذف قائمة الأسعار",
+      "deleteError": "فشل حذف قائمة الأسعار",
+      "changeDefaultTitle": "تغيير قائمة الأسعار الافتراضية؟",
+      "changeDefaultText": "سيؤدي هذا إلى إزالة الحالة الافتراضية من قائمة الأسعار الافتراضية الحالية.",
+      "noServices": "لم يتم العثور على خدمات",
+      "noDrugs": "لم يتم العثور على شحنات أدوية",
+      "noSupplies": "لم يتم العثور على مستلزمات طبية",
+      "pricesSaveError": "فشل حفظ الأسعار",
+      "pricesAddedSuccess": "تم إضافة {{services}} أسعار خدمات و {{drugs}} أسعار أدوية بنجاح",
+      "bulkPricesSavedSuccess": "تم حفظ الأسعار: {{services}} سعر خدمة، {{drugs}} سعر دواء، و {{supplies}} سعر مستلزمات طبية؛ تمت إزالة {{removed}}",
+      "noPriceChanges": "لا توجد تغييرات على الأسعار للحفظ",
+      "defaultGuardError": "لا يمكن إزالة القائمة الافتراضية. عيّن قائمة أخرى كافتراضية أولاً.",
+      "addPricesNow": "إضافة الأسعار الآن؟",
+      "addPricesNowText": "هل ترغب في إضافة أسعار للخدمات والأدوية إلى قائمة الأسعار هذه الآن؟"
+    }
+  }
+}

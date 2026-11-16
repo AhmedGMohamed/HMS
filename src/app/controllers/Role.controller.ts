@@ -3,6 +3,54 @@ import { Request, Response } from "express";
 import RoleModel from "../models/Role.model.js";
 import { CreateRoleDTO, UpdateRoleDTO, AssignPermissionsDTO } from "../utils/types/users.js";
 
+/** Role errors that carry a stable `code` for the renderer to translate. */
+function sendRoleError(
+	res: Response,
+	error: any,
+	context: string,
+	fallback: string
+): void {
+	switch (error?.message) {
+		case "Role not found":
+			res.status(404).json({ error: error.message });
+			return;
+		case "Role name already exists":
+			res.status(409).json({
+				error: error.message,
+				code: "ROLE_NAME_EXISTS"
+			});
+			return;
+		case "One or more invalid permission IDs":
+			res.status(400).json({ error: error.message });
+			return;
+		case "System role cannot be modified":
+			res.status(400).json({
+				error: error.message,
+				code: "SYSTEM_ROLE_PROTECTED"
+			});
+			return;
+		case "This role is referenced by the system and cannot be renamed or deleted":
+			res.status(400).json({
+				error: error.message,
+				code: "ROLE_NAME_IMMUTABLE"
+			});
+			return;
+		default:
+			if (
+				typeof error?.message === "string" &&
+				error.message.includes("Cannot delete role")
+			) {
+				res.status(400).json({
+					error: error.message,
+					code: "ROLE_IN_USE"
+				});
+				return;
+			}
+			console.error(`Error ${context}:`, error);
+			res.status(500).json({ error: fallback });
+	}
+}
+
 export class RoleController {
 	async createRole(req: Request, res: Response) {
 		try {
@@ -18,18 +66,7 @@ export class RoleController {
 			const newRole = await RoleModel.createRole(roleData);
 			res.status(201).json(newRole);
 		} catch (error: any) {
-			switch (error.message) {
-				case "Role name already exists":
-					res.status(409).json({ error: error.message });
-					break;
-				case "One or more invalid permission IDs":
-					res.status(400).json({ error: error.message });
-					break;
-				default:
-					console.error("Error creating role:", error);
-					res.status(500).json({ error: "Failed to create role" });
-					break;
-			}
+			sendRoleError(res, error, "creating role", "Failed to create role");
 		}
 	}
 
@@ -41,21 +78,7 @@ export class RoleController {
 			const updatedRole = await RoleModel.updateRole(roleData);
 			res.json(updatedRole);
 		} catch (error: any) {
-			switch (error.message) {
-				case "Role not found":
-					res.status(404).json({ error: error.message });
-					break;
-				case "Role name already exists":
-					res.status(409).json({ error: error.message });
-					break;
-				case "One or more invalid permission IDs":
-					res.status(400).json({ error: error.message });
-					break;
-				default:
-					console.error("Error updating role:", error);
-					res.status(500).json({ error: "Failed to update role" });
-					break;
-			}
+			sendRoleError(res, error, "updating role", "Failed to update role");
 		}
 	}
 
@@ -65,14 +88,7 @@ export class RoleController {
 			await RoleModel.deleteRole(id);
 			res.status(204).send();
 		} catch (error: any) {
-			if (error.message === "Role not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message.includes("Cannot delete role")) {
-				res.status(400).json({ error: error.message });
-			} else {
-				console.error("Error deleting role:", error);
-				res.status(500).json({ error: "Failed to delete role" });
-			}
+			sendRoleError(res, error, "deleting role", "Failed to delete role");
 		}
 	}
 
@@ -81,7 +97,9 @@ export class RoleController {
 			const id = parseInt(req.params.id);
 			const role = await RoleModel.getRoleById(id);
 
-			if (!role) {
+			// The automation role is hidden from the admin surface, so treat it
+			// as absent rather than exposing its permission set.
+			if (!role || role.is_system) {
 				res.status(404).json({ error: "Role not found" });
 				return;
 			}

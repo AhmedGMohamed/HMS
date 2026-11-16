@@ -15,7 +15,7 @@ const router = Router();
 router.get(
 	"/",
 	verifyToken,
-	checkPermission("manage_patients"),
+	checkPermission("view_patients"),
 	auditLogger,
 	(req, res) => PatientController.getAllPatients(req, res)
 );
@@ -57,16 +57,6 @@ router.get(
 	(req, res) => PatientController.getCurrentAdmissionsWithStaff(req, res)
 );
 
-// Get specific patient by ID
-router.get(
-	"/:id",
-	verifyToken,
-	checkPermission("view_patients"),
-	validateId,
-	auditLogger,
-	(req, res) => PatientController.getPatientById(req, res)
-);
-
 // Get patient history
 router.get(
 	"/:id/history",
@@ -89,7 +79,7 @@ router.get(
 
 // Get current admission
 router.get(
-	"/:id/admission/current",
+	"/:id/admissions/current",
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
@@ -106,6 +96,16 @@ router.get(
 	validateHistoryId,
 	auditLogger,
 	(req, res) => PatientController.getAdmissionDetails(req, res)
+);
+
+// Get specific patient by ID
+router.get(
+	"/:id",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientById(req, res)
 );
 
 // Create new patient
@@ -179,7 +179,7 @@ router.post(
 
 // Stop service for patient (deactivate but keep billing)
 router.patch(
-	"/:id/services/:serviceId/stop",
+	"/:id/services/:activeServiceId/stop",
 	verifyToken,
 	checkPermission("manage_patients"),
 	validateId,
@@ -213,8 +213,17 @@ router.get(
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
+	auditLogger,
 	(req, res) => PatientController.getPatientServices(req, res)
 );
+
+router.get(
+	"/:id/admissions/current/services",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientServices(req, res, true))
 
 // Get patient drugs
 router.get(
@@ -222,7 +231,17 @@ router.get(
 	verifyToken,
 	checkPermission("view_patients"),
 	validateId,
+	auditLogger,
 	(req, res) => PatientController.getPatientDrugs(req, res)
+);
+// Get patient drugs
+router.get(
+	"/:id/admissions/current/drugs",
+	verifyToken,
+	checkPermission("view_patients"),
+	validateId,
+	auditLogger,
+	(req, res) => PatientController.getPatientDrugs(req, res, true)
 );
 
 export default router;

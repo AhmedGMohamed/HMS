@@ -17,16 +17,73 @@ describe("ServiceModel", () => {
 
 	describe("getAllServices", () => {
 		it("should return all services", async () => {
-			const result = await serviceModel.getAllServices();
+			const { rows, total } = await serviceModel.getAllServices();
 
-			expect(result.length).toBe(4);
-			expect(result.some(s => s.name === "Room Service")).toBeTrue();
+			expect(total).toBe(4);
+			expect(rows.length).toBe(4);
+			expect(rows.some(s => s.name === "Room Service")).toBeTrue();
 		});
 
-		it("should return empty array when no services exist", async () => {
+		it("should return an empty page when no services exist", async () => {
 			await dbHelper.clearDatabase();
-			const result = await serviceModel.getAllServices();
-			expect(result.length).toBe(0);
+			const { rows, total } = await serviceModel.getAllServices();
+			expect(total).toBe(0);
+			expect(rows.length).toBe(0);
+		});
+
+		it("should paginate with a stable total", async () => {
+			const first = await serviceModel.getAllServices({
+				offset: 0,
+				limit: 2
+			});
+			expect(first.total).toBe(4);
+			expect(first.rows.length).toBe(2);
+
+			const second = await serviceModel.getAllServices({
+				offset: 2,
+				limit: 2
+			});
+			expect(second.total).toBe(4);
+			expect(second.rows.length).toBe(2);
+
+			const ids = new Set(
+				[...first.rows, ...second.rows].map(s => s.service_id)
+			);
+			expect(ids.size).toBe(4);
+		});
+
+		it("should filter by search, type, price list, and drug", async () => {
+			const byName = await serviceModel.getAllServices({
+				search: "Room"
+			});
+			expect(byName.total).toBe(1);
+			expect(byName.rows[0].name).toBe("Room Service");
+
+			const byType = await serviceModel.getAllServices({
+				serviceType: "daily"
+			});
+			expect(byType.total).toBe(2);
+
+			const byPriceList = await serviceModel.getAllServices({
+				pricelistId: insertedData.priceLists[0].pricelist_id
+			});
+			expect(byPriceList.total).toBe(4);
+
+			const drugName = insertedData.drugCards[0].name;
+			const byDrug = await serviceModel.getAllServices({
+				drug: drugName
+			});
+			expect(byDrug.total).toBe(1);
+			expect(byDrug.rows[0].name).toBe("Monitoring");
+		});
+
+		it("should sort by name descending", async () => {
+			const { rows } = await serviceModel.getAllServices({
+				sort: "name",
+				dir: "desc"
+			});
+			expect(rows[0].name).toBe("Room Service");
+			expect(rows[rows.length - 1].name).toBe("ICU Care");
 		});
 	});
 

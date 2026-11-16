@@ -1,0 +1,73 @@
+{
+  "roles": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة الأدوار",
+    "title": "إدارة الأدوار",
+    "subtitle": "حدّد ما يمكن لكل دور فعله، ومن يحمله.",
+    "createNewRole": "إنشاء دور جديد",
+    "editRole": "تعديل الدور",
+    "table": {
+      "name": "الدور",
+      "permissions": "الصلاحيات",
+      "users": "المستخدمون"
+    },
+    "fields": {
+      "roleName": "اسم الدور",
+      "permissions": "الصلاحيات"
+    },
+    "modal": {
+      "createDescription": "أنشئ دورًا واختر الميزات التي يمكنه الوصول إليها.",
+      "editDescription": "عدّل اسم الدور أو صلاحياته."
+    },
+    "validation": {
+      "roleNameLength": "يجب أن يكون اسم الدور بين 3 و 50 حرفًا"
+    },
+    "permissions": {
+      "view_dashboard": "عرض لوحة القيادة",
+      "manage_patients": "إدارة المرضى",
+      "view_patients": "عرض المرضى",
+      "manage_services": "إدارة الخدمات",
+      "manage_billing": "إدارة الفواتير",
+      "manage_pharmacy": "إدارة الصيدلية",
+      "manage_supplies": "إدارة المستلزمات",
+      "manage_shipments": "إدارة شحنات الأدوية",
+      "manage_insurance": "إدارة التأمين",
+      "manage_employees": "إدارة الموظفين",
+      "view_vault": "عرض الخزينة",
+      "manage_vault": "إدارة الخزينة",
+      "manage_reports": "إدارة التقارير",
+      "manage_settings": "إدارة الإعدادات",
+      "manage_users": "إدارة المستخدمين",
+      "manage_prices": "إدارة الأسعار",
+      "manage_payments": "إدارة المدفوعات",
+      "manage_clocking": "إدارة الحضور والانصراف",
+      "view_reports": "عرض التقارير",
+      "view_only": "عرض فقط"
+    },
+    "permissionsHelp": "اختر الصلاحيات لهذا الدور. سيتمكن المستخدمون المعينون لهذا الدور من الوصول إلى هذه الميزات.",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "permissionsLabel": "الصلاحيات",
+    "noPermissions": "لا توجد صلاحيات معينة",
+    "messages": {
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "سيتم حذف {{roleName}} نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
+      "deleteSuccess": "تم حذف الدور",
+      "createSuccess": "تم إنشاء الدور بنجاح",
+      "updateSuccess": "تم تحديث الدور بنجاح",
+      "loadError": "فشل تحميل الأدوار",
+      "saveError": "فشل حفظ الدور",
+      "deleteError": "فشل حذف الدور",
+      "cannotDeleteAdmin": "لا يمكن حذف دور المسؤول",
+      "emptyTable": "لا توجد أدوار بعد. أنشئ دورًا للبدء.",
+      "roleNameTaken": "اسم الدور مستخدم بالفعل",
+      "roleInUse": "هذا الدور مسند إلى مستخدمين. أعد تعيينهم قبل الحذف.",
+      "roleNameImmutable": "هذا الدور مرتبط بالنظام ولا يمكن إعادة تسميته أو حذفه",
+      "systemRoleProtected": "لا يمكن تعديل أدوار النظام"
+    },
+    "buttons": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "saving": "جاري الحفظ..."
+    }
+  }
+}

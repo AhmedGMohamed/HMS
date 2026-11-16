@@ -1,0 +1,12 @@
+{
+  "userMenu": {
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "signedInAs": "مسجَّل الدخول كـ {{role}}",
+    "theme": "المظهر",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeTrueDark": "داكن تمامًا",
+    "themeSystem": "افتراضي النظام"
+  }
+}

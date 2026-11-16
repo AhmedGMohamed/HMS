@@ -6,19 +6,19 @@ export function getPreloadPath(): string {
 	return path.join(
 		app.getAppPath(),
 		isDev() ? "." : "..",
-		"/dist-electron/electron/preload.cjs"
+		"/build/electron/preload.cjs"
 	);
 }
 
 export function getViewPath(viewFile: string): string {
-	return path.join(app.getAppPath(), isDev() ? "." : "..", "dist-electron/electron/views", viewFile);
+	return path.join(app.getAppPath(), isDev() ? "." : "..", "build/electron/views", viewFile);
 }
 
 export function getAssetPath(assetPath: string): string {
 	return path.join(
 		app.getAppPath(),
 		isDev() ? "." : "..",
-		"dist-electron/electron/assets",
+		"build/electron/assets",
 		assetPath
 	);
 }

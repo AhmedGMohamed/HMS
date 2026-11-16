@@ -1,0 +1,496 @@
+{
+  "reports": {
+    "pageTitle": "نظام إدارة المستشفى - التقارير",
+    "title": "التقارير والتحليلات",
+    "page": {
+      "eyebrow": "نظام إدارة المستشفى — التحليلات",
+      "subtitle": "إنشاء وتصدير التقارير التشغيلية والسريرية وتقارير الرواتب.",
+      "descriptions": {
+        "patients": "حالات الدخول والرسوم والأرصدة المستحقة لكل مريض.",
+        "doctors": "المرضى المحوَّلون إلى كل طبيب أو المعالَجون أو المشرف عليهم.",
+        "nurses": "التكليفات اليومية للمرضى وساعات العمل لكل ممرض.",
+        "statistics": "اتجاهات الإشغال والإيرادات والدخول ومعدلات الاستفادة.",
+        "payments": "الراتب الأساسي والبدلات والخصومات وصافي الأجر لكل موظف.",
+        "clockIns": "الحضور وساعات العمل والخصومات لكل موظف."
+      }
+    },
+    "actions": {
+      "generate": "إنشاء",
+      "exportPdf": "تصدير PDF",
+      "exportCsv": "تصدير CSV",
+      "viewDetails": "عرض التفاصيل",
+      "printPatient": "طباعة تقرير المريض",
+      "printAdmission": "طباعة الدخول",
+      "retry": "إعادة المحاولة",
+      "close": "إغلاق"
+    },
+    "state": {
+      "notGeneratedTitle": "لم يتم إنشاء تقرير",
+      "notGeneratedDescription": "اختر نطاق التاريخ والمرشحات ثم اضغط إنشاء.",
+      "stale": "تم تغيير المرشحات بعد إنشاء هذا التقرير. أعد الإنشاء لتحديث النتائج.",
+      "largeExport": "يحتوي هذا التصدير على {{count}} صف. قد يستغرق إنشاء الملف بعض الوقت، لذا أبقِ هذا التبويب مفتوحًا حتى يبدأ التنزيل.",
+      "errorTitle": "تعذّر تحميل هذا التقرير",
+      "errorDescription": "فشل الطلب. أعد المحاولة أو عدّل المرشحات ثم أعد الإنشاء.",
+      "emptyTitle": "لا توجد نتائج",
+      "emptyDescription": "لا توجد سجلات مطابقة للمرشحات ونطاق التاريخ المحدد.",
+      "permissionTitle": "لا يوجد صلاحية لهذا التقرير",
+      "permissionDescription": "دورك لا يتضمن الصلاحية المطلوبة لهذا التقرير.",
+      "pendingTitle": "محتوى التقرير في الخطوة التالية",
+      "pendingDescription": "سيتم ربط مصدر بيانات هذا التبويب في خطوة التنفيذ التالية.",
+      "range": "{{from}} – {{to}}",
+      "records": "{{count}} سجل",
+      "detailError": "تعذّر تحميل التفاصيل.",
+      "exportForbidden": "لا يتضمن دورك صلاحية تصدير التقارير. اطلب من المسؤول صلاحية إدارة التقارير."
+    },
+    "detail": {
+      "title": "تقرير المريض",
+      "identity": "بيانات المريض",
+      "searchPlaceholder": "الاسم أو الرقم القومي أو الهاتف",
+      "card": "البطاقة",
+      "form": "النموذج",
+      "billId": "فاتورة رقم {{id}}",
+      "noBill": "لا توجد فاتورة",
+      "leaveReason": "سبب الخروج",
+      "admissionHeading": "الدخول {{index}} — {{date}}",
+      "dischargedOn": "خرج في {{date}}",
+      "currentlyAdmitted": "داخل حاليًا",
+      "lengthOfStay": "مدة الإقامة: {{count}} يوم",
+      "lengthOfStay_one": "مدة الإقامة: يوم واحد",
+      "lengthOfStay_two": "مدة الإقامة: يومان",
+      "lengthOfStay_few": "مدة الإقامة: {{count}} أيام",
+      "billedItems": "البنود المحتسبة",
+      "dateTotal": "إجمالي اليوم",
+      "baseTotal": "الإجمالي الأساسي",
+      "finalTotal": "الصافي",
+      "noItems": "لا توجد بنود محتسبة لهذا الدخول.",
+      "noStaff": "لا توجد تكليفات طاقم لهذا الدخول.",
+      "noAdmissionsDescription": "لا توجد حالات دخول لهذا المريض في الفترة المحددة."
+    },
+    "enums": {
+      "admissionStatus": {
+        "active": "نشط",
+        "discharged": "خرج"
+      },
+      "doctorType": {
+        "attending": "معالج",
+        "supervising": "مشرف",
+        "referring": "محوِّل",
+        "outside": "خارجي"
+      },
+      "employeeType": {
+        "doctor": "طبيب",
+        "nurse": "ممرض",
+        "other": "آخر"
+      },
+      "relationship": {
+        "referred": "محوَّلون",
+        "attended": "معالَجون",
+        "supervised": "مشرف عليهم"
+      },
+      "attendance": {
+        "on_time": "في الموعد",
+        "late": "متأخر",
+        "early": "مبكر",
+        "incomplete": "غير مكتمل",
+        "missing": "غائب"
+      },
+      "shiftType": {
+        "morning": "صباحي",
+        "night": "ليلي"
+      },
+      "itemType": {
+        "service": "خدمة",
+        "drug": "دواء",
+        "supply": "مستلزم طبي"
+      }
+    },
+    "tabs": {
+      "patientReports": "تقارير المرضى",
+      "doctorReports": "تقارير الأطباء",
+      "nurseReports": "تقارير الممرضين",
+      "statistics": "الإحصائيات",
+      "employeePayments": "مدفوعات الموظفين",
+      "clockInReports": "تقارير الحضور والانصراف"
+    },
+    "filters": {
+      "title": "مرشحات التقرير",
+      "groupBy": "تجميع حسب",
+      "groupByOptions": {
+        "day": "يوم",
+        "month": "شهر",
+        "year": "سنة"
+      },
+      "dateRange": "نطاق التاريخ",
+      "quick": {
+        "today": "اليوم",
+        "week": "هذا الأسبوع",
+        "month": "هذا الشهر",
+        "year": "هذه السنة",
+        "reset": "إعادة تعيين"
+      },
+      "searchPatient": "البحث عن مريض",
+      "searchDoctor": "البحث عن طبيب",
+      "searchNurse": "البحث عن ممرض",
+      "searchEmployee": "البحث عن موظف",
+      "relationship": "نوع التقرير",
+      "doctor": "الطبيب",
+      "nurse": "الممرض",
+      "employee": "الموظف",
+      "employeeType": "نوع الموظف",
+      "paymentType": "نوع الدفع",
+      "insuranceCompany": "شركة التأمين",
+      "allEmployees": "كل الموظفين",
+      "allCompanies": "كل الشركات",
+      "allPaymentTypes": "كل أنواع الدفع"
+    },
+    "doctorReports": {
+      "selectDoctor": "اختر طبيب",
+      "selectDoctorPlaceholder": "اختر طبيباً",
+      "chartTitle": "المرضى لكل طبيب",
+      "chartCaption": "هذه الصفحة فقط. ملف PDF يعرض جميع الأطباء مع نسبتهم من الإجمالي.",
+      "assignmentsHint": "{{count}} إسناد مريض-طبيب",
+      "dedupeNote": "يُحسب المريض مرة واحدة هنا. المريض الذي يتابعه عدة أطباء يُحسب مرة لكل طبيب في صفه، بإجمالي {{count}} مريضاً فريداً.",
+      "types": {
+        "allReferring": "جميع الأطباء المحولين",
+        "specificReferring": "طبيب محول محدد",
+        "allAttending": "جميع الأطباء المعالجين",
+        "specificAttending": "طبيب معالج محدد",
+        "allSupervised": "جميع الأطباء المشرفين",
+        "specificSupervising": "طبيب مشرف محدد"
+      }
+    },
+    "doctorDetail": {
+      "title": "تقرير الطبيب",
+      "patients": "مرضى هذا الطبيب"
+    },
+    "nurseReports": {
+      "selectNurse": "اختر ممرض",
+      "selectNursePlaceholder": "اختر ممرضاً",
+      "chartTitle": "الساعات لكل ممرض",
+      "chartCaption": "هذه الصفحة فقط. ملف PDF يعرض جميع الممرضين مع نسبتهم من إجمالي الساعات.",
+      "assignmentsHint": "{{count}} إسناد مريض-ممرض",
+      "dedupeNote": "يُحسب المريض مرة واحدة هنا. المريض المعين لعدة ممرضين يُحسب مرة لكل ممرض في صفه، بإجمالي {{count}} مريضاً فريداً.",
+      "types": {
+        "allNurses": "جميع الممرضين",
+        "specificNurse": "ممرض محدد"
+      }
+    },
+    "nurseDetail": {
+      "title": "تقرير الممرض",
+      "patients": "مرضى هذا الممرض",
+      "dailyAssignments": "التعيينات اليومية",
+      "dayPatients": "المرضى: {{count}}",
+      "dayHours": "الساعات: {{count}}",
+      "dayTotal": "إجمالي اليوم",
+      "noAssignments": "لا توجد تعيينات يومية في هذه الفترة.",
+      "showingDays": "عرض {{shown}} من {{total}} يومًا",
+      "showMoreDays": "عرض المزيد من الأيام"
+    },
+    "employeePayments": {
+      "title": "تفاصيل مدفوعات الموظفين",
+      "charts": {
+        "paymentTimeline": "الجدول الزمني للمدفوعات",
+        "paymentTypeDistribution": "توزيع أنواع المدفوعات"
+      }
+    },
+    "payrollReports": {
+      "kpis": {
+        "basePay": "الأجر الأساسي",
+        "extraPay": "الأجر الإضافي",
+        "deductions": "الخصومات",
+        "netPay": "صافي الأجر"
+      },
+      "charts": {
+        "grossPay": "إجمالي الأجر",
+        "period": "الفترة",
+        "paymentType": "نوع الدفع",
+        "timelineCaption": "إجمالي الأجر لكل {{grouping}}",
+        "typeCaption": "إجمالي الأجر حسب نوع الدفع"
+      },
+      "paymentTypes": {
+        "none": "لا شيء",
+        "salary": "راتب",
+        "bonus": "مكافأة",
+        "overtime": "عمل إضافي",
+        "manual": "يدوي",
+        "per_patient": "لكل مريض",
+        "income": "دخل",
+        "commission": "عمولة",
+        "referral": "تحويل",
+        "fixed": "ثابت",
+        "percentage": "نسبة مئوية",
+        "service": "خدمات",
+        "supervising_doctor_assignment": "عمولة الطبيب المشرف"
+      },
+      "paymentStatus": {
+        "paid": "مدفوع",
+        "pending": "قيد الانتظار"
+      },
+      "detail": {
+        "patientWork": "أعمال المرضى",
+        "noPatientWork": "لا توجد أعمال مرضى",
+        "noPatientWorkDescription": "لا توجد ارتباطات مرضى لهذه الدفعة.",
+        "payments": "المدفوعات",
+        "noPayments": "لا توجد مدفوعات",
+        "noPaymentsDescription": "لا توجد مدفوعات لهذا الموظف في الفترة المحددة.",
+        "noDeductions": "لا توجد خصومات",
+        "noDeductionsDescription": "لم يتم تسجيل أي خصم حضور في هذه الفترة.",
+        "deductionNote": "تُحتسب الخصومات مرة واحدة للفترة كاملة، وليس لكل دفعة.",
+        "needClockIn": "يتطلب تسجيل حضور",
+        "yes": "نعم",
+        "no": "لا",
+        "noShift": "بدون وردية",
+        "workDays": "أيام العمل",
+        "patientsServed": "المرضى المخدومون"
+      },
+      "emptyTitle": "لا توجد مدفوعات موظفين",
+      "emptyDescription": "لا توجد مدفوعات موظفين تطابق المعايير المحددة."
+    },
+    "statistics": {
+      "kpis": {
+        "patients": "إجمالي المرضى",
+        "admissions": "حالات الدخول",
+        "discharges": "حالات الخروج",
+        "avgStay": "متوسط الإقامة (أيام)",
+        "billed": "المفوتر",
+        "collected": "المحصّل",
+        "outstanding": "المستحق"
+      },
+      "series": {
+        "census": "الإشغال",
+        "admissions": "الدخول",
+        "discharges": "الخروج",
+        "netChange": "صافي التغير",
+        "billed": "المفوتر",
+        "collected": "المحصّل",
+        "outstanding": "المستحق",
+        "avgStay": "متوسط الإقامة (أيام)",
+        "staff": "الموظفون",
+        "patients": "المرضى",
+        "hours": "الساعات",
+        "revenue": "الإيرادات"
+      },
+      "axis": {
+        "period": "الفترة",
+        "employeeType": "نوع الموظف",
+        "service": "الخدمة",
+        "drug": "الدواء"
+      },
+      "distribution": {
+        "payment": "الدفع",
+        "gender": "الجنس",
+        "toggleLabel": "تقسيم التوزيع"
+      },
+      "emptyTitle": "لا توجد بيانات في هذه الفترة",
+      "emptyDescription": "لم يُسجَّل شيء في الفترة المحددة.",
+      "charts": {
+        "census": "إشغال المرضى وحالات الدخول",
+        "censusCaption": "المرضى الموجودون في القسم مقابل حالات الدخول الجديدة لكل {{grouping}}",
+        "distribution": "توزيع المرضى",
+        "distributionCaption": "حالات الدخول في الفترة حسب نوع الدفع والجنس",
+        "averageStay": "متوسط مدة الإقامة",
+        "averageStayCaption": "متوسط حالات الإقامة التي انتهت في كل {{grouping}}",
+        "revenue": "اتجاهات الإيرادات",
+        "revenueCaption": "المفوتر والمحصّل والمستحق لكل {{grouping}}",
+        "flow": "الدخول مقابل الخروج",
+        "flowCaption": "صافي التغير هو الدخول ناقص الخروج",
+        "topServices": "أفضل ١٠ خدمات حسب الإيرادات",
+        "topDrugs": "أفضل ١٠ أدوية حسب الإيرادات",
+        "topCaption": "مرتبة حسب الإيرادات داخل الفترة المحددة",
+        "staff": "استخدام الموظفين",
+        "staffCaption": "عدد الموظفين على المحور الأيسر وساعات العمل على المحور الأيمن"
+      }
+    },
+    "paymentTypes": {
+      "cash": "نقدي",
+      "credit": "آجل",
+      "insurance": "تأمين",
+      "supplies": "المستلزمات الطبية"
+    },
+    "genderTypes": {
+      "male": "ذكر",
+      "female": "أنثى",
+      "other": "آخر"
+    },
+    "summary": {
+      "totalPatients": "إجمالي المرضى",
+      "uniquePatients": "المرضى الفريدون",
+      "admissions": "حالات الدخول",
+      "totalDoctors": "إجمالي الأطباء",
+      "totalNurses": "إجمالي الممرضين",
+      "totalDays": "إجمالي الأيام",
+      "totalHours": "إجمالي الساعات",
+      "totalEmployees": "إجمالي الموظفين",
+      "totalBill": "إجمالي الفواتير",
+      "totalPaid": "إجمالي المدفوع",
+      "totalOutstanding": "إجمالي المستحق",
+      "totalPayments": "إجمالي المدفوعات",
+      "totalUnpaid": "إجمالي غير المدفوع"
+    },
+    "patientCard": {
+      "id": "الرقم",
+      "nationalId": "الرقم القومي",
+      "age": "العمر",
+      "years": "سنة",
+      "born": "مواليد",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "insurance": "التأمين",
+      "referringDoctor": "الطبيب المحول",
+      "admissionHistory": "سجل الدخول",
+      "noAdmissions": "لا توجد حالات دخول في هذه الفترة"
+    },
+    "admissionCard": {
+      "diagnosis": "التشخيص",
+      "paid": "المدفوع",
+      "discount": "الخصم",
+      "dailyStaff": "المناوبات اليومية",
+      "doctors": "الأطباء",
+      "nurses": "الممرضون",
+      "services": "الخدمات",
+      "drugs": "الأدوية",
+      "supplies": "المستلزمات الطبية",
+      "medicalTests": "الفحوصات الطبية",
+      "adminExpenses": "المصاريف الإدارية",
+      "vat": "ضريبة قيمة مضافة",
+      "outstanding": "الباقي المستحق"
+    },
+    "paymentCard": {
+      "configuration": "إعدادات دفع الموظف",
+      "basePay": "الراتب الأساسي",
+      "baseExtraAmount": "المبلغ الإضافي الأساسي",
+      "perPatientType": "نوع الدفع لكل مريض",
+      "percentageScope": "نطاق النسبة المئوية",
+      "shift": "الوردية"
+    },
+    "paymentDetail": {
+      "by": "بواسطة",
+      "clockInDeductions": "خصومات الحضور"
+    },
+    "clockInReports": {
+      "title": "تفاصيل حضور الموظفين",
+      "emptyTitle": "لا توجد تسجيلات حضور",
+      "emptyDescription": "لم يسجل أي موظف حضوره خلال الفترة المحددة، ولم يكن أحد مطالبًا بالتسجيل.",
+      "stats": {
+        "avgHoursPerEmployee": "متوسط الساعات/موظف",
+        "totalDeductions": "إجمالي الخصومات",
+        "totalClockIns": "إجمالي تسجيلات الحضور",
+        "totalWorkedDays": "أيام العمل",
+        "avgHoursPerDay": "متوسط الساعات / يوم",
+        "totalMissingDays": "أيام الغياب"
+      },
+      "charts": {
+        "hoursWorked": "ساعات العمل حسب الموظف",
+        "attendanceStatus": "توزيع حالة الحضور",
+        "hoursCaption": "أعلى الموظفين بعدد ساعات العمل (حتى اثني عشر).",
+        "statusCaption": "تصنيف واحد لكل يوم، بما في ذلك الأيام بلا تسجيل حضور."
+      },
+      "detail": {
+        "totalDays": "إجمالي الأيام",
+        "workedDays": "أيام العمل",
+        "punctuality": "الانتظام",
+        "records": "السجلات اليومية",
+        "recordsCaption": "سجل لكل جلسة، الأحدث أولًا. وسّع أي سجل لعرض المرضى المرتبطين به.",
+        "statusFilter": "الحالة",
+        "allStatuses": "كل الحالات",
+        "noRecords": "لا توجد سجلات",
+        "noRecordsDescription": "لا توجد سجلات حضور لهذا الموظف في الفترة المحددة.",
+        "noRecordsForStatus": "لا توجد سجلات بهذه الحالة في الفترة المحددة.",
+        "missingNote": "{{count}} يوم/أيام بلا تسجيل حضور محسوبة أعلاه ولكنها غير مدرجة كسجلات — لا توجد جلسة لعرضها.",
+        "missingNote_one": "{{count}} يوم بلا تسجيل حضور محسوب أعلاه ولكنه غير مدرج كسجل — لا توجد جلسة لعرضها.",
+        "missingNote_other": "{{count}} أيام بلا تسجيل حضور محسوبة أعلاه ولكنها غير مدرجة كسجلات — لا توجد جلسة لعرضها.",
+        "patients": "المرضى",
+        "noPatients": "لا يوجد مرضى مرتبطون بهذا السجل.",
+        "lateMinutes": "التأخير (دقيقة)",
+        "earlyMinutes": "الانصراف المبكر (دقيقة)",
+        "noShift": "لا توجد وردية محددة",
+        "clockInRequirement": "تسجيل الحضور",
+        "required": "مطلوب",
+        "notRequired": "غير مطلوب",
+        "employmentStatus": "حالة التوظيف",
+        "active": "نشط",
+        "inactive": "غير نشط"
+      }
+    },
+    "table": {
+      "doctor": "الطبيب",
+      "nurse": "الممرض",
+      "doctorType": "نوع الطبيب",
+      "patients": "المرضى",
+      "patientName": "اسم المريض",
+      "gender": "الجنس",
+      "age": "العمر",
+      "paymentType": "نوع الدفع",
+      "admissions": "عدد الدخول",
+      "totalBilled": "إجمالي الفواتير",
+      "totalPaid": "إجمالي المدفوع",
+      "lastAdmission": "آخر دخول",
+      "lastDischarge": "آخر خروج",
+      "diagnosis": "التشخيص",
+      "daysAssigned": "الأيام المعينة",
+      "totalDays": "إجمالي الأيام",
+      "days": "الأيام",
+      "lastWorkDate": "آخر يوم عمل",
+      "totals": "الإجماليات",
+      "workDate": "تاريخ العمل",
+      "hours": "الساعات",
+      "hoursWorked": "ساعات العمل",
+      "amount": "المبلغ",
+      "clockIn": "تسجيل الدخول",
+      "clockOut": "تسجيل الخروج",
+      "status": "الحالة",
+      "deduction": "الخصم",
+      "referringDoctor": "الطبيب المحول",
+      "outstanding": "المستحق",
+      "serviceDate": "التاريخ",
+      "itemName": "البند",
+      "itemType": "النوع",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "totalPrice": "الإجمالي",
+      "employee": "الموظف",
+      "type": "النوع",
+      "hireDate": "تاريخ التعيين",
+      "payments": "المدفوعات",
+      "base": "الأساسي",
+      "extra": "الإضافي",
+      "deductions": "الخصومات",
+      "paid": "المدفوع",
+      "unpaid": "غير المدفوع",
+      "net": "الصافي",
+      "gross": "الإجمالي",
+      "paymentDate": "تاريخ الدفع",
+      "patientCount": "المرضى",
+      "paidOn": "تاريخ السداد",
+      "shift": "الوردية",
+      "clockIns": "تسجيلات الحضور",
+      "avgPerDay": "المتوسط / يوم",
+      "punctuality": "الانتظام"
+    },
+    "units": {
+      "hours": "س"
+    },
+    "emptyState": {
+      "noPatientsFound": "لم يتم العثور على مرضى",
+      "noPatientsDescription": "لا يوجد مرضى يطابقون المعايير المحددة",
+      "noDoctorsFound": "لم يتم العثور على أطباء",
+      "noDoctorsDescription": "لا يوجد أطباء يطابقون المعايير المحددة",
+      "noNursesFound": "لم يتم العثور على ممرضين",
+      "noNursesDescription": "لا يوجد ممرضون يطابقون المعايير المحددة",
+      "noEmployeePaymentsTitle": "لا توجد مدفوعات موظفين",
+      "noEmployeePaymentsDescription": "لم يتم العثور على مدفوعات موظفين للمعايير المحددة",
+      "noPatientsForDoctor": "لم يتم العثور على مرضى لهذا الطبيب",
+      "noPatientsForNurse": "لم يتم العثور على مرضى لهذا الممرض"
+    },
+    "validation": {
+      "selectDoctor": "يرجى اختيار طبيب",
+      "selectNurse": "يرجى اختيار ممرض",
+      "endBeforeStart": "يجب أن يكون تاريخ النهاية في نفس تاريخ البداية أو بعده."
+    },
+    "messages": {
+      "optionsError": "تعذّر تحميل بعض قوائم المرشحات. التقارير ما زالت تعمل؛ أعد تحميل الصفحة للمحاولة مرة أخرى.",
+      "exportError": "تعذّر تجهيز ملف التصدير. أعد المحاولة أو عدّل المرشحات ثم أعد الإنشاء.",
+      "printError": "تعذّر تجهيز الطباعة. أعد المحاولة."
+    }
+  }
+}

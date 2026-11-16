@@ -1,0 +1,73 @@
+{
+  "users": {
+    "pageTitle": "HMS - User Management",
+    "title": "User Management",
+    "subtitle": "Manage accounts, roles and access to the system.",
+    "createNewUser": "Create New User",
+    "editUser": "Edit User",
+    "searchPlaceholder": "Search users...",
+    "selectRole": "Select a role",
+    "filters": {
+      "allRoles": "All Roles",
+      "allStatus": "All Status"
+    },
+    "table": {
+      "username": "Username",
+      "role": "Role",
+      "createdDate": "Created Date",
+      "status": "Status",
+      "lastLogin": "Last Login"
+    },
+    "fields": {
+      "username": "Username",
+      "password": "Password",
+      "role": "Role",
+      "active": "Active",
+      "passwordHint": "Leave blank to keep the current password"
+    },
+    "actions": {
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "modal": {
+      "createDescription": "Create a new account and assign it a role.",
+      "editDescription": "Update the account details."
+    },
+    "validation": {
+      "usernameLength": "Username must be between 3 and 50 characters",
+      "passwordLength": "Password must be at least 8 characters long",
+      "roleRequired": "Please select a role"
+    },
+    "messages": {
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmText": "{{username}} will be permanently deleted. Consider deactivating the account instead.",
+      "deleteSuccess": "User has been deleted",
+      "createSuccess": "User successfully created",
+      "updateSuccess": "User successfully updated",
+      "loadError": "Failed to load users",
+      "saveError": "Failed to save user",
+      "deleteError": "Failed to delete user",
+      "emptyTable": "No users match the current filters.",
+      "usernameTaken": "That username is already taken",
+      "activateSuccess": "User activated",
+      "deactivateSuccess": "User deactivated",
+      "activateConfirmTitle": "Activate account?",
+      "activateConfirmText": "{{username}} will be able to sign in again.",
+      "deactivateConfirmTitle": "Deactivate account?",
+      "deactivateConfirmText": "{{username}} will be signed out and unable to sign in until reactivated.",
+      "deleteReferenced": "This user has linked records and cannot be deleted. Deactivate the account instead.",
+      "systemAccountProtected": "System accounts cannot be modified",
+      "selfDeleteBlocked": "You cannot delete your own account",
+      "selfRoleBlocked": "You cannot change your own role",
+      "selfDeactivateBlocked": "You cannot deactivate your own account",
+      "adminOnlyField": "Only administrators can change account status"
+    },
+    "buttons": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "saving": "Saving...",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    }
+  }
+}

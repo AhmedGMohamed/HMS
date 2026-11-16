@@ -1,0 +1,73 @@
+{
+  "users": {
+    "pageTitle": "نظام إدارة المستشفى - إدارة المستخدمين",
+    "title": "إدارة المستخدمين",
+    "subtitle": "إدارة الحسابات والأدوار والوصول إلى النظام.",
+    "createNewUser": "إنشاء مستخدم جديد",
+    "editUser": "تعديل المستخدم",
+    "searchPlaceholder": "البحث عن المستخدمين...",
+    "selectRole": "اختر دورًا",
+    "filters": {
+      "allRoles": "جميع الأدوار",
+      "allStatus": "جميع الحالات"
+    },
+    "table": {
+      "username": "اسم المستخدم",
+      "role": "الدور",
+      "createdDate": "تاريخ الإنشاء",
+      "status": "الحالة",
+      "lastLogin": "آخر تسجيل دخول"
+    },
+    "fields": {
+      "username": "اسم المستخدم",
+      "password": "كلمة المرور",
+      "role": "الدور",
+      "active": "نشط",
+      "passwordHint": "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
+    },
+    "actions": {
+      "activate": "تفعيل",
+      "deactivate": "تعطيل"
+    },
+    "modal": {
+      "createDescription": "أنشئ حسابًا جديدًا وأسند إليه دورًا.",
+      "editDescription": "تحديث بيانات الحساب."
+    },
+    "validation": {
+      "usernameLength": "يجب أن يكون اسم المستخدم بين 3 و 50 حرفًا",
+      "passwordLength": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+      "roleRequired": "يرجى اختيار دور"
+    },
+    "messages": {
+      "deleteConfirmTitle": "هل أنت متأكد؟",
+      "deleteConfirmText": "سيتم حذف {{username}} نهائيًا. يمكنك تعطيل الحساب بدلاً من ذلك.",
+      "deleteSuccess": "تم حذف المستخدم",
+      "createSuccess": "تم إنشاء المستخدم بنجاح",
+      "updateSuccess": "تم تحديث المستخدم بنجاح",
+      "loadError": "فشل تحميل المستخدمين",
+      "saveError": "فشل حفظ المستخدم",
+      "deleteError": "فشل حذف المستخدم",
+      "emptyTable": "لا يوجد مستخدمون مطابقون لعوامل التصفية الحالية.",
+      "usernameTaken": "اسم المستخدم مستخدم بالفعل",
+      "activateSuccess": "تم تفعيل المستخدم",
+      "deactivateSuccess": "تم تعطيل المستخدم",
+      "activateConfirmTitle": "تفعيل الحساب؟",
+      "activateConfirmText": "سيتمكن {{username}} من تسجيل الدخول مرة أخرى.",
+      "deactivateConfirmTitle": "تعطيل الحساب؟",
+      "deactivateConfirmText": "سيتم تسجيل خروج {{username}} ولن يتمكن من الدخول حتى يُعاد تفعيله.",
+      "deleteReferenced": "لا يمكن حذف هذا المستخدم لارتباطه بسجلات. يمكنك تعطيل الحساب بدلاً من ذلك.",
+      "systemAccountProtected": "لا يمكن تعديل حسابات النظام",
+      "selfDeleteBlocked": "لا يمكنك حذف حسابك الشخصي",
+      "selfRoleBlocked": "لا يمكنك تغيير دورك الشخصي",
+      "selfDeactivateBlocked": "لا يمكنك تعطيل حسابك الشخصي",
+      "adminOnlyField": "يمكن لمديري النظام فقط تغيير حالة الحساب"
+    },
+    "buttons": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "saving": "جاري الحفظ...",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور"
+    }
+  }
+}

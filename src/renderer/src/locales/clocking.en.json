@@ -1,0 +1,110 @@
+{
+  "clocking": {
+    "pageTitle": "HMS - Clocking",
+    "title": "Clocking",
+    "subtitle": "Manage clocking records",
+    "kpi": {
+      "onShift": "On shift now",
+      "onShiftHint": "Employees currently clocked in",
+      "missingClockOut": "Missing clock-out",
+      "missingClockOutHintActive": "Open shifts carried over from previous days",
+      "missingClockOutHintCalm": "All shifts closed properly",
+      "over12h": "Shifts over 12h",
+      "over12hHint": "Fatigue risk — verify and clock out",
+      "over12hHintCalm": "No shifts beyond the 12h limit"
+    },
+    "buttons": {
+      "newClockIn": "New Clock-In",
+      "clockOut": "Clock Out",
+      "confirmClockOut": "Yes, clock out now",
+      "confirmDelete": "Delete record",
+      "saving": "Saving..."
+    },
+    "tabs": {
+      "active": "Active Clock-Ins",
+      "history": "History"
+    },
+    "table": {
+      "employeeName": "Employee Name",
+      "clockInTime": "Clock-In Time",
+      "clockOutTime": "Clock-Out Time",
+      "duration": "Duration",
+      "payDeduction": "Pay Deduction",
+      "activeCaption": "Live list of employees currently clocked in",
+      "historyCaption": "Completed clock-in records with corrections and pay deductions"
+    },
+    "status": {
+      "duplicateActive": "Duplicate active clock-in",
+      "extendedShift": "Extended shift",
+      "fatigueRisk": "Fatigue risk",
+      "missingClockOut": "Missing clock-out",
+      "futureClockIn": "Future clock-in",
+      "negativeDuration": "Negative duration",
+      "duplicateEntry": "Duplicate entry"
+    },
+    "role": {
+      "doctor": "Doctor",
+      "nurse": "Nurse",
+      "staff": "Staff"
+    },
+    "filters": {
+      "searchEmployee": "Search Employee",
+      "fromDate": "From",
+      "toDate": "To",
+      "missingOnly": "Missing clock-out only",
+      "clearRange": "Clear date range"
+    },
+    "placeholders": {
+      "searchEmployee": "Search by name...",
+      "selectEmployee": "Select Employee"
+    },
+    "modals": {
+      "newClockIn": "New Clock-In",
+      "editClockIn": "Edit Clock-In",
+      "editClockInDescription": "Changes to this record affect the employee's shift duration and pay."
+    },
+    "fields": {
+      "employee": "Employee",
+      "clockInTime": "Clock-In Time",
+      "clockOutTime": "Clock-Out Time",
+      "payDeduction": "Pay Deduction"
+    },
+    "help": {
+      "optionalClockOut": "Optional - Leave empty for active clock-in",
+      "payDeduction": "Optional - Enter any pay deduction amount",
+      "autoDeduction": "Pay deduction is calculated automatically at clock-in based on shift lateness.",
+      "recordedLocalTime": "Times are recorded in the hospital's local time.",
+      "editingRecord": "Record #{{clockId}}"
+    },
+    "duration": {
+      "hoursMinutes": "{{hours}}h {{minutes}}m",
+      "minutes": "{{minutes}}m"
+    },
+    "validation": {
+      "employeeRequired": "Please select an employee.",
+      "clockInTimeRequired": "Please enter a clock-in time.",
+      "clockOutAfterClockIn": "Clock-out time must be after clock-in time.",
+      "payDeductionInvalid": "Enter a valid non-negative deduction amount.",
+      "alreadyClockedIn": "Employee already has an active shift."
+    },
+    "messages": {
+      "noActiveClockIns": "No active clock-ins found",
+      "noHistoryFound": "No history found for the selected filters",
+      "loadEmployeesError": "Failed to load employees",
+      "loadClockInsError": "Failed to load clock-ins",
+      "createSuccess": "Clock-in successfully created",
+      "updateSuccess": "Clock-in successfully updated",
+      "saveError": "Failed to save clock-in",
+      "clockOutConfirmTitle": "Clock Out Now?",
+      "clockOutConfirmText": "This will clock out the employee with the current time and finalize the duration for payroll.",
+      "clockOutSuccess": "Employee clocked out successfully",
+      "clockOutError": "Failed to clock out",
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmText": "This permanently removes the shift record, including its duration and pay deduction. This action cannot be undone.",
+      "deleteActiveConfirmText": "This employee is currently clocked in. Deleting removes the open record entirely. This action cannot be undone.",
+      "deleteSuccess": "Clock-in deleted successfully",
+      "deleteError": "Failed to delete clock-in",
+      "retry": "Retry"
+    }
+  }
+}

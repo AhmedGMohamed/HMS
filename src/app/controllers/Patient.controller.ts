@@ -4,15 +4,56 @@ import {
 	CreatePatientDTO,
 	UpdatePatientDTO,
 	AdmitPatientDTO,
-	DischargePatientDTO
+	DischargePatientDTO,
+	Patient,
+	InsuranceCompany
 } from "../utils/types/patients.js";
 import DrugUsageModel from "../models/DrugUsage.model.js";
+import {
+	parsePagination,
+	buildPage
+} from "../utils/pagination.js";
+import InsuranceModel from "../models/Insurance.model.js";
 
 export class PatientController {
-	async getAllPatients(_req: Request, res: Response) {
+	async getAllPatients(req: Request, res: Response) {
 		try {
-			const patients = await PatientModel.getAllPatients();
-			res.status(200).json(patients);
+			const pagination = parsePagination(req);
+			const qRaw = req.query?.q;
+			const q = typeof qRaw === "string" ? qRaw : Array.isArray(qRaw) ? String(qRaw[0] ?? "") : undefined;
+			const sortRaw = req.query?.sort;
+			const sort = typeof sortRaw === "string" ? sortRaw : undefined;
+			const orderRaw = req.query?.order;
+			const order = typeof orderRaw === "string" ? orderRaw : undefined;
+
+			const paymentTypeRaw = req.query?.paymentType;
+			const paymentType = typeof paymentTypeRaw === "string" ? paymentTypeRaw : undefined;
+			const insuranceIdRaw = req.query?.insuranceId;
+			const insuranceId = insuranceIdRaw != null && insuranceIdRaw !== ""
+				? Number(insuranceIdRaw)
+				: undefined;
+			const isActiveRaw = req.query?.isActive;
+			const isActive = isActiveRaw === "true" ? true : isActiveRaw === "false" ? false : undefined;
+			const registeredFromRaw = req.query?.registeredFrom;
+			const registeredFrom = typeof registeredFromRaw === "string" ? registeredFromRaw : undefined;
+			const registeredToRaw = req.query?.registeredTo;
+			const registeredTo = typeof registeredToRaw === "string" ? registeredToRaw : undefined;
+
+			const { rows, total } = await PatientModel.getAllPatients(
+				{
+					offset: pagination.offset,
+					limit: pagination.limit,
+					q,
+					sort,
+					order,
+					paymentType,
+					insuranceId,
+					isActive,
+					registeredFrom,
+					registeredTo,
+				}
+			);
+			res.status(200).json(buildPage(rows, total, pagination));
 		} catch (error) {
 			console.error("Error fetching patients:", error);
 			res.status(500).json({ error: "Failed to fetch patients" });
@@ -32,11 +73,29 @@ export class PatientController {
 	async getPatientById(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const patient = await PatientModel.getPatientById(patientId);
+			const patient: Patient &
+				Partial<Record<"insurance", Partial<InsuranceCompany &
+				{
+					insurance_card_id: string | null,
+					insurance_form_id: string | null
+				}
+				>>>
+				= await PatientModel.getPatientById(patientId);
 
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
+			}
+
+			if (patient.insurance_id) {
+				const insurance: Partial<InsuranceCompany> & Partial<{ insurance_card_id: string | null, insurance_form_id: string | null }> = await InsuranceModel.getInsuranceCompanyById(patient.insurance_id)
+				// Remove unnecessary keys
+				delete insurance.contact_info
+				delete insurance.patient_count
+				delete insurance.last_cleared_date
+				insurance.insurance_card_id = patient.insurance_card_id
+				insurance.insurance_form_id = patient.insurance_form_id
+				patient.insurance = insurance
 			}
 
 			res.status(200).json(patient);
@@ -92,9 +151,12 @@ export class PatientController {
 
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Insurance company not found") {
+			if (
+				error.message === "Doctor not found" ||
+				error.message === "Insurance company not found" ||
+				error.message ===
+				"Insurance ID should not be provided when payment type is not insurance"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error creating patient:", error);
@@ -131,17 +193,21 @@ export class PatientController {
 			const updatedPatient = await PatientModel.updatePatient(updateData);
 
 			if (!updatedPatient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
 			res.status(200).json(updatedPatient);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Insurance company not found") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Doctor not found" ||
+				error.message === "Insurance company not found" ||
+				error.message ===
+				"Insurance ID is required when payment type is insurance" ||
+				error.message ===
+				"Insurance ID should not be provided when payment type is not insurance"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating patient:", error);
@@ -184,13 +250,13 @@ export class PatientController {
 			);
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is already admitted") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "Doctor not found") {
-				res.status(400).json({ error: error.message });
-			} else if (error.message === "No services to auto-add") {
+			if (error.message === "Patient not found" ||
+				error.message ===
+				"Pricelist on admission does not match insurance pricelist" ||
+				error.message === "Patient is already admitted" ||
+				error.message === "Doctor not found" ||
+				error.message === "No services to auto-add"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error admitting patient:", error);
@@ -218,9 +284,10 @@ export class PatientController {
 			const result = await PatientModel.dischargePatient(dischargeData);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Patient is not currently admitted"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error discharging patient:", error);
@@ -247,7 +314,7 @@ export class PatientController {
 			// Validate patient exists
 			const patient = await PatientModel.getPatientById(patientId);
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
@@ -269,7 +336,7 @@ export class PatientController {
 			// Validate patient exists
 			const patient = await PatientModel.getPatientById(patientId);
 			if (!patient) {
-				res.status(404).json({ error: "Patient not found" });
+				res.status(400).json({ error: "Patient not found" });
 				return;
 			}
 
@@ -279,7 +346,7 @@ export class PatientController {
 			);
 
 			if (!admissionDetails) {
-				res.status(404).json({ error: "Admission not found" });
+				res.status(400).json({ error: "Admission not found" });
 				return;
 			}
 
@@ -298,7 +365,7 @@ export class PatientController {
 			const admission = await PatientModel.getCurrentAdmission(patientId);
 
 			if (!admission) {
-				res.status(404).json({ error: "No current admission found" });
+				res.status(400).json({ error: "No current admission found" });
 				return;
 			}
 
@@ -343,9 +410,10 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Patient is not currently admitted"
+			) {
 				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating diagnosis:", error);
@@ -379,12 +447,14 @@ export class PatientController {
 
 			res.status(201).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Service not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Service not found") {
-				res.status(400).json({ error: error.message });
+			} else if (
+				error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message })
 			} else {
 				console.error("Error adding service to patient:", error);
 				res.status(500).json({
@@ -398,18 +468,19 @@ export class PatientController {
 	async stopServiceForPatient(req: Request, res: Response) {
 		try {
 			const patientId = parseInt(req.params.id);
-			const serviceId = parseInt(req.params.serviceId);
+			const activeServiceId = parseInt(req.params.activeServiceId);
 
 			const result = await PatientModel.stopServiceForPatient(
 				patientId,
-				serviceId
+				activeServiceId
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Active service not found") {
-				res.status(404).json({ error: error.message });
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Active service not found"
+			) {
+				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error stopping service for patient:", error);
 				res.status(500).json({
@@ -431,12 +502,13 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Active service not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Active service not found") {
-				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message });
 			} else {
 				console.error("Error removing service from patient:", error);
 				res.status(500).json({
@@ -458,12 +530,13 @@ export class PatientController {
 			);
 			res.status(200).json(result);
 		} catch (error: any) {
-			if (error.message === "Patient not found") {
-				res.status(404).json({ error: error.message });
-			} else if (error.message === "Patient is not currently admitted") {
+			if (
+				error.message === "Patient not found" ||
+				error.message === "Drug usage not found"
+			) {
 				res.status(400).json({ error: error.message });
-			} else if (error.message === "Drug usage not found") {
-				res.status(404).json({ error: error.message });
+			} else if (error.message === "Patient is not currently admitted") {
+				res.status(403).json({ error: error.message });
 			} else {
 				console.error("Error removing drug from patient:", error);
 				res.status(500).json({
@@ -513,10 +586,10 @@ export class PatientController {
 		}
 	}
 
-	async getPatientServices(req: Request, res: Response): Promise<void> {
+	async getPatientServices(req: Request, res: Response, onlyCurrent = false): Promise<void> {
 		try {
 			const patientId = parseInt(req.params.id);
-			const services = await PatientModel.getPatientServices(patientId);
+			const services = await PatientModel.getPatientServices(patientId, onlyCurrent);
 			res.json(services);
 		} catch (error) {
 			console.error("Error fetching patient services:", error);
@@ -524,10 +597,10 @@ export class PatientController {
 		}
 	}
 
-	async getPatientDrugs(req: Request, res: Response): Promise<void> {
+	async getPatientDrugs(req: Request, res: Response, onlyCurrent = false): Promise<void> {
 		try {
 			const patientId = parseInt(req.params.id);
-			const drugs = await PatientModel.getPatientDrugs(patientId);
+			const drugs = await PatientModel.getPatientDrugs(patientId, onlyCurrent);
 			res.json(drugs);
 		} catch (error) {
 			console.error("Error fetching patient drugs:", error);

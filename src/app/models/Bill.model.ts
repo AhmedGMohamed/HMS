@@ -1,6 +1,7 @@
 // src/app/models/Bill.model.ts
 import { query } from "./database/connection.js";
 import { Bill } from "../utils/types/billing.js";
+import { calculateBillFinancials } from "../utils/billFinancials.js";
 
 class BillModel {
     async getBillById(bill_id: number): Promise<Bill | null> {
@@ -76,119 +77,66 @@ class BillModel {
         return this.getBillById(bill_id);
     }
 
+    /**
+     * Recomputes `Bill.total_amount` from its components.
+     *
+     * The category subtotals and the bill configuration are fetched in one
+     * round trip, then the arithmetic is delegated to the shared
+     * `calculateBillFinancials` helper so the billing write path and the
+     * Reports aggregation can never disagree. See
+     * `src/app/utils/billFinancials.ts` for the documented semantics.
+     */
     async recalculateTotal(billId: number): Promise<void> {
-        // 1. Calculate subtotals by category
-        const servicesSubtotalResult = await query(
-            `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
-             FROM BillDetail 
-             WHERE bill_id = $1 AND service_id IS NOT NULL`,
-            [billId]
-        );
-        const servicesSubtotal = parseFloat(servicesSubtotalResult.rows[0].subtotal);
-
-        const drugsSubtotalResult = await query(
-            `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
-             FROM BillDetail 
-             WHERE bill_id = $1 AND drug_shipment_id IS NOT NULL`,
-            [billId]
-        );
-        const drugsSubtotal = parseFloat(drugsSubtotalResult.rows[0].subtotal);
-
-        const suppliesSubtotalResult = await query(
-            `SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal
-             FROM BillDetail 
-             WHERE bill_id = $1 AND medical_supply_shipment_id IS NOT NULL`,
-            [billId]
-        );
-        const suppliesSubtotal = parseFloat(suppliesSubtotalResult.rows[0].subtotal);
-
-        // 2. Fetch bill configuration
         const billResult = await query(
-            `SELECT medical_tests_amount, discount, discount_type, 
-                    vat_percentage, discount_scope, vat_scope_custom, administrative_expenses
-             FROM Bill WHERE bill_id = $1`,
+            `SELECT
+                 b.medical_tests_amount,
+                 b.discount,
+                 b.discount_type,
+                 b.vat_percentage,
+                 b.discount_scope,
+                 b.vat_scope_custom,
+                 b.administrative_expenses,
+                 COALESCE((
+                     SELECT SUM(bd.quantity * bd.unit_price)
+                     FROM BillDetail bd
+                     WHERE bd.bill_id = b.bill_id AND bd.service_id IS NOT NULL
+                 ), 0) AS services_subtotal,
+                 COALESCE((
+                     SELECT SUM(bd.quantity * bd.unit_price)
+                     FROM BillDetail bd
+                     WHERE bd.bill_id = b.bill_id AND bd.drug_shipment_id IS NOT NULL
+                 ), 0) AS drugs_subtotal,
+                 COALESCE((
+                     SELECT SUM(bd.quantity * bd.unit_price)
+                     FROM BillDetail bd
+                     WHERE bd.bill_id = b.bill_id AND bd.medical_supply_shipment_id IS NOT NULL
+                 ), 0) AS supplies_subtotal
+             FROM Bill b
+             WHERE b.bill_id = $1`,
             [billId]
         );
 
         if (billResult.rows.length === 0) return;
 
         const bill = billResult.rows[0];
-        const medicalTestsAmount = parseFloat(bill.medical_tests_amount || 0);
-        const discount = parseFloat(bill.discount || 0);
-        const adminExpenses = parseFloat(bill.administrative_expenses || 0);
-        const vatPercentage = parseFloat(bill.vat_percentage || 0);
+        const financials = calculateBillFinancials({
+            services: bill.services_subtotal,
+            drugs: bill.drugs_subtotal,
+            supplies: bill.supplies_subtotal,
+            tests: bill.medical_tests_amount,
+            discount: bill.discount,
+            discountType: bill.discount_type,
+            discountScope: bill.discount_scope,
+            vatPercentage: bill.vat_percentage,
+            vatScope: bill.vat_scope_custom,
+            administrativeExpenses: bill.administrative_expenses,
+        });
 
-        // Parse scope arrays, default to all categories for backward compatibility
-        const discountScope = bill.discount_scope || ['services', 'drugs', 'supplies', 'tests'];
-        const vatScopeCustom = bill.vat_scope_custom || ['services', 'drugs', 'supplies', 'tests'];
-
-        // Category totals map
-        const categoryTotals: Record<string, number> = {
-            services: servicesSubtotal,
-            drugs: drugsSubtotal,
-            supplies: suppliesSubtotal,
-            tests: medicalTestsAmount
-        };
-
-        // Total of all items
-        const totalSubtotal = servicesSubtotal + drugsSubtotal + suppliesSubtotal + medicalTestsAmount;
-
-        // 3. Calculate discount only on selected categories
-        let discountableAmount = 0;
-        for (const category of discountScope) {
-            if (categoryTotals[category] !== undefined) {
-                discountableAmount += categoryTotals[category];
-            }
-        }
-
-        let discountAmount = 0;
-        if (discountableAmount > 0) {
-            if (bill.discount_type === "percentage") {
-                discountAmount = (discountableAmount * discount) / 100;
-            } else {
-                discountAmount = discount;
-            }
-        }
-
-        const totalAfterDiscount = totalSubtotal - discountAmount;
-
-        // 4. Calculate VAT only on selected categories after discount
-        let vattableCategoriesTotal = 0;
-        for (const category of vatScopeCustom) {
-            if (categoryTotals[category] !== undefined) {
-                vattableCategoriesTotal += categoryTotals[category];
-            }
-        }
-
-        let vattableAfterDiscount = 0;
-        if (vattableCategoriesTotal > 0) {
-            // Calculate proportional discount for vattable categories
-            if (discountableAmount > 0 && discountAmount > 0) {
-                // Find overlap between discount scope and VAT scope
-                let vattableAndDiscountableTotal = 0;
-                for (const category of vatScopeCustom) {
-                    if (discountScope.includes(category) && categoryTotals[category] !== undefined) {
-                        vattableAndDiscountableTotal += categoryTotals[category];
-                    }
-                }
-
-                // Calculate discount that applies to vattable items
-                const vattableDiscount = (vattableAndDiscountableTotal / discountableAmount) * discountAmount;
-                vattableAfterDiscount = vattableCategoriesTotal - vattableDiscount;
-            } else {
-                vattableAfterDiscount = vattableCategoriesTotal;
-            }
-        }
-
-        const vatAmount = ((vattableAfterDiscount + adminExpenses) * vatPercentage) / 100;
-
-        // 5. Final Total
-        const finalTotal = totalAfterDiscount + vatAmount + adminExpenses;
-
-        // 6. Update Bill
+        // Pass the unrounded value: the `DECIMAL(15,2)` column rounds it on
+        // write, exactly as the previous inline implementation did.
         await query(
             `UPDATE Bill SET total_amount = $1, updated_at = CURRENT_TIMESTAMP WHERE bill_id = $2`,
-            [finalTotal, billId]
+            [financials.finalTotal, billId]
         );
     }
 }

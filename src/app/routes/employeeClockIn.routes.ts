@@ -19,13 +19,18 @@ router.get("/clocked-in", verifyToken, auditLogger, (req, res) =>
 	EmployeeClockInController.getClockedInEmployees(req, res)
 );
 
+// Must be registered before "/:id" so the literal segments are not
+// captured by the id param.
+router.get("/clocked-in/stats", verifyToken, auditLogger, (req, res) =>
+	EmployeeClockInController.getClockedInStats(req, res)
+);
+
 router.get(
-	"/:id",
+	"/eligible-employees",
 	verifyToken,
 	checkPermission("manage_clocking"),
-	validateId,
 	auditLogger,
-	(req, res) => EmployeeClockInController.getClockInById(req, res)
+	(req, res) => EmployeeClockInController.getEligibleEmployees(req, res)
 );
 
 router.get(
@@ -35,6 +40,15 @@ router.get(
 	validateId,
 	auditLogger,
 	(req, res) => EmployeeClockInController.getClockInsByEmployeeId(req, res)
+);
+
+router.get(
+	"/:id",
+	verifyToken,
+	checkPermission("manage_clocking"),
+	validateId,
+	auditLogger,
+	(req, res) => EmployeeClockInController.getClockInById(req, res)
 );
 
 router.post(

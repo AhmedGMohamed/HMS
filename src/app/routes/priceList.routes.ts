@@ -38,6 +38,13 @@ router.put(
 	auditLogger,
 	(req, res) => PriceListController.updatePriceList(req, res)
 );
+router.put(
+	"/:id/prices",
+	checkPermission("manage_prices"),
+	validateId,
+	auditLogger,
+	(req, res) => PriceListController.setPricesForList(req, res)
+);
 
 // DELETE
 router.delete(

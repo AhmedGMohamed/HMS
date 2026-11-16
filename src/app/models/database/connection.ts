@@ -52,4 +52,38 @@ export const query = async (text: string, params?: any[]) => {
 	}
 };
 
+/**
+ * Runs `fn` inside a real transaction on a single dedicated client.
+ *
+ * Do NOT emulate this with `query("BEGIN")`: `query()` pulls a client from
+ * the pool per call, so BEGIN/COMMIT can land on different connections. The
+ * BEGIN then never commits (leaking an open transaction and its locks) and
+ * the COMMIT warns "no transaction in progress". Every statement inside `fn`
+ * must therefore go through the supplied `client`, never through `query()`.
+ *
+ * Note: this uses the module-level `pool` (the NODE_ENV-switched pool that
+ * owns the database), NOT `pgPool`. `pgPool` is deliberately constructed
+ * without a `database` field so `createDBIfNotExists` can connect DB-less.
+ */
+export async function withTransaction<T>(
+	fn: (client: pg.PoolClient) => Promise<T>
+): Promise<T> {
+	const client = await pool.connect();
+	try {
+		await client.query("BEGIN");
+		const result = await fn(client);
+		await client.query("COMMIT");
+		return result;
+	} catch (error) {
+		try {
+			await client.query("ROLLBACK");
+		} catch {
+			// The connection is already dead; nothing left to roll back.
+		}
+		throw error;
+	} finally {
+		client.release();
+	}
+}
+
 export default pool ;

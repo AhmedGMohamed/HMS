@@ -18,20 +18,120 @@ import {
 import BillModel from "./Bill.model.js";
 
 export class PatientModel {
-	async getAllPatients(): Promise<Patient[]> {
-		const sql = `
-            SELECT * FROM Patient 
-            ORDER BY name;
-        `;
-		const result = await query(sql);
-		return result.rows;
+	/**
+	 * Sortable columns for `getAllPatients`. Keys are the wire-snake
+	 * column names accepted via `?sort=<key>:<asc|desc>`; values are the
+	 * SQL identifiers (already-qualified against the `Patient p` /
+	 * `InsuranceCompany ic` join). Anything outside this map falls back
+	 * to `name` — never interpolate raw user input into ORDER BY.
+	 */
+	private static readonly SORTABLE_COLUMNS: Record<string, string> = {
+		patient_id: "p.patient_id",
+		name: "p.name",
+		national_id: "p.national_id",
+		insurance_company_name: "ic.name",
+		payment_type: "p.payment_type",
+		registration_date: "p.registration_date",
+		is_active: "p.is_active",
+	};
+
+	async getAllPatients(
+		pagination?: {
+			offset?: number;
+			limit?: number;
+			q?: string;
+			sort?: string;
+			order?: string;
+			paymentType?: string;
+			insuranceId?: number;
+			isActive?: boolean;
+			registeredFrom?: string;
+			registeredTo?: string;
+		}
+	): Promise<{ rows: Patient[]; total: number }> {
+		const offset = Math.max(0, pagination?.offset ?? 0)
+		const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
+		const q = pagination?.q?.trim()
+
+		const sortKey = pagination?.sort?.trim() ?? ""
+		const orderColumn =
+			PatientModel.SORTABLE_COLUMNS[sortKey] ??
+			PatientModel.SORTABLE_COLUMNS.name
+		const orderDir =
+			pagination?.order?.toLowerCase() === "desc" ? "DESC" : "ASC"
+		// NULLS LAST keeps rows with null insurance/national_id grouped at the
+		// tail regardless of direction, matching UX expectations for "—" cells.
+		const orderBy = `${orderColumn} ${orderDir} NULLS LAST, p.patient_id ASC`
+
+		// Build WHERE clauses + params once; reuse for both the data query
+		// and the count query so `total` stays in sync with the filters.
+		const params: unknown[] = []
+		const conditions: string[] = []
+		if (q) {
+			params.push(`%${q}%`)
+			conditions.push(`(p.name ILIKE $${params.length} OR p.national_id ILIKE $${params.length})`)
+		}
+		if (pagination?.paymentType) {
+			params.push(pagination.paymentType)
+			conditions.push(`p.payment_type = $${params.length}`)
+		}
+		if (pagination?.insuranceId != null) {
+			params.push(pagination.insuranceId)
+			conditions.push(`p.insurance_id = $${params.length}`)
+		}
+		if (pagination?.isActive != null) {
+			params.push(pagination.isActive)
+			conditions.push(`p.is_active = $${params.length}`)
+		}
+		if (pagination?.registeredFrom) {
+			params.push(pagination.registeredFrom)
+			conditions.push(`p.registration_date >= $${params.length}`)
+		}
+		if (pagination?.registeredTo) {
+			params.push(pagination.registeredTo)
+			conditions.push(`p.registration_date < $${params.length}::date + INTERVAL '1 day'`)
+		}
+
+		const whereSql = conditions.length
+			? ` WHERE ${conditions.join(" AND ")}`
+			: ""
+
+		const limitIdx = params.length + 1
+		const offsetIdx = params.length + 2
+
+		const relevanceSql = q
+			? ` CASE
+                    		WHEN LOWER(p.name) = LOWER($1) THEN 1
+							WHEN national_id = $1 THEN 2
+                    		WHEN LOWER(p.name) LIKE LOWER($1) || '%' THEN 3
+                    		WHEN p.national_id LIKE $1 || '%' THEN 4
+                    		ELSE 5
+                		END,`
+			: ""
+
+		const baseSql = `
+			SELECT p.*, ic.name as insurance_company_name FROM Patient p
+            LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+			${whereSql}
+			ORDER BY${relevanceSql} ${orderBy}
+			LIMIT $${limitIdx} OFFSET $${offsetIdx}`
+
+		const countSql = `SELECT COUNT(*) AS c FROM Patient p${whereSql}`
+
+		const [result, count] = await Promise.all([
+			query(baseSql, [...params, limit, offset]),
+			query(countSql, params)
+		])
+		const total = Number(count.rows[0]?.c ?? 0)
+		return { rows: result.rows, total }
 	}
 
 	async getPatientById(patientId: number): Promise<Patient | null> {
 		const sql = `
-            SELECT p.*, ic.name as insurance_company_name
+            SELECT p.*, e.name as referring_doctor_name, ic.name as insurance_company_name
             FROM Patient p
             LEFT JOIN InsuranceCompany ic ON p.insurance_id = ic.insurance_id
+			LEFT JOIN Employee e ON p.referring_doctor_id = e.employee_id
             WHERE p.patient_id = $1;
         `;
 		const result = await query(sql, [patientId]);
@@ -57,25 +157,27 @@ export class PatientModel {
 			// Validate insurance company if provided
 			if (data.insurance_id) {
 				const insuranceCheck = await query(
-					"SELECT insurance_id FROM InsuranceCompany WHERE insurance_id = $1",
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
 					[data.insurance_id]
 				);
 				if (insuranceCheck.rows.length === 0) {
 					throw new Error("Insurance company not found");
 				}
+				data.pricelist_id = insuranceCheck.rows[0].pricelist_id;
+			} else if (data.payment_type !== "insurance" && !data.pricelist_id) {
+				// Fall back to the system default price list for non-insurance patients
+				const defPl = await query(
+					"SELECT pricelist_id FROM PriceList WHERE is_default = true LIMIT 1"
+				);
+				if (defPl.rows.length > 0) {
+					data.pricelist_id = defPl.rows[0].pricelist_id;
+				}
 			}
 
-			// Create patient (removed quick_check from patient creation)
-			const patientSql = `
-                INSERT INTO Patient (
-                    name, national_id, gender, phone, address, payment_type,
-                    insurance_id, insurance_card_id, insurance_form_id, guardian_info,
-                    referring_doctor_id, is_active, created_by_user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                RETURNING *;
-            `;
-
-			const patientResult = await query(patientSql, [
+			const columns = ['name', 'national_id', 'gender', 'phone', 'address', 'payment_type',
+				'insurance_id', 'insurance_card_id', 'insurance_form_id',
+				'guardian_info', 'referring_doctor_id', 'is_active', 'created_by_user_id'];
+			const values = [
 				data.name,
 				data.national_id,
 				data.gender,
@@ -88,8 +190,22 @@ export class PatientModel {
 				data.guardian_info ? JSON.stringify(data.guardian_info) : null,
 				data.referring_doctor_id || null,
 				data.is_active || false,
-				data.created_by_user_id
-			]);
+				data.created_by_user_id];
+			const placeholders = columns.map((_, ind) => `$${ind + 1}`);
+
+			if (data.pricelist_id) {
+				columns.push("pricelist_id")
+				values.push(data.pricelist_id)
+				placeholders.push(`$${placeholders.length + 1}`)
+			}
+
+			const patientSql = `
+                INSERT INTO Patient (${columns.join(", ")})
+				VALUES (${placeholders.join(", ")})
+                RETURNING *;
+            `;
+
+			const patientResult = await query(patientSql, values);
 
 			const newPatient = patientResult.rows[0];
 
@@ -148,15 +264,50 @@ export class PatientModel {
 				}
 			}
 
-			// Validate insurance company if provided
-			if (data.insurance_id) {
+			// Compute the effective payment_type and insurance_id after this update
+			const effectivePaymentType =
+				data.payment_type ?? existingPatient.payment_type;
+			let effectiveInsuranceId =
+				data.insurance_id !== undefined
+					? data.insurance_id
+					: existingPatient.insurance_id;
+
+			// Resolve the insurance's authoritative pricelist (if insurance applies)
+			let insurancePricelistId: number | null | undefined = undefined;
+			if (
+				effectivePaymentType === "insurance" &&
+				effectiveInsuranceId
+			) {
 				const insuranceCheck = await query(
-					"SELECT insurance_id FROM InsuranceCompany WHERE insurance_id = $1",
-					[data.insurance_id]
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
+					[effectiveInsuranceId]
 				);
 				if (insuranceCheck.rows.length === 0) {
 					throw new Error("Insurance company not found");
 				}
+				insurancePricelistId =
+					insuranceCheck.rows[0].pricelist_id;
+			}
+
+			// Decide what Patient.pricelist_id should be after this update
+			let resolvedPricelistId: number | undefined = undefined;
+			let pricelistIdChangedForPatient = false;
+			if (effectivePaymentType === "insurance") {
+				// For insurance patients, the insurance's pricelist is authoritative
+				resolvedPricelistId = insurancePricelistId;
+				if (data.pricelist_id !== undefined) {
+					// Caller-supplied value is ignored for insurance patients
+					data.pricelist_id = resolvedPricelistId;
+				}
+				pricelistIdChangedForPatient =
+					(existingPatient.pricelist_id ?? null) !==
+					(resolvedPricelistId ?? null);
+			} else if (data.pricelist_id !== undefined) {
+				// Free-for-all on non-insurance patients
+				resolvedPricelistId = data.pricelist_id;
+				pricelistIdChangedForPatient =
+					(existingPatient.pricelist_id ?? null) !==
+					(resolvedPricelistId ?? null);
 			}
 
 			const updateFields: string[] = [];
@@ -171,17 +322,27 @@ export class PatientModel {
 			Object.entries(data).forEach(([key, value]) => {
 				if (key !== "patient_id" && value !== undefined) {
 					if (key === "guardian_info" && value) {
-						updateFields.push(`${key} = $${paramCount}`);
+						updateFields.push(`guardian_info = $${paramCount}`);
 						values.push(JSON.stringify(value));
 						paramCount++;
 					} else if (
 						key !== "attending_doctors" &&
 						key !== "attending_nurses" &&
 						key !== "diagnosis" &&
-						key !== "quick_check" // Skip quick_check as it's now admission-level
+						key !== "quick_check" && // Skip quick_check as it's now admission-level
+						key !== "pricelist_id" // pricelist_id is set explicitly below using the resolved value
 					) {
+						// !!!!!!!!! THIS WILL ALLOW SQL INJECTION ATTACKS IN KEYS - FIX IMMEDIATELY
 						updateFields.push(`${key} = $${paramCount}`);
 						values.push(value);
+						paramCount++;
+					} else if (
+						key === "pricelist_id" &&
+						pricelistIdChangedForPatient &&
+						resolvedPricelistId
+					) {
+						updateFields.push(`pricelist_id = $${paramCount}`);
+						values.push(resolvedPricelistId);
 						paramCount++;
 					}
 				}
@@ -199,12 +360,32 @@ export class PatientModel {
 			if (updateFields.length > 0) {
 				values.push(data.patient_id);
 				const sql = `
-                    UPDATE Patient 
+                    UPDATE Patient
                     SET ${updateFields.join(", ")}
                     WHERE patient_id = $${paramCount}
                     RETURNING *;
                 `;
 				await query(sql, values);
+			}
+
+			// Cascade pricelist change to the open admission (if any)
+			if (
+				pricelistIdChangedForPatient &&
+				resolvedPricelistId !== undefined &&
+				resolvedPricelistId !== null
+			) {
+				const openAdmission = await this.getCurrentAdmission(
+					data.patient_id
+				);
+				if (openAdmission) {
+					await query(
+						`UPDATE PatientHistory
+                         SET pricelist_id = $1
+                         WHERE patient_history_id = $2
+                           AND discharge_time IS NULL`,
+						[resolvedPricelistId, openAdmission.patient_history_id]
+					);
+				}
 			}
 
 			// Handle attending doctors updates if patient is currently admitted
@@ -458,6 +639,19 @@ export class PatientModel {
 
 			// Validate price list if provided
 			let pricelistId = data.pricelist_id;
+			// For insurance patients, the insurance's pricelist is authoritative.
+			// Re-sync from the patient row (which itself mirrors insurance.pricelist_id).
+			if (patient.payment_type === "insurance" && patient.insurance_id) {
+				const insuranceCheck = await query(
+					"SELECT insurance_id, pricelist_id FROM InsuranceCompany WHERE insurance_id = $1",
+					[patient.insurance_id]
+				);
+
+				if (insuranceCheck.rows.length === 0) {
+					throw new Error(`Insurance company with supplied ID does not exist`)
+				}
+				pricelistId = insuranceCheck.rows[0].pricelist_id
+			}
 			if (pricelistId) {
 				const plCheck = await query(
 					"SELECT pricelist_id FROM PriceList WHERE pricelist_id = $1",
@@ -508,7 +702,8 @@ export class PatientModel {
 			// Add attending doctors to PatientDoctor
 			for (const doctorId of data.attending_doctors) {
 				await query(
-					"INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+					`INSERT INTO PatientDoctor (patient_id, doctor_id) VALUES ($1, $2) ON CONFLICT (patient_id, doctor_id) DO UPDATE SET
+					assigned_at = NOW(), unassigned_at = NULL`,
 					[data.patient_id, doctorId]
 				);
 
@@ -525,7 +720,8 @@ export class PatientModel {
 			if (data.attending_nurses && data.attending_nurses.length > 0) {
 				for (const nurseId of data.attending_nurses) {
 					await query(
-						"INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+						`INSERT INTO PatientNurse (patient_id, nurse_id) VALUES ($1, $2) ON CONFLICT (patient_id, nurse_id) DO UPDATE SET
+						assigned_at = NOW(), unassigned_at = NULL`,
 						[data.patient_id, nurseId]
 					);
 
@@ -786,11 +982,11 @@ export class PatientModel {
 				   array_agg(DISTINCT e_nurse.name) FILTER (WHERE e_nurse.name IS NOT NULL) as attending_nurses,
     	           array_agg(DISTINCT pn.nurse_id) FILTER (WHERE pn.nurse_id IS NOT NULL) as attending_nurse_ids
     	    FROM PatientHistory ph
-    	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id
+    	    LEFT JOIN PatientDoctor pd ON ph.patient_id = pd.patient_id AND pd.unassigned_at IS NULL
     	    LEFT JOIN Employee e_doc ON pd.doctor_id = e_doc.employee_id AND pd.unassigned_at IS NULL
-    	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id
+    	    LEFT JOIN Doctor d ON e_doc.employee_id = d.doctor_id AND pd.unassigned_at IS NULL
 			LEFT JOIN PatientNurse pn ON ph.patient_id = pn.patient_id AND pn.unassigned_at IS NULL
-    	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id
+    	    LEFT JOIN Employee e_nurse ON pn.nurse_id = e_nurse.employee_id AND pn.unassigned_at IS NULL
     	    WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
     	    GROUP BY ph.patient_history_id
     	    ORDER BY ph.admission_time DESC
@@ -798,6 +994,20 @@ export class PatientModel {
     	`;
 		const result = await query(sql, [patientId]);
 		return result.rows[0] || null;
+	}
+
+	async getCurrentAdmissionId(patientId: number): Promise<number | null> {
+		const sql = `
+			SELECT ph.patient_history_id
+			FROM PatientHistory ph
+			WHERE ph.patient_id = $1
+			AND ph.discharge_time IS NULL
+			ORDER BY ph.admission_time DESC
+			LIMIT 1;
+		`
+
+		const result = await query(sql, [patientId])
+		return result.rows[0]?.patient_history_id as number || null
 	}
 
 	async getCurrentAdmissionsWithStaff(): Promise<
@@ -908,6 +1118,7 @@ export class PatientModel {
 		const sql = `
     	    SELECT 
     	        ph.patient_history_id,
+				ph.bill_id,
 				ph.quick_check,
     	        ph.diagnosis,
     	        ph.admission_time,
@@ -927,7 +1138,12 @@ export class PatientModel {
     	            SELECT COUNT(*) 
     	            FROM BillDetail bd 
     	            WHERE bd.bill_id = b.bill_id AND bd.drug_shipment_id IS NOT NULL
-    	        ) as total_drugs_count
+    	        ) as total_drugs_count,
+    	        (
+    	            SELECT COUNT(*)
+    	            FROM BillDetail bd
+    	            WHERE bd.bill_id = b.bill_id AND bd.medical_supply_shipment_id IS NOT NULL
+    	        ) as total_supplies_count
     	    FROM PatientHistory ph
     	    LEFT JOIN Bill b ON ph.bill_id = b.bill_id
     	    LEFT JOIN DoctorPatientHistory dph ON ph.patient_history_id = dph.patient_history_id
@@ -1156,12 +1372,13 @@ export class PatientModel {
 			// Add service to active patient services
 			const activeServiceSql = `
                 INSERT INTO ActivePatientService (
-                    patient_id, service_id, start_date, is_active, last_renewed
-                ) VALUES ($1, $2, $3, $4, NULL)
+                    patient_id, patient_history_id, service_id, start_date, is_active, last_renewed
+                ) VALUES ($1, $2, $3, $4, $5, NULL)
                 RETURNING *;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
 				patientId,
+				currentAdmission.patient_history_id,
 				serviceId,
 				startDate,
 				is_active
@@ -1262,18 +1479,18 @@ export class PatientModel {
 	// Updated method: Stop service (deactivate but keep billing)
 	async stopServiceForPatient(
 		patientId: number,
-		serviceId: number
+		activeServiceId: number
 	): Promise<any> {
 		await query("BEGIN");
 		try {
 			// Find active service
 			const activeServiceSql = `
                 SELECT * FROM ActivePatientService 
-                WHERE patient_id = $1 AND service_id = $2 AND is_active = true;
+                WHERE patient_id = $1 AND active_service_id = $2 AND is_active = true;
             `;
 			const activeServiceResult = await query(activeServiceSql, [
 				patientId,
-				serviceId
+				activeServiceId
 			]);
 
 			if (activeServiceResult.rows.length === 0) {
@@ -1540,11 +1757,11 @@ export class PatientModel {
 			// Add to active patient services
 			const isOnce = service.service_type === "once";
 			const insertedServiceResult = await query(
-				`INSERT INTO ActivePatientService (patient_id, service_id, start_date,${isOnce ? " end_date," : ""
+				`INSERT INTO ActivePatientService (patient_id, patient_history_id, service_id, start_date,${isOnce ? " end_date," : ""
 				} is_active, last_renewed) 
-                 	 VALUES ($1, $2, CURRENT_TIMESTAMP,${isOnce ? " CURRENT_TIMESTAMP," : ""
+                 	 VALUES ($1, $2, $3, CURRENT_TIMESTAMP,${isOnce ? " CURRENT_TIMESTAMP," : ""
 				} ${isOnce ? "false," : "true,"} NULL) RETURNING *`,
-				[patientId, service.service_id]
+				[patientId, currentAdmission.patient_history_id, service.service_id]
 			);
 
 			const insertedService = insertedServiceResult.rows[0];
@@ -1631,7 +1848,7 @@ export class PatientModel {
 		quantity: number,
 		billId: number,
 		userId: number,
-		chargeType: string = "manual"
+		chargeType: string = "drug"
 	): Promise<void> {
 		const currentAdmission = await this.getCurrentAdmission(patientId);
 		if (!currentAdmission) {
@@ -1677,15 +1894,16 @@ export class PatientModel {
 			// Create drug transaction
 			const transactionSql = `
                 INSERT INTO DrugTransaction (
-                    shipment_id, transaction_type, quantity, price, created_by_user_id
-                ) VALUES ($1, 'patient', $2, $3, $4)
+                    shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+                ) VALUES ($1, 'patient', $2, $3, $4, $5)
                 RETURNING transaction_id;
             `;
 			const transactionResult = await query(transactionSql, [
 				shipment.shipment_id,
 				quantityToTake,
 				shipment.price,
-				userId
+				userId,
+				patientId
 			]);
 
 			// Update shipment quantity
@@ -1818,47 +2036,61 @@ export class PatientModel {
 		return result.rows;
 	}
 
-	async getActivePatients(): Promise<Patient[]> {
+	async getActivePatients(): Promise<
+		(Patient &
+		{
+			active_patient_history_id: number,
+			quick_check: boolean
+		})[]> {
 		const sql = `
-            SELECT * FROM Patient
-            WHERE is_active = true
+            SELECT p.*, ph.patient_history_id as active_patient_history_id, ph.quick_check
+			FROM Patient p
+			LEFT JOIN PatientHistory ph ON p.patient_id = ph.patient_id
+            WHERE is_active = true AND ph.discharge_time IS NULL
             ORDER BY name;
         `;
 		const result = await query(sql);
 		return result.rows;
 	}
 
-	async getPatientServices(patient_id: number): Promise<any[]> {
-		const sql = `
-            SELECT aps.*, s.name, s.service_type
+	async getPatientServices(patient_id: number, onlyCurrent: boolean): Promise<any[]> {
+		let patientHistoryId = await this.getCurrentAdmissionId(patient_id);
+		if (!patientHistoryId && onlyCurrent) {
+			return [];
+		}
+		let params = [patient_id]
+		if (onlyCurrent)
+			params.push(patientHistoryId)
+
+		let sql = `
+			SELECT aps.*, s.name, s.service_type
             FROM ActivePatientService aps
             JOIN Service s ON aps.service_id = s.service_id
-            WHERE aps.patient_id = $1
-            ORDER BY aps.start_date DESC;
-        `;
-		const { rows } = await query(sql, [patient_id]);
+			WHERE aps.patient_id = $1`;
+		sql += onlyCurrent ?
+			" AND aps.patient_history_id = $2" : "";
+		sql += ` ORDER BY aps.start_date DESC;`;
+
+		const { rows } = await query(sql, params);
 		return rows;
 	}
 
-	async getPatientDrugs(patient_id: number): Promise<any[]> {
+	async getPatientDrugs(patient_id: number, onlyCurrent: boolean): Promise<any[]> {
 		try {
-			let currentAdmission = await this.getCurrentAdmission(patient_id);
-			if (!currentAdmission) {
-				throw new Error("Patient is not currently admitted");
-			}
-			const sql = `
+			let patientHistoryId = await this.getCurrentAdmissionId(patient_id);
+			let params = [patient_id];
+			if (onlyCurrent)
+				params.push(patientHistoryId)
+			let sql = `
 				SELECT du.*, dc.name as drug_name, dc.unit_conversion, dt.quantity as initial_quantity, dt.timestamp as start_date
 				FROM DrugUsage du
 				JOIN DrugCard dc ON du.drug_id = dc.drug_id
 				JOIN DrugTransaction dt ON du.transaction_id = dt.transaction_id
-				WHERE du.patient_id = $1
-				AND du.patient_history_id = $2
-				ORDER BY du.last_administered DESC NULLS LAST;
-			`;
-			const { rows } = await query(sql, [
-				patient_id,
-				currentAdmission.patient_history_id
-			]);
+				WHERE du.patient_id = $1`
+			sql += onlyCurrent ? ` AND du.patient_history_id = $2` : "";
+			sql += ` ORDER BY du.last_administered DESC NULLS LAST`;
+
+			const { rows } = await query(sql, params);
 			return rows;
 		} catch (error) {
 			throw error;
@@ -2001,13 +2233,13 @@ export class PatientModel {
 			const billDetailResult = await query(
 				`
 				INSERT INTO BillDetail (
-					bill_id, medical_supply_shipment_id, quantity,
-					unit_price, sale_type
+					bill_id, charge_type, medical_supply_shipment_id,
+					quantity, unit_price, sale_type
 				)
-				VALUES ($1, $2, $3, $4, 'admitted')
+				VALUES ($1, $2, $3, $4, $5, 'admitted')
 				RETURNING bill_detail_id
 			`,
-				[currentAdmission.bill_id, shipmentId, quantity, price]
+				[currentAdmission.bill_id, "supply", shipmentId, quantity, price]
 			);
 
 			// Update bill total

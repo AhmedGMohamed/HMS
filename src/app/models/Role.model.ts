@@ -1,5 +1,6 @@
 // src/app/models/Role.model.ts
-import { query } from "./database/connection.js";
+import { query, withTransaction } from "./database/connection.js";
+import type { PoolClient } from "pg";
 import {
 	Permission,
 	RoleWithPermissions,
@@ -7,25 +8,84 @@ import {
 	UpdateRoleDTO,
 	AssignPermissionsDTO
 } from "../utils/types/users.js";
+import { isPrivilegedRole } from "../utils/roles.js";
+
+/** Error strings the controller switches on. Kept here so they cannot drift. */
+const ERR = {
+	NOT_FOUND: "Role not found",
+	NAME_EXISTS: "Role name already exists",
+	INVALID_PERMISSIONS: "One or more invalid permission IDs",
+	IN_USE: "Cannot delete role: role is assigned to users",
+	SYSTEM_ROLE: "System role cannot be modified",
+	IMMUTABLE_NAME:
+		"This role is referenced by the system and cannot be renamed or deleted"
+} as const;
 
 export class RoleModel {
-	async createRole(roleData: CreateRoleDTO): Promise<RoleWithPermissions> {
-		try {
-			await query("BEGIN");
+	/**
+	 * Fetch a role with its permissions and human-account count.
+	 *
+	 * LATERAL subqueries replace the old `LEFT JOIN ... GROUP BY json_agg`
+	 * pair: the aggregate returns `'[]'` instead of `[null]` for a role with no
+	 * permissions (dropping the `permissions[0].permission_id === null` hack),
+	 * permissions come back in a deterministic order, and the user count needs
+	 * a second aggregate on a different table that a single GROUP BY cannot
+	 * express without fan-out.
+	 */
+	private async fetchRole(
+		roleId: number,
+		client?: PoolClient
+	): Promise<RoleWithPermissions | null> {
+		const sql = `
+			SELECT r.role_id,
+			       r.name,
+			       r.is_system,
+			       COALESCE(perm.permissions, '[]'::json) AS permissions,
+			       COALESCE(uc.user_count, 0)::int        AS user_count
+			  FROM Role r
+			  LEFT JOIN LATERAL (
+				SELECT json_agg(
+						json_build_object(
+							'permission_id', p.permission_id,
+							'feature_name', p.feature_name,
+							'description', p.description
+						) ORDER BY p.feature_name
+				       ) AS permissions
+				  FROM RolePermission rp
+				  JOIN Permission p ON rp.permission_id = p.permission_id
+				 WHERE rp.role_id = r.role_id
+			  ) perm ON TRUE
+			  LEFT JOIN LATERAL (
+				SELECT COUNT(*) AS user_count
+				  FROM "User" u
+				 WHERE u.role_id = r.role_id
+				   AND u.is_system = FALSE
+			  ) uc ON TRUE
+			 WHERE r.role_id = $1
+		`;
 
+		const result = client
+			? await client.query(sql, [roleId])
+			: await query(sql, [roleId]);
+
+		return result.rows[0] || null;
+	}
+
+	async createRole(roleData: CreateRoleDTO): Promise<RoleWithPermissions> {
+		return await withTransaction(async (client) => {
 			// Check if role name already exists
-			const existingRole = await query(
+			const existingRole = await client.query(
 				"SELECT name FROM Role WHERE LOWER(name) = LOWER($1)",
 				[roleData.name]
 			);
 
 			if (existingRole.rows.length > 0) {
-				throw new Error("Role name already exists");
+				throw new Error(ERR.NAME_EXISTS);
 			}
 
-			// Create the role
-			const roleResult = await query(
-				"INSERT INTO Role (name) VALUES ($1) RETURNING *",
+			// Create the role. user-created roles are never `is_system`.
+			const roleResult = await client.query(
+				"INSERT INTO Role (name, is_system) VALUES ($1, FALSE) RETURNING *",
 				[roleData.name]
 			);
 
@@ -33,10 +93,8 @@ export class RoleModel {
 
 			// Add permissions if provided
 			if (roleData.permissions && roleData.permissions.length > 0) {
-				const params: any[] = [];
-
 				// Verify all permissions exist
-				const permissionsExist = await query(
+				const permissionsExist = await client.query(
 					"SELECT permission_id FROM Permission WHERE permission_id = ANY($1)",
 					[roleData.permissions]
 				);
@@ -44,9 +102,10 @@ export class RoleModel {
 				if (
 					permissionsExist.rows.length !== roleData.permissions.length
 				) {
-					throw new Error("One or more invalid permission IDs");
+					throw new Error(ERR.INVALID_PERMISSIONS);
 				}
 
+				const params: any[] = [];
 				const placeholders = roleData.permissions
 					.map((_, idx) => {
 						params.push(role.role_id, roleData.permissions[idx]);
@@ -54,54 +113,62 @@ export class RoleModel {
 					})
 					.join(", ");
 
-				const sql = `
-						INSERT INTO RolePermission (role_id, permission_id)
-						VALUES ${placeholders}`;
-
-				await query(sql, params);
+				await client.query(
+					`INSERT INTO RolePermission (role_id, permission_id)
+					 VALUES ${placeholders}`,
+					params
+				);
 			}
 
-			// Fetch role with permissions
-			const result = await this.getRoleById(role.role_id);
-
-			await query("COMMIT");
+			// Read back inside the same transaction so the response reflects
+			// rows this transaction has not committed yet.
+			const result = await this.fetchRole(role.role_id, client);
 			return result!;
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async updateRole(roleData: UpdateRoleDTO): Promise<RoleWithPermissions> {
-		try {
-			await query("BEGIN");
-
-			// Check if role exists
-			const roleExists = await query(
-				"SELECT role_id FROM Role WHERE role_id = $1",
+		return await withTransaction(async (client) => {
+			// Check if role exists (and whether it is the automation role)
+			const roleExists = await client.query(
+				"SELECT role_id, name, is_system FROM Role WHERE role_id = $1",
 				[roleData.role_id]
 			);
 
 			if (roleExists.rows.length === 0) {
-				throw new Error("Role not found");
+				throw new Error(ERR.NOT_FOUND);
+			}
+
+			const current = roleExists.rows[0];
+
+			// The automation role holds no meaningful permissions — privilege
+			// bypasses every check — so editing it is rejected outright.
+			if (current.is_system) {
+				throw new Error(ERR.SYSTEM_ROLE);
 			}
 
 			// Update role name if provided
-			if (roleData.name) {
+			if (roleData.name && roleData.name !== current.name) {
+				// `Admin` / `System` are code contracts: renaming either would
+				// silently break every `isPrivilegedRole` gate.
+				if (isPrivilegedRole(current.name)) {
+					throw new Error(ERR.IMMUTABLE_NAME);
+				}
+
 				// Check if new name conflicts with existing roles
-				const nameExists = await query(
+				const nameExists = await client.query(
 					"SELECT role_id FROM Role WHERE LOWER(name) = LOWER($1) AND role_id != $2",
 					[roleData.name, roleData.role_id]
 				);
 
 				if (nameExists.rows.length > 0) {
-					throw new Error("Role name already exists");
+					throw new Error(ERR.NAME_EXISTS);
 				}
 
-				await query("UPDATE Role SET name = $1 WHERE role_id = $2", [
-					roleData.name,
-					roleData.role_id
-				]);
+				await client.query(
+					"UPDATE Role SET name = $1 WHERE role_id = $2",
+					[roleData.name, roleData.role_id]
+				);
 			}
 
 			// Update permissions if provided
@@ -110,10 +177,8 @@ export class RoleModel {
 					roleData.permissions.add &&
 					roleData.permissions.add.length > 0
 				) {
-					const params: any[] = [];
-
 					// Verify new permissions exist
-					const permissionsExist = await query(
+					const permissionsExist = await client.query(
 						"SELECT permission_id FROM Permission WHERE permission_id = ANY($1)",
 						[roleData.permissions.add]
 					);
@@ -122,10 +187,11 @@ export class RoleModel {
 						permissionsExist.rows.length !==
 						roleData.permissions.add.length
 					) {
-						throw new Error("One or more invalid permission IDs");
+						throw new Error(ERR.INVALID_PERMISSIONS);
 					}
 
 					// Add new permissions
+					const params: any[] = [];
 					const placeholders = roleData.permissions.add
 						.map((_, idx) => {
 							params.push(
@@ -136,12 +202,10 @@ export class RoleModel {
 						})
 						.join(", ");
 
-					await query(
-						`
-						INSERT INTO RolePermission (role_id, permission_id)
-						VALUES ${placeholders}
-						ON CONFLICT DO NOTHING
-						`,
+					await client.query(
+						`INSERT INTO RolePermission (role_id, permission_id)
+						 VALUES ${placeholders}
+						 ON CONFLICT DO NOTHING`,
 						params
 					);
 				}
@@ -150,8 +214,7 @@ export class RoleModel {
 					roleData.permissions.remove &&
 					roleData.permissions.remove.length > 0
 				) {
-					// Remove permissions
-					await query(
+					await client.query(
 						"DELETE FROM RolePermission WHERE role_id = $1 AND permission_id = ANY($2)",
 						[roleData.role_id, roleData.permissions.remove]
 					);
@@ -159,146 +222,117 @@ export class RoleModel {
 			}
 
 			// Fetch updated role with permissions
-			const result = await this.getRoleById(roleData.role_id);
-
-			await query("COMMIT");
+			const result = await this.fetchRole(roleData.role_id, client);
 			return result!;
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async deleteRole(roleId: number): Promise<void> {
-		try {
-			await query("BEGIN");
+		await withTransaction(async (client) => {
+			const roleRow = await client.query(
+				"SELECT role_id, name, is_system FROM Role WHERE role_id = $1",
+				[roleId]
+			);
+
+			if (roleRow.rows.length === 0) {
+				throw new Error(ERR.NOT_FOUND);
+			}
+
+			const role = roleRow.rows[0];
+
+			if (role.is_system) {
+				throw new Error(ERR.SYSTEM_ROLE);
+			}
+
+			if (isPrivilegedRole(role.name)) {
+				throw new Error(ERR.IMMUTABLE_NAME);
+			}
 
 			// Check if role is assigned to any users
-			const usersWithRole = await query(
-				'SELECT user_id FROM "User" WHERE role_id = $1',
+			const usersWithRole = await client.query(
+				'SELECT user_id FROM "User" WHERE role_id = $1 LIMIT 1',
 				[roleId]
 			);
 
 			if (usersWithRole.rows.length > 0) {
-				throw new Error(
-					"Cannot delete role: role is assigned to users"
-				);
+				throw new Error(ERR.IN_USE);
 			}
 
 			// Delete role permissions
-			await query("DELETE FROM RolePermission WHERE role_id = $1", [
+			await client.query("DELETE FROM RolePermission WHERE role_id = $1", [
 				roleId
 			]);
 
-			// Delete role
-			const result = await query(
-				"DELETE FROM Role WHERE role_id = $1 RETURNING *",
-				[roleId]
-			);
-
-			if (result.rows.length === 0) {
-				throw new Error("Role not found");
-			}
-
-			await query("COMMIT");
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+			await client.query("DELETE FROM Role WHERE role_id = $1", [roleId]);
+		});
 	}
 
 	async getRoleById(roleId: number): Promise<RoleWithPermissions | null> {
-		try {
-			const sql = `
-                SELECT r.*,
-                    json_agg(
-                        json_build_object(
-                            'permission_id', p.permission_id,
-                            'feature_name', p.feature_name,
-                            'description', p.description
-                        )
-                    ) as permissions
-                FROM Role r
-                LEFT JOIN RolePermission rp ON r.role_id = rp.role_id
-                LEFT JOIN Permission p ON rp.permission_id = p.permission_id
-                WHERE r.role_id = $1
-                GROUP BY r.role_id;
-            `;
-
-			const result = await query(sql, [roleId]);
-
-			if (result.rows.length === 0) {
-				return null;
-			}
-
-			const role = result.rows[0];
-			// Handle case where role has no permissions
-			if (role.permissions[0].permission_id === null) {
-				role.permissions = [];
-			}
-
-			return role;
-		} catch (error) {
-			throw error;
-		}
+		return await this.fetchRole(roleId);
 	}
 
+	/**
+	 * Every non-system role, for the admin roles table.
+	 *
+	 * The automation `System` role is excluded server-side so the list and its
+	 * counts agree and the row cannot be edited from the UI.
+	 */
 	async getAllRoles(): Promise<RoleWithPermissions[]> {
-		try {
-			const sql = `
-                SELECT r.*,
-                    json_agg(
-                        json_build_object(
-                            'permission_id', p.permission_id,
-                            'feature_name', p.feature_name,
-                            'description', p.description
-                        )
-                    ) as permissions
-                FROM Role r
-                LEFT JOIN RolePermission rp ON r.role_id = rp.role_id
-                LEFT JOIN Permission p ON rp.permission_id = p.permission_id
-                GROUP BY r.role_id
-                ORDER BY r.name;
-            `;
+		const sql = `
+			SELECT r.role_id,
+			       r.name,
+			       r.is_system,
+			       COALESCE(perm.permissions, '[]'::json) AS permissions,
+			       COALESCE(uc.user_count, 0)::int        AS user_count
+			  FROM Role r
+			  LEFT JOIN LATERAL (
+				SELECT json_agg(
+						json_build_object(
+							'permission_id', p.permission_id,
+							'feature_name', p.feature_name,
+							'description', p.description
+						) ORDER BY p.feature_name
+				       ) AS permissions
+				  FROM RolePermission rp
+				  JOIN Permission p ON rp.permission_id = p.permission_id
+				 WHERE rp.role_id = r.role_id
+			  ) perm ON TRUE
+			  LEFT JOIN LATERAL (
+				SELECT COUNT(*) AS user_count
+				  FROM "User" u
+				 WHERE u.role_id = r.role_id
+				   AND u.is_system = FALSE
+			  ) uc ON TRUE
+			 WHERE r.is_system = FALSE
+			 ORDER BY r.name
+		`;
 
-			const result = await query(sql);
-
-			// Handle cases where roles have no permissions
-			return result.rows.map((role) => {
-				if (role.permissions[0].permission_id === null) {
-					role.permissions = [];
-				}
-				return role;
-			});
-		} catch (error) {
-			throw error;
-		}
+		const result = await query(sql);
+		return result.rows;
 	}
 
 	async assignPermissionsToRole(
 		data: AssignPermissionsDTO
 	): Promise<Permission[]> {
-		try {
-			await query("BEGIN");
-
+		return await withTransaction(async (client) => {
 			// Verify role exists
-			const roleExists = await query(
+			const roleExists = await client.query(
 				"SELECT role_id FROM Role WHERE role_id = $1",
 				[data.role_id]
 			);
 
 			if (roleExists.rows.length === 0) {
-				throw new Error("Role not found");
+				throw new Error(ERR.NOT_FOUND);
 			}
 
 			// Verify all permissions exist
-			const permissionsExist = await query(
+			const permissionsExist = await client.query(
 				"SELECT permission_id FROM Permission WHERE permission_id = ANY($1)",
 				[data.permission_ids]
 			);
 
 			if (permissionsExist.rows.length !== data.permission_ids.length) {
-				throw new Error("One or more invalid permission IDs");
+				throw new Error(ERR.INVALID_PERMISSIONS);
 			}
 
 			// Create role-permission associations
@@ -306,87 +340,71 @@ export class RoleModel {
 				.map((permissionId) => `(${data.role_id}, ${permissionId})`)
 				.join(", ");
 
-			await query(`
-                INSERT INTO RolePermission (role_id, permission_id)
-                VALUES ${values}
-                ON CONFLICT (role_id, permission_id) DO NOTHING
-            `);
+			await client.query(`
+				INSERT INTO RolePermission (role_id, permission_id)
+				VALUES ${values}
+				ON CONFLICT (role_id, permission_id) DO NOTHING
+			`);
 
 			// Fetch updated permissions for role
-			const result = await query(
-				`
-                SELECT p.*
-                FROM Permission p
-                JOIN RolePermission rp ON p.permission_id = rp.permission_id
-                WHERE rp.role_id = $1
-                ORDER BY p.feature_name
-            `,
+			const result = await client.query(
+				`SELECT p.*
+				   FROM Permission p
+				   JOIN RolePermission rp ON p.permission_id = rp.permission_id
+				  WHERE rp.role_id = $1
+				  ORDER BY p.feature_name`,
 				[data.role_id]
 			);
 
-			await query("COMMIT");
 			return result.rows;
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async removePermissionsFromRole(data: AssignPermissionsDTO): Promise<void> {
-		try {
-			await query("BEGIN");
-
+		await withTransaction(async (client) => {
 			// Verify role exists
-			const roleExists = await query(
+			const roleExists = await client.query(
 				"SELECT role_id FROM Role WHERE role_id = $1",
 				[data.role_id]
 			);
 
 			if (roleExists.rows.length === 0) {
-				throw new Error("Role not found");
+				throw new Error(ERR.NOT_FOUND);
 			}
 
-			// Remove specified permissions
-			await query(
+			await client.query(
 				"DELETE FROM RolePermission WHERE role_id = $1 AND permission_id = ANY($2)",
 				[data.role_id, data.permission_ids]
 			);
-
-			await query("COMMIT");
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async syncRolePermissions(
 		data: AssignPermissionsDTO
 	): Promise<Permission[]> {
-		try {
-			await query("BEGIN");
-
+		return await withTransaction(async (client) => {
 			// Verify role exists
-			const roleExists = await query(
+			const roleExists = await client.query(
 				"SELECT role_id FROM Role WHERE role_id = $1",
 				[data.role_id]
 			);
 
 			if (roleExists.rows.length === 0) {
-				throw new Error("Role not found");
+				throw new Error(ERR.NOT_FOUND);
 			}
 
 			// Verify all permissions exist
-			const permissionsExist = await query(
+			const permissionsExist = await client.query(
 				"SELECT permission_id FROM Permission WHERE permission_id = ANY($1)",
 				[data.permission_ids]
 			);
 
 			if (permissionsExist.rows.length !== data.permission_ids.length) {
-				throw new Error("One or more invalid permission IDs");
+				throw new Error(ERR.INVALID_PERMISSIONS);
 			}
 
 			// Remove all existing permissions for the role
-			await query("DELETE FROM RolePermission WHERE role_id = $1", [
+			await client.query("DELETE FROM RolePermission WHERE role_id = $1", [
 				data.role_id
 			]);
 
@@ -396,30 +414,24 @@ export class RoleModel {
 					.map((permissionId) => `(${data.role_id}, ${permissionId})`)
 					.join(", ");
 
-				await query(`
-                    INSERT INTO RolePermission (role_id, permission_id)
-                    VALUES ${values}
-                `);
+				await client.query(`
+					INSERT INTO RolePermission (role_id, permission_id)
+					VALUES ${values}
+				`);
 			}
 
 			// Fetch updated permissions
-			const result = await query(
-				`
-                SELECT p.*
-                FROM Permission p
-                JOIN RolePermission rp ON p.permission_id = rp.permission_id
-                WHERE rp.role_id = $1
-                ORDER BY p.feature_name
-            `,
+			const result = await client.query(
+				`SELECT p.*
+				   FROM Permission p
+				   JOIN RolePermission rp ON p.permission_id = rp.permission_id
+				  WHERE rp.role_id = $1
+				  ORDER BY p.feature_name`,
 				[data.role_id]
 			);
 
-			await query("COMMIT");
 			return result.rows;
-		} catch (error) {
-			await query("ROLLBACK");
-			throw error;
-		}
+		});
 	}
 
 	async checkPermission(

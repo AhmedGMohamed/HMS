@@ -17,7 +17,14 @@ export async function createDBIfNotExists(dbName: string) {
 	}
 }
 
-async function initDB() {
+/**
+ * Applies the authoritative schema + baseline seed rows.
+ *
+ * Exported so the test bootstrap can build `HMS_test` from the same DDL the
+ * application uses — `db.helper.ts`'s old hand-maintained copy had drifted
+ * (missing bill scope columns, forward references, malformed statements).
+ */
+export async function initDB() {
 	return await query(`
 		-- Create Enum Types First
 		CREATE TYPE gender_type AS ENUM ('male', 'female', 'other');
@@ -43,7 +50,8 @@ async function initDB() {
 		-- Core tables
 		CREATE TABLE IF NOT EXISTS Role (
 			role_id SERIAL PRIMARY KEY,
-			name VARCHAR(255) NOT NULL
+			name VARCHAR(255) NOT NULL,
+			is_system BOOLEAN NOT NULL DEFAULT FALSE
 		);
 		CREATE TABLE IF NOT EXISTS Permission (
 			permission_id SERIAL PRIMARY KEY,
@@ -55,6 +63,9 @@ async function initDB() {
 			username VARCHAR(255) UNIQUE NOT NULL,
 			password_hash VARCHAR(255) NOT NULL,
 			role_id INTEGER REFERENCES Role(role_id),
+			is_active BOOLEAN NOT NULL DEFAULT TRUE,
+			is_system BOOLEAN NOT NULL DEFAULT FALSE,
+			last_login TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS RolePermission (
@@ -68,6 +79,17 @@ async function initDB() {
 			name VARCHAR(255) NOT NULL,
 			is_default BOOLEAN DEFAULT false
 		);
+		-- Function used for the patient default pricelist_id on creation.
+		-- Declared after PriceList: an SQL-language function body is validated
+		-- at creation time, so referencing the table before it exists made a
+		-- fresh install fail with: relation "pricelist" does not exist.
+		CREATE OR REPLACE FUNCTION get_default_pricelist_id()
+		RETURNS INTEGER LANGUAGE sql STABLE AS $$
+		    SELECT pricelist_id
+		    FROM PriceList
+		    WHERE is_default = true
+		    LIMIT 1;
+		$$;
 		-- Employee Management
 		CREATE TABLE IF NOT EXISTS Employee (
 			employee_id SERIAL PRIMARY KEY,
@@ -155,21 +177,13 @@ async function initDB() {
 			insurance_id INTEGER REFERENCES InsuranceCompany(insurance_id),
 			insurance_form_id VARCHAR(255),
 			insurance_card_id VARCHAR(255),
+			pricelist_id INTEGER REFERENCES PriceList(pricelist_id) DEFAULT get_default_pricelist_id(),
 			guardian_info JSONB,
 			quick_check BOOLEAN DEFAULT false,
 			is_active BOOLEAN DEFAULT true,
 			registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			referring_doctor_id INTEGER REFERENCES Doctor(doctor_id),
 			created_by_user_id INTEGER REFERENCES "User"(user_id)
-		);
-		CREATE TABLE IF NOT EXISTS ActivePatientService (
-			active_service_id SERIAL PRIMARY KEY,
-			patient_id INTEGER REFERENCES Patient(patient_id),
-			service_id INTEGER REFERENCES Service(service_id),
-			start_date TIMESTAMP NOT NULL,
-			end_date TIMESTAMP,
-			is_active BOOLEAN DEFAULT true,
-			last_renewed TIMESTAMP DEFAULT NULL
 		);
 		CREATE TABLE IF NOT EXISTS Bill (
 			bill_id SERIAL PRIMARY KEY,
@@ -186,6 +200,13 @@ async function initDB() {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			issued_by_user_id INTEGER REFERENCES "User"(user_id)
 		);
+		-- Selective discount/VAT scopes (migration
+		-- models/database/migrations/add_bill_scope_columns.sql). Declared here
+		-- as an idempotent ALTER so a fresh install matches an upgraded DB:
+		-- Bill.model.recalculateTotal and the reports read these columns.
+		ALTER TABLE Bill
+			ADD COLUMN IF NOT EXISTS discount_scope JSONB DEFAULT '["services", "drugs", "supplies", "tests"]',
+			ADD COLUMN IF NOT EXISTS vat_scope_custom JSONB DEFAULT '["services", "drugs", "supplies", "tests"]';
 		CREATE TABLE IF NOT EXISTS PatientHistory (
 			patient_history_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),
@@ -196,6 +217,18 @@ async function initDB() {
 			diagnosis TEXT,
 			admission_time TIMESTAMP,
 			discharge_time TIMESTAMP
+		);
+		-- Declared after PatientHistory: it references patient_history_id, and
+		-- Postgres requires the referenced table to exist at CREATE time.
+		CREATE TABLE IF NOT EXISTS ActivePatientService (
+			active_service_id SERIAL PRIMARY KEY,
+			patient_id INTEGER REFERENCES Patient(patient_id),
+			patient_history_id INTEGER REFERENCES PatientHistory(patient_history_id),
+			service_id INTEGER REFERENCES Service(service_id),
+			start_date TIMESTAMP NOT NULL,
+			end_date TIMESTAMP,
+			is_active BOOLEAN DEFAULT true,
+			last_renewed TIMESTAMP DEFAULT NULL
 		);
 		-- Doctor Relationships
 		CREATE TABLE IF NOT EXISTS DoctorPatientHistory (
@@ -251,8 +284,11 @@ async function initDB() {
 			quantity INTEGER NOT NULL,
 			price DECIMAL(15, 2) NOT NULL,
 			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			created_by_user_id INTEGER REFERENCES "User"(user_id)
+			created_by_user_id INTEGER REFERENCES "User"(user_id),
+			patient_id INTEGER REFERENCES Patient(patient_id)
 		);
+		CREATE INDEX IF NOT EXISTS idx_drug_transaction_patient
+			ON DrugTransaction(patient_id);
 		CREATE TABLE IF NOT EXISTS DrugUsage (
 			usage_id SERIAL PRIMARY KEY,
 			patient_id INTEGER REFERENCES Patient(patient_id),
@@ -489,10 +525,23 @@ async function initDB() {
 		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_remaining ON MedicalSupplyUsage(remaining_quantity)
 		WHERE remaining_quantity > 0;
 		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_administered ON MedicalSupplyUsage(last_administered);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_usage_transaction ON MedicalSupplyUsage(transaction_id);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_transaction_timestamp ON MedicalSupplyTransaction(timestamp);
+		CREATE INDEX IF NOT EXISTS idx_medical_supply_transaction_shipment ON MedicalSupplyTransaction(shipment_id);
 		CREATE INDEX IF NOT EXISTS idx_bill_detail_medical_supply ON BillDetail(medical_supply_shipment_id);
 		-- Create indexes for DoctorServicePrice
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_doctor ON DoctorServicePrice(doctor_id);
 		CREATE INDEX IF NOT EXISTS idx_doctor_service_price_service ON DoctorServicePrice(service_id);
+		-- Reports (Phase 6.11): payroll + clock-in range scans.
+		-- Keep in sync with src/app/models/database/migrations/003_reports_indexes.sql
+		CREATE INDEX IF NOT EXISTS idx_employee_payment_employee_issued
+			ON EmployeePayment(employee_id, issued_timestamp) WHERE is_void = false;
+		CREATE INDEX IF NOT EXISTS idx_employee_clock_in_employee_clock_in
+			ON EmployeeClockIn(employee_id, clock_in);
+		CREATE INDEX IF NOT EXISTS idx_employee_clock_in_deduction
+			ON EmployeeClockIn(employee_id, clock_in) WHERE pay_deduction > 0;
+		CREATE INDEX IF NOT EXISTS idx_employee_need_clock_in
+			ON Employee(need_clock_in, is_active);
 		-- Add a view for currently admitted patients with their details
 		CREATE OR REPLACE VIEW CurrentAdmissions AS
 		SELECT p.patient_id,
@@ -758,21 +807,24 @@ async function initDB() {
 			),
 			('view_reports', 'Can view facility reports'),
 			('view_only', 'Can only view records');
-		INSERT INTO Role (name)
-		VALUES ('Admin');
+		INSERT INTO Role (name, is_system)
+		VALUES ('Admin', FALSE),
+			('System', TRUE);
 		INSERT INTO RolePermission (role_id, permission_id)
 		VALUES (1, 14),
 			(1, 15);
-		INSERT INTO "User" (username, password_hash, role_id)
+		INSERT INTO "User" (username, password_hash, role_id, is_system)
 		VALUES (
 				'admin',
 				'$2a$10$5wtO8QuMZ3X62mmnwXzyXu3ZPKeSxJsafylPqLVLQG8dpTOxR0PdO',
-				1
+				1,
+				FALSE
 			),
 			(
 				'system',
 				'$2a$10$yYxnEDZ6MLLzxXHn/T.ba.mm/F.9drU/l0E6QbPi/l72KSp7dciuS',
-				1
+				2,
+				TRUE
 			);
 		INSERT INTO PriceList (name, is_default)
 		VALUES ('Default', TRUE);
@@ -781,4 +833,57 @@ async function initDB() {
 		SET timezone TO 'Africa/Cairo';
 		SET TIME ZONE 'Africa/Cairo';
 `);
+}
+
+/**
+ * Brings an existing database up to the Phase 6.12 admin schema.
+ *
+ * `initDB()` runs only when the database is first *created*, so every
+ * pre-existing install would otherwise miss these columns forever. Every
+ * statement here is idempotent and safe to run on every boot; the caller
+ * (`src/app/index.ts`) invokes it unconditionally right after
+ * `createDBIfNotExists`.
+ *
+ * The `LOWER(name)` matching below is a one-time bootstrap affordance: it
+ * promotes an already-present role literally named "System", otherwise creates
+ * it. After that, `Role.is_system` is authoritative and the name is never
+ * consulted again.
+ */
+export async function ensureAdminSchema() {
+	return await query(`
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_active  BOOLEAN NOT NULL DEFAULT TRUE;
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+		ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+		ALTER TABLE Role   ADD COLUMN IF NOT EXISTS is_system  BOOLEAN NOT NULL DEFAULT FALSE;
+
+		-- Bootstrap the System role (automation principal) if it is missing.
+		UPDATE Role
+		   SET is_system = TRUE
+		 WHERE LOWER(name) = 'system'
+		   AND is_system = FALSE;
+
+		INSERT INTO Role (name, is_system)
+		SELECT 'System', TRUE
+		 WHERE NOT EXISTS (
+			SELECT 1 FROM Role WHERE LOWER(name) = 'system'
+		 );
+
+		-- Move the automation account off the Admin role and onto System.
+		UPDATE "User"
+		   SET is_system = TRUE
+		 WHERE username = 'system';
+
+		UPDATE "User"
+		   SET role_id = (
+				SELECT role_id FROM Role WHERE is_system = TRUE ORDER BY role_id LIMIT 1
+			   )
+		 WHERE is_system = TRUE
+		   AND role_id IS DISTINCT FROM (
+				SELECT role_id FROM Role WHERE is_system = TRUE ORDER BY role_id LIMIT 1
+			   );
+
+		CREATE INDEX IF NOT EXISTS idx_user_role_id   ON "User"(role_id);
+		CREATE INDEX IF NOT EXISTS idx_user_is_active ON "User"(is_active);
+		CREATE INDEX IF NOT EXISTS idx_user_is_system ON "User"(is_system);
+	`);
 }

@@ -1,0 +1,273 @@
+"use client"
+
+import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  CheckIcon,
+  PencilIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
+
+import {
+  DataTable,
+  type ColumnDef,
+  type DataTablePaginationSlot,
+} from "@/components/common/DataTable"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { formatCurrency, resolveLocale } from "@/lib/utils"
+import type { PriceListWithStats } from "@/pages/PriceLists/types/priceList"
+import type {
+  NormalizedService,
+  ServicePrice,
+} from "@/pages/_shared/services/types"
+
+export interface ServicesTableProps {
+  services: NormalizedService[]
+  priceLists: PriceListWithStats[]
+  loading: boolean
+  /** Service-name search — wired into the DataTable search slot. */
+  search: { value: string; onChange: (value: string) => void }
+  /** Extra filters (type / price list / drug) rendered left of search. */
+  toolbar: React.ReactNode
+  pagination: DataTablePaginationSlot
+  sort: { columnId: string; direction: "asc" | "desc" } | null
+  onSortToggle: (
+    id: string,
+    next: { columnId: string; direction: "asc" | "desc" }
+  ) => void
+  emptyTitle?: string
+  emptyDescription?: string
+  emptyAction?: React.ReactNode
+  onEdit: (service: NormalizedService) => void
+  onDelete: (service: NormalizedService) => void
+}
+
+/**
+ * Services DataTable: name, type badge, auto-renew / auto-add flags,
+ * per-list price badges (prepayment info on hover), associated-drug
+ * badges, and the actions column. Rows arrive already filtered,
+ * sorted, and paginated by the server; `sort` + `onSortToggle` only
+ * drive the header indicators and the next query.
+ */
+export function ServicesTable({
+  services,
+  priceLists,
+  loading,
+  search,
+  toolbar,
+  pagination,
+  sort,
+  onSortToggle,
+  emptyTitle,
+  emptyDescription,
+  emptyAction,
+  onEdit,
+  onDelete,
+}: ServicesTableProps) {
+  const { t, i18n } = useTranslation()
+  const locale = resolveLocale(i18n.language)
+
+  const priceListNames = useMemo(
+    () => new Map(priceLists.map((pl) => [pl.pricelistId, pl.name])),
+    [priceLists]
+  )
+
+  function priceListName(pricelistId: number): string {
+    return priceListNames.get(pricelistId) ?? `#${pricelistId}`
+  }
+
+  function prepaymentText(price: ServicePrice): string | null {
+    if (
+      !price.requiresPrepayment ||
+      price.prepaymentType == null ||
+      price.prepaymentAmount == null
+    ) {
+      return null
+    }
+    const amount = Number(price.prepaymentAmount)
+    if (!Number.isFinite(amount)) return null
+    const amountLabel =
+      price.prepaymentType === "percentage"
+        ? new Intl.NumberFormat(locale, {
+            style: "percent",
+            maximumFractionDigits: 2,
+          }).format(amount / 100)
+        : formatCurrency(amount, locale)
+    return `${t(`services.prepaymentTypes.${price.prepaymentType}`)} — ${amountLabel}`
+  }
+
+  const columns: ColumnDef<NormalizedService>[] = [
+    {
+      id: "name",
+      header: t("services.table.serviceName"),
+      sortable: true,
+      cell: (service) => (
+        <span className="font-medium">{service.name}</span>
+      ),
+    },
+    {
+      id: "serviceType",
+      header: t("services.table.type"),
+      sortable: true,
+      cell: (service) => (
+        <Badge variant="secondary">
+          {t(`services.serviceTypes.${service.serviceType}`)}
+        </Badge>
+      ),
+    },
+    {
+      id: "autoRenew",
+      header: t("services.table.autoRenew"),
+      cell: (service) => (
+        <span className="inline-flex items-center">
+          {service.autoRenew ? (
+            <CheckIcon aria-hidden className="size-4 text-primary" />
+          ) : (
+            <XIcon aria-hidden className="size-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {service.autoRenew ? t("common.yes") : t("common.no")}
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: "autoAdd",
+      header: t("services.table.autoAdd"),
+      cell: (service) => (
+        <span className="inline-flex items-center">
+          {service.autoAddOnAdmission ? (
+            <CheckIcon aria-hidden className="size-4 text-primary" />
+          ) : (
+            <XIcon aria-hidden className="size-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {service.autoAddOnAdmission ? t("common.yes") : t("common.no")}
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: "priceLists",
+      header: t("services.table.priceLists"),
+      cell: (service) => (
+        <div className="flex max-w-xs flex-wrap gap-1">
+          {service.prices.map((price) => {
+            const prep = prepaymentText(price)
+            const badge = (
+              <Badge variant="outline" className="tabular-nums">
+                {priceListName(price.pricelistId)}:{" "}
+                {formatCurrency(Number(price.price), locale)}
+              </Badge>
+            )
+            return prep ? (
+              <Tooltip key={price.pricelistId}>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-default">
+                    {badge}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t("services.fields.prepaymentRequired")} — {prep}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span key={price.pricelistId} className="inline-flex">
+                {badge}
+              </span>
+            )
+          })}
+          {service.prices.length === 0 ? (
+            <span className="text-muted-foreground">—</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      id: "drugs",
+      header: t("services.table.associatedDrugs"),
+      cell: (service) => (
+        <div className="flex max-w-xs flex-wrap gap-1">
+          {service.drugs.map((drug) => (
+            <Badge key={drug.drugId} variant="secondary">
+              {drug.name}
+            </Badge>
+          ))}
+          {service.drugs.length === 0 ? (
+            <span className="text-muted-foreground">—</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      align: "end",
+      className: "w-24",
+      cell: (service) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("common.edit")}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(service)
+            }}
+          >
+            <PencilIcon aria-hidden className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("common.delete")}
+            className="text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(service)
+            }}
+          >
+            <Trash2Icon aria-hidden className="size-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <DataTable<NormalizedService>
+      data={services}
+      columns={columns}
+      loading={loading}
+      search={{ value: search.value, onChange: search.onChange }}
+      toolbar={toolbar}
+      pagination={pagination}
+      getRowId={(service) => service.serviceId}
+      sort={sort}
+      onSortToggle={onSortToggle}
+      emptyTitle={
+        emptyTitle ??
+        (search.value.trim()
+          ? t("common.noData")
+          : t("services.messages.noServices"))
+      }
+      emptyDescription={
+        emptyDescription ??
+        (search.value.trim()
+          ? undefined
+          : t("services.messages.noServicesDesc"))
+      }
+      emptyAction={emptyAction}
+      ariaLabel={t("services.title")}
+    />
+  )
+}

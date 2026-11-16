@@ -410,6 +410,91 @@ describe("RoleController", () => {
 			});
 		});
 
+	describe("role guards and error codes", () => {
+		it("should map a duplicate name to 409 ROLE_NAME_EXISTS", async () => {
+			mockRequest = { body: { name: "Admin", permissions: [] } };
+
+			await roleController.createRole(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(409);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "Role name already exists",
+				code: "ROLE_NAME_EXISTS"
+			});
+		});
+
+		it("should map deleting the system role to 400 SYSTEM_ROLE_PROTECTED", async () => {
+			const systemRole = insertedData.roles.find((r) => r.is_system)!;
+			mockRequest = { params: { id: String(systemRole.role_id) } };
+
+			await roleController.deleteRole(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "System role cannot be modified",
+				code: "SYSTEM_ROLE_PROTECTED"
+			});
+		});
+
+		it("should map deleting a privileged role to 400 ROLE_NAME_IMMUTABLE", async () => {
+			mockRequest = { params: { id: String(insertedData.roles[0].role_id) } };
+
+			await roleController.deleteRole(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "This role is referenced by the system and cannot be renamed or deleted",
+				code: "ROLE_NAME_IMMUTABLE"
+			});
+		});
+
+		it("should map deleting an in-use role to 400 ROLE_IN_USE", async () => {
+			mockRequest = { params: { id: String(insertedData.roles[1].role_id) } };
+
+			await roleController.deleteRole(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "Cannot delete role: role is assigned to users",
+				code: "ROLE_IN_USE"
+			});
+		});
+
+		it("should map renaming the Admin role to 400 ROLE_NAME_IMMUTABLE", async () => {
+			mockRequest = {
+				params: { id: String(insertedData.roles[0].role_id) },
+				body: { name: "Super Admin" }
+			};
+
+			await roleController.updateRole(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "This role is referenced by the system and cannot be renamed or deleted",
+				code: "ROLE_NAME_IMMUTABLE"
+			});
+		});
+
+		it("should 404 for the system role on GET /:id", async () => {
+			const systemRole = insertedData.roles.find((r) => r.is_system)!;
+			mockRequest = { params: { id: String(systemRole.role_id) } };
+
+			await roleController.getRoleById(mockRequest, mockResponse);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(404);
+		});
+
+		it("should expose user_count and is_system on getAllRoles", async () => {
+			mockRequest = {};
+
+			await roleController.getAllRoles(mockRequest, mockResponse);
+
+			const roles = mockResponse.json.calls.mostRecent().args[0];
+			expect(roles.some((r: any) => r.is_system)).toBeFalse();
+			expect(roles.every((r: any) => typeof r.user_count === "number")).toBeTrue();
+		});
+	});
+
 	afterEach(async () => {
 		await dbHelper.clearDatabase();
 	});

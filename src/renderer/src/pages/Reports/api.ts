@@ -1,0 +1,618 @@
+/**
+ * Reports data layer — Phase 6.11.
+ *
+ * Every call targets `/api/reports/*`. The legacy reports endpoints share that
+ * prefix but are mounted after this router, so the five paths they share
+ * resolve here (see `routes/api.routes.ts`); the legacy HTML page keeps
+ * working on every other path until Phase 7.
+ *
+ * Conventions:
+ *   - Query params are snake_case (Express reads `req.query.start_date`);
+ *     bodies/responses are camelCased by `lib/api`.
+ *   - Money fields are already `number` server-side (the models coerce
+ *     Postgres `NUMERIC` strings), so no normalizer is needed here.
+ *   - `all` is never sent: the server treats an absent filter as "no filter",
+ *     which keeps the cache key for "all payment types" identical to a plain
+ *     report.
+ */
+
+import { api } from "@/lib/api"
+import type {
+  DoctorQueryFilters,
+  DoctorQueryPaging,
+  DoctorPatientSortColumn,
+  DoctorReportDetailPayload,
+  DoctorReportExportPayload,
+  DoctorReportListPayload,
+  DoctorSortColumn,
+} from "@/pages/Reports/types/doctorReport"
+import {
+  DOCTOR_PATIENT_SORT_COLUMNS,
+  DOCTOR_SORT_COLUMNS,
+  isDoctorPatientSortColumn,
+  isDoctorSortColumn,
+} from "@/pages/Reports/types/doctorReport"
+import type {
+  NursePatientSortColumn,
+  NurseQueryFilters,
+  NurseQueryPaging,
+  NurseReportDetailPayload,
+  NurseReportExportPayload,
+  NurseReportListPayload,
+  NurseSortColumn,
+} from "@/pages/Reports/types/nurseReport"
+import {
+  NURSE_PATIENT_SORT_COLUMNS,
+  NURSE_SORT_COLUMNS,
+  isNursePatientSortColumn,
+  isNurseSortColumn,
+} from "@/pages/Reports/types/nurseReport"
+import type {
+  EmployeePaymentAssociationsPayload,
+  EmployeePaymentDetailPayload,
+  EmployeePaymentExportPayload,
+  EmployeePaymentListPayload,
+  EmployeePaymentQueryFilters,
+  EmployeePaymentQueryPaging,
+  EmployeePaymentSortColumn,
+} from "@/pages/Reports/types/employeePaymentReport"
+import {
+  EMPLOYEE_PAYMENT_SORT_COLUMNS,
+  isEmployeePaymentSortColumn,
+} from "@/pages/Reports/types/employeePaymentReport"
+import type {
+  ClockInDetailPayload,
+  ClockInDetailPaging,
+  ClockInExportPayload,
+  ClockInListPayload,
+  ClockInQueryFilters,
+  ClockInQueryPaging,
+  ClockInStatusFilter,
+} from "@/pages/Reports/types/clockInReport"
+import {
+  CLOCK_IN_SORT_COLUMNS,
+  isClockInSortColumnId,
+} from "@/pages/Reports/types/clockInReport"
+import type {
+  PatientQueryFilters,
+  PatientQueryPaging,
+  PatientReportDetail,
+  PatientReportExportPayload,
+  PatientReportListPayload,
+  PatientSortColumn,
+} from "@/pages/Reports/types/patientReport"
+import { PATIENT_SORT_COLUMNS, isPatientSortColumn } from "@/pages/Reports/types/patientReport"
+import type {
+  StatisticsQueryFilters,
+  StatisticsReportExportPayload,
+  StatisticsReportPayload,
+} from "@/pages/Reports/types/statisticsReport"
+import type { ReportOptions } from "@/pages/Reports/types/reports"
+
+/** `GET /api/reports/options` — all picker lists in one round trip. */
+export function getReportOptions(): Promise<ReportOptions> {
+  return api.get<ReportOptions>("/reports/options")
+}
+
+/* ------------------------------------------------------------------ */
+/* Patient report                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Shared filter → query mapping for the list and export endpoints. */
+function patientParams(filters: PatientQueryFilters) {
+  const paymentType =
+    filters.paymentType && filters.paymentType !== "all"
+      ? filters.paymentType
+      : undefined
+
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    payment_type: paymentType,
+    // The server only honours `insurance_id` when the payment type is
+    // insurance; sending it otherwise would be silently ignored, but not
+    // sending it keeps URLs and logs honest.
+    insurance_id:
+      paymentType === "insurance" && filters.insuranceId
+        ? filters.insuranceId
+        : undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a table column id to the server's sort key (never interpolated). */
+function sortParam(paging: PatientQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isPatientSortColumn(columnId)) return {}
+  return {
+    sort: PATIENT_SORT_COLUMNS[columnId as PatientSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/patients` — one page + the whole-set summary. */
+export function getPatients(
+  filters: PatientQueryFilters,
+  paging: PatientQueryPaging
+): Promise<PatientReportListPayload> {
+  return api.get<PatientReportListPayload>("/reports/patients", {
+    ...patientParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...sortParam(paging),
+  })
+}
+
+/** `GET /api/reports/patients/:patientId` — patient + admissions. */
+export function getPatientDetail(
+  patientId: number,
+  range: PatientQueryFilters["range"]
+): Promise<PatientReportDetail> {
+  return api.get<PatientReportDetail>(`/reports/patients/${patientId}`, {
+    start_date: range.from,
+    end_date: range.to,
+  })
+}
+
+/**
+ * `GET /api/reports/patients/export` — every matching patient.
+ *
+ * Exports always re-fetch with the **generated** parameters (never the
+ * paginated list, never the current form state), so what is downloaded is
+ * always what the report describes.
+ */
+export function exportPatients(
+  filters: PatientQueryFilters,
+  paging: PatientQueryPaging
+): Promise<PatientReportExportPayload> {
+  return api.get<PatientReportExportPayload>("/reports/patients/export", {
+    ...patientParams(filters),
+    ...sortParam(paging),
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* Doctor report                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for every doctor endpoint.
+ *
+ * `relationship` is always sent (the server defaults to `referred`, but an
+ * explicit value keeps URLs and logs self-describing). `doctor_id` is only
+ * sent when a single doctor was chosen — in all-report mode the server must
+ * see no id at all.
+ */
+function doctorParams(filters: DoctorQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    relationship: filters.relationship,
+    doctor_id: filters.doctorId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a doctor-table column id to the server's list sort key. */
+function doctorSortParam(paging: DoctorQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isDoctorSortColumn(columnId)) return {}
+  return {
+    sort: DOCTOR_SORT_COLUMNS[columnId as DoctorSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** Maps a patient-table column id to the server's detail sort key. */
+function doctorPatientSortParam(paging: DoctorQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isDoctorPatientSortColumn(columnId)) return {}
+  return {
+    sort: DOCTOR_PATIENT_SORT_COLUMNS[columnId as DoctorPatientSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/doctors` — one page of doctors + whole-set summary. */
+export function getDoctors(
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging
+): Promise<DoctorReportListPayload> {
+  return api.get<DoctorReportListPayload>("/reports/doctors", {
+    ...doctorParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...doctorSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/doctors/:doctorId` — doctor header + one page of
+ * patients.
+ *
+ * The filters carry `search` (patient name) but not `doctorId`: the id is in
+ * the path, and sending it twice invites them to disagree.
+ */
+export function getDoctorDetail(
+  doctorId: number,
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging
+): Promise<DoctorReportDetailPayload> {
+  // The id lives in the path; sending it twice invites them to disagree.
+  const params = doctorParams({ ...filters, doctorId: null })
+  return api.get<DoctorReportDetailPayload>(
+    `/reports/doctors/${doctorId}`,
+    {
+      ...params,
+      page: paging.page,
+      page_size: paging.pageSize,
+      ...doctorPatientSortParam(paging),
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/doctors/export` — every matching doctor.
+ *
+ * The endpoint only sorts by doctor-list keys, so the caller passes list
+ * paging even when the visible table is the patient table. Admissions are
+ * attached only for a single-doctor document (specific mode).
+ */
+export function exportDoctors(
+  filters: DoctorQueryFilters,
+  paging: DoctorQueryPaging,
+  includeAdmissions: boolean
+): Promise<DoctorReportExportPayload> {
+  return api.get<DoctorReportExportPayload>("/reports/doctors/export", {
+    ...doctorParams(filters),
+    ...doctorSortParam(paging),
+    include_admissions: includeAdmissions ? true : undefined,
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* Nurse report                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for every nurse endpoint.
+ *
+ * There is no relationship select on this tab: a nurse is in the report when
+ * they have at least one assignment in the range. `nurse_id` is only sent when
+ * a single nurse was chosen — all-report mode must send no id at all.
+ */
+function nurseParams(filters: NurseQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    nurse_id: filters.nurseId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a nurse-table column id to the server's list sort key. */
+function nurseSortParam(paging: NurseQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isNurseSortColumn(columnId)) return {}
+  return {
+    sort: NURSE_SORT_COLUMNS[columnId as NurseSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** Maps a patient-table column id to the server's detail sort key. */
+function nursePatientSortParam(paging: NurseQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isNursePatientSortColumn(columnId)) return {}
+  return {
+    sort: NURSE_PATIENT_SORT_COLUMNS[columnId as NursePatientSortColumn],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/nurses` — one page of nurses + whole-set summary. */
+export function getNurses(
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportListPayload> {
+  return api.get<NurseReportListPayload>("/reports/nurses", {
+    ...nurseParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...nurseSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/nurses/:nurseId` — nurse header + one page of patients
+ * + the whole daily-assignment accordion.
+ *
+ * The id lives in the path; sending it in the query as well invites the two to
+ * disagree.
+ */
+export function getNurseDetail(
+  nurseId: number,
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportDetailPayload> {
+  const params = nurseParams({ ...filters, nurseId: null })
+  return api.get<NurseReportDetailPayload>(`/reports/nurses/${nurseId}`, {
+    ...params,
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...nursePatientSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/nurses/export` — every matching nurse.
+ *
+ * The endpoint sorts by nurse-list keys only, so the caller passes list paging
+ * even when the visible table is the patient table.
+ */
+export function exportNurses(
+  filters: NurseQueryFilters,
+  paging: NurseQueryPaging
+): Promise<NurseReportExportPayload> {
+  return api.get<NurseReportExportPayload>("/reports/nurses/export", {
+    ...nurseParams(filters),
+    ...nurseSortParam(paging),
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* Statistics                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Statistics has no paging, sort or search: every series covers the whole
+ * range, which is what lets the export reuse the same request.
+ */
+function statisticsParams(filters: StatisticsQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    grouping: filters.grouping,
+  }
+}
+
+/**
+ * `GET /api/reports/statistics` — KPIs plus every chart series.
+ *
+ * The distribution returns both splits in one payload, so the donut toggle
+ * never issues a request.
+ */
+export function getStatistics(
+  filters: StatisticsQueryFilters
+): Promise<StatisticsReportPayload> {
+  return api.get<StatisticsReportPayload>(
+    "/reports/statistics",
+    statisticsParams(filters)
+  )
+}
+
+/** `GET /api/reports/statistics/export` — the same document + `generatedAt`. */
+export function exportStatistics(
+  filters: StatisticsQueryFilters
+): Promise<StatisticsReportExportPayload> {
+  return api.get<StatisticsReportExportPayload>(
+    "/reports/statistics/export",
+    statisticsParams(filters)
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Employee payments (payroll)                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for the payroll endpoints.
+ *
+ * `employee_type` is omitted for `all` (an absent filter is "no filter"), and
+ * `employee_id` only when a single employee was chosen. `grouping` is always
+ * sent so the timeline's bucket size is explicit in the URL and the logs.
+ */
+function employeePaymentParams(filters: EmployeePaymentQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    employee_type:
+      filters.employeeType !== "all" ? filters.employeeType : undefined,
+    employee_id: filters.employeeId ?? undefined,
+    search: filters.search.trim() || undefined,
+    grouping: filters.grouping,
+  }
+}
+
+/** Maps a payroll-table column id to the server's sort key. */
+function employeePaymentSortParam(paging: EmployeePaymentQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isEmployeePaymentSortColumn(columnId)) return {}
+  return {
+    sort: EMPLOYEE_PAYMENT_SORT_COLUMNS[columnId as EmployeePaymentSortColumn],
+    dir: paging.sort?.direction ?? "desc",
+  }
+}
+
+/** `GET /api/reports/employee-payments` — one page + summary + charts. */
+export function getEmployeePayments(
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentListPayload> {
+  return api.get<EmployeePaymentListPayload>("/reports/employee-payments", {
+    ...employeePaymentParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...employeePaymentSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/employee-payments/:employeeId` — identity, config,
+ * summary, one page of payments and every period deduction.
+ *
+ * The id lives in the path; `employee_id` is not sent again. `grouping` is not
+ * a detail parameter (the dialog has no timeline), so it is dropped.
+ */
+export function getEmployeePaymentDetail(
+  employeeId: number,
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentDetailPayload> {
+  const params = employeePaymentParams(filters)
+
+  return api.get<EmployeePaymentDetailPayload>(
+    `/reports/employee-payments/${employeeId}`,
+    {
+      start_date: params.start_date,
+      end_date: params.end_date,
+      employee_type: params.employee_type,
+      search: params.search,
+      page: paging.page,
+      page_size: paging.pageSize,
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/employee-payments/:employeeId/payments/:paymentId`.
+ *
+ * No range: the associations belong to the payment, and hiding work done
+ * outside the report window would misstate the payment.
+ */
+export function getPaymentAssociations(
+  employeeId: number,
+  paymentId: number
+): Promise<EmployeePaymentAssociationsPayload> {
+  return api.get<EmployeePaymentAssociationsPayload>(
+    `/reports/employee-payments/${employeeId}/payments/${paymentId}`
+  )
+}
+
+/**
+ * `GET /api/reports/employee-payments/export` — every matching employee.
+ *
+ * Exports always re-fetch with the **generated** parameters (never the
+ * paginated list, never the current form state), so what is downloaded is
+ * always what the report describes.
+ */
+export function exportEmployeePayments(
+  filters: EmployeePaymentQueryFilters,
+  paging: EmployeePaymentQueryPaging
+): Promise<EmployeePaymentExportPayload> {
+  return api.get<EmployeePaymentExportPayload>(
+    "/reports/employee-payments/export",
+    {
+      ...employeePaymentParams(filters),
+      ...employeePaymentSortParam(paging),
+    }
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Clock-ins                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Shared filter → query mapping for the clock-in endpoints.
+ *
+ * Same rules as payroll: `employee_type=all` is omitted, `employee_id` only
+ * when one employee was picked, and `search` only when it has content. There is
+ * no `grouping` — the clock-in report has no timeline.
+ */
+function clockInParams(filters: ClockInQueryFilters) {
+  return {
+    start_date: filters.range.from,
+    end_date: filters.range.to,
+    employee_type:
+      filters.employeeType !== "all" ? filters.employeeType : undefined,
+    employee_id: filters.employeeId ?? undefined,
+    search: filters.search.trim() || undefined,
+  }
+}
+
+/** Maps a clock-in table column id to the server's sort key. */
+function clockInSortParam(paging: ClockInQueryPaging): {
+  sort?: string
+  dir?: "asc" | "desc"
+} {
+  const columnId = paging.sort?.columnId
+  if (!columnId || !isClockInSortColumnId(columnId)) return {}
+  return {
+    sort: CLOCK_IN_SORT_COLUMNS[columnId],
+    dir: paging.sort?.direction ?? "asc",
+  }
+}
+
+/** `GET /api/reports/clock-ins` — one page + summary + charts. */
+export function getClockIns(
+  filters: ClockInQueryFilters,
+  paging: ClockInQueryPaging
+): Promise<ClockInListPayload> {
+  return api.get<ClockInListPayload>("/reports/clock-ins", {
+    ...clockInParams(filters),
+    page: paging.page,
+    page_size: paging.pageSize,
+    ...clockInSortParam(paging),
+  })
+}
+
+/**
+ * `GET /api/reports/clock-ins/:employeeId` — identity, attendance summary
+ * and one page of records.
+ *
+ * `status` is applied **after** missing days are synthesized (they do not exist
+ * in the database), which is why it is a request parameter rather than a
+ * client-side filter over the page.
+ */
+export function getClockInEmployee(
+  employeeId: number,
+  range: ClockInQueryFilters["range"],
+  status: ClockInStatusFilter,
+  paging: ClockInDetailPaging
+): Promise<ClockInDetailPayload> {
+  return api.get<ClockInDetailPayload>(
+    `/reports/clock-ins/${employeeId}`,
+    {
+      start_date: range.from,
+      end_date: range.to,
+      status: status === "all" ? undefined : status,
+      page: paging.page,
+      page_size: paging.pageSize,
+    }
+  )
+}
+
+/**
+ * `GET /api/reports/clock-ins/export` — every matching employee.
+ *
+ * No paging and no sort: the document is an employee index in name order, which
+ * is the order a printed report is read in. Exports re-fetch with the
+ * **generated** filters, never with the draft or the visible page.
+ */
+export function exportClockIns(
+  filters: ClockInQueryFilters
+): Promise<ClockInExportPayload> {
+  return api.get<ClockInExportPayload>(
+    "/reports/clock-ins/export",
+    clockInParams(filters)
+  )
+}

@@ -1,6 +1,6 @@
 // src/app/routes/insurance.routes.ts
 import { Router } from "express";
-import InsuranceController from "../controllers/Insurance.controller.js";
+import InsuranceController from "../controllers/insurance.controller.js";
 import { verifyToken, checkPermission } from "../middleware/auth.middleware.js";
 import { auditLogger } from "../middleware/auditLogger.middleware.js";
 

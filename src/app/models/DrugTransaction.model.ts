@@ -19,11 +19,13 @@ export class DrugTransactionModel {
                     w.name as warehouse_name,
                     dc.unit_conversion,
                     ds.buy_price as shipment_buy_price,
-                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit
+                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit,
+                    p.name as patient_name
                 FROM DrugTransaction dt
                 JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
                 JOIN DrugCard dc ON ds.drug_id = dc.drug_id
                 JOIN Warehouse w ON ds.warehouse_id = w.warehouse_id
+                LEFT JOIN Patient p ON dt.patient_id = p.patient_id
                 ORDER BY dt.timestamp DESC;
             `;
 			const result = await query(sql);
@@ -46,11 +48,13 @@ export class DrugTransactionModel {
                     w.name as warehouse_name,
                     dc.unit_conversion,
                     ds.buy_price as shipment_buy_price,
-                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit
+                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit,
+                    p.name as patient_name
                 FROM DrugTransaction dt
                 JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
                 JOIN DrugCard dc ON ds.drug_id = dc.drug_id
                 JOIN Warehouse w ON ds.warehouse_id = w.warehouse_id
+                LEFT JOIN Patient p ON dt.patient_id = p.patient_id
                 WHERE dt.transaction_id = $1;
             `;
 			const result = await query(sql, [transactionId]);
@@ -72,7 +76,8 @@ export class DrugTransactionModel {
 				`
                 SELECT 
                     ds.*,
-                    dc.unit_conversion
+                    dc.unit_conversion,
+                    dc.drug_id
                 FROM DrugShipment ds
                 JOIN DrugCard dc ON ds.drug_id = dc.drug_id
                 WHERE ds.shipment_id = $1;
@@ -91,13 +96,55 @@ export class DrugTransactionModel {
 				throw new Error("Insufficient quantity in shipment");
 			}
 
+			let patientId: number | null = null;
+			let patientHistoryId: number | null = null;
+
+			if (data.transaction_type !== "outside") {
+				if (!data.patient_id) {
+					throw new Error("Missing patient");
+				}
+
+				const patientResult = await query(
+					"SELECT patient_id FROM Patient WHERE patient_id = $1",
+					[data.patient_id]
+				);
+
+				if (patientResult.rows.length === 0) {
+					throw new Error("Patient not found");
+				}
+
+				patientId = data.patient_id;
+
+				if (data.transaction_type === "patient") {
+					const admissionResult = await query(
+						`SELECT ph.patient_history_id
+                         FROM PatientHistory ph
+                         WHERE ph.patient_id = $1 AND ph.discharge_time IS NULL
+                         ORDER BY ph.admission_time DESC
+                         LIMIT 1;`,
+						[data.patient_id]
+					);
+
+					if (admissionResult.rows.length === 0) {
+						throw new Error("Patient is not currently admitted");
+					}
+
+					patientHistoryId =
+						admissionResult.rows[0].patient_history_id;
+				}
+			} else if (data.patient_id) {
+				throw new Error(
+					"patient_id must not be set for outside transactions"
+				);
+			}
+
 			// Create transaction
 			const transactionSql = `
                 INSERT INTO DrugTransaction (
                     shipment_id, transaction_type, quantity,
-                    price, created_by_user_id
+                    price, created_by_user_id, patient_id
                 )
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *;
             `;
 
@@ -106,7 +153,8 @@ export class DrugTransactionModel {
 				data.transaction_type,
 				data.quantity,
 				data.price,
-				userId
+				userId,
+				patientId
 			]);
 
 			// Update shipment quantity
@@ -118,6 +166,23 @@ export class DrugTransactionModel {
             `,
 				[data.quantity, data.shipment_id]
 			);
+
+			// For patient sales, create the associated DrugUsage record
+			if (data.transaction_type === "patient") {
+				await query(
+					`INSERT INTO DrugUsage (
+                        patient_id, drug_id, transaction_id, patient_history_id,
+                        remaining_quantity
+                    ) VALUES ($1, $2, $3, $4, $5)`,
+					[
+						patientId,
+						shipment.drug_id,
+						transactionResult.rows[0].transaction_id,
+						patientHistoryId,
+						data.quantity
+					]
+				);
+			}
 
 			// Get full transaction details
 			const transaction = await this.getTransactionById(
@@ -184,11 +249,13 @@ export class DrugTransactionModel {
                     w.name as warehouse_name,
                     dc.unit_conversion,
                     ds.buy_price as shipment_buy_price,
-                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit
+                    (dt.price * dt.quantity - ds.buy_price * dt.quantity) as profit,
+                    p.name as patient_name
                 FROM DrugTransaction dt
                 JOIN DrugShipment ds ON dt.shipment_id = ds.shipment_id
                 JOIN DrugCard dc ON ds.drug_id = dc.drug_id
                 JOIN Warehouse w ON ds.warehouse_id = w.warehouse_id
+                LEFT JOIN Patient p ON dt.patient_id = p.patient_id
                 ${whereClause}
                 ORDER BY dt.timestamp DESC;
             `;

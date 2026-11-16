@@ -23,7 +23,7 @@ import doctorRoutes from "./doctor.routes.js";
 import employeePaymentRoutes from "./employeePayment.routes.js";
 import employeeClockInRoutes from "./employeeClockIn.routes.js";
 import vaultRoutes from "./vault.routes.js";
-import reportRoutes from "./report.routes.js";
+import reportsRoutes from "./reports.routes.js";
 
 const router = Router();
 
@@ -52,6 +52,6 @@ router.use("/doctors", doctorRoutes);
 router.use("/employee-payments", employeePaymentRoutes);
 router.use("/clock-ins", employeeClockInRoutes);
 router.use("/vault", vaultRoutes);
-router.use("/reports", reportRoutes);
+router.use("/reports", reportsRoutes);
 
 export default router;

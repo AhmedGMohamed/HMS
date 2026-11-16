@@ -27,6 +27,31 @@ export class VaultController {
 	}
 
 	// Patient Revenue Methods
+	async getPatientSuppliesRevenue(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const rows = await VaultModel.getPatientSuppliesRevenue(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(rows);
+		} catch (error) {
+			console.error("Error fetching patient supplies revenue:", error);
+			res.status(500).json({
+				error: "Failed to fetch patient supplies revenue"
+			});
+		}
+	}
+
 	async getPatientServicesRevenue(req: Request, res: Response) {
 		try {
 			const { start_date, end_date } = req.query;
@@ -171,6 +196,31 @@ export class VaultController {
 			console.error("Error fetching VAT and admin expenses:", error);
 			res.status(500).json({
 				error: "Failed to fetch VAT and admin expenses"
+			});
+		}
+	}
+
+	async getPatientMedicalTestsRevenue(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const data = await VaultModel.getPatientMedicalTestsRevenue(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(data);
+		} catch (error) {
+			console.error("Error fetching patient medical tests revenue:", error);
+			res.status(500).json({
+				error: "Failed to fetch patient medical tests revenue"
 			});
 		}
 	}
@@ -324,6 +374,82 @@ export class VaultController {
 			console.error("Error fetching drug sales profit:", error);
 			res.status(500).json({
 				error: "Failed to fetch drug sales profit"
+			});
+		}
+	}
+
+	// Supply Methods
+	async getSupplyShipmentCosts(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const costs = await VaultModel.getSupplyShipmentCosts(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(costs);
+		} catch (error) {
+			console.error("Error fetching supply shipment costs:", error);
+			res.status(500).json({
+				error: "Failed to fetch supply shipment costs"
+			});
+		}
+	}
+
+	async getSupplySalesRevenue(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const revenue = await VaultModel.getSupplySalesRevenue(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(revenue);
+		} catch (error) {
+			console.error("Error fetching supply sales revenue:", error);
+			res.status(500).json({
+				error: "Failed to fetch supply sales revenue"
+			});
+		}
+	}
+
+	async getSupplySalesProfit(req: Request, res: Response) {
+		try {
+			const { start_date, end_date } = req.query;
+
+			if (!start_date || !end_date) {
+				res.status(400).json({
+					error: "Start date and end date are required"
+				});
+				return;
+			}
+
+			const profit = await VaultModel.getSupplySalesProfit(
+				start_date as string,
+				end_date as string
+			);
+
+			res.status(200).json(profit);
+		} catch (error) {
+			console.error("Error fetching supply sales profit:", error);
+			res.status(500).json({
+				error: "Failed to fetch supply sales profit"
 			});
 		}
 	}

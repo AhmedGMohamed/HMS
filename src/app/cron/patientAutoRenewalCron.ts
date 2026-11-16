@@ -135,7 +135,7 @@ export class PatientAutoRenewalCron {
                 INSERT INTO BillDetail (
                     bill_id, active_service_id, service_id, quantity, unit_price, 
                     charge_type, sale_type, generated_at
-                ) VALUES ($1, $2, $3, $4, $5, 'auto_renewal', 'admitted', CURRENT_TIMESTAMP)
+                ) VALUES ($1, $2, $3, $4, $5, 'service', 'admitted', CURRENT_TIMESTAMP)
                 RETURNING *;
             `;
 
@@ -201,7 +201,7 @@ export class PatientAutoRenewalCron {
 						const payment: CreateEmployeePaymentDTO = {
 							employee_id: doctor.doctor_id,
 							payment_amount: 0.0,
-							payment_type: "service_renewal",
+							payment_type: "service",
 							extra_payment_type: doctor.extra_payment_type || "per_patient",
 							extra_amount: amount,
 							percentage_scope: doctor.percentage_scope,
@@ -217,7 +217,7 @@ export class PatientAutoRenewalCron {
 								work_date: workDate,
 								hours_worked: 0.0,
 								payment_amount: amount,
-								payment_type: "service_renewal",
+								payment_type: "service",
 								active_service_id: serviceInfo.active_service_id
 							}
 						];
@@ -420,15 +420,16 @@ export class PatientAutoRenewalCron {
 				// Create drug transaction
 				const transactionSql = `
             	    INSERT INTO DrugTransaction (
-            	        shipment_id, transaction_type, quantity, price, created_by_user_id
-            	    ) VALUES ($1, 'patient', $2, $3, $4)
+            	        shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+            	    ) VALUES ($1, 'patient', $2, $3, $4, $5)
             	    RETURNING transaction_id;
 				`;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToDispense,
 					shipment.price,
-					systemUserId
+					systemUserId,
+					drugInfo.patient_id
 				]);
 
 				// Update shipment quantity
@@ -460,7 +461,7 @@ export class PatientAutoRenewalCron {
 					`INSERT INTO BillDetail (
                 	    bill_id, drug_shipment_id, quantity, unit_price, 
                 	    charge_type, sale_type, generated_at
-                	) VALUES ($1, $2, $3, $4, 'auto_drug_replenishment', 'admitted', CURRENT_TIMESTAMP)`,
+                	) VALUES ($1, $2, $3, $4, 'drug', 'admitted', CURRENT_TIMESTAMP)`,
 					[
 						drugInfo.bill_id,
 						shipment.shipment_id,
@@ -610,15 +611,16 @@ export class PatientAutoRenewalCron {
 				// Create drug transaction
 				const transactionSql = `
                     INSERT INTO DrugTransaction (
-                        shipment_id, transaction_type, quantity, price, created_by_user_id
-                    ) VALUES ($1, 'patient', $2, $3, $4)
+                        shipment_id, transaction_type, quantity, price, created_by_user_id, patient_id
+                    ) VALUES ($1, 'patient', $2, $3, $4, $5)
                     RETURNING transaction_id;
                 `;
 				const transactionResult = await query(transactionSql, [
 					shipment.shipment_id,
 					quantityToTake,
 					shipment.price,
-					systemUserId
+					systemUserId,
+					patientId
 				]);
 
 				// Update shipment quantity
@@ -646,7 +648,7 @@ export class PatientAutoRenewalCron {
 					`INSERT INTO BillDetail (
                         bill_id, drug_shipment_id, quantity, unit_price, 
                         charge_type, sale_type, generated_at
-                    ) VALUES ($1, $2, $3, $4, 'service_drug_renewal', 'admitted', CURRENT_TIMESTAMP)`,
+                    ) VALUES ($1, $2, $3, $4, 'drug', 'admitted', CURRENT_TIMESTAMP)`,
 					[
 						billId,
 						shipment.shipment_id,
@@ -904,7 +906,7 @@ export class PatientAutoRenewalCron {
 					`INSERT INTO BillDetail (
                 	    bill_id, medical_supply_shipment_id, quantity, unit_price, 
                 	    charge_type, sale_type, generated_at
-                	) VALUES ($1, $2, $3, $4, 'auto_supply_replenishment', 'admitted', CURRENT_TIMESTAMP)`,
+                	) VALUES ($1, $2, $3, $4, 'supply', 'admitted', CURRENT_TIMESTAMP)`,
 					[
 						supplyInfo.bill_id,
 						shipment.shipment_id,

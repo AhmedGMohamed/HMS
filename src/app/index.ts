@@ -2,10 +2,8 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
-import { createDBIfNotExists } from "./utils/setUpDatabase.js";
+import { createDBIfNotExists, ensureAdminSchema } from "./utils/setUpDatabase.js";
 import apiRoutes from "./routes/api.routes.js";
-import pageRoutes from "./routes/page.routes.js";
-import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import dotenv from "dotenv";
 import overridePgDate from "./utils/pgDateOverride.js";
 import EmployeePaymentCron from "./cron/employeePaymentCron.js";
@@ -21,39 +19,45 @@ dotenv.config({
 });
 
 await createDBIfNotExists(process.env.DB_NAME as string || "HMS");
+await ensureAdminSchema();
 
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "assets")));
-app.use("/css", express.static(path.join(__dirname, "views/css")));
-app.use("/js", express.static(path.join(__dirname, "views/js")));
-app.use("/utils", express.static(path.join(__dirname, "views/utils")));
-app.use("/locales", express.static(path.join(__dirname, "views/locales")));
 
-app.use("/health", (_req: Request, res: Response): void => {
+const rendererDist = path.join(__dirname, "renderer");
+
+// The built React SPA owns `/` and every non-API path. `index: false`
+// keeps the root request flowing to the history fallback below.
+app.use(express.static(rendererDist, { index: false }));
+
+const healthHandler = (_req: Request, res: Response): void => {
 	res.status(200).json({
 		status: "ok",
 		timestamp: new Date().toISOString(),
 		service: "Hospital Management System",
-		version: "0.3.42"
+		version: "0.4.04"
 	});
-});
+};
+
+app.get("/health", healthHandler);
+// Electron's `testServerConnection` probes `/api/health`; keep it in
+// lockstep with the public health endpoint.
+app.get("/api/health", healthHandler);
 
 // API routes
 app.use("/api", apiRoutes);
 
-// Page routes
-app.use("/", pageRoutes);
-
-app.get("/", (_req, res) => {
-	res.sendFile("./views/login.html", { root: __dirname });
+// Never let an unknown API path fall through to the SPA shell.
+app.use("/api", (_req, res) => {
+	res.status(404).json({ error: "Not found" });
 });
 
-app.use((_req, res) => {
-	res.status(404).sendFile("./views/404.html", { root: __dirname });
+// React Router owns the client-side routes (Express 5 syntax).
+app.get("/{*splat}", (_req, res) => {
+	res.sendFile(path.join(rendererDist, "index.html"));
 });
 
 //app.use(errorHandler);

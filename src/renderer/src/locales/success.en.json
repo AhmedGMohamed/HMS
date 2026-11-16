@@ -1,0 +1,9 @@
+{
+  "success": {
+    "saved": "Saved successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully",
+    "added": "Added successfully",
+    "processed": "Processed successfully"
+  }
+}

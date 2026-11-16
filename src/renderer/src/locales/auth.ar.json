@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "rememberMe": "تذكرني",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "loginError": "اسم مستخدم أو كلمة مرور غير صحيحة",
+    "sessionExpired": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    "welcomeBack": "مرحباً بعودتك",
+    "loginToContinue": "تسجيل الدخول للمتابعة إلى نظام إدارة المستشفى",
+    "logoutConfirmation": "تأكيد تسجيل الخروج",
+    "logoutConfirmText": "هل أنت متأكد من أنك تريد تسجيل الخروج؟",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح",
+    "logoutSuccessText": "لقد تم تسجيل خروجك من النظام."
+  }
+}

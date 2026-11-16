@@ -1,0 +1,12 @@
+{
+  "userMenu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "signedInAs": "Signed in as {{role}}",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeTrueDark": "True dark",
+    "themeSystem": "System default"
+  }
+}

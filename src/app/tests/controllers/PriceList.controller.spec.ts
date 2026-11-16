@@ -27,7 +27,7 @@ describe("PriceListController", () => {
 	});
 
 	describe("getAllPriceLists", () => {
-		it("should return all price lists", async () => {
+		it("should return the first page in the shared envelope", async () => {
 			mockRequest = {};
 
 			await priceListController.getAllPriceLists(
@@ -37,8 +37,54 @@ describe("PriceListController", () => {
 
 			expect(mockResponse.json).toHaveBeenCalled();
 			const response = mockResponse.json.calls.mostRecent().args[0];
-			expect(Array.isArray(response)).toBeTrue();
-			expect(response.length).toBeGreaterThan(0);
+			expect(Array.isArray(response)).toBeFalse();
+			expect(Array.isArray(response.data)).toBeTrue();
+			expect(response.data.length).toBeGreaterThan(0);
+			expect(response.total).toBeGreaterThan(0);
+			expect(response.page).toBe(1);
+			expect(response.pageSize).toBe(10);
+		});
+
+		it("should honour page and pageSize", async () => {
+			mockRequest = { query: { page: "2", pageSize: "2" } };
+
+			await priceListController.getAllPriceLists(
+				mockRequest,
+				mockResponse
+			);
+
+			const response = mockResponse.json.calls.mostRecent().args[0];
+			expect(response.page).toBe(2);
+			expect(response.pageSize).toBe(2);
+			expect(response.data.length).toBe(1);
+			expect(response.total).toBe(3);
+		});
+
+		it("should return the whole list with all=true", async () => {
+			mockRequest = { query: { all: "true" } };
+
+			await priceListController.getAllPriceLists(
+				mockRequest,
+				mockResponse
+			);
+
+			const response = mockResponse.json.calls.mostRecent().args[0];
+			expect(response.data.length).toBe(response.total);
+			expect(response.page).toBe(1);
+			expect(response.pageSize).toBe(response.total);
+		});
+
+		it("should filter by search", async () => {
+			mockRequest = { query: { search: "Stan" } };
+
+			await priceListController.getAllPriceLists(
+				mockRequest,
+				mockResponse
+			);
+
+			const response = mockResponse.json.calls.mostRecent().args[0];
+			expect(response.total).toBe(1);
+			expect(response.data[0].name).toBe("Standard");
 		});
 	});
 

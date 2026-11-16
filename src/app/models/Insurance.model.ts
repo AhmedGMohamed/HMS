@@ -16,23 +16,55 @@ import {
 
 class InsuranceModel {
 	// Basic CRUD Operations
-	async getAllInsuranceCompanies(): Promise<InsuranceCompany[]> {
-		const sql = `
-            SELECT 
-                ic.*,
+	async getAllInsuranceCompanies(
+		pagination?: { offset?: number; limit?: number; q?: string }
+	): Promise<{ rows: InsuranceCompany[]; total: number }> {
+		const offset = Math.max(0, pagination?.offset ?? 0)
+		const limit = Math.max(1, Math.min(pagination?.limit ?? 25, 100))
+		const q = pagination?.q?.trim()
+
+		const params: unknown[] = []
+		let where = ""
+		if (q) {
+			where = "WHERE ic.name ILIKE $1"
+			params.push(`%${q}%`)
+		}
+
+		// Group-by aggregation first → one row per company. COUNT(p.patient_id)
+		// already produces a per-company scalar so LIMIT/OFFSET operates on
+		// pre-aggregated rows (one row per company), which is correct.
+		const pageSql = `
+            SELECT
+                ic.insurance_id,
+                ic.name,
+                ic.pricelist_id,
                 pl.name as pricelist_name,
-                COUNT(p.patient_id) as patient_count
+                COUNT(p.patient_id) AS patient_count
             FROM InsuranceCompany ic
             LEFT JOIN PriceList pl ON ic.pricelist_id = pl.pricelist_id
             LEFT JOIN Patient p ON ic.insurance_id = p.insurance_id
-            GROUP BY ic.insurance_id, pl.name
-            ORDER BY ic.name;
-        `;
-		const { rows } = await query(sql);
-		return rows.map((row) => ({
-			...row,
-			patient_count: parseInt(row.patient_count) || 0
-		}));
+            ${where}
+            GROUP BY ic.insurance_id, ic.name, ic.pricelist_id, pl.name
+            ORDER BY ic.name
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `
+		const countSql = q
+			? `SELECT COUNT(*) AS c FROM InsuranceCompany ic ${where}`
+			: `SELECT COUNT(*) AS c FROM InsuranceCompany ic`
+
+		const [pageRes, countRes] = await Promise.all([
+			query(pageSql, [...params, limit, offset]),
+			query(countSql, params)
+		])
+
+		const total = Number(countRes.rows[0]?.c ?? 0)
+		return {
+			rows: pageRes.rows.map((row) => ({
+				...row,
+				patient_count: parseInt(row.patient_count) || 0,
+			})) as unknown as InsuranceCompany[],
+			total,
+		}
 	}
 
 	async getInsuranceCompanyById(

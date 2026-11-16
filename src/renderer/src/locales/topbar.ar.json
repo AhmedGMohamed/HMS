@@ -1,0 +1,13 @@
+{
+  "topbar": {
+    "search": "بحث",
+    "commandTitle": "لوحة الأوامر",
+    "commandDescription": "ابحث عن صفحة لفتحها.",
+    "commandPlaceholder": "ابحث عن الصفحات...",
+    "commandEmpty": "لم يتم العثور على صفحات.",
+    "commandNavigation": "التنقل",
+    "toggleNavigation": "تبديل القائمة",
+    "toggleLanguage": "تبديل اللغة",
+    "openMenu": "فتح قائمة المستخدم"
+  }
+}

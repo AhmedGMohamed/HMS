@@ -1,0 +1,494 @@
+{
+  "reports": {
+    "pageTitle": "HMS - Reports",
+    "title": "Reports & Analytics",
+    "page": {
+      "eyebrow": "HMS — Analytics",
+      "subtitle": "Generate and export operational, clinical and payroll reports.",
+      "descriptions": {
+        "patients": "Admissions, charges and outstanding balances per patient.",
+        "doctors": "Patients referred, attended or supervised by each doctor.",
+        "nurses": "Daily patient assignments and hours worked per nurse.",
+        "statistics": "Census, revenue, admission and utilization trends.",
+        "payments": "Base pay, extra pay, deductions and net pay per employee.",
+        "clockIns": "Attendance, hours worked and deductions per employee."
+      }
+    },
+    "actions": {
+      "generate": "Generate",
+      "exportPdf": "Export PDF",
+      "exportCsv": "Export CSV",
+      "viewDetails": "View details",
+      "printPatient": "Print patient report",
+      "printAdmission": "Print admission",
+      "retry": "Retry",
+      "close": "Close"
+    },
+    "state": {
+      "notGeneratedTitle": "No report generated",
+      "notGeneratedDescription": "Choose a date range and filters, then select Generate.",
+      "stale": "Filters changed since this report was generated. Regenerate to update the results.",
+      "largeExport": "This export contains {{count}} rows. Building the file can take a while, so keep this tab open until the download starts.",
+      "errorTitle": "Could not load this report",
+      "errorDescription": "The request failed. Retry, or adjust the filters and generate again.",
+      "emptyTitle": "No results",
+      "emptyDescription": "No records match the selected filters and date range.",
+      "permissionTitle": "No access to this report",
+      "permissionDescription": "Your role does not include the permission required for this report.",
+      "pendingTitle": "Report body coming next",
+      "pendingDescription": "The data source for this tab is connected in the next implementation step.",
+      "range": "{{from}} – {{to}}",
+      "records": "{{count}} records",
+      "detailError": "Could not load the details.",
+      "exportForbidden": "Your role cannot export reports. Ask an administrator for the manage reports permission."
+    },
+    "detail": {
+      "title": "Patient Report",
+      "identity": "Patient Information",
+      "searchPlaceholder": "Name, national ID or phone",
+      "card": "Card",
+      "form": "Form",
+      "billId": "Bill #{{id}}",
+      "noBill": "No bill",
+      "leaveReason": "Leave reason",
+      "admissionHeading": "Admission {{index}} — {{date}}",
+      "dischargedOn": "Discharged {{date}}",
+      "currentlyAdmitted": "Currently admitted",
+      "lengthOfStay": "Length of stay: {{count}} days",
+      "lengthOfStay_one": "Length of stay: {{count}} day",
+      "billedItems": "Billed Items",
+      "dateTotal": "Date total",
+      "baseTotal": "Base Total",
+      "finalTotal": "Net Total",
+      "noItems": "No billed items for this admission.",
+      "noStaff": "No staff assignments for this admission.",
+      "noAdmissionsDescription": "This patient has no admissions in the selected period."
+    },
+    "enums": {
+      "admissionStatus": {
+        "active": "Active",
+        "discharged": "Discharged"
+      },
+      "doctorType": {
+        "attending": "Attending",
+        "supervising": "Supervising",
+        "referring": "Referring",
+        "outside": "Outside"
+      },
+      "employeeType": {
+        "doctor": "Doctor",
+        "nurse": "Nurse",
+        "other": "Other"
+      },
+      "relationship": {
+        "referred": "Referred",
+        "attended": "Attended",
+        "supervised": "Supervised"
+      },
+      "attendance": {
+        "on_time": "On time",
+        "late": "Late",
+        "early": "Early",
+        "incomplete": "Incomplete",
+        "missing": "Missing"
+      },
+      "shiftType": {
+        "morning": "Morning",
+        "night": "Night"
+      },
+      "itemType": {
+        "service": "Service",
+        "drug": "Drug",
+        "supply": "Medical Supply"
+      }
+    },
+    "tabs": {
+      "patientReports": "Patient Reports",
+      "doctorReports": "Doctor Reports",
+      "nurseReports": "Nurse Reports",
+      "statistics": "Statistics",
+      "employeePayments": "Employee Payments",
+      "clockInReports": "Clock-In Reports"
+    },
+    "filters": {
+      "title": "Report Filters",
+      "groupBy": "Group By",
+      "groupByOptions": {
+        "day": "Day",
+        "month": "Month",
+        "year": "Year"
+      },
+      "dateRange": "Date range",
+      "quick": {
+        "today": "Today",
+        "week": "This week",
+        "month": "This month",
+        "year": "This year",
+        "reset": "Reset"
+      },
+      "searchPatient": "Search patient",
+      "searchDoctor": "Search doctor",
+      "searchNurse": "Search nurse",
+      "searchEmployee": "Search employee",
+      "relationship": "Report type",
+      "doctor": "Doctor",
+      "nurse": "Nurse",
+      "employee": "Employee",
+      "employeeType": "Employee type",
+      "paymentType": "Payment type",
+      "insuranceCompany": "Insurance company",
+      "allEmployees": "All employees",
+      "allCompanies": "All companies",
+      "allPaymentTypes": "All payment types"
+    },
+    "doctorReports": {
+      "selectDoctor": "Select Doctor",
+      "selectDoctorPlaceholder": "Select a doctor",
+      "chartTitle": "Patients per Doctor",
+      "chartCaption": "This page only. The PDF export lists every doctor with their share of the total.",
+      "assignmentsHint": "{{count}} patient-doctor assignments",
+      "dedupeNote": "Patients are counted once here. A patient seen by several doctors counts once in each doctor's row, for {{count}} unique patients in total.",
+      "types": {
+        "allReferring": "All Referring Doctors",
+        "specificReferring": "Specific Referring Doctor",
+        "allAttending": "All Attending Doctors",
+        "specificAttending": "Specific Attending Doctor",
+        "allSupervised": "All Supervised Doctors",
+        "specificSupervising": "Specific Supervising Doctor"
+      }
+    },
+    "doctorDetail": {
+      "title": "Doctor Report",
+      "patients": "Patients of this doctor"
+    },
+    "nurseReports": {
+      "selectNurse": "Select Nurse",
+      "selectNursePlaceholder": "Select a nurse",
+      "chartTitle": "Hours per Nurse",
+      "chartCaption": "This page only. The PDF export lists every nurse with their share of the total hours.",
+      "assignmentsHint": "{{count}} patient-nurse assignments",
+      "dedupeNote": "Patients are counted once here. A patient assigned to several nurses counts once in each nurse's row, for {{count}} unique patients in total.",
+      "types": {
+        "allNurses": "All Nurses",
+        "specificNurse": "Specific Nurse"
+      }
+    },
+    "nurseDetail": {
+      "title": "Nurse Report",
+      "patients": "Patients of this nurse",
+      "dailyAssignments": "Daily Assignments",
+      "dayPatients": "Patients: {{count}}",
+      "dayHours": "Hours: {{count}}",
+      "dayTotal": "Day total",
+      "noAssignments": "No daily assignments in this period.",
+      "showingDays": "Showing {{shown}} of {{total}} days",
+      "showMoreDays": "Show more days"
+    },
+    "employeePayments": {
+      "title": "Employee Payment Details",
+      "charts": {
+        "paymentTimeline": "Payment Timeline",
+        "paymentTypeDistribution": "Payment Type Distribution"
+      }
+    },
+    "payrollReports": {
+      "kpis": {
+        "basePay": "Base Pay",
+        "extraPay": "Extra Pay",
+        "deductions": "Deductions",
+        "netPay": "Net Pay"
+      },
+      "charts": {
+        "grossPay": "Gross Pay",
+        "period": "Period",
+        "paymentType": "Payment Type",
+        "timelineCaption": "Gross pay per {{grouping}} bucket",
+        "typeCaption": "Gross pay by payment type"
+      },
+      "paymentTypes": {
+        "none": "None",
+        "salary": "Salary",
+        "bonus": "Bonus",
+        "overtime": "Overtime",
+        "manual": "Manual",
+        "per_patient": "Per Patient",
+        "income": "Income",
+        "commission": "Commission",
+        "referral": "Referral",
+        "fixed": "Fixed",
+        "percentage": "Percentage",
+        "service": "Service",
+        "supervising_doctor_assignment": "Supervising Doctor Commission"
+      },
+      "paymentStatus": {
+        "paid": "Paid",
+        "pending": "Pending"
+      },
+      "detail": {
+        "patientWork": "Patient Work",
+        "noPatientWork": "No patient work",
+        "noPatientWorkDescription": "This payment has no patient associations.",
+        "payments": "Payments",
+        "noPayments": "No payments",
+        "noPaymentsDescription": "This employee has no payments in the selected period.",
+        "noDeductions": "No deductions",
+        "noDeductionsDescription": "No clock-in deduction was recorded in this period.",
+        "deductionNote": "Deductions are counted once for the whole period, not once per payment.",
+        "needClockIn": "Requires Clock-In",
+        "yes": "Yes",
+        "no": "No",
+        "noShift": "No shift",
+        "workDays": "Work Days",
+        "patientsServed": "Patients Served"
+      },
+      "emptyTitle": "No employee payments",
+      "emptyDescription": "No employee payments match the selected criteria."
+    },
+    "statistics": {
+      "kpis": {
+        "patients": "Total Patients",
+        "admissions": "Admissions",
+        "discharges": "Discharges",
+        "avgStay": "Avg Stay (Days)",
+        "billed": "Billed",
+        "collected": "Collected",
+        "outstanding": "Outstanding"
+      },
+      "series": {
+        "census": "Census",
+        "admissions": "Admissions",
+        "discharges": "Discharges",
+        "netChange": "Net change",
+        "billed": "Billed",
+        "collected": "Collected",
+        "outstanding": "Outstanding",
+        "avgStay": "Avg stay (days)",
+        "staff": "Staff",
+        "patients": "Patients",
+        "hours": "Hours",
+        "revenue": "Revenue"
+      },
+      "axis": {
+        "period": "Period",
+        "employeeType": "Employee type",
+        "service": "Service",
+        "drug": "Drug"
+      },
+      "distribution": {
+        "payment": "Payment",
+        "gender": "Gender",
+        "toggleLabel": "Distribution split"
+      },
+      "emptyTitle": "No data in this period",
+      "emptyDescription": "Nothing was recorded for the selected range.",
+      "charts": {
+        "census": "Patient Census & Admissions",
+        "censusCaption": "Patients present in the ward vs. new admissions per {{grouping}}",
+        "distribution": "Patient Distribution",
+        "distributionCaption": "Admissions in the period by payment type and gender",
+        "averageStay": "Average Stay Duration",
+        "averageStayCaption": "Average of the stays discharged in each {{grouping}}",
+        "revenue": "Revenue Trends",
+        "revenueCaption": "Billed, collected and outstanding per {{grouping}}",
+        "flow": "Admissions vs Discharges",
+        "flowCaption": "Net change is admissions minus discharges",
+        "topServices": "Top 10 Services by Revenue",
+        "topDrugs": "Top 10 Drugs by Revenue",
+        "topCaption": "Ranked by revenue inside the selected period",
+        "staff": "Staff Utilization",
+        "staffCaption": "Head-count on the left axis, hours worked on the right"
+      }
+    },
+    "paymentTypes": {
+      "cash": "Cash",
+      "credit": "Credit",
+      "insurance": "Insurance",
+      "supplies": "Medical Supplies"
+    },
+    "genderTypes": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "summary": {
+      "totalPatients": "Total Patients",
+      "uniquePatients": "Unique Patients",
+      "admissions": "Admissions",
+      "totalDoctors": "Total Doctors",
+      "totalNurses": "Total Nurses",
+      "totalDays": "Total Days",
+      "totalHours": "Total Hours",
+      "totalEmployees": "Total Employees",
+      "totalBill": "Total Bill Amount",
+      "totalPaid": "Total Paid",
+      "totalOutstanding": "Total Outstanding",
+      "totalPayments": "Total Payments",
+      "totalUnpaid": "Total Unpaid"
+    },
+    "patientCard": {
+      "id": "ID",
+      "nationalId": "National ID",
+      "age": "Age",
+      "years": "years",
+      "born": "Born",
+      "phone": "Phone",
+      "address": "Address",
+      "insurance": "Insurance",
+      "referringDoctor": "Referring Doctor",
+      "admissionHistory": "Admission History",
+      "noAdmissions": "No admissions in this period"
+    },
+    "admissionCard": {
+      "diagnosis": "Diagnosis",
+      "paid": "Paid",
+      "discount": "Discount",
+      "dailyStaff": "Daily Staff Assignments",
+      "doctors": "Doctors",
+      "nurses": "Nurses",
+      "services": "Services",
+      "drugs": "Drugs",
+      "supplies": "Medical Supplies",
+      "medicalTests": "Medical Tests",
+      "adminExpenses": "Admin. Expenses",
+      "vat": "VAT",
+      "outstanding": "Outstanding amount"
+    },
+    "paymentCard": {
+      "configuration": "Employee Payment Configuration",
+      "basePay": "Base Pay",
+      "baseExtraAmount": "Base Extra Amount",
+      "perPatientType": "Per Patient Type",
+      "percentageScope": "Percentage Scope",
+      "shift": "Shift"
+    },
+    "paymentDetail": {
+      "by": "by",
+      "clockInDeductions": "Clock-In Deductions"
+    },
+    "clockInReports": {
+      "title": "Employee Clock-In Details",
+      "emptyTitle": "No clock-in records",
+      "emptyDescription": "No employee clocked in during the selected period, and nobody was expected to.",
+      "stats": {
+        "avgHoursPerEmployee": "Avg Hours/Employee",
+        "totalDeductions": "Total Deductions",
+        "totalClockIns": "Total Clock-Ins",
+        "totalWorkedDays": "Worked Days",
+        "avgHoursPerDay": "Avg Hours / Day",
+        "totalMissingDays": "Missing Days"
+      },
+      "charts": {
+        "hoursWorked": "Hours Worked by Employee",
+        "attendanceStatus": "Attendance Status Distribution",
+        "hoursCaption": "Top employees by hours worked (up to twelve).",
+        "statusCaption": "One classification per day, including days with no clock-in."
+      },
+      "detail": {
+        "totalDays": "Total Days",
+        "workedDays": "Worked Days",
+        "punctuality": "Punctuality",
+        "records": "Daily Records",
+        "recordsCaption": "One row per session, newest first. Expand a row to see the patients behind it.",
+        "statusFilter": "Status",
+        "allStatuses": "All statuses",
+        "noRecords": "No records",
+        "noRecordsDescription": "This employee has no clock-in records in the selected period.",
+        "noRecordsForStatus": "No records with this status in the selected period.",
+        "missingNote": "{{count}} day(s) with no clock-in are counted above but are not listed as rows — they have no session to show.",
+        "missingNote_one": "{{count}} day with no clock-in is counted above but is not listed as a row — it has no session to show.",
+        "missingNote_other": "{{count}} days with no clock-in are counted above but are not listed as rows — they have no session to show.",
+        "patients": "Patients",
+        "noPatients": "No patient assignments on this record.",
+        "lateMinutes": "Late (min)",
+        "earlyMinutes": "Early (min)",
+        "noShift": "No shift configured",
+        "clockInRequirement": "Clock-In",
+        "required": "Required",
+        "notRequired": "Not required",
+        "employmentStatus": "Employment",
+        "active": "Active",
+        "inactive": "Inactive"
+      }
+    },
+    "table": {
+      "doctor": "Doctor",
+      "nurse": "Nurse",
+      "doctorType": "Doctor Type",
+      "patients": "Patients",
+      "patientName": "Patient Name",
+      "gender": "Gender",
+      "age": "Age",
+      "paymentType": "Payment Type",
+      "admissions": "# Admissions",
+      "totalBilled": "Total Billed",
+      "totalPaid": "Total Paid",
+      "lastAdmission": "Last Admission",
+      "lastDischarge": "Last Discharge",
+      "diagnosis": "Diagnosis",
+      "daysAssigned": "Days Assigned",
+      "totalDays": "Total Days",
+      "days": "Days",
+      "lastWorkDate": "Last Work Date",
+      "totals": "TOTALS",
+      "workDate": "Work Date",
+      "hours": "Hours",
+      "hoursWorked": "Hours Worked",
+      "amount": "Amount",
+      "clockIn": "Clock In",
+      "clockOut": "Clock Out",
+      "status": "Status",
+      "deduction": "Deduction",
+      "referringDoctor": "Referring Doctor",
+      "outstanding": "Outstanding",
+      "serviceDate": "Date",
+      "itemName": "Item",
+      "itemType": "Type",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "totalPrice": "Total",
+      "employee": "Employee",
+      "type": "Type",
+      "hireDate": "Hire Date",
+      "payments": "Payments",
+      "base": "Base",
+      "extra": "Extra",
+      "deductions": "Deductions",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "net": "Net",
+      "gross": "Gross",
+      "paymentDate": "Payment Date",
+      "patientCount": "Patients",
+      "paidOn": "Paid On",
+      "shift": "Shift",
+      "clockIns": "Clock-Ins",
+      "avgPerDay": "Avg / Day",
+      "punctuality": "Punctuality"
+    },
+    "units": {
+      "hours": "h"
+    },
+    "emptyState": {
+      "noPatientsFound": "No Patients Found",
+      "noPatientsDescription": "No patients match the selected criteria",
+      "noDoctorsFound": "No Doctors Found",
+      "noDoctorsDescription": "No doctors match the selected criteria",
+      "noNursesFound": "No Nurses Found",
+      "noNursesDescription": "No nurses match the selected criteria",
+      "noEmployeePaymentsTitle": "No Employee Payments",
+      "noEmployeePaymentsDescription": "No employee payments found for the selected criteria",
+      "noPatientsForDoctor": "No patients found for this doctor",
+      "noPatientsForNurse": "No patients found for this nurse"
+    },
+    "validation": {
+      "selectDoctor": "Please select a doctor",
+      "selectNurse": "Please select a nurse",
+      "endBeforeStart": "The end date must be on or after the start date."
+    },
+    "messages": {
+      "optionsError": "Some filter lists could not be loaded. The reports still work; reload the page to try again.",
+      "exportError": "The export could not be prepared. Try again, or adjust the filters and regenerate.",
+      "printError": "The printout could not be prepared. Try again."
+    }
+  }
+}

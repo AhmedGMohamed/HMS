@@ -1,0 +1,395 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/inter";
+
+/* ----------------------------------------------------------------
+   Type system — design.md §4.2
+   Inter Variable handles Latin (incl. numerals);
+   Noto Sans Arabic handles Arabic glyphs in [dir="rtl"];
+   JetBrains Mono handles IDs / codes. font-display: swap is on by
+   default in the @fontsource imports.
+   ---------------------------------------------------------------- */
+@import "@fontsource/noto-sans-arabic/400.css";
+@import "@fontsource/noto-sans-arabic/500.css";
+@import "@fontsource/noto-sans-arabic/600.css";
+@import "@fontsource/noto-sans-arabic/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   HMS Healthcare Design Tokens (design.md §4.1)
+   Colors live in one place: the `:root` (light) and `.dark`
+   (dark) blocks below. The `@theme inline` bridge maps them
+   into Tailwind's `--color-*` namespace and shadcn's semantic
+   variables, so a value is never declared twice. Hex is the
+   source of truth because it matches design.md §4.1 exactly
+   and stays readable.
+   ============================================================ */
+@theme {
+    /* Typography */
+    --font-heading: var(--font-sans);
+    --font-sans: 'Inter Variable', 'Noto Sans Arabic', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Radius (synced with --radius: 0.5rem / 8px) */
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: calc(var(--radius) * 0.75);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.5);
+    --radius-2xl: calc(var(--radius) * 2);
+
+    /* Shadows (design.md §4.4) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgba(15, 23, 42, 0.05);
+    --shadow-focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+}
+
+/* ============================================================
+   shadcn/ui bridge (design.md §11.2)
+   Maps the single-source `:root` tokens into the generated
+   primitives' names AND into Tailwind v4's `--color-*`
+   namespace so utilities resolve (bg-background,
+   text-foreground, border-border, text-success, ...).
+   ============================================================ */
+@theme inline {
+    /* shadcn core semantics */
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Brand extensions (design.md §4.1.1) */
+    --color-primary-light: var(--primary-light);
+    --color-primary-dark: var(--primary-dark);
+    --color-secondary-light: var(--secondary-light);
+
+    /* Status (design.md §4.1.3) */
+    --color-success: var(--success);
+    --color-success-light: var(--success-light);
+    --color-success-dark: var(--success-dark);
+    --color-warning: var(--warning);
+    --color-warning-light: var(--warning-light);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-danger: var(--danger);
+    --color-danger-light: var(--danger-light);
+    --color-info: var(--info);
+    --color-info-light: var(--info-light);
+
+    /* Surfaces, text, lines (design.md §4.1.2) */
+    --color-surface: var(--surface);
+    --color-surface-muted: var(--surface-muted);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-tertiary: var(--text-tertiary);
+    --color-border-strong: var(--border-strong);
+    --color-disabled: var(--disabled);
+    --color-disabled-bg: var(--disabled-bg);
+}
+
+@layer base {
+    :root {
+        /* ---- Brand: deep ocean blue + clinical teal ---- */
+        --primary: #075985;             /* 7.6:1 on white */
+        --primary-foreground: #FFFFFF;
+        --primary-dark: #064663;        /* pressed/active, 8.2:1 on tint */
+        --primary-light: #DCEBF5;       /* selection / active nav tint */
+
+        --secondary: #0F766E;           /* 5.5:1 on white */
+        --secondary-foreground: #FFFFFF;
+        --secondary-light: #E7F5F3;
+
+        /* ---- Status: dark enough for text, light enough for tints ---- */
+        --success: #15803D;             /* 5.0:1 on white */
+        --success-light: #DCFCE7;
+        --success-dark: #166534;        /* 6.5:1 on success-light */
+        --warning: #B45309;             /* 5.0:1 on white */
+        --warning-light: #FEF3C7;
+        --warning-foreground: #7C2D12;  /* alert copy on warning-light */
+        --danger: #B91C1C;              /* 6.5:1 on white */
+        --danger-light: #FEE2E2;
+        --info: #0369A1;                /* 5.9:1 on white */
+        --info-light: #E0F2FE;
+
+        /* ---- Surfaces ---- */
+        --background: #F6F8FB;          /* neutral paper, not sky-tinted */
+        --foreground: #0F172A;
+        --surface: #FFFFFF;
+        --surface-muted: #F1F5F9;
+
+        --card: var(--surface);
+        --card-foreground: var(--foreground);
+        --popover: var(--surface);
+        --popover-foreground: var(--foreground);
+
+        --muted: #F1F5F9;
+        --muted-foreground: #475569;
+
+        /* Accent = quiet brand tint, never a second hue.
+           This is what menu/select/combobox highlight states use. */
+        --accent: var(--primary-light);
+        --accent-foreground: var(--primary-dark);
+
+        --destructive: var(--danger);
+        --destructive-foreground: #FFFFFF;
+
+        /* ---- Text + lines ---- */
+        --text-primary: #0F172A;
+        --text-secondary: #475569;
+        --text-tertiary: #64748B;
+        --border: #E2E8F0;
+        --border-strong: #CBD5E1;
+        --input: var(--border-strong);
+        --ring: var(--primary);
+        --disabled: #94A3B8;
+        --disabled-bg: #F1F5F9;
+
+        /* ---- Charts: distinguishable hues, not red/green alone ---- */
+        --chart-1: var(--primary);
+        --chart-2: var(--secondary);
+        --chart-3: #7C3AED;
+        --chart-4: var(--warning);
+        --chart-5: #BE123C;
+
+        --radius: 0.5rem;
+
+        /* ---- Sidebar ---- */
+        --sidebar: var(--surface);
+        --sidebar-foreground: var(--foreground);
+        --sidebar-primary: var(--primary);
+        --sidebar-primary-foreground: #FFFFFF;
+        --sidebar-accent: var(--primary-light);
+        --sidebar-accent-foreground: var(--primary-dark);
+        --sidebar-border: var(--border);
+        --sidebar-ring: var(--primary);
+    }
+
+    /* ============================================================
+       Dark theme (design.md §4.1.6)
+       Only raw values are re-declared. Derived aliases declared in
+       `:root` as `var(--x)` (card, popover, accent, destructive,
+       input, ring, charts 1/2/4, sidebar-*) resolve automatically.
+       Brand hues brighten; surfaces become deep navy rather than
+       pure black, so elevation still reads.
+       ============================================================ */
+    .dark {
+        --primary: #7CC7EA;              /* 9.3:1 on surface */
+        --primary-foreground: #052330;   /* 8.7:1 on primary */
+        --primary-dark: #A9DCF2;         /* text on the tint */
+        --primary-light: #14344A;        /* selection tint */
+
+        --secondary: #4FD1C5;            /* 9.3:1 on surface */
+        --secondary-foreground: #04211F; /* 9.1:1 on secondary */
+        --secondary-light: #123A38;
+
+        --success: #4ADE80;              /* 10.0:1 on surface */
+        --success-light: #0F2E1D;
+        --success-dark: #86EFAC;         /* 10.5:1 on success-light */
+        --warning: #FBBF24;              /* 10.4:1 on surface */
+        --warning-light: #3A2A0A;
+        --warning-foreground: #FDE68A;   /* 11.1:1 on warning-light */
+        --danger: #F87171;               /* 6.8:1 on background */
+        --danger-light: #3B1215;         /* 5.9:1 vs danger */
+        --info: #60A5FA;                 /* 6.9:1 on surface */
+        --info-light: #102A43;           /* 5.8:1 vs info */
+
+        --background: #0B1220;           /* deep navy, not black */
+        --foreground: #E6EDF6;           /* 15.9:1 on background */
+        --surface: #111A2B;
+        --surface-muted: #16202F;
+
+        --muted: #18222F;
+        --muted-foreground: #A9B7C9;     /* 7.9:1 on muted */
+
+        --destructive-foreground: #2A0A0C; /* 6.6:1 on danger */
+
+        --text-primary: #E6EDF6;
+        --text-secondary: #A9B7C9;       /* 8.5:1 on surface */
+        --text-tertiary: #8494A8;        /* 6.1:1 on background */
+        --border: #243244;
+        --border-strong: #33445C;
+        --disabled: #64748B;             /* inactive, contrast-exempt */
+        --disabled-bg: #1A2433;
+
+        --chart-3: #C4B5FD;
+        --chart-5: #FB7185;
+
+        --sidebar-primary-foreground: var(--primary-foreground);
+
+        color-scheme: dark;
+    }
+
+    /* ============================================================
+       True Dark (design.md §4.1.7)
+       An OLED-friendly alternative to the navy dark theme. It is
+       layered ON TOP of `.dark` (the provider sets both classes),
+       so `dark:` utilities keep working; because this block comes
+       after `.dark`, its raw values win at equal specificity.
+       Only raw values are overridden — var() aliases follow.
+       ============================================================ */
+    .true-dark {
+        --primary: #38BDF8;              /* sky blue, 9.8:1 on black */
+        --primary-foreground: #08202E;   /* 7.8:1 on primary */
+        --primary-dark: #BAE6FD;         /* 12.1:1 on the tint */
+        --primary-light: #0A2432;        /* blue selection tint */
+
+        --secondary: #60A5FA;            /* blue, 8.3:1 on black */
+        --secondary-foreground: #06121F; /* 7.4:1 on secondary */
+        --secondary-light: #0A1B2E;
+
+        --success: #34D399;              /* 10.9:1 on black */
+        --success-light: #052E20;
+        --success-dark: #6EE7B7;         /* 9.7:1 on success-light */
+        --warning: #FBBF24;              /* 12.6:1 on black */
+        --warning-light: #3A2A0A;
+        --warning-foreground: #FDE68A;   /* 11.1:1 on warning-light */
+        --danger: #F87171;               /* 7.6:1 on black */
+        --danger-light: #3B1215;         /* 5.9:1 vs danger */
+        --info: #7DD3FC;                 /* sky-300, 12.6:1 on black */
+        --info-light: #082F49;           /* 8.3:1 vs info */
+
+        --background: #000000;           /* true black */
+        --foreground: #E8F2FA;           /* 18.5:1 on black */
+        --surface: #070B0F;              /* cards lift off black */
+        --surface-muted: #0C1218;
+
+        --muted: #0D141B;
+        --muted-foreground: #A6B8CB;     /* 9.1:1 on muted */
+
+        --destructive-foreground: #2A0A0C; /* 6.6:1 on danger */
+
+        --text-primary: #E8F2FA;
+        --text-secondary: #A6B8CB;       /* 9.7:1 on surface */
+        --text-tertiary: #7E93A8;        /* 6.6:1 on black */
+        --border: #1A2732;
+        --border-strong: #2A3B4A;
+        --disabled: #5C6E7D;             /* inactive, contrast-exempt */
+        --disabled-bg: #111A22;
+
+        --chart-3: #C4B5FD;
+        --chart-5: #FB7185;
+
+        --sidebar-primary-foreground: var(--primary-foreground);
+
+        color-scheme: dark;
+    }
+
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "kern" 1, "liga" 1;
+    }
+    html {
+        @apply font-sans;
+        -webkit-text-size-adjust: 100%;
+        /* iOS auto-zoom safeguard — never go below 16px */
+        font-size: 16px;
+    }
+
+    /* ----------------------------------------------------------------
+       RTL first-class (design.md §5, accessibility §8)
+       When <html dir="rtl"> is set by RTLSync in App.tsx, swap the
+       font stack so Arabic glyphs become first-class citizens.
+       Punctuation, numbers, and layout flip automatically.
+       ---------------------------------------------------------------- */
+    [dir="rtl"] {
+        font-family: 'Noto Sans Arabic', 'Inter Variable', system-ui, sans-serif;
+        letter-spacing: 0;
+    }
+}
+
+/* ============================================================
+   Sidebar active marker (design.md §5)
+   shadcn drives both hover and active from --sidebar-accent, so
+   the two states would otherwise look identical. Keep the tint
+   from the token and add a brand rail + weight so the current
+   page is unmistakable. Unlayered on purpose: it must win over
+   the generated `data-active:font-medium` utility.
+   ============================================================ */
+[data-slot="sidebar-menu-button"][data-active="true"] {
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--primary);
+}
+[dir="rtl"] [data-slot="sidebar-menu-button"][data-active="true"] {
+    box-shadow: inset -2px 0 0 var(--primary);
+}
+
+/* ============================================================
+   Table row entrance (design.md §10)
+   Applied with `motion-safe:` so reduced-motion users skip both
+   the animation and its staggered delay.
+   ============================================================ */
+@keyframes row-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@utility animate-row-in {
+    animation: row-in 150ms ease-out both;
+}
+
+/* ============================================================
+   Reduced-motion guard (design.md §10, accessibility §8)
+   Neutralizes animations/transitions for users with the OS-level
+   prefers-reduced-motion preference.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================================
+   Tabular figures utility (design.md §4.2)
+   Apply to table cells, KPIs, currency, anywhere digits must
+   stay column-aligned while values update.
+   ============================================================ */
+@utility tabular-nums {
+    font-variant-numeric: tabular-nums;
+}

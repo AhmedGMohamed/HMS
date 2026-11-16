@@ -8,6 +8,8 @@ import {
 	adminOnly,
 	checkPermissions
 } from "../../middleware/auth.middleware.js";
+import { dbHelper, TestData } from "../helpers/db.helper.js";
+import { query } from "../../models/database/connection.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -29,36 +31,63 @@ describe("Auth Middleware", () => {
 		nextFunction = jasmine.createSpy("next");
 	});
 
+	/**
+	 * `verifyToken` re-reads the account on every request, so these cases need
+	 * real rows. The old version signed `userId: 1` with no database and called
+	 * the middleware synchronously — that only worked while it trusted the claim.
+	 */
 	describe("verifyToken", () => {
-		it("should pass valid token", () => {
-			const token = jwt.sign(
-				{ userId: 1, username: "test", role: "Admin", permissions: [] },
-				process.env.JWT_SECRET || "your-secret-key"
-			);
+		let seeded: TestData;
 
-			mockRequest = {
-				headers: {
-					authorization: `Bearer ${token}`
-				},
-				cookies: {
-					"auth": token
-				}
-			};
+		const sign = (payload: Record<string, unknown>) =>
+			jwt.sign(payload, process.env.JWT_SECRET || "your-secret-key");
 
-			verifyToken(mockRequest, mockResponse, nextFunction);
+		const withBearer = (token: string) => ({
+			headers: { authorization: `Bearer ${token}` },
+			cookies: {}
+		});
+
+		beforeEach(async () => {
+			await dbHelper.clearDatabase();
+			seeded = await dbHelper.seedDatabase();
+		});
+
+		afterEach(async () => {
+			await dbHelper.clearDatabase();
+		});
+
+		it("should pass a valid token and hydrate the live role", async () => {
+			const admin = seeded.users.find((u) => u.username === "admin")!;
+			const token = sign({
+				userId: admin.user_id,
+				username: "stale-name",
+				role: "Wrong Role",
+				permissions: []
+			});
+
+			mockRequest = withBearer(token);
+			await verifyToken(mockRequest, mockResponse, nextFunction);
 
 			expect(nextFunction).toHaveBeenCalled();
 			expect(mockRequest.user).toBeDefined();
-			expect(mockRequest.user.username).toBe("test");
+			// The role comes from the database, not the (stale) token claim.
+			expect(mockRequest.user.role).toBe("Admin");
 		});
 
-		it("should reject missing token", () => {
-			mockRequest = {
-				headers: {},
-				cookies: {}
-			};
+		it("should accept the cookie as well as the bearer header", async () => {
+			const admin = seeded.users.find((u) => u.username === "admin")!;
+			const token = sign({ userId: admin.user_id, role: "Admin", permissions: [] });
 
-			verifyToken(mockRequest, mockResponse, nextFunction);
+			mockRequest = { headers: {}, cookies: { auth: token } };
+			await verifyToken(mockRequest, mockResponse, nextFunction);
+
+			expect(nextFunction).toHaveBeenCalled();
+		});
+
+		it("should reject missing token", async () => {
+			mockRequest = { headers: {}, cookies: {} };
+
+			await verifyToken(mockRequest, mockResponse, nextFunction);
 
 			expect(mockResponse.status).toHaveBeenCalledWith(401);
 			expect(mockResponse.status().json).toHaveBeenCalledWith({
@@ -66,22 +95,69 @@ describe("Auth Middleware", () => {
 			});
 		});
 
-		it("should reject invalid token", () => {
-			mockRequest = {
-				headers: {
-					authorization: "Bearer invalid_token"
-				},
-				cookies: {
-					auth: "invalid_token"
-				}
-			};
+		it("should reject invalid token", async () => {
+			mockRequest = withBearer("invalid_token");
 
-			verifyToken(mockRequest, mockResponse, nextFunction);
+			await verifyToken(mockRequest, mockResponse, nextFunction);
 
 			expect(mockResponse.status).toHaveBeenCalledWith(401);
 			expect(mockResponse.status().json).toHaveBeenCalledWith({
 				error: "Invalid token"
 			});
+		});
+
+		it("should report an expired token as expired, not invalid", async () => {
+			// TokenExpiredError extends JsonWebTokenError, so the branch order
+			// matters — this is the regression guard for that.
+			const admin = seeded.users.find((u) => u.username === "admin")!;
+			const token = jwt.sign(
+				{ userId: admin.user_id, role: "Admin", permissions: [] },
+				process.env.JWT_SECRET || "your-secret-key",
+				{ expiresIn: -10 }
+			);
+
+			mockRequest = withBearer(token);
+			await verifyToken(mockRequest, mockResponse, nextFunction);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(401);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "Token expired"
+			});
+		});
+
+		it("should reject a token whose account no longer exists", async () => {
+			const token = sign({ userId: 999999, role: "Admin", permissions: [] });
+
+			mockRequest = withBearer(token);
+			await verifyToken(mockRequest, mockResponse, nextFunction);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(401);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "User no longer exists"
+			});
+		});
+
+		it("should reject a deactivated account", async () => {
+			const plain = seeded.users.find((u) => u.username === "user")!;
+			await query('UPDATE "User" SET is_active = FALSE WHERE user_id = $1', [
+				plain.user_id
+			]);
+
+			const token = sign({
+				userId: plain.user_id,
+				role: "User",
+				permissions: []
+			});
+
+			mockRequest = withBearer(token);
+			await verifyToken(mockRequest, mockResponse, nextFunction);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(401);
+			expect(mockResponse.status().json).toHaveBeenCalledWith({
+				error: "Account is deactivated",
+				code: "ACCOUNT_DEACTIVATED"
+			});
+			expect(nextFunction).not.toHaveBeenCalled();
 		});
 	});
 
@@ -189,6 +265,42 @@ describe("Auth Middleware", () => {
 			expect(nextFunction).toHaveBeenCalled();
 		});
 
+		it("should allow the System role to access any user", () => {
+			// Replaces the old `username == "system"` escape hatch.
+			mockRequest = {
+				user: {
+					userId: 4,
+					username: "system",
+					role: "System"
+				},
+				params: {
+					id: "2"
+				}
+			};
+
+			checkSelfOrAdmin(mockRequest, mockResponse, nextFunction);
+
+			expect(nextFunction).toHaveBeenCalled();
+		});
+
+		it("should no longer special-case the username 'system'", () => {
+			// Without the System role the username earns nothing.
+			mockRequest = {
+				user: {
+					userId: 4,
+					username: "system",
+					role: "User"
+				},
+				params: {
+					id: "2"
+				}
+			};
+
+			checkSelfOrAdmin(mockRequest, mockResponse, nextFunction);
+
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
+		});
+
 		it("should reject user accessing other user data", () => {
 			mockRequest = {
 				user: {
@@ -219,7 +331,21 @@ describe("Auth Middleware", () => {
 			expect(nextFunction).toHaveBeenCalled();
 		});
 
-		it("should reject non-admin access", () => {
+		it("should allow the automation (System) role", () => {
+			// Cron jobs authenticate as the `system` account, which now holds the
+			// System role rather than borrowing Admin.
+			mockRequest = {
+				user: {
+					role: "System"
+				}
+			};
+
+			adminOnly(mockRequest, mockResponse, nextFunction);
+
+			expect(nextFunction).toHaveBeenCalled();
+		});
+
+		it("should reject non-privileged access", () => {
 			mockRequest = {
 				user: {
 					role: "User"

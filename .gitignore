@@ -9,10 +9,16 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-ssr
-dist-react
-dist-electron
+dist*
+build/*
 *.local
+
+# `dist*` above is meant for build output, but it also matches any path whose
+# file name starts with "Dist" — and Windows matches it case-insensitively, so
+# e.g. components/charts/DistributionDonutChart.tsx was silently ignored and
+# would have broken the build on a fresh clone. Source is never build output.
+!src/**/*.ts
+!src/**/*.tsx
 
 # Editor directories and files
 .vscode/*
@@ -30,7 +36,6 @@ dist-electron
 tree*
 .instructions/*
 !instructions/Project Details/DB initialization.sql
-check-i18n-keys.js
 *.zip
 *.rar
 .env

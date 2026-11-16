@@ -2,14 +2,41 @@ import { Request, Response } from "express";
 import PriceListModel from "../models/PriceList.model.js";
 import {
 	CreatePriceListDTO,
-	UpdatePriceListDTO
+	UpdatePriceListDTO,
+	BulkPricesDTO
 } from "../utils/types/priceLists.js";
+import { buildPage, parsePagination } from "../utils/pagination.js";
+
+function readString(value: unknown): string | undefined {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (Array.isArray(value)) {
+		return readString(value[0]);
+	}
+	return undefined;
+}
+
+function readBoolean(value: unknown): boolean {
+	const raw = readString(value);
+	return raw === "true" || raw === "1";
+}
 
 export class PriceListController {
-	async getAllPriceLists(_req: Request, res: Response) {
+	async getAllPriceLists(req: Request, res: Response) {
 		try {
-			const priceLists = await PriceListModel.getAllPriceLists();
-			res.json(priceLists);
+			const pagination = parsePagination(req);
+			const all = readBoolean(req.query?.all);
+			const { rows, total } = await PriceListModel.getAllPriceLists({
+				offset: all ? undefined : pagination.offset,
+				limit: all ? undefined : pagination.limit,
+				search: readString(req.query?.search)
+			});
+			const page = all
+				? { ...pagination, page: 1, pageSize: rows.length }
+				: pagination;
+			res.json(buildPage(rows, total, page));
 		} catch (error) {
 			console.error("Error fetching price lists:", error);
 			res.status(500).json({ error: "Failed to fetch price lists" });
@@ -58,6 +85,11 @@ export class PriceListController {
 		} catch (error: any) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
+			} else if (
+				error.message ===
+				"Cannot unset the default price list. Set another list as default first."
+			) {
+				res.status(400).json({ error: error.message });
 			} else {
 				console.error("Error updating price list:", error);
 				res.status(500).json({ error: "Failed to update price list" });
@@ -77,9 +109,40 @@ export class PriceListController {
 				error.message === "Cannot delete the default price list"
 			) {
 				res.status(400).json({ error: error.message });
+			} else if (
+				error.message.startsWith(
+					"Cannot delete this price list:"
+				)
+			) {
+				res.status(409).json({ error: error.message });
 			} else {
 				console.error("Error deleting price list:", error);
 				res.status(500).json({ error: "Failed to delete price list" });
+			}
+		}
+	}
+
+	async setPricesForList(req: Request, res: Response) {
+		try {
+			const priceListId = parseInt(req.params.id);
+			const data: BulkPricesDTO = req.body;
+			const result = await PriceListModel.setPricesForList(
+				priceListId,
+				data
+			);
+			res.json(result);
+		} catch (error: any) {
+			if (error.message === "Price list not found") {
+				res.status(404).json({ error: error.message });
+			} else if (
+				error.message.startsWith("Invalid price data") ||
+				error.message.startsWith("Invalid prepayment data") ||
+				error.message.startsWith("Prepayment ")
+			) {
+				res.status(400).json({ error: error.message });
+			} else {
+				console.error("Error setting prices for price list:", error);
+				res.status(500).json({ error: "Failed to set prices" });
 			}
 		}
 	}
