@@ -186,7 +186,6 @@
       "voidAllError": "فشل إلغاء جميع المدفوعات",
       "loadUserNameError": "فشل تحميل اسم المستخدم",
       "loadPaymentsError": "فشل تحميل المدفوعات",
-      "servicePrices": "أسعار الخدمات",
       "onlyAdminsCanCreate": "يمكن للمسؤولين فقط إنشاء الأطباء",
       "onlyAdminsCanSave": "يمكن للمسؤولين فقط حفظ الأطباء",
       "onlyAdminsCanEdit": "يمكن للمسؤولين فقط تعديل الأطباء",
