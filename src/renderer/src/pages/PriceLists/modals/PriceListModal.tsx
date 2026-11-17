@@ -27,7 +27,7 @@ import {
   type PriceListValues,
 } from "@/pages/PriceLists/schemas/priceList.schema"
 import type { PriceList } from "@/pages/PriceLists/types/priceList"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 interface PriceListModalProps {
   open: boolean
@@ -129,13 +129,18 @@ export function PriceListModal({
       }
       onOpenChange(false)
     } catch (err) {
+      /* The update endpoint answers 400 only for the "default list cannot be
+         unset" guard (404 = not found, 500 = unexpected); there is no
+         machine code in the response, so statusCode is the discriminant.
+         Never string-match the English message. */
       toast.error(
-        err instanceof ApiError &&
-          err.message.includes("Cannot unset the default price list")
-          ? t("priceLists.messages.defaultGuardError")
-          : err instanceof ApiError
-            ? err.message
-            : t("priceLists.messages.saveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError && err.statusCode === 400
+            ? t("priceLists.messages.defaultGuardError")
+            : err instanceof ApiError
+              ? err.message
+              : t("priceLists.messages.saveError")
       )
     } finally {
       setSubmitting(false)

@@ -22,7 +22,7 @@ import type {
   PriceList,
   PriceListWithStats,
 } from "@/pages/PriceLists/types/priceList"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 /**
  * /price-lists — Price Lists Management root page.
@@ -224,9 +224,11 @@ export default function PriceListsPage() {
             allLists.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("priceLists.messages.deleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("priceLists.messages.deleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false

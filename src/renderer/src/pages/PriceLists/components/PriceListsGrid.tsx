@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
 import { PriceListCard } from "@/pages/PriceLists/components/PriceListCard"
 import type { PriceListWithStats } from "@/pages/PriceLists/types/priceList"
+import { isNetworkError } from "@/lib/errors"
 
 interface PriceListsGridProps {
   priceLists: PriceListWithStats[]
@@ -53,7 +54,9 @@ export function PriceListsGrid({
       <EmptyState
         icon={<ListIcon aria-hidden />}
         title={t("priceLists.messages.loadError")}
-        description={error.message}
+        description={
+          isNetworkError(error) ? t("errors.networkError") : error.message
+        }
         action={
           <Button variant="outline" onClick={onRetry}>
             <RotateCcwIcon aria-hidden className="me-2 size-4" />

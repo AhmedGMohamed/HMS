@@ -52,7 +52,7 @@ import {
   normalizeService,
   type NormalizedService,
 } from "@/pages/_shared/services/types"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 type TabKey = "services" | "drugs" | "supplies"
 
@@ -454,9 +454,11 @@ export function AddPricesModal({
       onSaved?.(result)
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : t("priceLists.messages.pricesSaveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("priceLists.messages.pricesSaveError")
       )
     } finally {
       setSaving(false)
