@@ -163,7 +163,7 @@ export class UserModel {
 	async updateUser(userData: UpdateUserDTO): Promise<User> {
 		try {
 			const updates: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (userData.username) {

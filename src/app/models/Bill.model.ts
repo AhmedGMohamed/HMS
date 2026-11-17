@@ -42,7 +42,7 @@ class BillModel {
         updates: Partial<Bill>
     ): Promise<Bill | null> {
         const updateFields: string[] = [];
-        const values: any[] = [];
+        const values: unknown[] = [];
         let paramCount = 1;
 
         Object.entries(updates).forEach(([key, value]) => {

@@ -126,7 +126,7 @@ export default class EmployeeModel {
 		dto: Partial<CreateEmployeeDTO>
 	): Promise<Employee | null> {
 		const fields: string[] = [];
-		const values: any[] = [];
+		const values: unknown[] = [];
 		let index = 1;
 
 		Object.entries(dto).forEach(([key, value]) => {

@@ -38,7 +38,7 @@ export class PermissionModel {
 	): Promise<Permission> {
 		try {
 			const updates: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (permissionData.feature_name) {

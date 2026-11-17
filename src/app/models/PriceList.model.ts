@@ -119,7 +119,7 @@ export class PriceListModel {
 			}
 
 			const updateFields: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (data.name !== undefined) {

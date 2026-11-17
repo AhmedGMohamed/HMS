@@ -41,7 +41,7 @@ switch (process.env.NODE_ENV) {
 		});
 }
 
-export const query = async (text: string, params?: any[]) => {
+export const query = async (text: string, params?: unknown[]) => {
 	try {
 		const parameters = params || [];
 		const result = await pool.query(text, parameters);

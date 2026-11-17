@@ -313,7 +313,7 @@ export default class EmployeePaymentModel {
 		dto: Partial<CreateEmployeePaymentDTO>
 	): Promise<EmployeePayment | null> {
 		const fields: string[] = [];
-		const values: any[] = [];
+		const values: unknown[] = [];
 		let index = 1;
 
 		Object.entries(dto).forEach(([key, value]) => {

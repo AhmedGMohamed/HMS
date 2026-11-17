@@ -226,7 +226,7 @@ export class ServiceModel {
 
 			// Update service details
 			let updateFields: string[] = [];
-			let values: any[] = [];
+			let values: unknown[] = [];
 			let paramCount = 1;
 
 			if (serviceData.name) {

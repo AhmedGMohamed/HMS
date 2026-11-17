@@ -97,7 +97,7 @@ export class MedicalSupplyShipmentModel {
 
             // Update shipment fields if any are provided
             const updateFields: string[] = [];
-            const values: any[] = [];
+            const values: unknown[] = [];
             let paramCount = 1;
 
             if (fields.warehouse_id !== undefined) {
