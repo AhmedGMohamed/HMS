@@ -11,6 +11,7 @@
  */
 
 import type { ReactNode } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { DataTable } from "@/components/common/DataTable"
@@ -42,6 +43,9 @@ export interface DoctorPatientTableProps {
   footer?: ReactNode
 }
 
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getPatientRowId = (row: DoctorPatientRow) => row.patientId
+
 export function DoctorPatientTable({
   data,
   loading = false,
@@ -61,22 +65,31 @@ export function DoctorPatientTable({
   const { t } = useTranslation()
   const language = useUIStore((state) => state.language) ?? "en"
 
-  const columns = buildDoctorPatientColumns({
-    t,
-    language,
-    onView: onRowClick,
-  })
+  const columns = useMemo(
+    () =>
+      buildDoctorPatientColumns({
+        t,
+        language,
+        onView: onRowClick,
+      }),
+    [t, language, onRowClick]
+  )
+
+  const pagination = useMemo(
+    () => ({ page, pageSize, total, onPageChange, onPageSizeChange }),
+    [page, pageSize, total, onPageChange, onPageSizeChange]
+  )
 
   return (
     <DataTable
       data={data}
       columns={columns}
       loading={loading}
-      getRowId={(row) => row.patientId}
+      getRowId={getPatientRowId}
       onRowClick={onRowClick}
       sort={sort}
       onSortToggle={onSortToggle}
-      pagination={{ page, pageSize, total, onPageChange, onPageSizeChange }}
+      pagination={pagination}
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
       ariaLabel={ariaLabel}

@@ -17,7 +17,7 @@
  *     the current sort, so a download always matches the report on screen.
  */
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -73,6 +73,9 @@ export interface PatientReportTabProps {
 
 const PAYMENT_TYPES: PaymentTypeFilter[] = ["all", "cash", "credit", "insurance"]
 
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getPatientRowId = (row: PatientReportRow) => row.patientId
+
 /** Default paging: name ascending, which is also the server's own default. */
 const INITIAL_PAGING: PatientQueryPaging = {
   page: 1,
@@ -107,7 +110,10 @@ export function PatientReportTab({
 }: PatientReportTabProps) {
   const { t } = useTranslation()
   const language = useUIStore((state) => state.language) ?? "en"
-  const money = (value: number) => formatCurrency(value, resolveLocale(language))
+  const money = useCallback(
+    (value: number) => formatCurrency(value, resolveLocale(language)),
+    [language]
+  )
 
   const [pagingState, setPagingState] = useState<PagingState>({
     key: null,
@@ -115,18 +121,30 @@ export function PatientReportTab({
   })
   const paging = pagingState.key === generatedKey ? pagingState.value : INITIAL_PAGING
 
-  const setPaging = (patch: Partial<PatientQueryPaging>) => {
-    setPagingState({ key: generatedKey, value: { ...paging, ...patch } })
-  }
+  const setPaging = useCallback(
+    (patch: Partial<PatientQueryPaging>) => {
+      setPagingState((prev) => {
+        /* Same rule as the render-time read: a stale key means the report
+           changed, so start from the initial paging. */
+        const current = prev.key === generatedKey ? prev.value : INITIAL_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
-  const filters: PatientQueryFilters | null = generated
-    ? {
-        range: generated.range,
-        paymentType: generated.paymentType,
-        insuranceId: generated.insuranceId,
-        search: generated.search,
-      }
-    : null
+  const filters = useMemo<PatientQueryFilters | null>(
+    () =>
+      generated
+        ? {
+            range: generated.range,
+            paymentType: generated.paymentType,
+            insuranceId: generated.insuranceId,
+            search: generated.search,
+          }
+        : null,
+    [generated]
+  )
 
   const query = usePatientReport({
     filters,
@@ -187,33 +205,36 @@ export function PatientReportTab({
   /* Print — the detail is fetched on demand, never per list row       */
   /* ---------------------------------------------------------------- */
 
-  const printDetail = async (
-    detail: PatientReportDetail,
-    admissionId?: number
-  ) => {
-    try {
-      await buildPatientDetailPdf({ detail, range, t, language, admissionId })
-    } catch {
-      toast.error(t("reports.messages.printError"), {
-        duration: Number.POSITIVE_INFINITY,
-      })
-    }
-  }
+  const printDetail = useCallback(
+    async (detail: PatientReportDetail, admissionId?: number) => {
+      try {
+        await buildPatientDetailPdf({ detail, range, t, language, admissionId })
+      } catch {
+        toast.error(t("reports.messages.printError"), {
+          duration: Number.POSITIVE_INFINITY,
+        })
+      }
+    },
+    [range, t, language]
+  )
 
-  const handlePrintPatient = async (row: PatientReportRow) => {
-    if (!filters) return
-    setPrintingPatientId(row.patientId)
-    try {
-      const detail = await getPatientDetail(row.patientId, filters.range)
-      await printDetail(detail)
-    } catch {
-      toast.error(t("reports.messages.printError"), {
-        duration: Number.POSITIVE_INFINITY,
-      })
-    } finally {
-      setPrintingPatientId(null)
-    }
-  }
+  const handlePrintPatient = useCallback(
+    async (row: PatientReportRow) => {
+      if (!filters) return
+      setPrintingPatientId(row.patientId)
+      try {
+        const detail = await getPatientDetail(row.patientId, filters.range)
+        await printDetail(detail)
+      } catch {
+        toast.error(t("reports.messages.printError"), {
+          duration: Number.POSITIVE_INFINITY,
+        })
+      } finally {
+        setPrintingPatientId(null)
+      }
+    },
+    [filters, printDetail, t]
+  )
 
   const handlePrintAdmission = async (
     detail: PatientReportDetail,
@@ -228,6 +249,28 @@ export function PatientReportTab({
 
   const payload = query.payload
   const summary = payload?.summary ?? null
+
+  const handlePageChange = useCallback(
+    (page: number) => setPaging({ page }),
+    [setPaging]
+  )
+  const handlePageSizeChange = useCallback(
+    (pageSize: number) => setPaging({ page: 1, pageSize }),
+    [setPaging]
+  )
+  const pagination = useMemo(
+    () =>
+      payload
+        ? {
+            page: payload.page,
+            pageSize: payload.pageSize,
+            total: payload.total,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange,
+          }
+        : undefined,
+    [payload, handlePageChange, handlePageSizeChange]
+  )
 
   const kpiItems = summary
     ? [
@@ -263,13 +306,37 @@ export function PatientReportTab({
       ]
     : []
 
-  const columns = buildPatientColumns({
-    t,
-    language,
-    onView: (row) => setDetailPatientId(row.patientId),
-    onPrint: canExport ? handlePrintPatient : undefined,
-    printingPatientId,
-  })
+  const handleViewPatient = useCallback(
+    (row: PatientReportRow) => setDetailPatientId(row.patientId),
+    []
+  )
+
+  const columns = useMemo(
+    () =>
+      buildPatientColumns({
+        t,
+        language,
+        onView: handleViewPatient,
+        onPrint: canExport ? handlePrintPatient : undefined,
+        printingPatientId,
+      }),
+    [
+      t,
+      language,
+      handleViewPatient,
+      canExport,
+      handlePrintPatient,
+      printingPatientId,
+    ]
+  )
+
+  const handleSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setPaging({ sort: next, page: 1 }),
+    [setPaging]
+  )
 
   const exportDisabled = !canExport || !payload
   const exportDisabledReason = !canExport
@@ -375,17 +442,11 @@ export function PatientReportTab({
               data={payload.data}
               columns={columns}
               loading={query.loading || query.refreshing}
-              getRowId={(row) => row.patientId}
-              onRowClick={(row) => setDetailPatientId(row.patientId)}
+              getRowId={getPatientRowId}
+              onRowClick={handleViewPatient}
               sort={paging.sort}
-              onSortToggle={(_columnId, next) => setPaging({ sort: next, page: 1 })}
-              pagination={{
-                page: payload.page,
-                pageSize: payload.pageSize,
-                total: payload.total,
-                onPageChange: (page) => setPaging({ page }),
-                onPageSizeChange: (pageSize) => setPaging({ page: 1, pageSize }),
-              }}
+              onSortToggle={handleSortToggle}
+              pagination={pagination}
               emptyTitle={t("reports.emptyState.noPatientsFound")}
               emptyDescription={t("reports.emptyState.noPatientsDescription")}
               ariaLabel={t("reports.tabs.patientReports")}

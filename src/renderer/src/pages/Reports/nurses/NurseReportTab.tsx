@@ -29,7 +29,7 @@
  * share of **total hours**. Both are stated in their captions.
  */
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { UserRoundIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -68,6 +68,7 @@ import { buildNurseColumns } from "@/pages/Reports/nurses/nurseColumns"
 import { PatientDetailDialog } from "@/pages/Reports/patients/PatientDetailDialog"
 import type { ReportSessionResult } from "@/pages/Reports/state/useReportSession"
 import type {
+  NursePatientRow,
   NurseQueryFilters,
   NurseQueryPaging,
   NurseReportRow,
@@ -100,6 +101,9 @@ export interface NurseReportTabProps {
 }
 
 /** Server defaults: nurse list and patient table are both name-ascending. */
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getNurseRowId = (row: NurseReportRow) => row.nurseId
+
 const INITIAL_LIST_PAGING: NurseQueryPaging = {
   page: 1,
   pageSize: 10,
@@ -149,8 +153,11 @@ export function NurseReportTab({
   const language = useUIStore((state) => state.language) ?? "en"
   const locale = resolveLocale(language)
   /** Hours are decimals (`22.8`), so two fraction digits at most. */
-  const hours = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)
+  const hours = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value),
+    [locale]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Paging (per generated report)                                     */
@@ -165,9 +172,16 @@ export function NurseReportTab({
       ? listPagingState.value
       : INITIAL_LIST_PAGING
 
-  const setListPaging = (patch: Partial<NurseQueryPaging>) => {
-    setListPagingState({ key: generatedKey, value: { ...listPaging, ...patch } })
-  }
+  const setListPaging = useCallback(
+    (patch: Partial<NurseQueryPaging>) => {
+      setListPagingState((prev) => {
+        const current =
+          prev.key === generatedKey ? prev.value : INITIAL_LIST_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   const [patientPagingState, setPatientPagingState] = useState<PagingState>({
     key: null,
@@ -178,12 +192,16 @@ export function NurseReportTab({
       ? patientPagingState.value
       : INITIAL_PATIENT_PAGING
 
-  const setPatientPaging = (patch: Partial<NurseQueryPaging>) => {
-    setPatientPagingState({
-      key: generatedKey,
-      value: { ...patientPaging, ...patch },
-    })
-  }
+  const setPatientPaging = useCallback(
+    (patch: Partial<NurseQueryPaging>) => {
+      setPatientPagingState((prev) => {
+        const current =
+          prev.key === generatedKey ? prev.value : INITIAL_PATIENT_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Queries                                                           */
@@ -425,11 +443,20 @@ export function NurseReportTab({
         ]
       : []
 
-  const nurseColumns = buildNurseColumns({
-    t,
-    language,
-    onView: (row: NurseReportRow) => setDetailNurseId(row.nurseId),
-  })
+  const handleViewNurse = useCallback(
+    (row: NurseReportRow) => setDetailNurseId(row.nurseId),
+    []
+  )
+
+  const nurseColumns = useMemo(
+    () =>
+      buildNurseColumns({
+        t,
+        language,
+        onView: handleViewNurse,
+      }),
+    [t, language, handleViewNurse]
+  )
 
   /** The chart shows the rows the table shows; the export shows them all. */
   const chartPoints: NurseDistributionPoint[] =
@@ -453,6 +480,94 @@ export function NurseReportTab({
   const exportHandlerProps = canExport
     ? { onExportPdf: handleExportPdf, onExportCsv: handleExportCsv }
     : {}
+
+  /* Stable DataTable props: memoizing the callbacks, pagination object and
+     footer keeps the S15 memo effective across unrelated re-renders. */
+  const handleListSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setListPaging({ sort: next, page: 1 }),
+    [setListPaging]
+  )
+  const handleListPageChange = useCallback(
+    (page: number) => setListPaging({ page }),
+    [setListPaging]
+  )
+  const handleListPageSizeChange = useCallback(
+    (pageSize: number) => setListPaging({ page: 1, pageSize }),
+    [setListPaging]
+  )
+  const listPagination = useMemo(
+    () =>
+      listQuery.payload
+        ? {
+            page: listQuery.payload.page,
+            pageSize: listQuery.payload.pageSize,
+            total: listQuery.payload.total,
+            onPageChange: handleListPageChange,
+            onPageSizeChange: handleListPageSizeChange,
+          }
+        : undefined,
+    [listQuery.payload, handleListPageChange, handleListPageSizeChange]
+  )
+  const listFooter = useMemo(
+    () =>
+      listSummary ? (
+        <NurseTotalsBand
+          label={t("reports.table.totals")}
+          patients={listSummary.totalPatientAssignments}
+          days={listSummary.totalDays}
+          hours={hours(listSummary.totalHours)}
+          labels={{
+            patients: t("reports.table.patients"),
+            days: t("reports.table.totalDays"),
+            hours: t("reports.table.hours"),
+          }}
+          note={t("reports.nurseReports.dedupeNote", {
+            count: listSummary.totalPatients,
+          })}
+        />
+      ) : undefined,
+    [listSummary, t, hours]
+  )
+
+  const handlePatientRowClick = useCallback(
+    (row: NursePatientRow) => setDetailPatientId(row.patientId),
+    []
+  )
+  const handlePatientSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setPatientPaging({ sort: next, page: 1 }),
+    [setPatientPaging]
+  )
+  const handlePatientPageChange = useCallback(
+    (page: number) => setPatientPaging({ page }),
+    [setPatientPaging]
+  )
+  const handlePatientPageSizeChange = useCallback(
+    (pageSize: number) => setPatientPaging({ page: 1, pageSize }),
+    [setPatientPaging]
+  )
+  const detailFooter = useMemo(
+    () =>
+      detailSummary ? (
+        <NurseTotalsBand
+          label={t("reports.table.totals")}
+          patients={detailSummary.patients}
+          days={detailSummary.days}
+          hours={hours(detailSummary.hours)}
+          labels={{
+            patients: t("reports.table.patients"),
+            days: t("reports.table.totalDays"),
+            hours: t("reports.table.hours"),
+          }}
+        />
+      ) : undefined,
+    [detailSummary, t, hours]
+  )
 
   return (
     <>
@@ -546,41 +661,15 @@ export function NurseReportTab({
               data={listQuery.payload.data}
               columns={nurseColumns}
               loading={listQuery.loading || listQuery.refreshing}
-              getRowId={(row) => row.nurseId}
-              onRowClick={(row) => setDetailNurseId(row.nurseId)}
+              getRowId={getNurseRowId}
+              onRowClick={handleViewNurse}
               sort={listPaging.sort}
-              onSortToggle={(_columnId, next) =>
-                setListPaging({ sort: next, page: 1 })
-              }
-              pagination={{
-                page: listQuery.payload.page,
-                pageSize: listQuery.payload.pageSize,
-                total: listQuery.payload.total,
-                onPageChange: (page) => setListPaging({ page }),
-                onPageSizeChange: (pageSize) =>
-                  setListPaging({ page: 1, pageSize }),
-              }}
+              onSortToggle={handleListSortToggle}
+              pagination={listPagination}
               emptyTitle={t("reports.emptyState.noNursesFound")}
               emptyDescription={t("reports.emptyState.noNursesDescription")}
               ariaLabel={t("reports.tabs.nurseReports")}
-              footer={
-                listSummary ? (
-                  <NurseTotalsBand
-                    label={t("reports.table.totals")}
-                    patients={listSummary.totalPatientAssignments}
-                    days={listSummary.totalDays}
-                    hours={hours(listSummary.totalHours)}
-                    labels={{
-                      patients: t("reports.table.patients"),
-                      days: t("reports.table.totalDays"),
-                      hours: t("reports.table.hours"),
-                    }}
-                    note={t("reports.nurseReports.dedupeNote", {
-                      count: listSummary.totalPatients,
-                    })}
-                  />
-                ) : undefined
-              }
+              footer={listFooter}
             />
           </>
         ) : detailQuery.payload ? (
@@ -606,32 +695,14 @@ export function NurseReportTab({
               page={detailQuery.payload.page}
               pageSize={detailQuery.payload.pageSize}
               sort={patientPaging.sort}
-              onSortToggle={(_columnId, next) =>
-                setPatientPaging({ sort: next, page: 1 })
-              }
-              onPageChange={(page) => setPatientPaging({ page })}
-              onPageSizeChange={(pageSize) =>
-                setPatientPaging({ page: 1, pageSize })
-              }
-              onRowClick={(row) => setDetailPatientId(row.patientId)}
+              onSortToggle={handlePatientSortToggle}
+              onPageChange={handlePatientPageChange}
+              onPageSizeChange={handlePatientPageSizeChange}
+              onRowClick={handlePatientRowClick}
               ariaLabel={t("reports.nurseDetail.patients")}
               emptyTitle={t("reports.emptyState.noPatientsForNurse")}
               emptyDescription={t("reports.emptyState.noPatientsDescription")}
-              footer={
-                detailSummary ? (
-                  <NurseTotalsBand
-                    label={t("reports.table.totals")}
-                    patients={detailSummary.patients}
-                    days={detailSummary.days}
-                    hours={hours(detailSummary.hours)}
-                    labels={{
-                      patients: t("reports.table.patients"),
-                      days: t("reports.table.totalDays"),
-                      hours: t("reports.table.hours"),
-                    }}
-                  />
-                ) : undefined
-              }
+              footer={detailFooter}
             />
 
             <section className="space-y-2">
