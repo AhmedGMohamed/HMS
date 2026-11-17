@@ -943,17 +943,8 @@ Run after the last page package lands.
 
 ## 9. Backlog (explicitly deferred — do not do during remediation)
 
-1. **Dedup refactors**
-   - `DrugsTable` ↔ `SuppliesTable` mirror (~1,000 lines) + the two mirrored shipment/warehouse panels.
-   - 9 `Reports/hooks/*` report hooks with the same shape; `useDoctorReport`/`usePatientReport` differing only by a function.
-   - 9 Employees/Clocking fetch hooks with identical structure.
-   - Insurance financial logic ×3 (`report/financials.ts`, `footerRows.ts`, `print/*Pdf.ts`).
-   - Local date padders ×4; scope-string mappers ×4; `AddPricesModal` 3 near-identical tab bodies; 3 Employees error conventions (`<p>`, local `Field`, `PaymentModal`); 3 PatientDetail row state machines.
-2. **URL state** on Patients list, Drugs, Supplies, Employees (`?tab=` only today), Insurance list, PriceLists, Clocking, and Reports (`page`/`pageSize`/`sort`/`draft`).
-3. **Virtualization/pagination** for large client lists: Employees payment history, `PaymentGroupDetails`, Clocking history, Reports nurse accordions beyond the cap, `AddPricesModal`, `PatientsGrid`/`Insurance` beyond the client cap, `pageSize = 100` tables.
-4. **Server-side aggregates/paging**: drugs/supplies per-row fan-out, insurance patient paging, usage-summary filters, drugs/supplies turnover denominators.
-5. **CSV/print hardening**: CSV-injection guard in `exportItemsCsv` + `csv/*` builders, UTC off-by-one in `groupPrintBillItems`/`EmployeePaymentDetailDialog`, PDF footer duplication.
-6. **`PrivateRoute` redirect** preserving query/hash (`components/common/PrivateRoute.tsx:35`); `lib/api.ts:186` silent `pageSize` clamp + `SORT_COLUMN_MAP` no-op; `useReportSession` cache semantics; `lib/billEvents` doc-vs-implementation; dead code sweeps (`anomaly.ts`, `TabPlaceholder`, `replaceDraft`/`clearGenerated`, `useWarehouses` compat re-export, `sellSchema` leftovers).
+> **Backlog sweep (2026-11-17, `fix/backlog-sweep`):** items 1-6, 15-16, 19, 21-22 were fixed and removed below. The remaining items keep their **original numbers** (no renumbering); new wave findings are listed in "Wave residuals".
+
 7. **Design-system polish**: skip link, `<main>` landmarks on Login/NotFound, `CardTitle` heading adoption everywhere, safe-area handling, `overscroll-contain` on dialogs, `aria-busy` on skeletons.
 8. **PHI log left in the print path** (found during P2-02, print pipeline out of scope): `pages/Patients/print/printBill.ts:424` still `console.log`s a variable while printing. Remove and replace with nothing (no patient data in logs).
 9. **Reports column-array memoization** (declined by the appshell lane): per-keystroke parent rerenders were already eliminated by isolating the draft search, so memoizing the column arrays would require `useCallback` refactors across 6 tab files for no measured win. Revisit only with a profile.
@@ -965,14 +956,9 @@ Run after the last page package lands.
 12. `DataTable`: `aria-controls` IDREF dangles while collapsed; `expandedAriaHidden`/`expandedLabel` are effectively dead for current consumers.
 13. `FieldLabel` renders a dangling `for` on group-style `Field`s (no single control to point at).
 14. `EmployeeDetailSheet.formatPerPatientPay` duplicates `hooks/useEmployeeDisplay`; import instead of re-implementing.
-15. Supplies per-warehouse `catch → []` understates stock; `runIdRef` is not re-checked in `.catch`.
-16. `SettleBillDialog`: an emptied draft maps to `paidAmount 0`; single-validation gap (no explicit "amount required" state).
 17. Three unguarded `formatDate(new Date(x))` calls (`ShipmentRow`, `SupplyShipmentRow`, `WarehouseInventoryDialog`).
 18. `DailyAssignmentAccordion`: `visibleCount` not reset on data change; `defaultOpen` prop is dead.
-19. `SearchField` syncs only through `committedRef` — external value changes can be missed.
 20. `SellDrugModal` live over-quantity warning was removed; validation is submit-only now.
-21. `ShipmentModal` `matrixError` is not cleared on subsequent edits.
-22. Drugs detail fan-out reuses the list `loading` flag, so the skeleton blanks the detail pane.
 23. Disabled + `aria-disabled` redundancy on several buttons; `noBillYet` `role="status"` re-announces on each dialog open.
 24. `PatientListPanel` rows expose a double tab stop (row + name link).
 25. `AddSupplyDialog` shows a literal `"Quantity (—)"` label when no unit is known.
@@ -981,6 +967,17 @@ Run after the last page package lands.
 28. Six commit subjects exceed the 72-char convention (record-only, no rewrite).
 29. `patients.en.json` `noBillYet` indentation is inconsistent with its neighbours.
 30. No committed tests for the new contracts: `ConfirmDialog` `false`/throw, wizard resolver gate, bill-id sentinel, S02 `NetworkError` mapping.
+
+### Wave residuals (discovered during the backlog sweep)
+
+1. **Raw-key error rendering.** `patients.validation.invalidPhone` / `patients.validation.invalidFormat` are missing from both locale files, and `FieldError` renders zod messages verbatim (no `t()`) on the wizard and `EditPatientDialog` surfaces — users see raw keys. Fix = add both keys to `patients.en.json` + `patients.ar.json` and adopt `t()` at the error render.
+2. **`VALIDATION_KEYS.nurse` is dead** in `patients/schemas/patient.schema.ts` (no rule, no error slot). Remove it or wire a nurse rule — product decision.
+3. **Four Reports detail dialogs** (Doctor / Nurse / ClockIn / EmployeePayment) still build their `DataTable` columns inline; apply the same identity stabilization landed for the five tabs in batch C.
+4. **Date-format hardening follow-up.** `Dashboard/RecentActivityTable.tsx` needs a `formatDateTimeSafe` sibling of `formatDateSafe`; ~55 display sites remain unguarded or truthy-only (census in the wave notes); `PatientProfilePanel`'s `.toLocaleDateString()` ignores the active locale.
+5. **ESLint follow-up clusters** (post-reduction baseline 298 = 282E/16W): 62 test `any` sites in `src/app/tests` (needs a shared typed mock factory + `asRequest`/`asResponse` helpers; jasmine is DB-gated), 67 `no-useless-catch`, 135 remaining app `no-explicit-any` (`Promise<any>` / `data: any` signatures, cron params, `.d.ts` DTOs), 41 + 7 `no-unused-vars`, 20 `prefer-const`, 10 `react-refresh/only-export-components` (move `*Variants`/hooks out of `components/ui`), 15 `react-hooks/incompatible-library` (RHF `watch` — form-strategy change), 1 `exhaustive-deps` in `SupplyShipmentModal` `[open]` (behaviour-sensitive — leave).
+6. **`pdfmakeLoader.ts` debug `console.log(pdfMake)`** remains (distinct from item 8's printBill PHI logs).
+7. **Server batch-E changes are type-only and compiled-unverified at runtime** — run the jasmine suite against the test DB when available.
+8. **Deferred manual QA additions:** supplies fail-closed trade-off; settle empty-draft inline error; sell-modal live over-quantity warning; employees percent precision + Arabic digits; UserDashboard non-admin stats fetch; `PriceListModal` create-path 400 ambiguity; wizard step-by-step QA; Reports DevTools profiler; Clocking anomaly escalation.
 
 ## 10. Global acceptance criteria
 
@@ -1155,6 +1152,58 @@ Six lane branches were integrated into `fix/guidelines-audit-remediation` with `
 **Risk note (wizard schema drift):** the composed namespaced `wizardFormSchema` lives in `CreatePatientWizardDialog.tsx` and mirrors rules from `schemas/patient.schema.ts`; that schema file was out of the P2-01 lane's allowed scope, so a future edit to `patient.schema.ts` (gender enum, insurance trio, admission requirements) can silently diverge from the dialog's copy. Reviewers must update both together, or lift the composed schema into `patient.schema.ts` in a follow-up.
 
 **Price-lists disposition (final, 2026-11-16):** the user reviewed the removal-vs-reject options for a priced shipment row and kept the landed inline rejection (`c3866ce` drugs / `53b7c60` supplies, branch tip `5fef7cc`); removal and fallback-to-default pricing were **not** pursued. Known limitation, recorded precisely: sales resolve the **exact** `pricelist_id` only — the server dispense join is `pl.pricelist_id = $2` (`src/app/models/Patient.model.ts` dispense paths) and the client sell/dispense paths resolve the exact `pricelistId` to `0` when absent (`src/renderer/src/pages/Drugs/modals/SellDrugModal.tsx`: `sp ? Number(sp.price) : 0`); there is **no fallback** to default-pricelist pricing. Consequently, if a price row for a list is removed through another path (e.g. the bulk price-lists endpoint), sales against that list price at 0.
+
+### Backlog-sweep wave ledger (`fix/backlog-sweep`, 2026-11-17)
+
+Hashes verified against `git log` at closeout. Branch started from `main` @ `75a5c9c`: lint `✖ 472 problems (439 errors, 33 warnings)`, check-i18n used 1726 / MISSING 14 / UNUSED 1159, renderer suite 15 files / 135 tests.
+
+**Batch A — backlog items 2,3,4,5,6,15,16**
+
+- `966a5d8` `fix(patient-detail): reject empty settlement draft instead of writing zero` — single validation point; a blank draft no longer writes `paidAmount 0`.
+- `849ee6b` `fix(drugs): guard formatted shipment dates against invalid input` — NaN guard → em dash in `ShipmentRow` + `WarehouseInventoryDialog`.
+- `134abe9` `fix(supplies): guard formatted shipment dates against invalid input` — same guard in `SupplyShipmentRow`.
+- `fb6702e` `fix(drugs): decouple detail loading from list loading` — separate `detailsLoading`; paging no longer blanks populated rows.
+- `b27b153` `fix(drugs): restore the live over-quantity warning in sell modal` — inline warning restored while typing.
+- `844e4ec` `fix(supplies): surface stock-fetch failures and stop superseded runs` — per-warehouse `catch → []` removed (visible load error) + `runIdRef` guard in `.catch`.
+- `5a67649` `fix(employees): reuse the shared per-patient pay formatter` — deleted the divergent local copy.
+- `b494629` `fix(supplies): give the add-supply quantity field a meaningful label` — "Quantity" instead of "Quantity (—)".
+
+**Batch B — backlog item 11 (network-copy localization)**
+
+- `f45c1f6` `fix(patients): localize network error copy in panels and dialogs` — `isNetworkError` ternary; two duplicate page toasts removed.
+- `eae2a33` `fix(patients): localize network error copy in mutation hooks` — seven hooks, state plumbing untouched.
+- `1311ac3` / `584f109` / `472e947` / `0dff9d4` / `029ea5e` / `74ca722` / `d83b716` / `13f088e` — same ternary per package (drugs, supplies, employees, clocking, vault, price-lists (`statusCode 400` discriminant replacing the English match), insurance, services).
+- `fde0332` `fix(dashboard): surface non-admin statistics load failures` — UserDashboard consumes the role-aware hook and renders the error slot.
+
+**Corrections (post-adjudication)**
+
+- `8b0e980` `fix(employees): render per-patient pay percent at full precision` — Intl percent, 2-decimal cap, Arabic digits.
+- `db4eb28` `refactor(ui): extract shared safe date formatting util` — `formatDateSafe` + 4 migrated sites + 6-case spec.
+
+**Batch C — backlog item 19 (identity + clocking)**
+
+- `485982f` `perf(reports): stabilize DataTable prop identities` — memoized columns/callbacks/pagination/footers across 5 tabs + 2 patient tables; zero behaviour change.
+- `9948297` `refactor(clocking): remove dead per-render now threading` — dead sortKeys removed; in-cell anomaly snapshot; day-stable `today`.
+
+**Batch D — backlog item 21 (wizard schema drift)**
+
+- `7d7b16b` `refactor(patients): lift wizard form schema into patient.schema` — resolver and gate share one instance; dead exports removed; 5-case spec.
+
+**Batch E — backlog items 1-6 residuals, 16, 22**
+
+- `f4b02d4` `fix(i18n): add missing translation keys` — MISSING 14 → 0.
+- `dfcca14` `refactor(server): type query value arrays as unknown` — 27 model/query sites.
+- `6be78f1` `refactor(server): narrow caught errors without explicit any` — all 57 catch sites.
+- `4a0b81e` `refactor(server): type the authenticated request user` — `req.user!`; augmentation module marker.
+- `2582be9` `fix(patient-detail): satisfy hook lint in admissions and supply dialogs` — 3 exhaustive-deps, 6 stale disables, 2 statement ternaries, prefer-const, unused param.
+- `3bc6969` `fix(pdfmake): type the virtual file system global` — `Record<string, string>`.
+
+**Closeout**
+
+- `f625cf4` `chore(lint): ignore build output in eslint config` — `dist-electron` added to global ignores; −65 problems from build artifacts.
+- this commit `chore(plans): close backlog items 1-6, 15-16, 19, 21-22` — §9 pruning, wave residuals, this ledger.
+
+**Closing gates (final, on `fix/backlog-sweep`):** `npm run lint` **472 → 298** (`282 errors, 16 warnings`) · `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0 · `npx tsc -p src/app/tsconfig.json --noEmit` exit 0 · `npm run test:renderer` **17 files / 146 tests** passed · `npm run check-i18n` exit 0, used 1726 / **MISSING 0** / UNUSED 1159. Nothing pushed.
 
 ## 12. Risks and rollback considerations
 
