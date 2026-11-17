@@ -943,25 +943,31 @@ Run after the last page package lands.
 
 ## 9. Backlog (explicitly deferred — do not do during remediation)
 
-> **Backlog sweep (2026-11-17, `fix/backlog-sweep`):** items 1-6, 15-16, 19, 21-22 were fixed and removed below. The remaining items keep their **original numbers** (no renumbering); new wave findings are listed in "Wave residuals".
+> **Backlog sweep (2026-11-17, `fix/backlog-sweep`) — corrected by content on closeout:** this list uses the **original audit numbering**, while the earlier removal list used the prioritized-backlog numbering; commit `9e3ead4` consequently deleted eight **unfixed** rows (1-6, 19, 21 — restored below) and left fixed rows behind. Removed below because the sweep fixed them: **9** (Reports column memoization → `485982f`), **10** (`now` threading removed entirely by `9948297` — moot), **11** (`isNetworkError` localization → batch B), **14** (`5a67649`), **15** (`844e4ec`), **16** (`966a5d8`), **17** (`849ee6b` + `134abe9` + `db4eb28`), **20** (`b27b153`), **22** (`fb6702e`), **25** (`b494629`). Remaining items keep their **original numbers** (no renumbering); new wave findings are in "Wave residuals".
 
+1. **Dedup refactors**
+   - `DrugsTable` ↔ `SuppliesTable` mirror (~1,000 lines) + the two mirrored shipment/warehouse panels.
+   - 9 `Reports/hooks/*` report hooks with the same shape; `useDoctorReport`/`usePatientReport` differing only by a function.
+   - 9 Employees/Clocking fetch hooks with identical structure.
+   - Insurance financial logic ×3 (`report/financials.ts`, `footerRows.ts`, `print/*Pdf.ts`).
+   - Local date padders ×4; scope-string mappers ×4; `AddPricesModal` 3 near-identical tab bodies; 3 Employees error conventions (`<p>`, local `Field`, `PaymentModal`); 3 PatientDetail row state machines.
+2. **URL state** on Patients list, Drugs, Supplies, Employees (`?tab=` only today), Insurance list, PriceLists, Clocking, and Reports (`page`/`pageSize`/`sort`/`draft`).
+3. **Virtualization/pagination** for large client lists: Employees payment history, `PaymentGroupDetails`, Clocking history, Reports nurse accordions beyond the cap, `AddPricesModal`, `PatientsGrid`/`Insurance` beyond the client cap, `pageSize = 100` tables.
+4. **Server-side aggregates/paging**: drugs/supplies per-row fan-out, insurance patient paging, usage-summary filters, drugs/supplies turnover denominators.
+5. **CSV/print hardening**: CSV-injection guard in `exportItemsCsv` + `csv/*` builders, UTC off-by-one in `groupPrintBillItems`/`EmployeePaymentDetailDialog`, PDF footer duplication.
+6. **`PrivateRoute` redirect** preserving query/hash (`components/common/PrivateRoute.tsx:35`); `lib/api.ts:186` silent `pageSize` clamp + `SORT_COLUMN_MAP` no-op; `useReportSession` cache semantics; `lib/billEvents` doc-vs-implementation; dead code sweeps (`anomaly.ts`, `TabPlaceholder`, `replaceDraft`/`clearGenerated`, `useWarehouses` compat re-export, `sellSchema` leftovers).
 7. **Design-system polish**: skip link, `<main>` landmarks on Login/NotFound, `CardTitle` heading adoption everywhere, safe-area handling, `overscroll-contain` on dialogs, `aria-busy` on skeletons.
 8. **PHI log left in the print path** (found during P2-02, print pipeline out of scope): `pages/Patients/print/printBill.ts:424` still `console.log`s a variable while printing. Remove and replace with nothing (no patient data in logs).
-9. **Reports column-array memoization** (declined by the appshell lane): per-keystroke parent rerenders were already eliminated by isolating the draft search, so memoizing the column arrays would require `useCallback` refactors across 6 tab files for no measured win. Revisit only with a profile.
-10. **Clocking `HistoryTable` `now` prop threading** (backlogged by the people lane): the table still derives `now` per render (no interval), so relative times do not tick on that screen while a row is open. The page-level 1s tick was removed deliberately; threads `now` only if a live-history requirement appears.
 
 **Accepted advisory backlog from the Phase-3 review (one line each, no action taken):**
 
-11. `isNetworkError` localization gap: ~60 surfaces still render the English `"Network request failed"` message.
 12. `DataTable`: `aria-controls` IDREF dangles while collapsed; `expandedAriaHidden`/`expandedLabel` are effectively dead for current consumers.
 13. `FieldLabel` renders a dangling `for` on group-style `Field`s (no single control to point at).
-14. `EmployeeDetailSheet.formatPerPatientPay` duplicates `hooks/useEmployeeDisplay`; import instead of re-implementing.
-17. Three unguarded `formatDate(new Date(x))` calls (`ShipmentRow`, `SupplyShipmentRow`, `WarehouseInventoryDialog`).
 18. `DailyAssignmentAccordion`: `visibleCount` not reset on data change; `defaultOpen` prop is dead.
-20. `SellDrugModal` live over-quantity warning was removed; validation is submit-only now.
+19. `SearchField` syncs only through `committedRef` — external value changes can be missed.
+21. `ShipmentModal` `matrixError` is not cleared on subsequent edits.
 23. Disabled + `aria-disabled` redundancy on several buttons; `noBillYet` `role="status"` re-announces on each dialog open.
 24. `PatientListPanel` rows expose a double tab stop (row + name link).
-25. `AddSupplyDialog` shows a literal `"Quantity (—)"` label when no unit is known.
 26. `admissionFormat.calculateLengthOfStay` floors ≤59 min to "less than an hour" (under-reports).
 27. `AddPricesModal` sibling `ConfirmDialog` focus-trap seam — manual check still pending.
 28. Six commit subjects exceed the 72-char convention (record-only, no rewrite).
@@ -1204,6 +1210,8 @@ Hashes verified against `git log` at closeout. Branch started from `main` @ `75a
 - this commit `chore(plans): close backlog items 1-6, 15-16, 19, 21-22` — §9 pruning, wave residuals, this ledger.
 
 **Closing gates (final, on `fix/backlog-sweep`):** `npm run lint` **472 → 298** (`282 errors, 16 warnings`) · `npx tsc -p src/renderer/tsconfig.json --noEmit` exit 0 · `npx tsc -p src/app/tsconfig.json --noEmit` exit 0 · `npm run test:renderer` **17 files / 146 tests** passed · `npm run check-i18n` exit 0, used 1726 / **MISSING 0** / UNUSED 1159. Nothing pushed.
+
+**Backlog-numbering correction (this commit):** §9's removal list in `9e3ead4` applied the prioritized-backlog numbering to the plan's original-audit numbering, deleting eight unfixed rows (1-6, 19, 21) and leaving six fixed rows (9, 11, 14, 17, 20, 25) plus one moot row (10) behind. This commit restores the former and removes the latter by content; no other ledger row is rewritten.
 
 ## 12. Risks and rollback considerations
 
