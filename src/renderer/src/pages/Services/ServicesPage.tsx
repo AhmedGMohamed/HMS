@@ -18,7 +18,7 @@ import { deleteService } from "@/pages/Services/api"
 import { useAllPriceLists } from "@/pages/PriceLists/hooks/usePriceLists"
 import type { NormalizedService } from "@/pages/_shared/services/types"
 import type { ServiceType } from "@/pages/_shared/services/types"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 /**
  * /services — Services Management root page.
@@ -199,9 +199,11 @@ export default function ServicesPage() {
             services.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("services.messages.deleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("services.messages.deleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false
