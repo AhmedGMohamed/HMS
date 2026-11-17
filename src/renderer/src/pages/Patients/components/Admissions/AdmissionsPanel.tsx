@@ -65,7 +65,6 @@ export function AdmissionsPanel({ patientId }: AdmissionsPanelProps) {
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrintPatient(null)
     getPatient(patientId)
       .then((p) => {

@@ -67,7 +67,6 @@ export function AddDrugQuantityDialog({
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLarger(0)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSmaller(0)
     }
   }, [open])

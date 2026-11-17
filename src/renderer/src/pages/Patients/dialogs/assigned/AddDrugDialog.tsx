@@ -82,7 +82,6 @@ export function AddDrugDialog({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     listDrugCards()
       .then((rows) => {
@@ -107,7 +106,6 @@ export function AddDrugDialog({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShipmentsLoading(true)
     listDrugShipments(selectedDrugId)
       .then((rows) => {
@@ -347,7 +345,7 @@ export function AddDrugDialog({
           shipment={
             shipments.find((s) => s.shipmentId === qtyDrugId) ?? null
           }
-          onConfirm={async (quantity, total) => {
+          onConfirm={async (quantity) => {
             const shipment = shipments.find(
               (s) => s.shipmentId === qtyDrugId
             )

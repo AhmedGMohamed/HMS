@@ -419,7 +419,7 @@ export function buildBillBodyContent(
     },
   ])
 
-  let discountScopeTextArr: string[] = []
+  const discountScopeTextArr: string[] = []
   discountScopeArr.forEach(s => {
     console.log(s)
     switch (s.toLowerCase()) {

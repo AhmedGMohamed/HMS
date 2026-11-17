@@ -148,14 +148,19 @@ export function AdmissionDetailsDialog({
   const testsTotal = details?.bill?.medicalTestsAmount ?? 0
 
   /* ---- Group rows by (id, unitPrice) — see lib/groupingAdmission.ts ---- */
+  /* `?? []` is evaluated inside each memo so the dependency is the stable
+     `details` object rather than a fresh array literal every render. */
   const groupedServices = useMemo(
-    () => groupAdmissionServices(services),
-    [services]
+    () => groupAdmissionServices(details?.services ?? []),
+    [details]
   )
-  const groupedDrugs = useMemo(() => groupAdmissionDrugs(drugs), [drugs])
+  const groupedDrugs = useMemo(
+    () => groupAdmissionDrugs(details?.drugs ?? []),
+    [details]
+  )
   const groupedSupplies = useMemo(
-    () => groupAdmissionSupplies(supplies),
-    [supplies]
+    () => groupAdmissionSupplies(details?.supplies ?? []),
+    [details]
   )
 
   const discountLabelText = `${t("patients.billing.discount")} ${getDiscountScopeString(bill?.discountScope)}`
