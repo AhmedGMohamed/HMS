@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { toast } from "sonner"
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from "lucide-react"
 
@@ -21,17 +20,14 @@ import { isNetworkError } from "@/lib/errors"
 
 import { Stepper, type StepperStep } from "@/pages/Patients/components/Stepper"
 import {
-  VALIDATION_KEYS,
-  wizardAdmissionSchema,
-  wizardBasicSchema,
+  wizardBasicFormSchema,
   wizardGuardianSchema,
-  wizardMedicalSchema,
   wizardPaymentSchema,
-  type WizardAdmissionValues,
+  wizardAdmissionFormSchema,
+  wizardMedicalSchema,
+  wizardFormSchema,
   type WizardBasicValues,
-  type WizardGuardianValues,
-  type WizardMedicalValues,
-  type WizardPaymentValues,
+  type WizardFormValues,
 } from "@/pages/Patients/schemas/patient.schema"
 import { StepperStepIds } from "./StepperStepIds"
 import { createPatient } from "@/pages/Patients/api"
@@ -71,73 +67,8 @@ import { useCreatePatientWizard } from "./useCreatePatientWizard"
  *   Step 0 → 1 → 2 → 4       (step 3 is hidden; save at step 4)
  */
 
-export type WizardFormShape = {
-  basic: Omit<WizardBasicValues, "gender"> & {
-    gender: "" | WizardBasicValues["gender"]
-  }
-  guardian: WizardGuardianValues
-  payment: WizardPaymentValues
-  admission: WizardAdmissionValues
-  medical: WizardMedicalValues
-}
-
-/**
- * Form-level schemas. The per-step schemas in `patient.schema.ts` are the
- * source of truth for field rules; these only adapt them to the wizard's
- * namespaced form shape (`basic.*`, `payment.*`, …) so a single RHF resolver
- * can validate, and so each step's `Next` gate uses the exact same rules.
- */
-const wizardBasicFormSchema = wizardBasicSchema
-  .extend({
-    /* The form keeps `""` as the "not chosen yet" value (the select has an
-       empty option); the real enum is enforced below rather than by
-       `wizardBasicSchema` itself. */
-    gender: z.union([
-      z.literal("male"),
-      z.literal("female"),
-      z.literal("other"),
-      z.literal(""),
-    ]),
-  })
-  .superRefine((value, ctx) => {
-    if (value.gender === "") {
-      ctx.addIssue({
-        code: "custom",
-        path: ["gender"],
-        message: VALIDATION_KEYS.gender,
-      })
-    }
-  })
-
-const wizardAdmissionFormSchema = wizardAdmissionSchema.superRefine(
-  (value, ctx) => {
-    /* Admission is only required when the user opts into admitting on save;
-       `PatientWizardBasicStep` clears these values when the toggle goes off. */
-    if (!value.admitOnSave) return
-    if (!value.diagnosis || value.diagnosis.trim() === "") {
-      ctx.addIssue({
-        code: "custom",
-        path: ["diagnosis"],
-        message: VALIDATION_KEYS.diagnosis,
-      })
-    }
-    if (value.attendingDoctorIds.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["attendingDoctorIds"],
-        message: VALIDATION_KEYS.attendingDoctor,
-      })
-    }
-  }
-)
-
-const wizardFormSchema = z.object({
-  basic: wizardBasicFormSchema,
-  guardian: wizardGuardianSchema,
-  payment: wizardPaymentSchema,
-  admission: wizardAdmissionFormSchema,
-  medical: wizardMedicalSchema,
-})
+/** Step components keep their existing import path/type name. */
+export type WizardFormShape = WizardFormValues
 
 /** RHF path root for each internal step id (used by `trigger`). */
 const STEP_FIELD = {

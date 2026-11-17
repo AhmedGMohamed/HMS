@@ -6,15 +6,17 @@ import { z } from "zod"
  * Validation messages reference `patients.validation.*` keys so users
  * see the same English/Arabic copy as the legacy page.
  *
- * The wizard is a 4-step flow:
+ * The wizard is a 5-position flow:
  *   1. Basic info (always)
- *   2. Payment (always; insurance fields conditional)
- *   3. Admission (only when `admitOnSave=true`)
- *   4. Medical (referring doctor + free diagnosis)
+ *   2. Guardian info (always; every field optional)
+ *   3. Payment (always; insurance fields conditional on type)
+ *   4. Admission (only when `admitOnSave=true`)
+ *   5. Medical (referring doctor, optional)
  *
- * Step 3 is dropped from the visible flow when the user toggles
- * `admitOnSave` off — the wizard itself still validates the underlying
- * fields so re-toggling on later doesn't accommodate stale data.
+ * The Admission position is dropped from the visible flow when the user
+ * toggles `admitOnSave` off. The form-level admission schema below skips
+ * its requirements in that case, so the same schema instance serves both
+ * toggle states.
  */
 
 export const VALIDATION_KEYS = {
@@ -31,8 +33,7 @@ export const VALIDATION_KEYS = {
  * Shared insurance-field validation for `paymentType === "insurance"`.
  * Requires a non-null `insuranceId`, `insuranceCardId`, and
  * `insuranceFormId`. Extracted (DRY) because the same rule is enforced
- * in three places: the wizard's standalone payment schema, the combined
- * wizard schema, and the edit-patient schema.
+ * in two places: the wizard's payment schema and the edit-patient schema.
  */
 function addInsuranceIssues(
   value: {
@@ -99,6 +100,28 @@ export const wizardBasicSchema = z.object({
   address: z.string().trim().optional(),
 })
 
+/** Form-state gender: the select keeps "" as its not-chosen sentinel;
+ * the canonical enum in wizardBasicSchema remains the value authority. */
+const blankGenderSchema = z.union([
+  wizardBasicSchema.shape.gender,
+  z.literal(""),
+])
+
+function requireGenderSelection(gender: string, ctx: z.RefinementCtx): void {
+  if (gender === "") {
+    ctx.addIssue({ code: "custom", path: ["gender"], message: VALIDATION_KEYS.gender })
+  }
+}
+
+/**
+ * Form variant of the basic step: identical rules, plus the blank-gender
+ * sentinel. The wizard resolver and each step's `Next` gate share this
+ * single instance.
+ */
+export const wizardBasicFormSchema = wizardBasicSchema
+  .extend({ gender: blankGenderSchema })
+  .superRefine((value, ctx) => requireGenderSelection(value.gender, ctx))
+
 /**
  * Step 2 — Guardian Info.
  *
@@ -153,9 +176,10 @@ export const wizardPaymentSchema = z
 /**
  * Step 4 — Admission (conditional).
  *
- * Only validated when `admitOnSave=true`. The wizard swaps the schema
- * based on the toggle so the user's "next" press doesn't fail just
- * because they briefly flipped the toggle off.
+ * The same schema instance serves both toggle states: its `superRefine`
+ * (in `wizardAdmissionFormSchema` below) skips the requirements while
+ * `admitOnSave` is off, so a "next" press does not fail just because the
+ * user briefly flipped the toggle off.
  *
  * `quickCheck` is a boolean — flagged for "quick-check admission"
  * rather than free text. The legacy textbox form accepted a date or
@@ -170,55 +194,11 @@ export const wizardAdmissionSchema = z.object({
   attendingNurseIds: z.array(z.number().int().positive()),
 })
 
-/**
- * Step 5 — Medical.
- *
- * `referringDoctorId` is intentionally optional — outpatient /
- * walk-in patients often have no referring physician. The default
- * select option is `<select>` (empty value) and may be left blank
- * without breaking validation.
- */
-export const wizardMedicalSchema = z.object({
-  referringDoctorId: z.number().int().positive().nullable().optional(),
-})
-
-/**
- * Combined wizard schema. Discriminated by `admitOnSave` so admit
- * paths require `attendingDoctorIds` and `diagnosis`.
- *
- * We use a flat object shape so `superRefine` can traverse fields
- * directly; the wizard form itself uses namespaced paths (basic.*,
- * payment.*, …) and resolves the dotpathed RHF `trigger()` against
- * each per-step schema separately.
- */
-export const wizardSchema = z
-  .object({
-    name: wizardBasicSchema.shape.name,
-    gender: wizardBasicSchema.shape.gender,
-    nationalId: wizardBasicSchema.shape.nationalId,
-    phone: wizardBasicSchema.shape.phone,
-    address: wizardBasicSchema.shape.address,
-
-    guardianName: wizardGuardianSchema.shape.guardianName,
-    guardianPhone: wizardGuardianSchema.shape.guardianPhone,
-    guardianNationalId: wizardGuardianSchema.shape.guardianNationalId,
-    guardianAddress: wizardGuardianSchema.shape.guardianAddress,
-
-    paymentType: wizardPaymentSchema.shape.paymentType,
-    insuranceId: wizardPaymentSchema.shape.insuranceId,
-    insuranceCardId: wizardPaymentSchema.shape.insuranceCardId,
-    insuranceFormId: wizardPaymentSchema.shape.insuranceFormId,
-    pricelistId: wizardPaymentSchema.shape.pricelistId,
-
-    admitOnSave: wizardAdmissionSchema.shape.admitOnSave,
-    diagnosis: wizardAdmissionSchema.shape.diagnosis,
-    quickCheck: wizardAdmissionSchema.shape.quickCheck,
-    attendingDoctorIds: wizardAdmissionSchema.shape.attendingDoctorIds,
-    attendingNurseIds: wizardAdmissionSchema.shape.attendingNurseIds,
-
-    referringDoctorId: wizardMedicalSchema.shape.referringDoctorId,
-  })
-  .superRefine((value, ctx) => {
+/** Form variant of the admission step: requirements only while admitting. */
+export const wizardAdmissionFormSchema = wizardAdmissionSchema.superRefine(
+  (value, ctx) => {
+    /* Admission is only required when the user opts into admitting on save;
+       `PatientWizardBasicStep` clears these values when the toggle goes off. */
     if (!value.admitOnSave) return
     if (!value.diagnosis || value.diagnosis.trim() === "") {
       ctx.addIssue({
@@ -234,32 +214,57 @@ export const wizardSchema = z
         message: VALIDATION_KEYS.attendingDoctor,
       })
     }
-    if (value.paymentType === "insurance") {
-      addInsuranceIssues(value, ctx)
-    }
-  })
+  }
+)
+
+/**
+ * Step 5 — Medical.
+ *
+ * `referringDoctorId` is intentionally optional — outpatient /
+ * walk-in patients often have no referring physician. The default
+ * select option is `<select>` (empty value) and may be left blank
+ * without breaking validation.
+ */
+export const wizardMedicalSchema = z.object({
+  referringDoctorId: z.number().int().positive().nullable().optional(),
+})
+
+/**
+ * Namespaced composite used by the wizard's single RHF resolver. Each
+ * property is the SAME schema instance the per-step `Next` gate parses,
+ * so resolver and gate can never diverge.
+ */
+export const wizardFormSchema = z.object({
+  basic: wizardBasicFormSchema,
+  guardian: wizardGuardianSchema,
+  payment: wizardPaymentSchema,
+  admission: wizardAdmissionFormSchema,
+  medical: wizardMedicalSchema,
+})
+
+export type WizardFormValues = z.infer<typeof wizardFormSchema>
 
 export type WizardBasicValues = z.infer<typeof wizardBasicSchema>
 export type WizardGuardianValues = z.infer<typeof wizardGuardianSchema>
 export type WizardPaymentValues = z.infer<typeof wizardPaymentSchema>
 export type WizardAdmissionValues = z.infer<typeof wizardAdmissionSchema>
 export type WizardMedicalValues = z.infer<typeof wizardMedicalSchema>
-export type WizardValues = z.infer<typeof wizardSchema>
 
 /**
  * Edit Patient dialog schema (T4).
  *
- * Slices the master `wizardSchema` down to fields a non-admission
- * patient edit supports. Diagnosis / quickCheck / attending staff
- * live on the admission record and are intentionally excluded —
- * those land in their own dialogs in T7/T9 alongside their own
- * flow control.
+ * Mirrors the wizard's basic/guardian/payment rules for the fields a
+ * non-admission patient edit supports. Diagnosis / quickCheck / attending
+ * staff live on the admission record and are intentionally excluded —
+ * those land in their own dialogs in T7/T9 alongside their own flow
+ * control.
  *
  * Gender accepts the empty string in form state so the dialog can
  * prefill a row whose stored value pre-dates the enum (sentinel: the
  * patient has `gender: ""` rather than null because the server's
- * legacy type never normalized). A `superRefine` enforces the real
- * enum at submit time so we never post a blank gender to the server.
+ * legacy type never normalized). The shared `requireGenderSelection`
+ * refinement enforces the real enum at submit time so we never post a
+ * blank gender to the server.
  *
  * Insurance fields stay optional unless `paymentType === "insurance"`,
  * matching the wizard's insurance-rule toggle.
@@ -267,12 +272,7 @@ export type WizardValues = z.infer<typeof wizardSchema>
 export const editPatientSchema = z
   .object({
     name: wizardBasicSchema.shape.name,
-    gender: z.union([
-      z.literal("male"),
-      z.literal("female"),
-      z.literal("other"),
-      z.literal(""),
-    ]),
+    gender: blankGenderSchema,
     nationalId: wizardBasicSchema.shape.nationalId,
     phone: wizardBasicSchema.shape.phone,
     address: wizardBasicSchema.shape.address,
@@ -289,26 +289,9 @@ export const editPatientSchema = z
     pricelistId: wizardPaymentSchema.shape.pricelistId,
   })
   .superRefine((value, ctx) => {
-    if (value.gender === "") {
-      ctx.addIssue({
-        code: "custom",
-        path: ["gender"],
-        message: VALIDATION_KEYS.gender,
-      })
-    }
+    requireGenderSelection(value.gender, ctx)
     if (value.paymentType !== "insurance") return
     addInsuranceIssues(value, ctx)
   })
 
 export type EditPatientValues = z.infer<typeof editPatientSchema>
-
-/** Per-step schemas in wizard-render order. */
-export const wizardStepSchemas = [
-  wizardBasicSchema,
-  wizardGuardianSchema,
-  wizardPaymentSchema,
-  wizardAdmissionSchema,
-  wizardMedicalSchema,
-] as const
-
-export type WizardStepIndex = 0 | 1 | 2 | 3 | 4
