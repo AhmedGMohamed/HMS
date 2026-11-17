@@ -26,7 +26,7 @@ import {
   type SupplyCardValues,
 } from "@/pages/Supplies/schemas/supply.schema"
 import type { MedicalSupply } from "@/pages/Supplies/types/supply"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { formatInterval, parseInterval } from "@/lib/utils"
 
 interface SupplyModalProps {
@@ -124,11 +124,13 @@ export function SupplyModal({ open, onOpenChange, supply, onSaved }: SupplyModal
       onSaved?.()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
             ? err.message
-            : t("medicalSupplies.messages.saveError")
+            : err instanceof Error
+              ? err.message
+              : t("medicalSupplies.messages.saveError")
       )
     } finally {
       setSubmitting(false)

@@ -37,7 +37,7 @@ import { UsageHistoryPanel } from "@/pages/Supplies/components/UsageHistory/Usag
 import { SupplyModal } from "@/pages/Supplies/modals/SupplyModal"
 import { SupplyShipmentModal } from "@/pages/Supplies/modals/SupplyShipmentModal"
 import { DispenseSupplyModal } from "@/pages/Supplies/modals/DispenseSupplyModal"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import type {
   EnrichedMedicalSupply,
   MedicalSupply,
@@ -337,9 +337,11 @@ export default function SuppliesPage() {
             suppliesList.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("medicalSupplies.messages.deleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("medicalSupplies.messages.deleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false
@@ -364,9 +366,11 @@ export default function SuppliesPage() {
             suppliesList.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("medicalSupplies.messages.shipmentDeleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("medicalSupplies.messages.shipmentDeleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false

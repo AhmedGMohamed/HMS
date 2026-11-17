@@ -24,7 +24,7 @@ import { getActivePatients } from "@/pages/Supplies/api"
 import { dispenseSupplySchema } from "@/pages/Supplies/schemas/dispenseSupply.schema"
 import { cn, formatNumber, formatCurrency, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import type {
   ActivePatient,
   MedicalSupplyShipment,
@@ -210,11 +210,13 @@ export function DispenseSupplyModal({
       onOpenChange(false)
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
             ? err.message
-            : t("medicalSupplies.dispense.error")
+            : err instanceof Error
+              ? err.message
+              : t("medicalSupplies.dispense.error")
       )
     } finally {
       if (!succeeded) {

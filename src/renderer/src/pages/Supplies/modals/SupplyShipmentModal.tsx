@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { isNetworkError } from "@/lib/errors"
 
 import {
   Dialog,
@@ -256,9 +257,11 @@ export function SupplyShipmentModal({
       onOpenChange(false)
     } catch (err) {
       toast.error(
-        err instanceof Error
-          ? err.message
-          : t("medicalSupplies.messages.shipmentSaveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof Error
+            ? err.message
+            : t("medicalSupplies.messages.shipmentSaveError")
       )
     } finally {
       setSubmitting(false)
