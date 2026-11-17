@@ -2,7 +2,7 @@
 
 import { useTranslation } from "react-i18next"
 
-import { formatCurrency, formatNumber, resolveLocale } from "@/lib/utils"
+import { formatCurrency, resolveLocale } from "@/lib/utils"
 import type {
   Doctor,
   Employee,
@@ -21,7 +21,7 @@ export function useEmployeeLocale(): string {
   return resolveLocale(i18n.language)
 }
 
-/** Per-patient pay: fixed → currency, percentage → `N%` (legacy rule). */
+/** Per-patient pay: fixed → currency, percentage → locale-aware `N%`. */
 export function formatPerPatientPay(
   value: number | null | undefined,
   type: string | null | undefined,
@@ -29,7 +29,16 @@ export function formatPerPatientPay(
 ): string {
   if (value == null || !Number.isFinite(Number(value))) return "—"
   const amount = Number(value)
-  if (type === "percentage") return `${formatNumber(amount, 0)}%`
+  if (type === "percentage") {
+    /* Percent-style Intl defaults to 0 fraction digits (which rounded
+       12.5 to "13%"); the cap is 2 because the DB column is DECIMAL(15,2)
+       and the stored value is percent POINTS, hence `/100`. */
+    return new Intl.NumberFormat(locale, {
+      style: "percent",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount / 100)
+  }
   return formatCurrency(amount, locale)
 }
 
