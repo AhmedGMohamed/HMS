@@ -380,6 +380,11 @@ export function SellDrugModal({
               {formatNumber(available)}
             </span>{" "}
             {shipment.unitConversion?.smaller ?? ""}
+            {resolvedQty > available ? (
+              <span className="ms-2 font-medium text-danger">
+                {t("pharmacy.validation.insufficientQuantity")}
+              </span>
+            ) : null}
           </p>
 
           {/* 4. Price list + total */}
