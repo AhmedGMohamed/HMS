@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { isNetworkError } from "@/lib/errors"
 
 import {
   getCurrentAdmission,
@@ -187,8 +188,10 @@ export function EditStaffAssignmentDialog({
         ) : admissionError ? (
           <Alert variant="destructive" className="my-2">
             <AlertDescription>
-              {admissionError.message ||
-                t("patients.messages.loadStaffAssignmentError")}
+              {isNetworkError(admissionError)
+                ? t("errors.networkError")
+                : admissionError.message ||
+                  t("patients.messages.loadStaffAssignmentError")}
             </AlertDescription>
           </Alert>
         ) : !admission ? (
@@ -202,8 +205,10 @@ export function EditStaffAssignmentDialog({
             {staffError ? (
               <Alert variant="destructive" className="my-2">
                 <AlertDescription>
-                  {staffError.message ||
-                    t("patients.messages.loadStaffAssignmentError")}
+                  {isNetworkError(staffError)
+                    ? t("errors.networkError")
+                    : staffError.message ||
+                      t("patients.messages.loadStaffAssignmentError")}
                 </AlertDescription>
               </Alert>
             ) : null}

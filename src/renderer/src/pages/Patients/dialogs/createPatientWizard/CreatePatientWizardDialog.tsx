@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { isNetworkError } from "@/lib/errors"
 
 import { Stepper, type StepperStep } from "@/pages/Patients/components/Stepper"
 import {
@@ -380,9 +381,11 @@ export function CreatePatientWizardDialog({
       onCreated?.()
     } catch (err) {
       toast.error(
-        err instanceof Error
-          ? err.message
-          : t("patients.messages.saveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof Error
+            ? err.message
+            : t("patients.messages.saveError")
       )
     } finally {
       setSubmitting(false)

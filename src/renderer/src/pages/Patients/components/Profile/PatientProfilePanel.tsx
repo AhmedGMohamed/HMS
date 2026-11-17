@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/common/EmptyState"
 import { usePermission } from "@/hooks/usePermission"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
+import { isNetworkError } from "@/lib/errors"
 
 import type {
   Bill,
@@ -93,7 +94,11 @@ export function PatientProfilePanel({
     return (
       <EmptyState
         title={t("patients.messages.loadPatientError")}
-        description={error.message || t("common.error")}
+        description={
+          isNetworkError(error)
+            ? t("errors.networkError")
+            : error.message || t("common.error")
+        }
         action={
           <Button variant="outline" onClick={onRefresh}>
             {t("common.refresh")}

@@ -19,7 +19,6 @@ import type {
   DrugCard,
   DrugShipment,
 } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
 
 interface AddDrugQuantityDialogProps {
   open: boolean
@@ -93,10 +92,9 @@ export function AddDrugQuantityDialog({
     try {
       await onConfirm(smaller + larger * ratio, total)
       onOpenChange(false)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message)
-      }
+    } catch {
+      /* The upstream hook already toasted the failure; keep the dialog open
+         and the single toast in the hook. */
     } finally {
       setSubmitting(false)
     }

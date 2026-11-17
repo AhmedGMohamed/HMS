@@ -39,7 +39,7 @@ import type {
   PriceList,
   Gender
 } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 interface EditPatientDialogProps {
   patient: Patient
@@ -153,8 +153,9 @@ export function EditPatientDialog({
       onOpenChange(false)
       onSaved?.()
     } catch (err) {
-      const msg =
-        err instanceof ApiError
+      const msg = isNetworkError(err)
+        ? t("errors.networkError")
+        : err instanceof ApiError
           ? err.message
           : err instanceof Error
             ? err.message
