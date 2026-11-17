@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  AlertTriangleIcon,
   HistoryIcon,
   PackageIcon,
   PlusIcon,
@@ -12,6 +13,7 @@ import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
@@ -175,6 +177,15 @@ export default function SuppliesPage() {
         </TabsList>
 
         <TabsContent value="inventory" className="flex flex-col gap-6">
+          {suppliesList.error ? (
+            <Alert variant="destructive" live="polite">
+              <AlertTriangleIcon aria-hidden className="size-4" />
+              <AlertTitle>{t("common.error")}</AlertTitle>
+              <AlertDescription>
+                {t("medicalSupplies.messages.loadSuppliesError")}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <SuppliesKpiStrip
             kpi={kpi}
             loading={suppliesList.loading}

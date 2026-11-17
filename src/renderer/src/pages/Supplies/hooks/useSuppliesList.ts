@@ -185,10 +185,10 @@ export function useSuppliesList(warehouseIds: number[]): UseSuppliesListResult {
     Promise.all([
       listSupplies({ pageSize: 100 }),
       getLowStockSupplies(),
+      /* A warehouse stock fetch failure must surface, not fold to [] —
+         folding silently understates every stock/expiry aggregate. */
       mapWithConcurrency(warehouseIdList, 4, (warehouseId) =>
-        listWarehouseSupplyShipments(warehouseId).catch(
-          () => [] as WarehouseSupplyInventoryItem[]
-        )
+        listWarehouseSupplyShipments(warehouseId)
       ),
     ])
       .then(([suppliesPage, lowStockRows, perWarehouse]) => {
@@ -198,7 +198,9 @@ export function useSuppliesList(warehouseIds: number[]): UseSuppliesListResult {
         setAggregates(foldShipmentRows(perWarehouse, fetchedAt))
       })
       .catch((err: unknown) => {
-        if (cancelled) return
+        /* Superseded runs must not write state either — the old guard only
+           checked `cancelled`, so a stale run could still set the error. */
+        if (cancelled || runIdRef.current !== myRunId) return
         setError(err instanceof Error ? err : new Error(String(err)))
       })
       .finally(() => {
