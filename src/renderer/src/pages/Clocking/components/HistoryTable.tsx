@@ -19,7 +19,6 @@ interface HistoryTableProps {
   /** The current server page — search/range/sort/paging run in SQL. */
   rows: ClockIn[]
   loading?: boolean
-  now: Date
   employeeMap: Map<number, EligibleEmployee>
   locale: string
   sort: { columnId: string; direction: "asc" | "desc" } | null
@@ -56,7 +55,6 @@ interface HistoryTableProps {
 export function HistoryTable({
   rows,
   loading = false,
-  now,
   employeeMap,
   locale,
   sort,
@@ -111,10 +109,8 @@ export function HistoryTable({
       id: "duration",
       header: t("clocking.table.duration"),
       sortable: true,
-      sortKey: (row) => {
-        const end = row.clockOut ? new Date(row.clockOut).getTime() : now.getTime()
-        return end - new Date(row.clockIn).getTime()
-      },
+      /* No `sortKey`: DataTable does not consume it — duration sorting is
+         server-side via the sort column id. */
       cell: (row) => (
         <LiveDuration
           clockIn={row.clockIn}

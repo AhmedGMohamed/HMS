@@ -88,14 +88,12 @@ export function ClockingPage() {
     error: employeesError,
   } = useClockingEmployees()
   /**
-   * Per-render clock snapshot. No interval lives on the page: live
-   * duration text ticks inside `LiveDuration`, and this value is only
-   * consulted when the page actually renders (anomaly thresholds,
-   * duration sort keys). It also rolls the local day on the next
-   * render instead of forcing one every second.
+   * `today` is a day-stable local-date string for the stats query. It rolls
+   * on the next render instead of forcing one every second; live duration
+   * text ticks inside `LiveDuration` and anomaly badges snapshot `new Date()`
+   * in their own cell render, so the page holds no clock snapshot.
    */
-  const now = new Date()
-  const today = toLocalDateString(now)
+  const today = toLocalDateString(new Date())
 
   // ── Filter / UI state ────────────────────────────────────────
   const [tab, setTab] = useState<ClockingTab>("active")
@@ -362,7 +360,6 @@ export function ClockingPage() {
           <ActiveClockInsTable
             rows={active.rows}
             loading={active.loading}
-            now={now}
             employeeMap={employeeMap}
             duplicateIds={stats.duplicateIds}
             locale={locale}
@@ -403,7 +400,6 @@ export function ClockingPage() {
           <HistoryTable
             rows={history.clockIns}
             loading={history.loading}
-            now={now}
             employeeMap={employeeMap}
             locale={locale}
             sort={historySort}
