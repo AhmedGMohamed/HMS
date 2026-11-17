@@ -385,7 +385,7 @@ function QuantityDialog({
         </p>
         <Field>
           <FieldLabel htmlFor="add-supply-quantity">
-            {t("patients.messages.quantityLabel", { unit: "—" })}
+            {t("patients.table.quantity")}
           </FieldLabel>
           <Input
             id="add-supply-quantity"
