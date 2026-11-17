@@ -29,6 +29,7 @@ import { EmptyState } from "@/components/common/EmptyState"
 import {
   formatCurrency,
   formatDate,
+  formatDateSafe,
   formatDateTime,
   resolveLocale,
 } from "@/lib/utils"
@@ -208,16 +209,13 @@ export function ReportDetailsModal({
                     money,
                     patientPaid: group.patientPaid,
                   })
-                  /* `new Date("")` is Invalid Date and `Intl.format`
-                     throws on it — guard so a row without an admission
-                     timestamp cannot blank the whole report. */
-                  const admissionTime = sample?.admissionTime
-                    ? new Date(sample.admissionTime)
-                    : null
-                  const admissionLabel =
-                    admissionTime && !Number.isNaN(admissionTime.getTime())
-                      ? formatDate(admissionTime, language)
-                      : null
+                  /* Missing/invalid admission timestamps degrade to "" so
+                     the badge stays omitted instead of crashing the report. */
+                  const admissionLabel = formatDateSafe(
+                    sample?.admissionTime,
+                    language,
+                    ""
+                  )
 
                   return (
                     <section

@@ -13,20 +13,10 @@ import { StatCard } from "@/components/common/StatCard"
 import { EmptyState } from "@/components/common/EmptyState"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
-import { formatNumber, formatCurrency, formatDate, resolveLocale } from "@/lib/utils"
+import { formatNumber, formatCurrency, formatDateSafe, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 
 import type { DrugShipment, WarehouseWithStats } from "@/pages/Drugs/types/drug"
-
-/**
- * `formatDate` throws a RangeError for invalid Dates (bad/blank ISO strings
- * from the wire). Guard first and fall back to an em dash, matching the
- * Insurance report pattern (`Number.isNaN(date.getTime())`).
- */
-function formatShipmentDate(value: string, language: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? "—" : formatDate(date, language)
-}
 
 interface WarehouseInventoryDialogProps {
   open: boolean
@@ -146,7 +136,7 @@ export function WarehouseInventoryDialog({
                   <td className="py-2 text-end">
                     {s.expiryDate ? (
                       <Badge variant="outline">
-                        {formatShipmentDate(s.expiryDate, language)}
+                        {formatDateSafe(s.expiryDate, language)}
                       </Badge>
                     ) : (
                       "—"

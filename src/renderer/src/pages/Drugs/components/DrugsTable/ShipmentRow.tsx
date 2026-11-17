@@ -5,19 +5,9 @@ import { PencilIcon, Trash2Icon, BadgeDollarSignIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatNumber, formatCurrency, formatDate, resolveLocale } from "@/lib/utils"
+import { formatNumber, formatCurrency, formatDateSafe, resolveLocale } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
 import type { DrugShipment } from "@/pages/Drugs/types/drug"
-
-/**
- * `formatDate` throws a RangeError for invalid Dates (bad/blank ISO strings
- * from the wire). Guard first and fall back to an em dash, matching the
- * Insurance report pattern (`Number.isNaN(date.getTime())`).
- */
-function formatShipmentDate(value: string, language: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? "—" : formatDate(date, language)
-}
 
 interface ShipmentRowProps {
   shipment: DrugShipment
@@ -68,7 +58,7 @@ export function ShipmentRow({
 
       {shipment.expiryDate ? (
         <Badge variant="outline">
-          {formatShipmentDate(shipment.expiryDate, language)}
+          {formatDateSafe(shipment.expiryDate, language)}
         </Badge>
       ) : (
         <span className="text-sm text-muted-foreground">—</span>
