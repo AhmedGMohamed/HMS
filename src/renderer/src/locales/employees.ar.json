@@ -21,6 +21,7 @@
     "createManualPaymentFor": "إنشاء دفعة يدوية لـ {{name}}",
     "savePayment": "حفظ الدفعة",
     "servicePayments": "مدفوعات الخدمات",
+    "servicePrices": "أسعار الخدمات",
     "tabs": {
       "employees": "الموظفون",
       "doctors": "الأطباء",

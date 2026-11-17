@@ -39,7 +39,8 @@
       "assignedDrugs": "الأدوية المسندة",
       "assignedSupplies": "المستلزمات الطبية المخصصة",
       "financialSummary": "الملخص المالي",
-      "billingInfo": "معلومات الفواتير"
+      "billingInfo": "معلومات الفواتير",
+      "pastAdmissions": "الدخولات السابقة"
     },
     "fields": {
       "fullName": "الاسم الكامل",
@@ -69,7 +70,8 @@
       "dischargeTime": "وقت التسريح",
       "admittedOn": "تاريخ الإقامة",
       "patient": "المريض",
-      "pricelistDisabledForInsurance": "قائمة الأسعار محددة تلقائياً من شركة التأمين"
+      "pricelistDisabledForInsurance": "قائمة الأسعار محددة تلقائياً من شركة التأمين",
+      "default": "افتراضي"
     },
     "table": {
       "id": "ID",
@@ -375,6 +377,10 @@
       "paymentRecordingError": "فشل تسجيل الدفعة",
       "paymentAmountZero": "أدخل مبلغ دفع أكبر من صفر",
       "savePatientError": "فشل حفظ المريض",
+      "saveError": "فشل حفظ بيانات المريض. يرجى المحاولة مرة أخرى.",
+      "admissionTime": "تاريخ الإدخال",
+      "loadingCompanies": "جاري تحميل شركات التأمين...",
+      "addSupplyTitle": "إضافة {{supplyName}}",
       "admitPatientError": "فشل إدخال المريض",
       "dischargePatientError": "فشل تسريح المريض",
       "addServiceError": "فشل إضافة الخدمة",

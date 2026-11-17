@@ -39,7 +39,8 @@
       "assignedDrugs": "Assigned Drugs",
       "assignedSupplies": "Assigned Medical Supplies",
       "financialSummary": "Financial Summary",
-      "billingInfo": "Billing Information"
+      "billingInfo": "Billing Information",
+      "pastAdmissions": "Past Admissions"
     },
     "fields": {
       "fullName": "Full Name",
@@ -69,7 +70,8 @@
       "dischargeTime": "Discharge Time",
       "admittedOn": "Admitted on",
       "patient": "Patient",
-      "pricelistDisabledForInsurance": "Price list auto-selected from insurance company"
+      "pricelistDisabledForInsurance": "Price list auto-selected from insurance company",
+      "default": "Default"
     },
     "table": {
       "id": "ID",
@@ -376,6 +378,9 @@
       "paymentRecordingError": "Failed to record payment",
       "paymentAmountZero": "Enter a payment amount greater than zero",
       "savePatientError": "Failed to save patient",
+      "saveError": "Failed to save the patient. Please try again.",
+      "admissionTime": "Admitted",
+      "loadingCompanies": "Loading insurance companies...",
       "admitPatientError": "Failed to admit patient",
       "dischargePatientError": "Failed to discharge patient",
       "addServiceError": "Failed to add service",
