@@ -22,7 +22,7 @@ import {
   warehouseSchema,
   type WarehouseValues,
 } from "@/pages/Drugs/schemas/warehouse.schema"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 interface WarehouseModalProps {
   open: boolean
@@ -71,11 +71,13 @@ export function WarehouseModal({
       onOpenChange(false)
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
             ? err.message
-            : t("pharmacy.messages.warehouseSaveError")
+            : err instanceof Error
+              ? err.message
+              : t("pharmacy.messages.warehouseSaveError")
       )
     } finally {
       setSubmitting(false)

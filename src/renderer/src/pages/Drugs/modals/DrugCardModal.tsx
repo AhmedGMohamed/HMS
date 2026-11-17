@@ -27,7 +27,7 @@ import {
   type DrugCardValues,
 } from "@/pages/Drugs/schemas/drug.schema"
 import type { DrugCard } from "@/pages/Drugs/types/drug"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { formatInterval, parseInterval } from "@/lib/utils"
 
 interface DrugCardModalProps {
@@ -149,11 +149,13 @@ export function DrugCardModal({
       onSaved?.()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
             ? err.message
-            : t("pharmacy.messages.saveError")
+            : err instanceof Error
+              ? err.message
+              : t("pharmacy.messages.saveError")
       )
     } finally {
       setSubmitting(false)
