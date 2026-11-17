@@ -88,12 +88,26 @@ export function SettleBillDialog({
   /* `0` is the "no bill yet" sentinel produced by `admissionsShape`. */
   const hasBill = billId > 0
 
-  function handleSettle() {
-    if (!hasBill) return
+  /**
+   * Single validation point for the typed amount. An emptied draft parses to
+   * `0`, which used to pass the `< 0` guard and write `paidAmount: 0` to the
+   * bill — an empty input must never become a zero write.
+   */
+  function validateAmount(): boolean {
+    if (newPaidInput.trim() === "") {
+      toast.error(t("patients.validation.paidAmountRequired"))
+      return false
+    }
     if (newPaid < 0) {
       toast.error(t("patients.validation.invalidAmount"))
-      return
+      return false
     }
+    return true
+  }
+
+  function handleSettle() {
+    if (!hasBill) return
+    if (!validateAmount()) return
     if (exceedsTotal) {
       setPendingSubmit(true)
       setConfirmOpen(true)
@@ -103,7 +117,7 @@ export function SettleBillDialog({
   }
 
   async function doSubmit() {
-    if (newPaid < 0) return
+    if (!validateAmount()) return
     setConfirmOpen(false)
     setSubmitting(true)
     try {
