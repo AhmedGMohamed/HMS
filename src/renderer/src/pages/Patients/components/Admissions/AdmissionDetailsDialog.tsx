@@ -53,7 +53,7 @@ import { useUIStore } from "@/store/uiStore"
 import { usePermission } from "@/hooks/usePermission"
 import { getPatient } from "@/pages/Patients/api"
 import type { DiscountScope, Patient, VatScope } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 interface AdmissionDetailsDialogProps {
   open: boolean
@@ -117,11 +117,12 @@ export function AdmissionDetailsDialog({
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        const ae = err instanceof ApiError ? err : null
-        toast.warning(
-          ae?.message ?? t("patients.messages.loadPatientError"),
-          { id: "admission-patient-error" }
-        )
+        const message = isNetworkError(err)
+          ? t("errors.networkError")
+          : (err instanceof ApiError
+              ? err.message
+              : t("patients.messages.loadPatientError"))
+        toast.warning(message, { id: "admission-patient-error" })
       })
       .finally(() => {
         if (!cancelled) setPatientLoading(false)
@@ -147,14 +148,19 @@ export function AdmissionDetailsDialog({
   const testsTotal = details?.bill?.medicalTestsAmount ?? 0
 
   /* ---- Group rows by (id, unitPrice) — see lib/groupingAdmission.ts ---- */
+  /* `?? []` is evaluated inside each memo so the dependency is the stable
+     `details` object rather than a fresh array literal every render. */
   const groupedServices = useMemo(
-    () => groupAdmissionServices(services),
-    [services]
+    () => groupAdmissionServices(details?.services ?? []),
+    [details]
   )
-  const groupedDrugs = useMemo(() => groupAdmissionDrugs(drugs), [drugs])
+  const groupedDrugs = useMemo(
+    () => groupAdmissionDrugs(details?.drugs ?? []),
+    [details]
+  )
   const groupedSupplies = useMemo(
-    () => groupAdmissionSupplies(supplies),
-    [supplies]
+    () => groupAdmissionSupplies(details?.supplies ?? []),
+    [details]
   )
 
   const discountLabelText = `${t("patients.billing.discount")} ${getDiscountScopeString(bill?.discountScope)}`
@@ -242,7 +248,9 @@ export function AdmissionDetailsDialog({
         ) : detailsRes.error ? (
           <div className="py-6 text-center">
             <p className="text-destructive text-sm font-medium">
-              {detailsRes.error.message}
+              {isNetworkError(detailsRes.error)
+                ? t("errors.networkError")
+                : detailsRes.error.message}
             </p>
             <Button
               variant="outline"

@@ -92,14 +92,14 @@ export class DrugCardController {
 			}
 
 			// Get user ID from authenticated request
-			const userId = (req as any).user.userId;
+			const userId = req.user!.userId;
 			const newDrug = await DrugCardModel.createDrugCard(
 				drugData,
 				userId
 			);
 
 			res.status(201).json(newDrug);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Drug name already exists") {
 				res.status(409).json({ error: error.message });
 			} else if (error.message === "Invalid unit conversion data") {
@@ -165,7 +165,7 @@ export class DrugCardController {
 
 			const updatedDrug = await DrugCardModel.updateDrugCard(updateData);
 			res.json(updatedDrug);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Drug not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message === "Drug name already exists") {
@@ -184,7 +184,7 @@ export class DrugCardController {
 			const drugId = parseInt(req.params.id);
 			await DrugCardModel.deleteDrugCard(drugId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Drug not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message.includes("Cannot delete drug")) {

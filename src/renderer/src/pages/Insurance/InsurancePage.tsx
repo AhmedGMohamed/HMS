@@ -44,7 +44,7 @@ import { DataTablePagination } from "@/components/common/DataTablePagination"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbLabel"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { usePermission } from "@/hooks/usePermission"
@@ -118,9 +118,11 @@ export default function InsurancePage() {
     if (companies.error && !listErrorToasted.current) {
       listErrorToasted.current = true
       toast.error(
-        companies.error instanceof ApiError
-          ? companies.error.message
-          : t("insurance.messages.loadError"),
+        isNetworkError(companies.error)
+          ? t("errors.networkError")
+          : companies.error instanceof ApiError
+            ? companies.error.message
+            : t("insurance.messages.loadError"),
         { duration: Number.POSITIVE_INFINITY }
       )
     }
@@ -132,9 +134,11 @@ export default function InsurancePage() {
     if (detail.error && !detailErrorToasted.current) {
       detailErrorToasted.current = true
       toast.error(
-        detail.error instanceof ApiError
-          ? detail.error.message
-          : t("insurance.messages.loadDetailsError"),
+        isNetworkError(detail.error)
+          ? t("errors.networkError")
+          : detail.error instanceof ApiError
+            ? detail.error.message
+            : t("insurance.messages.loadDetailsError"),
         { duration: Number.POSITIVE_INFINITY }
       )
     }
@@ -154,9 +158,11 @@ export default function InsurancePage() {
       setReportSubmitting(false)
       if (error) {
         toast.error(
-          error instanceof ApiError
-            ? error.message
-            : t("insurance.messages.reportError")
+          isNetworkError(error)
+            ? t("errors.networkError")
+            : error instanceof ApiError
+              ? error.message
+              : t("insurance.messages.reportError")
         )
         return
       }
@@ -177,9 +183,11 @@ export default function InsurancePage() {
       setReportSubmitting(false)
       if (error) {
         toast.error(
-          error instanceof ApiError
-            ? error.message
-            : t("insurance.messages.reportError")
+          isNetworkError(error)
+            ? t("errors.networkError")
+            : error instanceof ApiError
+              ? error.message
+              : t("insurance.messages.reportError")
         )
         return
       }
@@ -252,9 +260,11 @@ export default function InsurancePage() {
         {companies.error && !companies.loading ? (
           <Alert variant="destructive">
             <AlertDescription>
-              {companies.error instanceof ApiError
-                ? companies.error.message
-                : t("insurance.messages.loadError")}
+              {isNetworkError(companies.error)
+                ? t("errors.networkError")
+                : companies.error instanceof ApiError
+                  ? companies.error.message
+                  : t("insurance.messages.loadError")}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -352,9 +362,11 @@ export default function InsurancePage() {
             <Alert variant="destructive">
               <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
                 <span>
-                  {detail.error instanceof ApiError
-                    ? detail.error.message
-                    : t("insurance.messages.loadDetailsError")}
+                  {isNetworkError(detail.error)
+                    ? t("errors.networkError")
+                    : detail.error instanceof ApiError
+                      ? detail.error.message
+                      : t("insurance.messages.loadDetailsError")}
                 </span>
                 <Button
                   type="button"

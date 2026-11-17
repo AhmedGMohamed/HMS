@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/common/EmptyState"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { usePermission } from "@/hooks/usePermission"
 import { useUIStore } from "@/store/uiStore"
+import { isNetworkError } from "@/lib/errors"
 
 import { useStaffStatus } from "@/pages/Patients/hooks/staffStatus/useStaffStatus"
 import { StaffSectionList } from "@/pages/Patients/components/StaffStatus/StaffSectionList"
@@ -116,7 +117,11 @@ export function StaffStatusPanel() {
       {error && !loading ? (
         <EmptyState
           title={t("patients.messages.loadStaffStatusError")}
-          description={error.message || t("common.error")}
+          description={
+            isNetworkError(error)
+              ? t("errors.networkError")
+              : error.message || t("common.error")
+          }
           action={
             <Button variant="outline" onClick={refresh}>
               {t("common.refresh")}

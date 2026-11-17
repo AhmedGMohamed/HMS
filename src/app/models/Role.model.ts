@@ -105,7 +105,7 @@ export class RoleModel {
 					throw new Error(ERR.INVALID_PERMISSIONS);
 				}
 
-				const params: any[] = [];
+				const params: unknown[] = [];
 				const placeholders = roleData.permissions
 					.map((_, idx) => {
 						params.push(role.role_id, roleData.permissions[idx]);
@@ -191,7 +191,7 @@ export class RoleModel {
 					}
 
 					// Add new permissions
-					const params: any[] = [];
+					const params: unknown[] = [];
 					const placeholders = roleData.permissions.add
 						.map((_, idx) => {
 							params.push(

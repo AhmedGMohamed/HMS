@@ -83,7 +83,7 @@ export class MedicalSupplyUsageController {
                 return;
             }
 
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
             const result = await PatientModel.addMedicalSupplyToPatient(
                 patientId,
                 supply_id,
@@ -94,7 +94,7 @@ export class MedicalSupplyUsageController {
             );
 
             res.status(201).json(result);
-        } catch (error: any) {
+        } catch (error) {
             if (
                 error.message === "Patient is not currently admitted" ||
                 error.message === "No active bill found for patient"
@@ -120,7 +120,7 @@ export class MedicalSupplyUsageController {
         try {
             const patientId = parseInt(req.params.patientId);
             const usageId = parseInt(req.params.usageId);
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
 
             await PatientModel.removeMedicalSupplyFromPatient(
                 patientId,
@@ -129,7 +129,7 @@ export class MedicalSupplyUsageController {
             );
 
             res.status(204).send();
-        } catch (error: any) {
+        } catch (error) {
             if (
                 error.message === "Medical supply usage not found for this patient" ||
                 error.message === "Patient is not currently admitted"

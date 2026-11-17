@@ -202,7 +202,7 @@ export class DrugTransactionModel {
 	): Promise<TransactionWithDetails[]> {
 		try {
 			const conditions: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (filters.startDate) {
@@ -272,7 +272,7 @@ export class DrugTransactionModel {
 	): Promise<TransactionSummary> {
 		try {
 			const conditions: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (filters.startDate) {

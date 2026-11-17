@@ -110,16 +110,24 @@ export function PrintBillConfirmDialog({
   const paid = Number(normalizedBill.paidAmount ?? 0)
 
   const translatedDiscountScopeArr = []
-  preview.discountScopeArr.length === 4 ?
-    translatedDiscountScopeArr.push(t("patients.billing.scope.all")) :
-    preview.discountScopeArr.forEach(v => translatedDiscountScopeArr.push(t(`patients.billing.scope.${v}`)))
+  if (preview.discountScopeArr.length === 4) {
+    translatedDiscountScopeArr.push(t("patients.billing.scope.all"))
+  } else {
+    preview.discountScopeArr.forEach((v) =>
+      translatedDiscountScopeArr.push(t(`patients.billing.scope.${v}`))
+    )
+  }
   const discountScopeStr = translatedDiscountScopeArr.join(t("patients.billingPrint.scopeSeparator"))
 
 
   const translatedVatScopeArr = []
-  preview.vatScopeArr.length === 4 ?
-    translatedVatScopeArr.push(t("patients.billing.scope.all")) :
-    preview.vatScopeArr.forEach(v => translatedVatScopeArr.push(t(`patients.billing.scope.${v}`)))
+  if (preview.vatScopeArr.length === 4) {
+    translatedVatScopeArr.push(t("patients.billing.scope.all"))
+  } else {
+    preview.vatScopeArr.forEach((v) =>
+      translatedVatScopeArr.push(t(`patients.billing.scope.${v}`))
+    )
+  }
   const vatScopeStr = translatedVatScopeArr.join(t("patients.billingPrint.scopeSeparator"))
 
   const subtotal =

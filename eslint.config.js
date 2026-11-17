@@ -55,7 +55,7 @@ const snakeCaseGuard = {
 }
 
 export default defineConfig([
-  globalIgnores(['dist', 'build', 'node_modules']),
+  globalIgnores(['dist', 'dist-electron', 'build', 'node_modules']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

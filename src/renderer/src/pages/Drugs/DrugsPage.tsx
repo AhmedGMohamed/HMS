@@ -30,7 +30,7 @@ import { TransactionsPanel } from "@/pages/Drugs/components/Transactions/Transac
 import { DrugCardModal } from "@/pages/Drugs/modals/DrugCardModal"
 import { ShipmentModal } from "@/pages/Drugs/modals/ShipmentModal"
 import { SellDrugModal } from "@/pages/Drugs/modals/SellDrugModal"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import type {
   DrugCard,
   DrugShipment,
@@ -292,9 +292,11 @@ export default function DrugsPage() {
             drugsList.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("pharmacy.messages.deleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("pharmacy.messages.deleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false
@@ -325,9 +327,11 @@ export default function DrugsPage() {
             warehouses.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("pharmacy.messages.shipmentDeleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("pharmacy.messages.shipmentDeleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false

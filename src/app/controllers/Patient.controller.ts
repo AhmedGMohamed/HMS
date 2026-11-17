@@ -150,7 +150,7 @@ export class PatientController {
 			const result = await PatientModel.createPatient(patientData);
 
 			res.status(201).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Doctor not found" ||
 				error.message === "Insurance company not found" ||
@@ -198,7 +198,7 @@ export class PatientController {
 			}
 
 			res.status(200).json(updatedPatient);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Doctor not found" ||
@@ -249,7 +249,7 @@ export class PatientController {
 				userId
 			);
 			res.status(201).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Patient not found" ||
 				error.message ===
 				"Pricelist on admission does not match insurance pricelist" ||
@@ -283,7 +283,7 @@ export class PatientController {
 
 			const result = await PatientModel.dischargePatient(dischargeData);
 			res.status(200).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Patient is not currently admitted"
@@ -409,7 +409,7 @@ export class PatientController {
 				diagnosis
 			);
 			res.status(200).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Patient is not currently admitted"
@@ -446,7 +446,7 @@ export class PatientController {
 			);
 
 			res.status(201).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Service not found"
@@ -475,7 +475,7 @@ export class PatientController {
 				activeServiceId
 			);
 			res.status(200).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Active service not found"
@@ -501,7 +501,7 @@ export class PatientController {
 				serviceId
 			);
 			res.status(200).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Active service not found"
@@ -529,7 +529,7 @@ export class PatientController {
 				drugUsageId
 			);
 			res.status(200).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Drug usage not found"
@@ -658,7 +658,7 @@ export class PatientController {
 				price
 			);
 			res.status(201).json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Patient not found" ||
 				error.message === "Drug not found" ||

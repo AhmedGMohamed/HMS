@@ -17,7 +17,7 @@ import { PlusIcon, RotateCcwIcon } from "lucide-react"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
 import { Button } from "@/components/ui/button"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { usePermission } from "@/hooks/usePermission"
 import { useUIStore } from "@/store/uiStore"
@@ -59,7 +59,11 @@ export default function VaultPage() {
 	useEffect(() => {
 		if (error && !errorToastedRef.current) {
 			errorToastedRef.current = true
-			const message = error instanceof ApiError ? error.message : t("vault.messages.loadError")
+			const message = isNetworkError(error)
+				? t("errors.networkError")
+				: error instanceof ApiError
+					? error.message
+					: t("vault.messages.loadError")
 			toast.error(message, { duration: Number.POSITIVE_INFINITY })
 		}
 		if (!error) {

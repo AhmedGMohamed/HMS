@@ -45,7 +45,7 @@ interface PdfDocument {
 declare global {
   interface Window {
     pdfMake?: PdfMake,
-    vfs?: any;
+    vfs?: Record<string, string>;
   }
 }
 

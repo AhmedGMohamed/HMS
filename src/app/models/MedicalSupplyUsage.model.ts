@@ -181,7 +181,7 @@ export class MedicalSupplyUsageModel {
             }
 
             const updates: string[] = [];
-            const values: any[] = [];
+            const values: unknown[] = [];
             let paramCount = 1;
 
             if (data.remaining_quantity !== undefined) {
@@ -266,7 +266,7 @@ export class MedicalSupplyUsageModel {
     ): Promise<{ rows: MedicalSupplyUsageHistory[]; total: number }> {
         try {
             const conditions: string[] = [];
-            const values: any[] = [];
+            const values: unknown[] = [];
             let paramCount = 1;
             let needsPatientJoin = false;
 

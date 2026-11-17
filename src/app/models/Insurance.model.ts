@@ -150,7 +150,7 @@ class InsuranceModel {
 			}
 
 			const updateFields: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			// Build dynamic update query
@@ -296,7 +296,7 @@ class InsuranceModel {
             JOIN InsuranceCompany ic ON ip.insurance_id = ic.insurance_id
         `;
 
-		const values: any[] = [];
+		const values: unknown[] = [];
 		if (insuranceId) {
 			sql += " WHERE ip.insurance_id = $1";
 			values.push(insuranceId);

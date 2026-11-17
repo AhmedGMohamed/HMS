@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { usePermission } from "@/hooks/usePermission"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 import {
   deleteDoctor,
@@ -262,7 +262,11 @@ export default function EmployeesPage() {
   }
 
   function errorMessage(err: unknown, fallbackKey: string): string {
-    return err instanceof ApiError ? err.message : t(fallbackKey)
+    return isNetworkError(err)
+      ? t("errors.networkError")
+      : err instanceof ApiError
+        ? err.message
+        : t(fallbackKey)
   }
 
   function openCreate() {

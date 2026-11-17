@@ -29,6 +29,7 @@ import { EmptyState } from "@/components/common/EmptyState"
 import {
   formatCurrency,
   formatDate,
+  formatDateSafe,
   formatDateTime,
   resolveLocale,
 } from "@/lib/utils"
@@ -85,12 +86,16 @@ export function ReportDetailsModal({
     [report]
   )
 
-  const period = report
-    ? `${formatDate(new Date(report.reportPeriod.startDate), language)} — ${formatDate(
-        new Date(report.reportPeriod.endDate),
-        language
-      )}`
-    : undefined
+  /* Both sides must parse before the period label renders; an unparsable
+     wire date degrades to "" instead of throwing in Intl. */
+  const periodStart = report
+    ? formatDateSafe(report.reportPeriod.startDate, language, "")
+    : ""
+  const periodEnd = report
+    ? formatDateSafe(report.reportPeriod.endDate, language, "")
+    : ""
+  const period =
+    periodStart && periodEnd ? `${periodStart} — ${periodEnd}` : undefined
 
   const handlePrint = async () => {
     if (!report) return
@@ -208,16 +213,13 @@ export function ReportDetailsModal({
                     money,
                     patientPaid: group.patientPaid,
                   })
-                  /* `new Date("")` is Invalid Date and `Intl.format`
-                     throws on it — guard so a row without an admission
-                     timestamp cannot blank the whole report. */
-                  const admissionTime = sample?.admissionTime
-                    ? new Date(sample.admissionTime)
-                    : null
-                  const admissionLabel =
-                    admissionTime && !Number.isNaN(admissionTime.getTime())
-                      ? formatDate(admissionTime, language)
-                      : null
+                  /* Missing/invalid admission timestamps degrade to "" so
+                     the badge stays omitted instead of crashing the report. */
+                  const admissionLabel = formatDateSafe(
+                    sample?.admissionTime,
+                    language,
+                    ""
+                  )
 
                   return (
                     <section
@@ -249,10 +251,7 @@ export function ReportDetailsModal({
                         {sample?.dischargeTime ? (
                           <Badge className="border-success/30 bg-success-light text-success-dark">
                             {t("insurance.report.dischargeDate")}:{" "}
-                            {formatDate(
-                              new Date(sample.dischargeTime),
-                              language
-                            )}
+                            {formatDateSafe(sample.dischargeTime, language, "")}
                           </Badge>
                         ) : null}
                       </div>

@@ -31,7 +31,7 @@
  * the off-screen capture surface.
  */
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -90,6 +90,9 @@ export interface EmployeePaymentsTabProps {
   canExport: boolean
 }
 
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getEmployeePaymentRowId = (row: EmployeePaymentRow) => row.employeeId
+
 /**
  * The list opens with the largest net first — that is the server default
  * (`parseSort(..., "net", "desc")`), and matching it here means the first
@@ -133,14 +136,20 @@ export function EmployeePaymentsTab({
   const locale = (language === "ar" ? "ar-EG" : "en-US") as StaticLocale
 
   /** Payroll money is whole pounds on screen; the dialog shows fractions. */
-  const money = (value: number) =>
-    new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "EGP",
-      maximumFractionDigits: 0,
-    }).format(value)
-  const count = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value)
+  const money = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "EGP",
+        maximumFractionDigits: 0,
+      }).format(value),
+    [locale]
+  )
+  const count = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value),
+    [locale]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Paging (per generated report)                                     */
@@ -153,9 +162,15 @@ export function EmployeePaymentsTab({
   const paging =
     pagingState.key === generatedKey ? pagingState.value : INITIAL_PAGING
 
-  const setPaging = (patch: Partial<EmployeePaymentQueryPaging>) => {
-    setPagingState({ key: generatedKey, value: { ...paging, ...patch } })
-  }
+  const setPaging = useCallback(
+    (patch: Partial<EmployeePaymentQueryPaging>) => {
+      setPagingState((prev) => {
+        const current = prev.key === generatedKey ? prev.value : INITIAL_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Query                                                             */
@@ -328,51 +343,64 @@ export function EmployeePaymentsTab({
       ]
     : []
 
-  const columns = buildEmployeePaymentColumns({
-    t,
-    language,
-    onView: (row: EmployeePaymentRow) => setDetailEmployeeId(row.employeeId),
-  })
+  const handleViewEmployeePayment = useCallback(
+    (row: EmployeePaymentRow) => setDetailEmployeeId(row.employeeId),
+    []
+  )
 
-  const footerItems = summary
-    ? [
-        {
-          key: "payments",
-          label: t("reports.table.payments"),
-          value: count(summary.totalPayments),
-        },
-        {
-          key: "base",
-          label: t("reports.table.base"),
-          value: money(summary.totalBasePay),
-        },
-        {
-          key: "extra",
-          label: t("reports.table.extra"),
-          value: money(summary.totalExtraPay),
-        },
-        {
-          key: "deductions",
-          label: t("reports.table.deductions"),
-          value: money(summary.totalDeductions),
-        },
-        {
-          key: "paid",
-          label: t("reports.table.paid"),
-          value: money(summary.totalPaid),
-        },
-        {
-          key: "unpaid",
-          label: t("reports.table.unpaid"),
-          value: money(summary.totalUnpaid),
-        },
-        {
-          key: "net",
-          label: t("reports.table.net"),
-          value: money(summary.totalNet),
-        },
-      ]
-    : []
+  const columns = useMemo(
+    () =>
+      buildEmployeePaymentColumns({
+        t,
+        language,
+        onView: handleViewEmployeePayment,
+      }),
+    [t, language, handleViewEmployeePayment]
+  )
+
+  const footerItems = useMemo(
+    () =>
+      summary
+        ? [
+            {
+              key: "payments",
+              label: t("reports.table.payments"),
+              value: count(summary.totalPayments),
+            },
+            {
+              key: "base",
+              label: t("reports.table.base"),
+              value: money(summary.totalBasePay),
+            },
+            {
+              key: "extra",
+              label: t("reports.table.extra"),
+              value: money(summary.totalExtraPay),
+            },
+            {
+              key: "deductions",
+              label: t("reports.table.deductions"),
+              value: money(summary.totalDeductions),
+            },
+            {
+              key: "paid",
+              label: t("reports.table.paid"),
+              value: money(summary.totalPaid),
+            },
+            {
+              key: "unpaid",
+              label: t("reports.table.unpaid"),
+              value: money(summary.totalUnpaid),
+            },
+            {
+              key: "net",
+              label: t("reports.table.net"),
+              value: money(summary.totalNet),
+            },
+          ]
+        : [],
+    [summary, t, money, count]
+  )
 
   const period = t("reports.state.range", {
     from: formatDate(new Date(`${range.from}T00:00:00`), language),
@@ -387,6 +415,56 @@ export function EmployeePaymentsTab({
   const exportHandlerProps = canExport
     ? { onExportPdf: handleExportPdf, onExportCsv: handleExportCsv }
     : {}
+
+  /* Stable DataTable props: memoizing the callbacks, pagination object and
+     footer keeps the S15 memo effective across unrelated re-renders. */
+  const handleSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setPaging({ sort: next, page: 1 }),
+    [setPaging]
+  )
+  const handlePageChange = useCallback(
+    (page: number) => setPaging({ page }),
+    [setPaging]
+  )
+  const handlePageSizeChange = useCallback(
+    (pageSize: number) => setPaging({ page: 1, pageSize }),
+    [setPaging]
+  )
+  const pagination = useMemo(
+    () =>
+      payload
+        ? {
+            page: payload.page,
+            pageSize: payload.pageSize,
+            total: payload.total,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange,
+          }
+        : undefined,
+    [payload, handlePageChange, handlePageSizeChange]
+  )
+  const footer = useMemo(
+    () =>
+      footerItems.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border px-3 py-2 text-xs">
+          <span className="font-semibold text-foreground">
+            {t("reports.table.totals")}
+          </span>
+          {footerItems.map((item) => (
+            <span key={item.key} className="flex items-baseline gap-1.5">
+              <span className="text-muted-foreground">{item.label}</span>
+              <span className="tabular-nums font-medium text-foreground" dir="ltr">
+                {item.value}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : undefined,
+    [footerItems, t]
+  )
 
   const employeeOptions = [
     { value: "", label: t("reports.filters.allEmployees") },
@@ -513,42 +591,17 @@ export function EmployeePaymentsTab({
               data={payload.data}
               columns={columns}
               loading={query.loading || query.refreshing}
-              getRowId={(row) => row.employeeId}
-              onRowClick={(row) => setDetailEmployeeId(row.employeeId)}
+              getRowId={getEmployeePaymentRowId}
+              onRowClick={handleViewEmployeePayment}
               sort={paging.sort}
-              onSortToggle={(_columnId, next) =>
-                setPaging({ sort: next, page: 1 })
-              }
-              pagination={{
-                page: payload.page,
-                pageSize: payload.pageSize,
-                total: payload.total,
-                onPageChange: (page) => setPaging({ page }),
-                onPageSizeChange: (pageSize) =>
-                  setPaging({ page: 1, pageSize }),
-              }}
+              onSortToggle={handleSortToggle}
+              pagination={pagination}
               emptyTitle={t("reports.emptyState.noEmployeePaymentsTitle")}
               emptyDescription={t(
                 "reports.emptyState.noEmployeePaymentsDescription"
               )}
               ariaLabel={t("reports.tabs.employeePayments")}
-              footer={
-                footerItems.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border px-3 py-2 text-xs">
-                    <span className="font-semibold text-foreground">
-                      {t("reports.table.totals")}
-                    </span>
-                    {footerItems.map((item) => (
-                      <span key={item.key} className="flex items-baseline gap-1.5">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span className="tabular-nums font-medium text-foreground" dir="ltr">
-                          {item.value}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                ) : undefined
-              }
+              footer={footer}
             />
           </>
         )}

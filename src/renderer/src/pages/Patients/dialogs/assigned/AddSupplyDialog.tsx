@@ -85,7 +85,6 @@ export function AddSupplyDialog({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     listAvailableSupplies()
       .then((rows) => {
@@ -110,7 +109,6 @@ export function AddSupplyDialog({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShipmentsLoading(true)
     listSupplyShipments(selectedSupplyId)
       .then((rows) => {
@@ -385,7 +383,7 @@ function QuantityDialog({
         </p>
         <Field>
           <FieldLabel htmlFor="add-supply-quantity">
-            {t("patients.messages.quantityLabel", { unit: "—" })}
+            {t("patients.table.quantity")}
           </FieldLabel>
           <Input
             id="add-supply-quantity"

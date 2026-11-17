@@ -13,7 +13,7 @@ import type {
   DrugUsage,
   PatientHistory,
 } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
 import {
   dispatchBillChanged,
@@ -97,11 +97,13 @@ export function useAssignedDrugs(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
               ? err.message
-              : t("patients.messages.addDrugError")
+              : err instanceof Error
+                ? err.message
+                : t("patients.messages.addDrugError")
         )
         throw err
       }
@@ -123,9 +125,11 @@ export function useAssignedDrugs(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.removeDrugError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.removeDrugError")
         )
         throw err
       }
@@ -157,9 +161,11 @@ export function useAssignedDrugs(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.administerDrugError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.administerDrugError")
         )
         throw err
       }

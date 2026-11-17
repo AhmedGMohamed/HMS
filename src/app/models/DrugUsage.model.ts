@@ -181,7 +181,7 @@ export class DrugUsageModel {
 			}
 
 			const updates: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (data.remaining_quantity !== undefined) {
@@ -268,7 +268,7 @@ export class DrugUsageModel {
 	): Promise<DrugUsageHistory[]> {
 		try {
 			const conditions: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (patientId !== undefined) {

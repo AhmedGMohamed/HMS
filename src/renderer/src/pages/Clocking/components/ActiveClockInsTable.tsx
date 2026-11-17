@@ -20,8 +20,6 @@ interface ActiveClockInsTableProps {
   /** The current server page — filtering/sorting/paging live in SQL. */
   rows: ClockIn[]
   loading?: boolean
-  /** Reference instant for anomaly thresholds and the duration sort key. */
-  now: Date
   employeeMap: Map<number, EligibleEmployee>
   duplicateIds: ReadonlySet<number>
   locale: string
@@ -55,7 +53,6 @@ interface ActiveClockInsTableProps {
 export function ActiveClockInsTable({
   rows,
   loading = false,
-  now,
   employeeMap,
   duplicateIds,
   locale,
@@ -96,10 +93,14 @@ export function ActiveClockInsTable({
       id: "duration",
       header: t("clocking.table.duration"),
       sortable: true,
-      sortKey: (row) => now.getTime() - new Date(row.clockIn).getTime(),
+      /* No `sortKey`: DataTable does not consume it — ordering is owned by
+         the server-side sort column id. */
       className: "min-w-40",
       cell: (row) => {
-        const anomalies = deriveAnomalies(row, now, duplicateIds)
+        /* Snapshot at cell render time: identical freshness to the previous
+           page-level `new Date()` (both evaluate once per render pass), with
+           no per-render `now` prop threading. */
+        const anomalies = deriveAnomalies(row, new Date(), duplicateIds)
         return (
           <div className="flex flex-col items-start gap-1">
             <LiveDuration

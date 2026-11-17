@@ -77,7 +77,7 @@ export class ServiceController {
 				});
 			}
 			res.json(service);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Service not found") {
 				res.status(404).json({ error: "Service not found" });
 			} else {
@@ -114,7 +114,7 @@ export class ServiceController {
 				});
 			}
 			res.json(service);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Service not found") {
 				res.status(404).json({ error: "Service not found" });
 			} else {
@@ -131,7 +131,7 @@ export class ServiceController {
 			const serviceId = parseInt(req.params.id, 10);
 			await ServiceModel.deleteService(serviceId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Service not found") {
 				res.status(404).json({ error: "Service not found" });
 			} else if (
@@ -223,7 +223,7 @@ export class ServiceController {
 				startDate ? new Date(startDate) : undefined
 			);
 			res.status(201).json(activeService);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Service not found") {
 				res.status(404).json({ error: "Service not found" });
 			} else if (error.message === "Patient not found") {
@@ -246,7 +246,7 @@ export class ServiceController {
 				endDate ? new Date(endDate) : undefined
 			);
 			res.json(service);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Active service not found") {
 				res.status(404).json({ error: error.message });
 			} else {

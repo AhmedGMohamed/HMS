@@ -50,7 +50,7 @@ export class PriceListController {
 				priceListId
 			);
 			res.json(priceList);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
 			} else {
@@ -82,7 +82,7 @@ export class PriceListController {
 				updateData
 			);
 			res.json(priceList);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
 			} else if (
@@ -102,7 +102,7 @@ export class PriceListController {
 			const priceListId = parseInt(req.params.id);
 			await PriceListModel.deletePriceList(priceListId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
 			} else if (
@@ -131,7 +131,7 @@ export class PriceListController {
 				data
 			);
 			res.json(result);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Price list not found") {
 				res.status(404).json({ error: error.message });
 			} else if (
@@ -151,7 +151,7 @@ export class PriceListController {
 		try {
 			const defaultPriceList = await PriceListModel.getDefaultPriceList();
 			res.json(defaultPriceList);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "No default price list found") {
 				res.status(404).json({ error: error.message });
 			} else {
@@ -168,7 +168,7 @@ export class PriceListController {
 			const priceListId = parseInt(req.params.id);
 			const priceListStats = await PriceListModel.getPriceListStats(priceListId);
 			res.json(priceListStats);
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Error fetching price list stats:", error);
 			res.status(500).json({ error: "Failed to fetch price list stats" });
 		}
@@ -181,7 +181,7 @@ export class PriceListController {
 				priceListId
 			);
 			res.json(priceListServices);
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Error fetching price list services:", error);
 			res.status(500).json({ error: "Failed to fetch price list services" });
 		}

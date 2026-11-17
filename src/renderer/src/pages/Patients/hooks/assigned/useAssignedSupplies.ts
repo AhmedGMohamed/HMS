@@ -11,7 +11,7 @@ import type {
   MedicalSupplyUsage,
   PatientHistory,
 } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
 import {
   dispatchBillChanged,
@@ -76,9 +76,11 @@ export function useAssignedSupplies(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.removeSupplyError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.removeSupplyError")
         )
         throw err
       }

@@ -56,7 +56,7 @@ export class UserController {
 			// Return the row in the same shape the list/detail endpoints use.
 			const user = await UserModel.getUserById(created.user_id);
 			res.status(201).json(user ?? created);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Username already exists") {
 				res.status(409).json({
 					error: error.message,
@@ -127,7 +127,7 @@ export class UserController {
 
 			const updatedUser = await UserModel.updateUser(userData);
 			res.json(updatedUser);
-		} catch (error: any) {
+		} catch (error) {
 			switch (error.message)
 			{
 				case "Username already exists":
@@ -181,7 +181,7 @@ export class UserController {
 
 			await UserModel.deleteUser(userId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "User not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.code === "23503") {

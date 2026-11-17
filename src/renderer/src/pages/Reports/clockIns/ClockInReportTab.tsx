@@ -24,7 +24,7 @@
  * `danger` when non-zero; it never invents rows client-side.
  */
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -86,6 +86,9 @@ export interface ClockInReportTabProps {
  * The list opens by name — that is the server default (`parseClockInSort`), and
  * matching it here means the first request and the header arrow agree.
  */
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getClockInRowId = (row: ClockInReportRow) => row.employeeId
+
 const INITIAL_PAGING: ClockInQueryPaging = {
   page: 1,
   pageSize: 10,
@@ -124,16 +127,25 @@ export function ClockInReportTab({
   const locale = (language === "ar" ? "ar-EG" : "en-US") as StaticLocale
 
   /** Hours carry fractions; counts do not. */
-  const hours = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)
-  const count = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value)
-  const money = (value: number) =>
-    new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "EGP",
-      maximumFractionDigits: 0,
-    }).format(value)
+  const hours = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value),
+    [locale]
+  )
+  const count = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value),
+    [locale]
+  )
+  const money = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "EGP",
+        maximumFractionDigits: 0,
+      }).format(value),
+    [locale]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Paging (per generated report)                                     */
@@ -145,9 +157,15 @@ export function ClockInReportTab({
   const paging =
     pagingState.key === generatedKey ? pagingState.value : INITIAL_PAGING
 
-  const setPaging = (patch: Partial<ClockInQueryPaging>) => {
-    setPagingState({ key: generatedKey, value: { ...paging, ...patch } })
-  }
+  const setPaging = useCallback(
+    (patch: Partial<ClockInQueryPaging>) => {
+      setPagingState((prev) => {
+        const current = prev.key === generatedKey ? prev.value : INITIAL_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Query                                                             */
@@ -306,46 +324,59 @@ export function ClockInReportTab({
       ]
     : []
 
-  const columns = buildClockInColumns({
-    t,
-    language,
-    onView: (row: ClockInReportRow) => setDetailEmployeeId(row.employeeId),
-  })
+  const handleViewClockIn = useCallback(
+    (row: ClockInReportRow) => setDetailEmployeeId(row.employeeId),
+    []
+  )
 
-  const footerItems = summary
-    ? [
-        {
-          key: "clockIns",
-          label: t("reports.table.clockIns"),
-          value: count(summary.totalClockIns),
-        },
-        {
-          key: "days",
-          label: t("reports.table.days"),
-          value: count(summary.totalWorkedDays),
-        },
-        {
-          key: "hours",
-          label: t("reports.table.hours"),
-          value: hours(summary.totalHours),
-        },
-        {
-          key: "avgPerDay",
-          label: t("reports.table.avgPerDay"),
-          value: hours(summary.avgHoursPerDay),
-        },
-        {
-          key: "missing",
-          label: t("reports.enums.attendance.missing"),
-          value: count(summary.totalMissingDays),
-        },
-        {
-          key: "deductions",
-          label: t("reports.table.deductions"),
-          value: money(summary.totalDeductions),
-        },
-      ]
-    : []
+  const columns = useMemo(
+    () =>
+      buildClockInColumns({
+        t,
+        language,
+        onView: handleViewClockIn,
+      }),
+    [t, language, handleViewClockIn]
+  )
+
+  const footerItems = useMemo(
+    () =>
+      summary
+        ? [
+            {
+              key: "clockIns",
+              label: t("reports.table.clockIns"),
+              value: count(summary.totalClockIns),
+            },
+            {
+              key: "days",
+              label: t("reports.table.days"),
+              value: count(summary.totalWorkedDays),
+            },
+            {
+              key: "hours",
+              label: t("reports.table.hours"),
+              value: hours(summary.totalHours),
+            },
+            {
+              key: "avgPerDay",
+              label: t("reports.table.avgPerDay"),
+              value: hours(summary.avgHoursPerDay),
+            },
+            {
+              key: "missing",
+              label: t("reports.enums.attendance.missing"),
+              value: count(summary.totalMissingDays),
+            },
+            {
+              key: "deductions",
+              label: t("reports.table.deductions"),
+              value: money(summary.totalDeductions),
+            },
+          ]
+        : [],
+    [summary, t, count, hours, money]
+  )
 
   const period = t("reports.state.range", {
     from: formatDate(new Date(`${range.from}T00:00:00`), language),
@@ -360,6 +391,59 @@ export function ClockInReportTab({
   const exportHandlerProps = canExport
     ? { onExportPdf: handleExportPdf, onExportCsv: handleExportCsv }
     : {}
+
+  /* Stable DataTable props: memoizing the callbacks, pagination object and
+     footer keeps the S15 memo effective across unrelated re-renders. */
+  const handleSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setPaging({ sort: next, page: 1 }),
+    [setPaging]
+  )
+  const handlePageChange = useCallback(
+    (page: number) => setPaging({ page }),
+    [setPaging]
+  )
+  const handlePageSizeChange = useCallback(
+    (pageSize: number) => setPaging({ page: 1, pageSize }),
+    [setPaging]
+  )
+  const pagination = useMemo(
+    () =>
+      payload
+        ? {
+            page: payload.page,
+            pageSize: payload.pageSize,
+            total: payload.total,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange,
+          }
+        : undefined,
+    [payload, handlePageChange, handlePageSizeChange]
+  )
+  const footer = useMemo(
+    () =>
+      footerItems.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border px-3 py-2 text-xs">
+          <span className="font-semibold text-foreground">
+            {t("reports.table.totals")}
+          </span>
+          {footerItems.map((item) => (
+            <span key={item.key} className="flex items-baseline gap-1.5">
+              <span className="text-muted-foreground">{item.label}</span>
+              <span
+                className="tabular-nums font-medium text-foreground"
+                dir="ltr"
+              >
+                {item.value}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : undefined,
+    [footerItems, t]
+  )
 
   /**
    * The export document prints one record per session, not one per employee, so
@@ -483,43 +567,15 @@ export function ClockInReportTab({
               data={payload.data}
               columns={columns}
               loading={query.loading || query.refreshing}
-              getRowId={(row) => row.employeeId}
-              onRowClick={(row) => setDetailEmployeeId(row.employeeId)}
+              getRowId={getClockInRowId}
+              onRowClick={handleViewClockIn}
               sort={paging.sort}
-              onSortToggle={(_columnId, next) =>
-                setPaging({ sort: next, page: 1 })
-              }
-              pagination={{
-                page: payload.page,
-                pageSize: payload.pageSize,
-                total: payload.total,
-                onPageChange: (page) => setPaging({ page }),
-                onPageSizeChange: (pageSize) =>
-                  setPaging({ page: 1, pageSize }),
-              }}
+              onSortToggle={handleSortToggle}
+              pagination={pagination}
               emptyTitle={t("reports.clockInReports.emptyTitle")}
               emptyDescription={t("reports.clockInReports.emptyDescription")}
               ariaLabel={t("reports.tabs.clockInReports")}
-              footer={
-                footerItems.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border px-3 py-2 text-xs">
-                    <span className="font-semibold text-foreground">
-                      {t("reports.table.totals")}
-                    </span>
-                    {footerItems.map((item) => (
-                      <span key={item.key} className="flex items-baseline gap-1.5">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span
-                          className="tabular-nums font-medium text-foreground"
-                          dir="ltr"
-                        >
-                          {item.value}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                ) : undefined
-              }
+              footer={footer}
             />
           </>
         )}

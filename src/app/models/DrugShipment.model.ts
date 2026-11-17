@@ -176,7 +176,7 @@ export class DrugShipmentModel {
 			}
 
 			const updates: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (data.warehouse_id !== undefined) {

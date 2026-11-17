@@ -35,6 +35,25 @@ export function formatDateTime(date: Date, locale = "en"): string {
 }
 
 /**
+ * `formatDate` throws a RangeError on an Invalid Date (blank or malformed
+ * ISO string from the wire). This variant degrades to `fallback` instead of
+ * crashing the render. Pass `fallback: ""` where the caller conditionally
+ * renders missing dates.
+ *
+ * `locale` stays a language key ("en" | "ar") and delegates to `formatDate`,
+ * which maps it to the Intl locale.
+ */
+export function formatDateSafe(
+  value: string | Date | null | undefined,
+  locale = "en",
+  fallback = "—"
+): string {
+  if (value == null || value === "") return fallback
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? fallback : formatDate(date, locale)
+}
+
+/**
  * Local calendar day as `YYYY-MM-DD` — the wire format server date
  * filters expect.
  *

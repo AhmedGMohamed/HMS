@@ -141,7 +141,7 @@ export class DrugCardModel {
 			}
 
 			const updates: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			// Build dynamic update query

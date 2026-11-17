@@ -22,7 +22,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { createPayment, markPaymentPaid } from "@/pages/Employees/api"
 import {
   emptyPaymentForm,
@@ -99,9 +99,11 @@ export function PaymentModal({
       onSaved()
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : t("employees.messages.paymentCreateError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("employees.messages.paymentCreateError")
       )
     } finally {
       setSaving(false)

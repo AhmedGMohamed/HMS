@@ -27,6 +27,7 @@ import {
   PaymentStatusBadge,
 } from "@/pages/Employees/components/EmployeeDisplay"
 import {
+  formatPerPatientPay,
   useEmployeeLocale,
   usePaymentAmount,
 } from "@/pages/Employees/hooks/useEmployeeDisplay"
@@ -34,7 +35,6 @@ import type {
   Doctor,
   Employee,
   EmployeePayment,
-  PerPatientPaymentType,
 } from "@/pages/Employees/types/employee"
 
 export type StaffSubject = Employee | Doctor
@@ -380,21 +380,6 @@ function formatCurrencySafe(
  * total (percentage) — the stored type decides the unit, never the
  * amount alone.
  */
-function formatPerPatientPay(
-  value: number | null | undefined,
-  type: PerPatientPaymentType | null | undefined,
-  locale: string
-): string {
-  if (value == null || !Number.isFinite(Number(value))) return "—"
-  const amount = Number(value)
-  if (type === "percentage") {
-    return new Intl.NumberFormat(locale, {
-      style: "percent",
-      maximumFractionDigits: 2,
-    }).format(amount / 100)
-  }
-  return formatCurrencySafe(amount, locale)
-}
 
 function Detail({
   label,

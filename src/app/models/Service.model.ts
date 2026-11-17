@@ -226,7 +226,7 @@ export class ServiceModel {
 
 			// Update service details
 			let updateFields: string[] = [];
-			let values: any[] = [];
+			let values: unknown[] = [];
 			let paramCount = 1;
 
 			if (serviceData.name) {
@@ -491,7 +491,7 @@ export class ServiceModel {
 
 			await query("COMMIT");
 			return result.rows[0];
-		} catch (error: any) {
+		} catch (error) {
 			await query("ROLLBACK");
 			if (
 				error.message === "Service not found" ||

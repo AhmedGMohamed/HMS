@@ -26,7 +26,14 @@ export interface UseDrugsListResult {
    * filtered view makes the cards collapse to 0 whenever a filter is on.
    */
   allDrugs: EnrichedDrugCard[]
+  /** List fetches only (cards + KPI lists). Detail fan-out never sets it. */
   loading: boolean
+  /**
+   * Per-window shipment fan-out in flight. Kept separate from `loading` so
+   * paging/sorting a populated table does not blank it with skeletons while
+   * the per-drug detail requests resolve.
+   */
+  detailsLoading: boolean
   error: Error | null
   search: string
   setSearch: (v: string) => void
@@ -114,6 +121,7 @@ export function useDrugsList(): UseDrugsListResult {
   )
   const [visibleDrugIds, setVisibleDrugIdsState] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
+  const [detailsLoading, setDetailsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [nonce, setNonce] = useState(0)
   const [search, setSearch] = useState("")
@@ -177,8 +185,9 @@ export function useDrugsList(): UseDrugsListResult {
   useEffect(() => {
     if (visibleIds.length === 0) return
     const myRunId = ++runIdRef.current
+    // Detail-only flag: the table keeps its populated rows while this runs.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true)
+    setDetailsLoading(true)
     mapWithConcurrency(visibleIds, 4, (drugId) =>
       listDrugShipments(drugId)
         .then((rows: DrugShipment[]) => {
@@ -220,12 +229,12 @@ export function useDrugsList(): UseDrugsListResult {
           }
           return map
         })
-        setLoading(false)
+        setDetailsLoading(false)
       })
       .catch(() => {
         /* non-blocking — fall back to "—" / 0 */
         if (runIdRef.current === myRunId) {
-          setLoading(false)
+          setDetailsLoading(false)
         }
       })
     // `visibleIds` is derived from `visibleKey`, so it only changes
@@ -303,6 +312,7 @@ export function useDrugsList(): UseDrugsListResult {
     drugs: filtered,
     allDrugs: enriched,
     loading,
+    detailsLoading,
     error,
     search,
     setSearch,

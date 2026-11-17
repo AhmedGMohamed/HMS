@@ -5,6 +5,7 @@ import { useForm, type FieldErrors } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { isNetworkError } from "@/lib/errors"
 
 import {
   Dialog,
@@ -215,7 +216,11 @@ export function SellDrugModal({
       onOpenChange(false)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("pharmacy.messages.saleError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof Error
+            ? err.message
+            : t("pharmacy.messages.saleError")
       )
     } finally {
       setSubmitting(false)
@@ -380,6 +385,11 @@ export function SellDrugModal({
               {formatNumber(available)}
             </span>{" "}
             {shipment.unitConversion?.smaller ?? ""}
+            {resolvedQty > available ? (
+              <span className="ms-2 font-medium text-danger">
+                {t("pharmacy.validation.insufficientQuantity")}
+              </span>
+            ) : null}
           </p>
 
           {/* 4. Price list + total */}

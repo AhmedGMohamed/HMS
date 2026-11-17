@@ -188,7 +188,7 @@ export default class DoctorModel {
 			await query("BEGIN");
 
 			const employeeFields: string[] = [];
-			const employeeValues: any[] = [];
+			const employeeValues: unknown[] = [];
 			let index = 1;
 
 			const employeeKeys = [
@@ -231,7 +231,7 @@ export default class DoctorModel {
 			}
 
 			const doctorFields: string[] = [];
-			const doctorValues: any[] = [];
+			const doctorValues: unknown[] = [];
 			index = 1;
 
 			const doctorKeys = [

@@ -1,5 +1,7 @@
 // src/app/utils/types/express/index.d.ts
-import { User, Permission } from "../users";
+// Module marker: keeps `declare global` augmentation valid without the
+// unused type imports it previously carried.
+export {};
 
 declare global {
 	namespace Express {

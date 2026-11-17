@@ -42,7 +42,7 @@ import type {
 } from "@/pages/Services/types/service"
 import type { PriceListWithStats } from "@/pages/PriceLists/types/priceList"
 import type { DrugCard } from "@/pages/_shared/pharmacy/types"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 
 interface ServiceModalProps {
   open: boolean
@@ -229,9 +229,11 @@ export function ServiceModal({
       onSaved()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : t("services.messages.saveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("services.messages.saveError")
       )
     } finally {
       setSubmitting(false)

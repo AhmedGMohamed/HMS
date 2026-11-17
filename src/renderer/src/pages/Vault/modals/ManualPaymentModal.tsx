@@ -29,7 +29,7 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "@/components/ui/native-select"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { addManualPayment } from "@/pages/Vault/api"
 import {
 	manualPaymentSchema,
@@ -79,7 +79,11 @@ export function ManualPaymentModal({ open, onClose, onSaved }: ManualPaymentModa
 		} catch (err) {
 			// Persistent toast — the modal stays open so the user can retry (plan A12).
 			toast.error(
-				err instanceof ApiError ? err.message : t("vault.messages.manualPaymentError"),
+				isNetworkError(err)
+					? t("errors.networkError")
+					: err instanceof ApiError
+						? err.message
+						: t("vault.messages.manualPaymentError"),
 				{ duration: Number.POSITIVE_INFINITY }
 			)
 		} finally {

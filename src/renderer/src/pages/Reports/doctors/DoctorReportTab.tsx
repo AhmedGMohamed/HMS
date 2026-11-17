@@ -31,7 +31,7 @@
  * in their captions so the two numbers never look contradictory.
  */
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { StethoscopeIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -71,6 +71,7 @@ import { PatientDetailDialog } from "@/pages/Reports/patients/PatientDetailDialo
 import { doctorsForRelationship } from "@/pages/Reports/state/reportParams"
 import type { ReportSessionResult } from "@/pages/Reports/state/useReportSession"
 import type {
+  DoctorPatientRow,
   DoctorQueryFilters,
   DoctorQueryPaging,
   DoctorReportRow,
@@ -102,6 +103,9 @@ export interface DoctorReportTabProps {
   session: ReportSessionResult
   canExport: boolean
 }
+
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getDoctorRowId = (row: DoctorReportRow) => row.doctorId
 
 /** Server defaults: doctor list and patient table are both name-ascending. */
 const INITIAL_LIST_PAGING: DoctorQueryPaging = {
@@ -184,7 +188,10 @@ export function DoctorReportTab({
 }: DoctorReportTabProps) {
   const { t } = useTranslation()
   const language = useUIStore((state) => state.language) ?? "en"
-  const money = (value: number) => formatCurrency(value, resolveLocale(language))
+  const money = useCallback(
+    (value: number) => formatCurrency(value, resolveLocale(language)),
+    [language]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Paging (per generated report)                                     */
@@ -199,9 +206,16 @@ export function DoctorReportTab({
       ? listPagingState.value
       : INITIAL_LIST_PAGING
 
-  const setListPaging = (patch: Partial<DoctorQueryPaging>) => {
-    setListPagingState({ key: generatedKey, value: { ...listPaging, ...patch } })
-  }
+  const setListPaging = useCallback(
+    (patch: Partial<DoctorQueryPaging>) => {
+      setListPagingState((prev) => {
+        const current =
+          prev.key === generatedKey ? prev.value : INITIAL_LIST_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   const [patientPagingState, setPatientPagingState] = useState<PagingState>({
     key: null,
@@ -212,12 +226,16 @@ export function DoctorReportTab({
       ? patientPagingState.value
       : INITIAL_PATIENT_PAGING
 
-  const setPatientPaging = (patch: Partial<DoctorQueryPaging>) => {
-    setPatientPagingState({
-      key: generatedKey,
-      value: { ...patientPaging, ...patch },
-    })
-  }
+  const setPatientPaging = useCallback(
+    (patch: Partial<DoctorQueryPaging>) => {
+      setPatientPagingState((prev) => {
+        const current =
+          prev.key === generatedKey ? prev.value : INITIAL_PATIENT_PAGING
+        return { key: generatedKey, value: { ...current, ...patch } }
+      })
+    },
+    [generatedKey]
+  )
 
   /* ---------------------------------------------------------------- */
   /* Queries                                                           */
@@ -493,11 +511,20 @@ export function DoctorReportTab({
         ]
       : []
 
-  const doctorColumns = buildDoctorColumns({
-    t,
-    language,
-    onView: (row: DoctorReportRow) => setDetailDoctorId(row.doctorId),
-  })
+  const handleViewDoctor = useCallback(
+    (row: DoctorReportRow) => setDetailDoctorId(row.doctorId),
+    []
+  )
+
+  const doctorColumns = useMemo(
+    () =>
+      buildDoctorColumns({
+        t,
+        language,
+        onView: handleViewDoctor,
+      }),
+    [t, language, handleViewDoctor]
+  )
 
   /** The chart shows the rows the table shows; the export shows them all. */
   const chartPoints: DoctorDistributionPoint[] =
@@ -521,6 +548,98 @@ export function DoctorReportTab({
   const exportHandlerProps = canExport
     ? { onExportPdf: handleExportPdf, onExportCsv: handleExportCsv }
     : {}
+
+  /* Stable DataTable props: memoizing the callbacks, pagination object and
+     footer keeps the S15 memo effective across unrelated re-renders. */
+  const handleListSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setListPaging({ sort: next, page: 1 }),
+    [setListPaging]
+  )
+  const handleListPageChange = useCallback(
+    (page: number) => setListPaging({ page }),
+    [setListPaging]
+  )
+  const handleListPageSizeChange = useCallback(
+    (pageSize: number) => setListPaging({ page: 1, pageSize }),
+    [setListPaging]
+  )
+  const listPagination = useMemo(
+    () =>
+      listQuery.payload
+        ? {
+            page: listQuery.payload.page,
+            pageSize: listQuery.payload.pageSize,
+            total: listQuery.payload.total,
+            onPageChange: handleListPageChange,
+            onPageSizeChange: handleListPageSizeChange,
+          }
+        : undefined,
+    [listQuery.payload, handleListPageChange, handleListPageSizeChange]
+  )
+  const listFooter = useMemo(
+    () =>
+      listSummary ? (
+        <DoctorTotalsBand
+          label={t("reports.table.totals")}
+          patients={listSummary.totalPatientAssignments}
+          admissions={listSummary.totalAdmissions}
+          billed={money(listSummary.totalBilled)}
+          paid={money(listSummary.totalPaid)}
+          labels={{
+            patients: t("reports.table.patients"),
+            admissions: t("reports.summary.admissions"),
+            billed: t("reports.summary.totalBill"),
+            paid: t("reports.summary.totalPaid"),
+          }}
+          note={t("reports.doctorReports.dedupeNote", {
+            count: listSummary.totalPatients,
+          })}
+        />
+      ) : undefined,
+    [listSummary, t, money]
+  )
+
+  const handlePatientRowClick = useCallback(
+    (row: DoctorPatientRow) => setDetailPatientId(row.patientId),
+    []
+  )
+  const handlePatientSortToggle = useCallback(
+    (
+      _columnId: string,
+      next: { columnId: string; direction: "asc" | "desc" }
+    ) => setPatientPaging({ sort: next, page: 1 }),
+    [setPatientPaging]
+  )
+  const handlePatientPageChange = useCallback(
+    (page: number) => setPatientPaging({ page }),
+    [setPatientPaging]
+  )
+  const handlePatientPageSizeChange = useCallback(
+    (pageSize: number) => setPatientPaging({ page: 1, pageSize }),
+    [setPatientPaging]
+  )
+  const detailFooter = useMemo(
+    () =>
+      detailSummary ? (
+        <DoctorTotalsBand
+          label={t("reports.table.totals")}
+          patients={detailSummary.patients}
+          admissions={detailSummary.admissions}
+          billed={money(detailSummary.billed)}
+          paid={money(detailSummary.paid)}
+          labels={{
+            patients: t("reports.table.patients"),
+            admissions: t("reports.summary.admissions"),
+            billed: t("reports.summary.totalBill"),
+            paid: t("reports.summary.totalPaid"),
+          }}
+        />
+      ) : undefined,
+    [detailSummary, t, money]
+  )
 
   return (
     <>
@@ -616,43 +735,15 @@ export function DoctorReportTab({
               data={listQuery.payload.data}
               columns={doctorColumns}
               loading={listQuery.loading || listQuery.refreshing}
-              getRowId={(row) => row.doctorId}
-              onRowClick={(row) => setDetailDoctorId(row.doctorId)}
+              getRowId={getDoctorRowId}
+              onRowClick={handleViewDoctor}
               sort={listPaging.sort}
-              onSortToggle={(_columnId, next) =>
-                setListPaging({ sort: next, page: 1 })
-              }
-              pagination={{
-                page: listQuery.payload.page,
-                pageSize: listQuery.payload.pageSize,
-                total: listQuery.payload.total,
-                onPageChange: (page) => setListPaging({ page }),
-                onPageSizeChange: (pageSize) =>
-                  setListPaging({ page: 1, pageSize }),
-              }}
+              onSortToggle={handleListSortToggle}
+              pagination={listPagination}
               emptyTitle={t("reports.emptyState.noDoctorsFound")}
               emptyDescription={t("reports.emptyState.noDoctorsDescription")}
               ariaLabel={t("reports.tabs.doctorReports")}
-              footer={
-                listSummary ? (
-                  <DoctorTotalsBand
-                    label={t("reports.table.totals")}
-                    patients={listSummary.totalPatientAssignments}
-                    admissions={listSummary.totalAdmissions}
-                    billed={money(listSummary.totalBilled)}
-                    paid={money(listSummary.totalPaid)}
-                    labels={{
-                      patients: t("reports.table.patients"),
-                      admissions: t("reports.summary.admissions"),
-                      billed: t("reports.summary.totalBill"),
-                      paid: t("reports.summary.totalPaid"),
-                    }}
-                    note={t("reports.doctorReports.dedupeNote", {
-                      count: listSummary.totalPatients,
-                    })}
-                  />
-                ) : undefined
-              }
+              footer={listFooter}
             />
           </>
         ) : detailQuery.payload ? (
@@ -681,34 +772,14 @@ export function DoctorReportTab({
               page={detailQuery.payload.page}
               pageSize={detailQuery.payload.pageSize}
               sort={patientPaging.sort}
-              onSortToggle={(_columnId, next) =>
-                setPatientPaging({ sort: next, page: 1 })
-              }
-              onPageChange={(page) => setPatientPaging({ page })}
-              onPageSizeChange={(pageSize) =>
-                setPatientPaging({ page: 1, pageSize })
-              }
-              onRowClick={(row) => setDetailPatientId(row.patientId)}
+              onSortToggle={handlePatientSortToggle}
+              onPageChange={handlePatientPageChange}
+              onPageSizeChange={handlePatientPageSizeChange}
+              onRowClick={handlePatientRowClick}
               ariaLabel={t("reports.doctorDetail.patients")}
               emptyTitle={t("reports.emptyState.noPatientsForDoctor")}
               emptyDescription={t("reports.emptyState.noPatientsDescription")}
-              footer={
-                detailSummary ? (
-                  <DoctorTotalsBand
-                    label={t("reports.table.totals")}
-                    patients={detailSummary.patients}
-                    admissions={detailSummary.admissions}
-                    billed={money(detailSummary.billed)}
-                    paid={money(detailSummary.paid)}
-                    labels={{
-                      patients: t("reports.table.patients"),
-                      admissions: t("reports.summary.admissions"),
-                      billed: t("reports.summary.totalBill"),
-                      paid: t("reports.summary.totalPaid"),
-                    }}
-                  />
-                ) : undefined
-              }
+              footer={detailFooter}
             />
           </>
         ) : (

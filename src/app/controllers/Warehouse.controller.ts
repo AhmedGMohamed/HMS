@@ -76,7 +76,7 @@ export class WarehouseController {
 				message: "Warehouse created successfully",
 				warehouse: newWarehouse
 			});
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Error creating warehouse:", error);
 
 			if (error.code === "23505") {
@@ -145,7 +145,7 @@ export class WarehouseController {
 				message: "Warehouse updated successfully",
 				warehouse: updatedWarehouse
 			});
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Error updating warehouse:", error);
 
 			if (error.code === "23505") {
@@ -179,7 +179,7 @@ export class WarehouseController {
 			res.status(200).json({
 				message: "Warehouse deleted successfully"
 			});
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Error deleting warehouse:", error);
 
 			if (error.message.includes("Cannot delete warehouse")) {

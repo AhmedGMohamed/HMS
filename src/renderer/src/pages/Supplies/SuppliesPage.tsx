@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  AlertTriangleIcon,
   HistoryIcon,
   PackageIcon,
   PlusIcon,
@@ -12,6 +13,7 @@ import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
@@ -35,7 +37,7 @@ import { UsageHistoryPanel } from "@/pages/Supplies/components/UsageHistory/Usag
 import { SupplyModal } from "@/pages/Supplies/modals/SupplyModal"
 import { SupplyShipmentModal } from "@/pages/Supplies/modals/SupplyShipmentModal"
 import { DispenseSupplyModal } from "@/pages/Supplies/modals/DispenseSupplyModal"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import type {
   EnrichedMedicalSupply,
   MedicalSupply,
@@ -175,6 +177,15 @@ export default function SuppliesPage() {
         </TabsList>
 
         <TabsContent value="inventory" className="flex flex-col gap-6">
+          {suppliesList.error ? (
+            <Alert variant="destructive" live="polite">
+              <AlertTriangleIcon aria-hidden className="size-4" />
+              <AlertTitle>{t("common.error")}</AlertTitle>
+              <AlertDescription>
+                {t("medicalSupplies.messages.loadSuppliesError")}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <SuppliesKpiStrip
             kpi={kpi}
             loading={suppliesList.loading}
@@ -326,9 +337,11 @@ export default function SuppliesPage() {
             suppliesList.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("medicalSupplies.messages.deleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("medicalSupplies.messages.deleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false
@@ -353,9 +366,11 @@ export default function SuppliesPage() {
             suppliesList.refresh()
           } catch (err) {
             toast.error(
-              err instanceof ApiError
-                ? err.message
-                : t("medicalSupplies.messages.shipmentDeleteError")
+              isNetworkError(err)
+                ? t("errors.networkError")
+                : err instanceof ApiError
+                  ? err.message
+                  : t("medicalSupplies.messages.shipmentDeleteError")
             )
             /* Keep the dialog open: the delete failed. */
             return false

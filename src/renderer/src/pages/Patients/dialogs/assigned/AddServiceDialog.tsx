@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
 import { PlusCircleIcon } from "lucide-react"
 
 import {
@@ -19,7 +18,6 @@ import { Input } from "@/components/ui/input"
 
 import { listServices } from "@/pages/Patients/api"
 import type { Service } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
 
 interface AddServiceDialogProps {
   open: boolean
@@ -54,7 +52,10 @@ export function AddServiceDialog({
         setServices(rows)
       })
       .catch(() => {
-        /* toast in catch handler below */
+        /* List failure is non-fatal. Add failures are toasted by
+           `useAssignedServices.addService`, which toasts and rethrows; the
+           dialog catch below stays silent on purpose (API errors) so the
+           user never sees two toasts for one failure. */
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -69,10 +70,9 @@ export function AddServiceDialog({
     try {
       await onAdded(serviceId)
       onOpenChange(false)
-    } catch (err) {
-      // Error toast fired by the upstream hook; surface ApiError message
-      // if available, otherwise fallback generic.
-      if (err instanceof ApiError) toast.error(err.message)
+    } catch {
+      /* The upstream hook already toasted the failure; keep the dialog open
+         and the single toast in the hook. */
     } finally {
       setAdding(null)
     }

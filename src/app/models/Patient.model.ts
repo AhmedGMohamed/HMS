@@ -311,7 +311,7 @@ export class PatientModel {
 			}
 
 			const updateFields: string[] = [];
-			const values: any[] = [];
+			const values: unknown[] = [];
 			let paramCount = 1;
 
 			if (data.diagnosis) {

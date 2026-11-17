@@ -20,7 +20,7 @@ import type {
   MedicalSupplyUsage,
   PatientHistory,
 } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { usePermission } from "@/hooks/usePermission"
 
 import { useBill } from "@/pages/Patients/hooks/billing/useBill"
@@ -218,9 +218,11 @@ export function BillingForm({
       billRes.refresh()
     } else if (payment.error) {
       toast.error(
-        payment.error instanceof ApiError
-          ? payment.error.message
-          : t("patients.messages.paymentRecordingError")
+        isNetworkError(payment.error)
+          ? t("errors.networkError")
+          : payment.error instanceof ApiError
+            ? payment.error.message
+            : t("patients.messages.paymentRecordingError")
       )
     }
   }
@@ -303,9 +305,11 @@ export function BillingForm({
             failed PUT can never read as success. */}
         {saver.error ? (
           <p role="alert" className="text-sm text-danger">
-            {saver.error instanceof ApiError
-              ? saver.error.message
-              : t("patients.messages.billingUpdateError")}
+            {isNetworkError(saver.error)
+              ? t("errors.networkError")
+              : saver.error instanceof ApiError
+                ? saver.error.message
+                : t("patients.messages.billingUpdateError")}
           </p>
         ) : null}
 

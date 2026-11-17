@@ -28,7 +28,7 @@ import {
   resolveLocale,
 } from "@/lib/utils"
 import { useUIStore } from "@/store/uiStore"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { listCompanyPayments } from "@/pages/Insurance/api"
 import type { InsurancePayment } from "@/pages/Insurance/types/insurance"
 
@@ -119,9 +119,11 @@ export function PaymentHistoryDialog({
           ) : error ? (
             <Alert variant="destructive">
               <AlertDescription>
-                {error instanceof ApiError
-                  ? error.message
-                  : t("insurance.messages.loadPaymentHistoryError")}
+                {isNetworkError(error)
+                  ? t("errors.networkError")
+                  : error instanceof ApiError
+                    ? error.message
+                    : t("insurance.messages.loadPaymentHistoryError")}
               </AlertDescription>
             </Alert>
           ) : payments.length === 0 ? (

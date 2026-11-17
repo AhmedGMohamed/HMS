@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/field"
 import { FieldInput } from "@/pages/Insurance/modals/FieldControls"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { clearBalance } from "@/pages/Insurance/api"
 import {
   clearBalanceSchema,
@@ -86,9 +86,11 @@ export function ClearBalanceModal({
       onSaved()
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t("insurance.messages.clearBalanceError")
+        isNetworkError(error)
+          ? t("errors.networkError")
+          : error instanceof ApiError
+            ? error.message
+            : t("insurance.messages.clearBalanceError")
       )
     } finally {
       setSubmitting(false)
