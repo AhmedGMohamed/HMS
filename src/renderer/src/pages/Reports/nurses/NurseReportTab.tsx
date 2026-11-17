@@ -100,10 +100,10 @@ export interface NurseReportTabProps {
   canExport: boolean
 }
 
-/** Server defaults: nurse list and patient table are both name-ascending. */
 /** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
 const getNurseRowId = (row: NurseReportRow) => row.nurseId
 
+/** Server defaults: nurse list and patient table are both name-ascending. */
 const INITIAL_LIST_PAGING: NurseQueryPaging = {
   page: 1,
   pageSize: 10,

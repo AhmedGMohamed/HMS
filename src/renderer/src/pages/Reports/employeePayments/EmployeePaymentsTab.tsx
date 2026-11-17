@@ -90,14 +90,14 @@ export interface EmployeePaymentsTabProps {
   canExport: boolean
 }
 
+/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
+const getEmployeePaymentRowId = (row: EmployeePaymentRow) => row.employeeId
+
 /**
  * The list opens with the largest net first — that is the server default
  * (`parseSort(..., "net", "desc")`), and matching it here means the first
  * request and the header arrow agree.
  */
-/** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
-const getEmployeePaymentRowId = (row: EmployeePaymentRow) => row.employeeId
-
 const INITIAL_PAGING: EmployeePaymentQueryPaging = {
   page: 1,
   pageSize: 10,

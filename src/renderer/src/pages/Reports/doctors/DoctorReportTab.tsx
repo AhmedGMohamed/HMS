@@ -104,10 +104,10 @@ export interface DoctorReportTabProps {
   canExport: boolean
 }
 
-/** Server defaults: doctor list and patient table are both name-ascending. */
 /** Module-scope so `DataTable`'s memo sees a stable `getRowId`. */
 const getDoctorRowId = (row: DoctorReportRow) => row.doctorId
 
+/** Server defaults: doctor list and patient table are both name-ascending. */
 const INITIAL_LIST_PAGING: DoctorQueryPaging = {
   page: 1,
   pageSize: 10,
