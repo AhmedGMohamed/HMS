@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { resolveLocale, toLocalDateString } from "@/lib/utils"
 import { useEnsureNamespace } from "@/hooks/useEnsureNamespace"
 import { useUIStore } from "@/store/uiStore"
@@ -254,9 +254,11 @@ export function ClockingPage() {
       refreshAll()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : t("clocking.messages.clockOutError"),
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("clocking.messages.clockOutError"),
       )
     } finally {
       setConfirmBusy(false)
@@ -282,9 +284,11 @@ export function ClockingPage() {
       refreshAll()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : t("clocking.messages.deleteError"),
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("clocking.messages.deleteError"),
       )
     } finally {
       setConfirmBusy(false)

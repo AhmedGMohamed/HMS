@@ -23,7 +23,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import {
   createClockIn,
   nowLocalInputValue,
@@ -156,9 +156,11 @@ export function ClockInModal({
       onSaved()
     } catch (err) {
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : t("clocking.messages.saveError")
+        isNetworkError(err)
+          ? t("errors.networkError")
+          : err instanceof ApiError
+            ? err.message
+            : t("clocking.messages.saveError")
       )
     } finally {
       setSubmitting(false)
