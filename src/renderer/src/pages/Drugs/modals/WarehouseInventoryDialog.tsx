@@ -18,6 +18,16 @@ import { useUIStore } from "@/store/uiStore"
 
 import type { DrugShipment, WarehouseWithStats } from "@/pages/Drugs/types/drug"
 
+/**
+ * `formatDate` throws a RangeError for invalid Dates (bad/blank ISO strings
+ * from the wire). Guard first and fall back to an em dash, matching the
+ * Insurance report pattern (`Number.isNaN(date.getTime())`).
+ */
+function formatShipmentDate(value: string, language: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "—" : formatDate(date, language)
+}
+
 interface WarehouseInventoryDialogProps {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -136,7 +146,7 @@ export function WarehouseInventoryDialog({
                   <td className="py-2 text-end">
                     {s.expiryDate ? (
                       <Badge variant="outline">
-                        {formatDate(new Date(s.expiryDate), language)}
+                        {formatShipmentDate(s.expiryDate, language)}
                       </Badge>
                     ) : (
                       "—"
