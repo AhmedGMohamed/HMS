@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/common/DataTable"
 import { EmptyState } from "@/components/common/EmptyState"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { formatCurrency, formatDate, formatNumber, resolveLocale } from "@/lib/utils"
 import { formatReportCell } from "@/pages/Vault/report/formatReportCell"
 import {
@@ -116,7 +116,11 @@ export function ReportDialog({ open, reportType, range, data, loading, error, la
 			await exporter()
 			toast.success(t("vault.messages.reportGeneratedSuccess"))
 		} catch (error) {
-			const message = error instanceof ApiError ? error.message : t("vault.messages.exportError")
+			const message = isNetworkError(error)
+				? t("errors.networkError")
+				: error instanceof ApiError
+					? error.message
+					: t("vault.messages.exportError")
 			toast.error(message, { duration: Number.POSITIVE_INFINITY })
 		} finally {
 			setExporting(false)
