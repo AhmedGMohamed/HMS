@@ -23,7 +23,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import {
   buildDoctorPayload,
   createDoctor,
@@ -315,7 +315,11 @@ export function EmployeeModal({
         onSaved()
       } catch (err) {
         setError(
-          err instanceof ApiError ? err.message : t("employees.messages.saveError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("employees.messages.saveError")
         )
       } finally {
         setSaving(false)
