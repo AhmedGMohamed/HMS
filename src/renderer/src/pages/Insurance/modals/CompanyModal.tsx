@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { createCompany, updateCompany } from "@/pages/Insurance/api"
 import { listAllPriceLists } from "@/pages/PriceLists/api"
 import {
@@ -136,9 +136,11 @@ export function CompanyModal({
       onSaved()
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t("insurance.messages.saveError")
+        isNetworkError(error)
+          ? t("errors.networkError")
+          : error instanceof ApiError
+            ? error.message
+            : t("insurance.messages.saveError")
       )
     } finally {
       setSubmitting(false)

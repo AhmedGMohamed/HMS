@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/field"
 import { FieldInput } from "@/pages/Insurance/modals/FieldControls"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { createPayment } from "@/pages/Insurance/api"
 import {
   paymentSchema,
@@ -109,9 +109,11 @@ export function PaymentModal({
       onSaved()
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t("insurance.messages.paymentError")
+        isNetworkError(error)
+          ? t("errors.networkError")
+          : error instanceof ApiError
+            ? error.message
+            : t("insurance.messages.paymentError")
       )
     } finally {
       setSubmitting(false)
