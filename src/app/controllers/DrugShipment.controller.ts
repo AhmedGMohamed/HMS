@@ -71,7 +71,7 @@ export class DrugShipmentController {
 			);
 
 			res.status(201).json(newShipment);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Drug not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message === "Warehouse not found") {
@@ -114,7 +114,7 @@ export class DrugShipmentController {
 				updateData
 			);
 			res.json(updatedShipment);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Shipment not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message === "Warehouse not found") {
@@ -131,7 +131,7 @@ export class DrugShipmentController {
 			const shipmentId = parseInt(req.params.id);
 			await DrugShipmentModel.deleteShipment(shipmentId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Shipment not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message.includes("Cannot delete shipment")) {

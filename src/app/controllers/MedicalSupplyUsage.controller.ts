@@ -94,7 +94,7 @@ export class MedicalSupplyUsageController {
             );
 
             res.status(201).json(result);
-        } catch (error: any) {
+        } catch (error) {
             if (
                 error.message === "Patient is not currently admitted" ||
                 error.message === "No active bill found for patient"
@@ -129,7 +129,7 @@ export class MedicalSupplyUsageController {
             );
 
             res.status(204).send();
-        } catch (error: any) {
+        } catch (error) {
             if (
                 error.message === "Medical supply usage not found for this patient" ||
                 error.message === "Patient is not currently admitted"

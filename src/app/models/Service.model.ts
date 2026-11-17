@@ -491,7 +491,7 @@ export class ServiceModel {
 
 			await query("COMMIT");
 			return result.rows[0];
-		} catch (error: any) {
+		} catch (error) {
 			await query("ROLLBACK");
 			if (
 				error.message === "Service not found" ||

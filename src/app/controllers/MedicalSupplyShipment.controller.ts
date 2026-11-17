@@ -17,7 +17,7 @@ export class MedicalSupplyShipmentController {
             const shipmentId = parseInt(req.params.id);
             const shipment = await MedicalSupplyShipmentModel.getShipmentById(shipmentId);
             res.json(shipment);
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Shipment not found") {
                 res.status(404).json({ error: error.message });
             } else {
@@ -42,7 +42,7 @@ export class MedicalSupplyShipmentController {
 
             const shipment = await MedicalSupplyShipmentModel.createShipment(req.body, userId);
             res.status(201).json(shipment);
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error creating shipment:", error);
             res.status(500).json({ error: "Failed to create shipment" });
         }
@@ -58,7 +58,7 @@ export class MedicalSupplyShipmentController {
 
             const shipment = await MedicalSupplyShipmentModel.updateShipment(shipmentId, req.body);
             res.json(shipment);
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Shipment not found") {
                 res.status(404).json({ error: error.message });
             } else {
@@ -73,7 +73,7 @@ export class MedicalSupplyShipmentController {
             const shipmentId = parseInt(req.params.id);
             await MedicalSupplyShipmentModel.deleteShipment(shipmentId);
             res.status(204).send();
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Shipment not found") {
                 res.status(404).json({ error: error.message });
             } else if (error.message === "Cannot delete shipment that has been used in transactions") {

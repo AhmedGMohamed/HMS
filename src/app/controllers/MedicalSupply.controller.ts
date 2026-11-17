@@ -80,7 +80,7 @@ export class MedicalSupplyController {
             );
 
             res.status(201).json(newSupply);
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Medical supply name already exists") {
                 res.status(409).json({ error: error.message });
             } else {
@@ -124,7 +124,7 @@ export class MedicalSupplyController {
                 updateData
             );
             res.json(updatedSupply);
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Medical supply not found") {
                 res.status(404).json({ error: error.message });
             } else if (error.message === "Medical supply name already exists") {
@@ -141,7 +141,7 @@ export class MedicalSupplyController {
             const supplyId = parseInt(req.params.id);
             await MedicalSupplyModel.deleteMedicalSupply(supplyId);
             res.status(204).send();
-        } catch (error: any) {
+        } catch (error) {
             if (error.message === "Medical supply not found") {
                 res.status(404).json({ error: error.message });
             } else if (error.message.includes("Cannot delete medical supply")) {

@@ -64,7 +64,7 @@ export class DrugTransactionController {
 			);
 
 			res.status(201).json(newTransaction);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Shipment not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message === "Insufficient quantity in shipment") {

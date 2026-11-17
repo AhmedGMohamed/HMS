@@ -22,7 +22,7 @@ export class PermissionController {
 				permissionData
 			);
 			res.status(201).json(newPermission);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Permission feature name already exists") {
 				res.status(409).json({ error: error.message });
 			} else {
@@ -44,7 +44,7 @@ export class PermissionController {
 				permissionData
 			);
 			res.json(updatedPermission);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Permission not found") {
 				res.status(404).json({ error: error.message });
 			} else if (
@@ -65,7 +65,7 @@ export class PermissionController {
 			const permissionId = parseInt(req.params.id);
 			await PermissionModel.deletePermission(permissionId);
 			res.status(204).send();
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Permission not found") {
 				res.status(404).json({ error: error.message });
 			} else if (error.message.includes("Cannot delete permission")) {

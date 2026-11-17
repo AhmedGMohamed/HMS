@@ -60,7 +60,7 @@ export class DrugUsageController {
 			);
 
 			res.status(201).json(newUsage);
-		} catch (error: any) {
+		} catch (error) {
 			if (
 				error.message === "Drug not found" ||
 				error.message === "Patient not found"
@@ -113,7 +113,7 @@ export class DrugUsageController {
 				updateData
 			);
 			res.json(updatedUsage);
-		} catch (error: any) {
+		} catch (error) {
 			if (error.message === "Drug usage not found") {
 				res.status(404).json({ error: error.message });
 			} else {

@@ -46,7 +46,7 @@ export const query = async (text: string, params?: unknown[]) => {
 		const parameters = params || [];
 		const result = await pool.query(text, parameters);
 		return result;
-	} catch (error: any) {
+	} catch (error) {
 		console.error("Database Error:", { error, text, params, stack: error.stack });
 		throw error;
 	}
