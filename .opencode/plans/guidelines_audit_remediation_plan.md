@@ -985,6 +985,20 @@ Run after the last page package lands.
 7. **Server batch-E changes are type-only and compiled-unverified at runtime** — run the jasmine suite against the test DB when available.
 8. **Deferred manual QA additions:** supplies fail-closed trade-off; settle empty-draft inline error; sell-modal live over-quantity warning; employees percent precision + Arabic digits; UserDashboard non-admin stats fetch; `PriceListModal` create-path 400 ambiguity; wizard step-by-step QA; Reports DevTools profiler; Clocking anomaly escalation.
 
+### Review follow-ups (post-wave review)
+
+1. **`useDrugsList.detailsLoading` is dead** — nothing consumes it, and the empty-window early return (`~:186`) never resets it. Wire it to an `aria-busy`/skeleton affordance or delete the state.
+2. **Server catch "narrowing" is lint-churn under `strict: false`** — `catch (error)` stays implicitly `any`; only `Role.controller.sendRoleError` truly narrows, and `connection.ts:47` reads `error.stack` on an unknown value. Consider `useUnknownInCatchVariables` or a shared `error instanceof Error` narrowing helper.
+3. **`UserDashboard` error banner** renders for a section that is not displayed, and the route's `auditLogger` (`dashboard.routes.ts:12`) now writes an audit row on every non-admin dashboard mount — confirm the intent or quiet the banner.
+4. Run `eslint --report-unused-disable-directives` once to prove the AdmissionsPanel / AddSupplyDialog disable removals were truly stale.
+5. **`formatDateSafe` typing**: accept the `Language` type from `useUIStore` instead of `string`; add a date-only UTC-midnight test (negative-offset zones render the previous day; pre-existing behaviour).
+6. **`formatPerPatientPay` widened `type` to `string`** — restore the narrow `PerPatientPaymentType | null` union so a typo'd type cannot silently format as currency.
+7. **Silent-catch hardening** in `AddServiceDialog` / `AddDrugQuantityDialog`: `console.error` non-`ApiError` throws or rethrow — currently safe only through the upstream hook's contract.
+8. **`PriceListModal` catch comment covers update only** — the same catch wraps create; state the create-path ambiguity explicitly or branch on the `list` prop.
+9. **Next-sweep candidate**: extract `toUserMessage(err, t, fallbackKey)` into `lib/errors.ts` (~45 files, ~90 sites) to collapse the duplicated ternary policy.
+10. **Cheap dedups**: Reports ClockIn/EmployeePayments duplicate footer JSX (Doctor/Nurse have `*TotalsBand`); `PatientReportTab` print path keys columns off the live draft range (key on `generated.range`); `EmployeeDetailSheet:368-376` local `formatCurrencySafe` duplicates `formatCurrency`; `AddDrugQuantityDialog` computes `total` twice — pass it once.
+11. **Environment**: the `origin` remote URL embeds a GitHub PAT (`ghp_…`) — rotate the token and rewrite the remote to a credential helper or SSH URL (user-side).
+
 ## 10. Global acceptance criteria
 
 A package is **done** only when all of the following hold:
