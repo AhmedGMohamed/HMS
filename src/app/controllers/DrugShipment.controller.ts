@@ -64,7 +64,7 @@ export class DrugShipmentController {
 				return
 			}
 
-			const userId = (req as any).user.userId;
+			const userId = req.user!.userId;
 			const newShipment = await DrugShipmentModel.createShipment(
 				shipmentData,
 				userId

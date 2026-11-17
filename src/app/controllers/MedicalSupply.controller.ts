@@ -73,7 +73,7 @@ export class MedicalSupplyController {
             }
 
             // Get user ID from authenticated request
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
             const newSupply = await MedicalSupplyModel.createMedicalSupply(
                 supplyData,
                 userId

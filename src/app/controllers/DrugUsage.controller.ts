@@ -53,7 +53,7 @@ export class DrugUsageController {
 				return;
 			}
 
-			const userId = (req as any).user.userId;
+			const userId = req.user!.userId;
 			const newUsage = await DrugUsageModel.createDrugUsage(
 				usageData,
 				userId

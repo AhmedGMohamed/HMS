@@ -30,7 +30,7 @@ export class MedicalSupplyShipmentController {
     async createShipment(req: Request, res: Response) {
         try {
             const { supply_id, warehouse_id, quantity, buy_price, expiry_date, prices } = req.body;
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
 
             if (!supply_id || !warehouse_id || !quantity || !buy_price || !prices) {
                 res.status(400).json({ error: "Missing required fields" });

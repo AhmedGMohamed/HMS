@@ -57,7 +57,7 @@ export class DrugTransactionController {
 				return
 			}
 
-			const userId = (req as any).user.userId;
+			const userId = req.user!.userId;
 			const newTransaction = await DrugTransactionModel.createTransaction(
 				transactionData,
 				userId

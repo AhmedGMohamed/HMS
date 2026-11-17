@@ -83,7 +83,7 @@ export class MedicalSupplyUsageController {
                 return;
             }
 
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
             const result = await PatientModel.addMedicalSupplyToPatient(
                 patientId,
                 supply_id,
@@ -120,7 +120,7 @@ export class MedicalSupplyUsageController {
         try {
             const patientId = parseInt(req.params.patientId);
             const usageId = parseInt(req.params.usageId);
-            const userId = (req as any).user.userId;
+            const userId = req.user!.userId;
 
             await PatientModel.removeMedicalSupplyFromPatient(
                 patientId,

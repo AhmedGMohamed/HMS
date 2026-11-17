@@ -92,7 +92,7 @@ export class DrugCardController {
 			}
 
 			// Get user ID from authenticated request
-			const userId = (req as any).user.userId;
+			const userId = req.user!.userId;
 			const newDrug = await DrugCardModel.createDrugCard(
 				drugData,
 				userId
