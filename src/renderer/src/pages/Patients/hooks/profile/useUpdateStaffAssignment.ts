@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { updatePatient } from "@/pages/Patients/api"
 import {
   dispatchStaffChanged,
@@ -93,9 +93,11 @@ export function useUpdateStaffAssignment(): UseUpdateStaffAssignmentResult {
               : new Error(String(err))
         setError(apiErr)
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.staffAssignmentUpdateError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.staffAssignmentUpdateError")
         )
         return null
       } finally {

@@ -10,7 +10,7 @@ import {
   stopService,
 } from "@/pages/Patients/api"
 import type { ActivePatientService } from "@/pages/Patients/types/patient"
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { useTranslation } from "react-i18next"
 import {
   dispatchBillChanged,
@@ -83,7 +83,11 @@ export function useAssignedServices(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError ? err.message : t("patients.messages.addServiceError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.addServiceError")
         )
         throw err
       }
@@ -105,7 +109,11 @@ export function useAssignedServices(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError ? err.message : t("patients.messages.stopServiceError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.stopServiceError")
         )
         throw err
       }
@@ -127,9 +135,11 @@ export function useAssignedServices(
         refresh()
       } catch (err) {
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.removeServiceError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.removeServiceError")
         )
         throw err
       }

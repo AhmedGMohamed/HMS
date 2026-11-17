@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { updateDiagnosis } from "@/pages/Patients/api"
 
 export interface UseUpdateDiagnosisResult {
@@ -53,9 +53,11 @@ export function useUpdateDiagnosis(
               : new Error(String(err))
         setError(apiErr)
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.diagnosisUpdateError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.diagnosisUpdateError")
         )
         return false
       } finally {

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
 
-import { ApiError } from "@/lib/errors"
+import { ApiError, isNetworkError } from "@/lib/errors"
 import { admitPatient } from "@/pages/Patients/api"
 import type { AdmitPatientPayload } from "@/pages/Patients/api"
 import type {
@@ -60,9 +60,11 @@ export function useAdmitPatient(patientId: number): UseAdmitPatientResult {
               : new Error(String(err))
         setError(apiErr)
         toast.error(
-          err instanceof ApiError
-            ? err.message
-            : t("patients.messages.admitPatientError")
+          isNetworkError(err)
+            ? t("errors.networkError")
+            : err instanceof ApiError
+              ? err.message
+              : t("patients.messages.admitPatientError")
         )
         return null
       } finally {
