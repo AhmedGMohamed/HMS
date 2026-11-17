@@ -9,6 +9,16 @@ import { formatNumber, formatCurrency, formatDate, resolveLocale } from "@/lib/u
 import { useUIStore } from "@/store/uiStore"
 import type { MedicalSupplyShipment } from "@/pages/Supplies/types/supply"
 
+/**
+ * `formatDate` throws a RangeError for invalid Dates (bad/blank ISO strings
+ * from the wire). Guard first and fall back to an em dash, matching the
+ * Insurance report pattern (`Number.isNaN(date.getTime())`).
+ */
+function formatShipmentDate(value: string, language: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "—" : formatDate(date, language)
+}
+
 interface SupplyShipmentRowProps {
   shipment: MedicalSupplyShipment
   onDispense: (shipment: MedicalSupplyShipment) => void
@@ -51,7 +61,7 @@ export function SupplyShipmentRow({
 
       {shipment.expiryDate ? (
         <Badge variant="outline">
-          {formatDate(new Date(shipment.expiryDate), language)}
+          {formatShipmentDate(shipment.expiryDate, language)}
         </Badge>
       ) : (
         <span className="text-sm text-muted-foreground">—</span>
