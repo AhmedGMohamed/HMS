@@ -52,7 +52,10 @@ export function AddServiceDialog({
         setServices(rows)
       })
       .catch(() => {
-        /* toast in catch handler below */
+        /* List failure is non-fatal. Add failures are toasted by
+           `useAssignedServices.addService`, which toasts and rethrows; the
+           dialog catch below stays silent on purpose (API errors) so the
+           user never sees two toasts for one failure. */
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
