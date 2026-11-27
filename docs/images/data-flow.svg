@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="580" viewBox="0 0 1080 580" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="df-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="df-arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0D9488"/>
+    </marker>
+  </defs>
+
+  <rect width="1080" height="580" rx="16" fill="#F8FAFC"/>
+  <rect x="1" y="1" width="1078" height="578" rx="15" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+
+  <text x="540" y="44" text-anchor="middle" font-size="22" font-weight="700" fill="#0F172A">HMS — Request &amp; Data Flow</text>
+  <text x="540" y="66" text-anchor="middle" font-size="13" fill="#64748B">Lifecycle of an authenticated API call, the audit trail, and client-side report generation</text>
+
+  <!-- ===== MAIN PIPELINE ===== -->
+  <text x="540" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#0D9488" letter-spacing="1">AUTHENTICATED API REQUEST</text>
+
+  <!-- 1 Renderer -->
+  <rect x="30" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#60A5FA" stroke-width="1.5"/>
+  <circle cx="36" cy="120" r="11" fill="#0D9488"/>
+  <text x="36" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">1</text>
+  <text x="105" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">React 19 Renderer</text>
+  <text x="105" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">user action · forms</text>
+  <text x="105" y="186" text-anchor="middle" font-size="10.5" fill="#64748B">zustand state</text>
+
+  <!-- 2 fetch -->
+  <rect x="204" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#60A5FA" stroke-width="1.5"/>
+  <circle cx="210" cy="120" r="11" fill="#0D9488"/>
+  <text x="210" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">2</text>
+  <text x="279" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">fetch /api/*</text>
+  <text x="279" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">auth cookie rides</text>
+  <text x="279" y="186" text-anchor="middle" font-size="10.5" fill="#64748B">with every call</text>
+
+  <!-- 3 middleware -->
+  <rect x="378" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <circle cx="384" cy="120" r="11" fill="#0D9488"/>
+  <text x="384" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">3</text>
+  <text x="453" y="146" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">Express 5</text>
+  <text x="453" y="164" text-anchor="middle" font-size="10.5" fill="#64748B">verifyToken (re-checks</text>
+  <text x="453" y="180" text-anchor="middle" font-size="10.5" fill="#64748B">live user state) →</text>
+  <text x="453" y="196" text-anchor="middle" font-size="10.5" fill="#64748B">RBAC permission check</text>
+
+  <!-- 4 controller -->
+  <rect x="552" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <circle cx="558" cy="120" r="11" fill="#0D9488"/>
+  <text x="558" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">4</text>
+  <text x="627" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">Controller</text>
+  <text x="627" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">validation · business</text>
+  <text x="627" y="186" text-anchor="middle" font-size="10.5" fill="#64748B">rules · transactions</text>
+
+  <!-- 5 model -->
+  <rect x="726" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#818CF8" stroke-width="1.5"/>
+  <circle cx="732" cy="120" r="11" fill="#0D9488"/>
+  <text x="732" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">5</text>
+  <text x="801" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">Model Layer</text>
+  <text x="801" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">SQL through the</text>
+  <text x="801" y="186" text-anchor="middle" font-size="10.5" fill="#64748B">pg connection pool</text>
+
+  <!-- 6 postgres -->
+  <rect x="900" y="120" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#818CF8" stroke-width="1.5"/>
+  <circle cx="906" cy="120" r="11" fill="#0D9488"/>
+  <text x="906" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF">6</text>
+  <text x="975" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">PostgreSQL</text>
+  <text x="975" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">30+ tables · 7 views</text>
+  <text x="975" y="186" text-anchor="middle" font-size="10.5" fill="#64748B">50+ indexes</text>
+
+  <!-- forward arrows -->
+  <path d="M 180 162 L 200 162" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#df-arrow)"/>
+  <path d="M 354 162 L 374 162" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#df-arrow)"/>
+  <path d="M 528 162 L 548 162" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#df-arrow)"/>
+  <path d="M 702 162 L 722 162" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#df-arrow)"/>
+  <path d="M 876 162 L 896 162" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#df-arrow)"/>
+
+  <!-- return path -->
+  <path d="M 975 208 L 975 244 L 105 244 L 105 212" fill="none" stroke="#0D9488" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#df-arrow-teal)"/>
+  <text x="540" y="236" text-anchor="middle" font-size="11" fill="#0D9488" font-weight="600">JSON response → zustand store → DataTable / charts / toast</text>
+
+  <!-- ===== AUDIT LANE ===== -->
+  <text x="540" y="300" text-anchor="middle" font-size="13" font-weight="700" fill="#B45309" letter-spacing="1">AUDIT TRAIL</text>
+
+  <rect x="30" y="318" width="280" height="60" rx="10" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="170" y="343" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Every mutating request</text>
+  <text x="170" y="361" text-anchor="middle" font-size="10.5" fill="#64748B">POST / PUT / DELETE across all modules</text>
+
+  <rect x="400" y="318" width="280" height="60" rx="10" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="540" y="343" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">auditLogger middleware</text>
+  <text x="540" y="361" text-anchor="middle" font-size="10.5" fill="#64748B">captures user · action · target</text>
+
+  <rect x="770" y="318" width="280" height="60" rx="10" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="910" y="343" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">AuditLog table</text>
+  <text x="910" y="361" text-anchor="middle" font-size="10.5" fill="#64748B">queryable history · login + last_login tracked</text>
+
+  <path d="M 310 348 L 396 348" fill="none" stroke="#B45309" stroke-width="2" marker-end="url(#df-arrow)"/>
+  <path d="M 680 348 L 766 348" fill="none" stroke="#B45309" stroke-width="2" marker-end="url(#df-arrow)"/>
+
+  <!-- ===== PDF LANE ===== -->
+  <text x="540" y="416" text-anchor="middle" font-size="13" font-weight="700" fill="#0D9488" letter-spacing="1">CLIENT-SIDE REPORT GENERATION</text>
+
+  <rect x="30" y="434" width="280" height="60" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="170" y="459" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Report data + Recharts SVG</text>
+  <text x="170" y="477" text-anchor="middle" font-size="10.5" fill="#64748B">tables, KPIs and charts from the UI</text>
+
+  <rect x="400" y="434" width="280" height="60" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="540" y="459" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">html-to-image → PNG</text>
+  <text x="540" y="477" text-anchor="middle" font-size="10.5" fill="#64748B">charts rasterized as snapshot bitmaps</text>
+
+  <rect x="770" y="434" width="280" height="60" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="910" y="459" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">@digicole/pdfmake-rtl</text>
+  <text x="910" y="477" text-anchor="middle" font-size="10.5" fill="#64748B">themed PDF · Arabic-ready · CSV alternative</text>
+
+  <path d="M 310 464 L 396 464" fill="none" stroke="#0D9488" stroke-width="2" marker-end="url(#df-arrow-teal)"/>
+  <path d="M 680 464 L 766 464" fill="none" stroke="#0D9488" stroke-width="2" marker-end="url(#df-arrow-teal)"/>
+
+  <!-- ===== SCHEDULED JOBS NOTE ===== -->
+  <rect x="30" y="516" width="1020" height="34" rx="8" fill="#EEF2FF" stroke="#A5B4FC"/>
+  <text x="540" y="538" text-anchor="middle" font-size="11.5" fill="#3730A3">Scheduled server jobs: patient service auto-renewal · drug/supply administration due-checks · employee payments &amp; deductions · daily staff assignments</text>
+</svg>

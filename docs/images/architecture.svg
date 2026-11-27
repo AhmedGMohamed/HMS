@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="640" viewBox="0 0 1080 640" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow-navy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0D9488"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="640" rx="16" fill="#F8FAFC"/>
+  <rect x="1" y="1" width="1078" height="638" rx="15" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="540" y="46" text-anchor="middle" font-size="22" font-weight="700" fill="#0F172A">HMS — System Architecture</text>
+  <text x="540" y="68" text-anchor="middle" font-size="13" fill="#64748B">Electron desktop client · Express 5 API server · PostgreSQL</text>
+
+  <!-- ============ CLIENT COLUMN ============ -->
+  <rect x="40" y="96" width="300" height="470" rx="12" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="190" y="126" text-anchor="middle" font-size="14" font-weight="700" fill="#1D4ED8">CLIENT</text>
+
+  <!-- Electron shell -->
+  <rect x="60" y="144" width="260" height="150" rx="10" fill="#FFFFFF" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="190" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">Electron 42 Shell</text>
+  <text x="190" y="190" text-anchor="middle" font-size="12" fill="#334155">Main process (Node.js)</text>
+  <rect x="76" y="204" width="228" height="30" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="224" text-anchor="middle" font-size="11.5" fill="#334155">config.html — server URL setup UI</text>
+  <rect x="76" y="240" width="228" height="30" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="260" text-anchor="middle" font-size="11.5" fill="#334155">electron-store — local settings</text>
+
+  <!-- React renderer -->
+  <rect x="60" y="314" width="260" height="226" rx="10" fill="#FFFFFF" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="190" y="340" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">React 19 Renderer (SPA)</text>
+  <text x="190" y="358" text-anchor="middle" font-size="11.5" fill="#64748B">built by Vite 8 → dist-electron/app/renderer</text>
+  <rect x="76" y="372" width="228" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="389" text-anchor="middle" font-size="11.5" fill="#334155">Tailwind v4 + Radix / Base UI</text>
+  <rect x="76" y="404" width="228" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="421" text-anchor="middle" font-size="11.5" fill="#334155">React Router 7 · permission-guarded routes</text>
+  <rect x="76" y="436" width="228" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="453" text-anchor="middle" font-size="11.5" fill="#334155">i18next — English / Arabic (RTL)</text>
+  <rect x="76" y="468" width="228" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="485" text-anchor="middle" font-size="11.5" fill="#334155">zustand stores · Recharts · Sonner</text>
+  <rect x="76" y="500" width="228" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="190" y="517" text-anchor="middle" font-size="11.5" fill="#334155">pdfmake (RTL) reports · html-to-image</text>
+
+  <!-- ============ SERVER COLUMN ============ -->
+  <rect x="390" y="96" width="300" height="470" rx="12" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="540" y="126" text-anchor="middle" font-size="14" font-weight="700" fill="#0F766E">API SERVER</text>
+
+  <rect x="410" y="144" width="260" height="70" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <text x="540" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">Express 5 (Node.js + TS)</text>
+  <text x="540" y="192" text-anchor="middle" font-size="11.5" fill="#64748B">src/app/index.ts · /api/* sub-routers</text>
+
+  <rect x="410" y="228" width="260" height="88" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <text x="540" y="250" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Middleware chain</text>
+  <rect x="424" y="260" width="232" height="24" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="540" y="276" text-anchor="middle" font-size="11" fill="#334155">cookie-parser · CORS</text>
+  <rect x="424" y="290" width="232" height="24" rx="6" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="540" y="306" text-anchor="middle" font-size="11" fill="#92400E">JWT auth (httpOnly cookie) + RBAC</text>
+
+  <rect x="410" y="330" width="260" height="88" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <text x="540" y="352" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Domain modules</text>
+  <text x="540" y="372" text-anchor="middle" font-size="11" fill="#334155">auth · patients · pharmacy · services</text>
+  <text x="540" y="388" text-anchor="middle" font-size="11" fill="#334155">vault · insurance · employees · clocking</text>
+  <text x="540" y="404" text-anchor="middle" font-size="11" fill="#334155">reports · users · roles · price lists…</text>
+
+  <rect x="410" y="432" width="260" height="58" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <text x="540" y="454" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Background jobs</text>
+  <text x="540" y="474" text-anchor="middle" font-size="11" fill="#334155">cron · scheduled DB maintenance</text>
+
+  <rect x="410" y="504" width="260" height="44" rx="10" fill="#FFFFFF" stroke="#2DD4BF" stroke-width="1.5"/>
+  <text x="540" y="522" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Static SPA hosting</text>
+  <text x="540" y="540" text-anchor="middle" font-size="11" fill="#64748B">serves renderer build · JSON 404 for /api</text>
+
+  <!-- ============ DATABASE COLUMN ============ -->
+  <rect x="740" y="96" width="300" height="470" rx="12" fill="#EEF2FF" stroke="#A5B4FC" stroke-width="1.5"/>
+  <text x="890" y="126" text-anchor="middle" font-size="14" font-weight="700" fill="#4338CA">DATA LAYER</text>
+
+  <rect x="760" y="144" width="260" height="120" rx="10" fill="#FFFFFF" stroke="#818CF8" stroke-width="1.5"/>
+  <text x="890" y="172" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">PostgreSQL</text>
+  <text x="890" y="194" text-anchor="middle" font-size="11.5" fill="#64748B">node-postgres (pg) connection pool</text>
+  <text x="890" y="214" text-anchor="middle" font-size="11" fill="#334155">separate env vars for prod / test</text>
+  <text x="890" y="234" text-anchor="middle" font-size="11" fill="#334155">schema initialized on first start</text>
+
+  <rect x="760" y="284" width="260" height="96" rx="10" fill="#FFFFFF" stroke="#818CF8" stroke-width="1.5"/>
+  <text x="890" y="308" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Bootstrap</text>
+  <text x="890" y="328" text-anchor="middle" font-size="11" fill="#334155">auto-create database if missing</text>
+  <text x="890" y="346" text-anchor="middle" font-size="11" fill="#334155">DDL + seed data on first start</text>
+
+  <rect x="760" y="400" width="260" height="146" rx="10" fill="#FFFFFF" stroke="#818CF8" stroke-width="1.5"/>
+  <text x="890" y="424" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">Managed data</text>
+  <text x="890" y="446" text-anchor="middle" font-size="11" fill="#334155">users · roles · permissions · employees</text>
+  <text x="890" y="464" text-anchor="middle" font-size="11" fill="#334155">patients · pharmacy · medical supplies</text>
+  <text x="890" y="482" text-anchor="middle" font-size="11" fill="#334155">services · vault · insurance · price lists</text>
+  <text x="890" y="500" text-anchor="middle" font-size="11" fill="#334155">clocking records · reports data</text>
+
+  <!-- ============ ARROWS ============ -->
+  <!-- Renderer -> Express -->
+  <path d="M 340 380 C 360 380 370 380 386 380" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#arrow-navy)"/>
+  <text x="363" y="370" text-anchor="middle" font-size="10.5" fill="#334155">HTTP /api/*</text>
+  <text x="363" y="398" text-anchor="middle" font-size="10.5" fill="#334155">+ JWT cookie</text>
+
+  <!-- Express -> Renderer (serves SPA) dashed -->
+  <path d="M 386 526 C 360 526 350 526 344 526" fill="none" stroke="#0D9488" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-teal)"/>
+
+  <!-- Electron -> Express loads serverUrl dashed -->
+  <path d="M 320 240 C 360 240 372 262 386 280" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-navy)"/>
+  <text x="330" y="232" text-anchor="middle" font-size="10.5" fill="#334155">loads serverUrl</text>
+
+  <!-- Express -> PostgreSQL -->
+  <path d="M 690 380 C 712 380 720 380 736 380" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#arrow-navy)"/>
+  <text x="713" y="368" text-anchor="middle" font-size="10.5" fill="#334155">pg Pool</text>
+
+  <!-- Footer note -->
+  <text x="540" y="612" text-anchor="middle" font-size="11.5" fill="#94A3B8">The MSI installer ships the client only — the Express server and PostgreSQL run on the configured host.</text>
+</svg>
